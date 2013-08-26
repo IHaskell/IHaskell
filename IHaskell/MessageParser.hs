@@ -1,7 +1,7 @@
 module IHaskell.MessageParser (parseMessage) where
 
 import BasicPrelude
-import Data.Aeson
+import Data.Aeson ((.:), decode, Result(..), Object)
 import Data.Aeson.Types (parse)
 
 import qualified Data.ByteString.Lazy as Lazy
@@ -40,10 +40,10 @@ parseHeader idents headerData parentHeader metadata = MessageHeader {
 parseMessage :: [ByteString] -> ByteString -> ByteString -> ByteString -> ByteString -> Message
 parseMessage idents headerData parentHeader metadata content = 
   let header = parseHeader idents headerData parentHeader metadata
-      body = parseMessageContent (msgType header) content in
-    Message header body
+      messageType = msgType header in
+    parseMessageContent messageType header content
 
-parseMessageContent :: MessageType -> ByteString -> MessageBody
-parseMessageContent "kernel_info_request" _ = KernelInfoRequest
-parseMessageContent other _ = error $ "Unknown message type " ++ textToString (show other)
+parseMessageContent :: MessageType -> MessageHeader -> ByteString -> Message
+parseMessageContent "kernel_info_request" header _ = KernelInfoRequest header
+parseMessageContent other _ _ = error $ "Unknown message type " ++ textToString (show other)
 
