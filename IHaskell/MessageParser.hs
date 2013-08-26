@@ -3,6 +3,7 @@ module IHaskell.MessageParser (parseMessage) where
 import BasicPrelude
 import Data.Aeson ((.:), decode, Result(..), Object)
 import Data.Aeson.Types (parse)
+import Data.ByteString.Char8 (unpack)
 
 import qualified Data.ByteString.Lazy as Lazy
 
@@ -45,5 +46,24 @@ parseMessage idents headerData parentHeader metadata content =
 
 parseMessageContent :: MessageType -> MessageHeader -> ByteString -> Message
 parseMessageContent "kernel_info_request" header _ = KernelInfoRequest header
-parseMessageContent other _ _ = error $ "Unknown message type " ++ textToString (show other)
+parseMessageContent "execute_request" header content = 
+  let parser obj = do
+        code <- obj .: "code"
+        silent <- obj .: "silent"
+        storeHistory <- obj .: "store_history"
+        allowStdin <- obj .: "allow_stdin"
 
+        return (code, silent, storeHistory, allowStdin)
+      Just (Success (code, silent, storeHistory, allowStdin)) = parse parser <$> decode (Lazy.fromStrict content) in
+    ExecuteRequest {
+      header = header,
+      getCode = code,
+      getSilent = silent,
+      getAllowStdin = allowStdin,
+      getStoreHistory = storeHistory,
+      getUserVariables = [],
+      getUserExpressions = []
+    }
+
+
+parseMessageContent other _ content = error $ "Unknown message type " ++ textToString (show other) ++ " with content " ++ unpack content

@@ -103,14 +103,33 @@ type Metadata = Map ByteString ByteString
 type MessageType = ByteString
 
 -- | A message used to communicate with the IPython frontend.
-data Message = KernelInfoRequest { header :: MessageHeader } |
-               KernelInfoReply { header :: MessageHeader }
-               deriving Show
+data Message 
+  -- | A request from a frontend for information about the kernel.
+  = KernelInfoRequest { header :: MessageHeader }
+  -- | A response to a KernelInfoRequest.
+  | KernelInfoReply { header :: MessageHeader }
+               
+  -- | A request from a frontend to execute some code.
+  | ExecuteRequest {
+      header :: MessageHeader,
+      getCode :: ByteString,             -- ^ The code string.
+      getSilent :: ByteString,           -- ^ Whether this should be silently executed.
+      getStoreHistory :: Bool,           -- ^ Whether to store this in history.
+      getAllowStdin :: Bool,             -- ^ Whether this code can use stdin.
+
+      getUserVariables :: [ByteString],  -- ^ Unused.
+      getUserExpressions :: [ByteString] -- ^ Unused.
+    }
+  | ExecuteReply {
+      header :: MessageHeader
+    }
+    deriving Show
 
 -- | Get the reply message type for a request message type.
 replyType :: MessageType -> MessageType
 replyType "kernel_info_request" = "kernel_info_reply"
-replyType messageType = error $ "Unknown message type" ++ unpack messageType
+replyType "execute_request" = "execute_reply"
+replyType messageType = error $ "Unknown message type " ++ unpack messageType
 
 -- Convert message bodies into JSON.
 instance ToJSON Message where
@@ -119,4 +138,10 @@ instance ToJSON Message where
                              "language_version" .= [7, 6, 2 :: Int],
                              "language" .= ("haskell" :: String)
                            ]
-  toJSON body = error $ "Do not know how to convert to JSON for message" ++ textToString (show body)
+
+  toJSON ExecuteReply{} = object [
+                             "status" .= ("abort" :: String),
+                             "execution_counter" .= (0 :: Int)
+                           ]
+
+  toJSON body = error $ "Do not know how to convert to JSON for message " ++ textToString (show body)

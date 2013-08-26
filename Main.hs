@@ -60,3 +60,6 @@ createReplyHeader parent = do
 
 replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> IO (KernelState, Message)
 replyTo _ KernelInfoRequest{} replyHeader state = return (state, KernelInfoReply { header = replyHeader })
+
+replyTo _ message@(ExecuteRequest{}) replyHeader state = do
+  return (state, ExecuteReply { header = replyHeader })

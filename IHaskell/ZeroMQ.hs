@@ -7,6 +7,8 @@ import Data.Aeson (encode, ToJSON)
 
 import qualified Data.ByteString.Lazy as ByteString
 
+import Debug.Trace
+
 import IHaskell.Types
 import IHaskell.MessageParser
 
@@ -150,7 +152,7 @@ sendMessage socket message = do
   sendPiece metadata
 
   -- Conclude transmission with content.
-  sendLast content
+  sendLast (trace (textToString $ show content) content)
 
   where
     sendPiece str = send socket str [SndMore]
