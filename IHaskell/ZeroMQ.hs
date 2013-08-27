@@ -7,8 +7,6 @@ import Data.Aeson (encode, ToJSON)
 
 import qualified Data.ByteString.Lazy as ByteString
 
-import Debug.Trace
-
 import IHaskell.Types
 import IHaskell.MessageParser
 
@@ -16,7 +14,8 @@ data ZeroMQInterface = Channels {
   shellRequestChannel :: Chan Message,
   shellReplyChannel :: Chan Message,
   controlRequestChannel :: Chan Message,
-  controlReplyChannel :: Chan Message
+  controlReplyChannel :: Chan Message,
+  iopubChannel :: Chan Message
   }
 
 -- | Start responding on all ZeroMQ channels used to communicate with IPython
@@ -29,7 +28,8 @@ serveProfile profile = do
   shellRepChan <- newChan
   controlReqChan <- dupChan shellReqChan
   controlRepChan <- dupChan shellRepChan
-  let channels = Channels shellReqChan shellRepChan controlReqChan controlRepChan
+  iopubChan <- newChan
+  let channels = Channels shellReqChan shellRepChan controlReqChan controlRepChan iopubChan
 
   -- Create the context in a separate thread that never finishes. If
   -- withContext or withSocket complete, the context or socket become invalid.
@@ -97,12 +97,12 @@ control channels socket = do
 stdin :: ZeroMQInterface -> Socket Router -> IO ()
 stdin _ socket = do
   next <- receive socket []
+  putStrLn "stdin:"
   print next
 
 iopub :: ZeroMQInterface -> Socket Pub -> IO ()
-iopub _ socket = do
-  next <- receive socket []
-  print next
+iopub channels socket =
+  readChan (iopubChannel channels) >>= sendMessage socket
 
 -- | Receive and parse a message from a socket.
 receiveMessage :: Socket a -> IO Message
@@ -152,7 +152,7 @@ sendMessage socket message = do
   sendPiece metadata
 
   -- Conclude transmission with content.
-  sendLast (trace (textToString $ show content) content)
+  sendLast content
 
   where
     sendPiece str = send socket str [SndMore]

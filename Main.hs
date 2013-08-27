@@ -61,5 +61,26 @@ createReplyHeader parent = do
 replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> IO (KernelState, Message)
 replyTo _ KernelInfoRequest{} replyHeader state = return (state, KernelInfoReply { header = replyHeader })
 
-replyTo _ message@(ExecuteRequest{}) replyHeader state = do
-  return (state, ExecuteReply { header = replyHeader })
+replyTo interface ExecuteRequest{} replyHeader state = do
+  -- Queue up a response on the iopub socket 
+  newMessageId <- UUID.nextRandom
+  let header =  MessageHeader {
+    identifiers = identifiers replyHeader,
+    parentHeader = Nothing,
+    metadata = Map.fromList [],
+    messageId = newMessageId,
+    sessionId = sessionId replyHeader,
+    username = username replyHeader,
+    msgType = "status"
+  }
+  let statusMsg = IopubStatus {
+    header = header,
+    executionState = Idle
+  }
+  writeChan (iopubChannel interface) statusMsg
+
+  return (state, ExecuteReply {
+    header = replyHeader,
+    executionCounter = 1,
+    status = "ok"
+  })

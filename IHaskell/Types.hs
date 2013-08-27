@@ -6,13 +6,15 @@ module IHaskell.Types (
   Username,
   Metadata,
   Port,
-  replyType
+  replyType,
+  ExecutionState (..),
   ) where
 
 import BasicPrelude
 import Data.Aeson
 import Data.UUID (UUID)
 import Data.ByteString.Char8 (unpack)
+import Data.Map (fromList)
 
 import qualified Data.UUID as UUID (fromString, toString)
 
@@ -121,9 +123,23 @@ data Message
       getUserExpressions :: [ByteString] -- ^ Unused.
     }
   | ExecuteReply {
-      header :: MessageHeader
+      header :: MessageHeader,
+      status :: String,
+      executionCounter :: Int
     }
+
+  | IopubStatus {
+      header :: MessageHeader,
+      executionState :: ExecutionState
+    }
+
     deriving Show
+
+data ExecutionState = Busy | Idle | Starting
+instance Show ExecutionState where
+  showsPrec _ Busy = ("busy" ++)
+  showsPrec _ Idle = ("idle" ++)
+  showsPrec _ Starting = ("starting" ++)
 
 -- | Get the reply message type for a request message type.
 replyType :: MessageType -> MessageType
@@ -139,9 +155,15 @@ instance ToJSON Message where
                              "language" .= ("haskell" :: String)
                            ]
 
-  toJSON ExecuteReply{} = object [
-                             "status" .= ("abort" :: String),
-                             "execution_counter" .= (0 :: Int)
+  toJSON ExecuteReply{ status = status, executionCounter = counter} = object [
+                             "status" .= status,
+                             "execution_count" .= counter,
+                             "payload" .= ([] :: [Int]),
+                             "user_variables" .= (fromList [] :: Map String String),
+                             "user_expressions" .= (fromList [] :: Map String String)
+                           ]
+  toJSON IopubStatus{ executionState = executionState } = object [
+                             "execution_state" .= show executionState
                            ]
 
   toJSON body = error $ "Do not know how to convert to JSON for message " ++ textToString (show body)
