@@ -1,27 +1,41 @@
-module IHaskell.ZeroMQ where
+-- | The "ZeroMQ" module abstracts away the low-level 0MQ based interface with IPython,
+-- | replacing it instead with a Haskell Channel based interface. The `serveProfile` function
+-- | takes a IPython profile specification and returns the channel interface to use.
+module IHaskell.ZeroMQ (
+  ZeroMQInterface (..),
+  serveProfile
+  ) where
 
 import BasicPrelude
 import Control.Concurrent
-import System.ZMQ
-import Data.Aeson (encode, ToJSON)
+import System.ZMQ3
+import Data.Aeson (encode)
 
 import qualified Data.ByteString.Lazy as ByteString
 
 import IHaskell.Types
-import IHaskell.MessageParser
+import IHaskell.Message.Parser
+import IHaskell.Message.Writer
 
+-- The channel interface to the ZeroMQ sockets. All communication is done via
+-- Messages, which are encoded and decoded into a lower level form before being
+-- transmitted to IPython. These channels should functionally serve as
+-- high-level sockets which speak Messages instead of ByteStrings.
 data ZeroMQInterface = Channels {
-  shellRequestChannel :: Chan Message,
-  shellReplyChannel :: Chan Message,
-  controlRequestChannel :: Chan Message,
-  controlReplyChannel :: Chan Message,
-  iopubChannel :: Chan Message
+  shellRequestChannel :: Chan Message,    -- ^ A channel populated with requests from the frontend.
+  shellReplyChannel :: Chan Message,      -- ^ Writing to this channel causes a reply to be sent to the frontend.
+  controlRequestChannel :: Chan Message,  -- ^ This channel is a duplicate of the shell request channel,
+                                         -- ^ though using a different backend socket.
+  controlReplyChannel :: Chan Message,    -- ^ This channel is a duplicate of the shell reply channel,
+                                         -- ^ though using a different backend socket.
+  iopubChannel :: Chan Message           -- ^ Writing to this channel sends an iopub message to the frontend.
   }
 
 -- | Start responding on all ZeroMQ channels used to communicate with IPython
 -- | via the provided profile. Return a set of channels which can be used to
 -- | communicate with IPython in a more structured manner. 
-serveProfile :: Profile -> IO ZeroMQInterface
+serveProfile :: Profile            -- ^ The profile specifying which ports and transport mechanisms to use.
+             -> IO ZeroMQInterface -- ^ The Message-channel based interface to the sockets.
 serveProfile profile = do
   -- Create all channels which will be used for higher level communication.
   shellReqChan <- newChan
@@ -33,7 +47,7 @@ serveProfile profile = do
 
   -- Create the context in a separate thread that never finishes. If
   -- withContext or withSocket complete, the context or socket become invalid.
-  forkIO $ withContext 1 $ \context -> do
+  forkIO $ withContext $ \context -> do
     -- Serve on all sockets.
     serveSocket context Rep    (hbPort profile)      $ heartbeat channels
     serveSocket context Router (controlPort profile) $ control   channels
@@ -49,20 +63,21 @@ serveProfile profile = do
 -- | Serve on a given socket in a separate thread. Bind the socket in the
 -- | given context and then loop the provided action, which should listen
 -- | on the socket and respond to any events.
-serveSocket :: SType a => Context -> a -> Port -> (Socket a -> IO b) -> IO ()
-serveSocket context socketType port action = void . forkIO $
+serveSocket :: SocketType a => Context -> a -> Port -> (Socket a -> IO b) -> IO ()
+serveSocket context socketType port action = void . forkIO $ do
   withSocket context socketType $ \socket -> do
     bind socket $ textToString $ "tcp://127.0.0.1:" ++ show port
     forever $ action socket
+  newEmptyMVar >>= takeMVar
 
 -- | Listener on the heartbeat port. Echoes back any data it was sent.
 heartbeat :: ZeroMQInterface -> Socket Rep -> IO ()
 heartbeat _ socket = do
   -- Read some data.
-  request <- receive socket []
+  request <- receive socket
 
   -- Send it back.
-  send socket request []
+  send socket [] request
 
 -- | Listener on the shell port. Reads messages and writes them to
 -- | the shell request channel. For each message, reads a response from the
@@ -94,20 +109,26 @@ control channels socket = do
     requestChannel = controlRequestChannel channels
     replyChannel =   controlReplyChannel channels
 
-stdin :: ZeroMQInterface -> Socket Router -> IO ()
-stdin _ socket = do
-  next <- receive socket []
-  putStrLn "stdin:"
-  print next
-
+-- | Send messages via the iopub channel.
+-- | This reads messages from the ZeroMQ iopub interface channel 
+-- | and then writes the messages to the socket.
 iopub :: ZeroMQInterface -> Socket Pub -> IO ()
 iopub channels socket =
   readChan (iopubChannel channels) >>= sendMessage socket
 
+stdin :: ZeroMQInterface -> Socket Router -> IO ()
+stdin _ socket = do
+  next <- receive socket
+  putStrLn "stdin:"
+  print next
+
 -- | Receive and parse a message from a socket.
-receiveMessage :: Socket a -> IO Message
+receiveMessage :: Receiver a => Socket a -> IO Message
 receiveMessage socket = do
+  -- Read all identifiers until the identifier/message delimiter.
+  putStrLn "starting idents"
   idents <- readUntil "<IDS|MSG>"
+  putStrLn "finished idents"
 
   -- Ignore the signature for now.
   void next
@@ -117,11 +138,17 @@ receiveMessage socket = do
   metadata <- next
   content <- next
 
-  return $ parseMessage idents headerData parentHeader metadata content
+  let message = parseMessage idents headerData parentHeader metadata content
+  return message
 
   where
     -- Receive the next piece of data from the socket.
-    next = receive socket []
+    next = do
+      putStrLn "Receiving"
+      a <- receive socket
+      putStr "received: "
+      print a
+      return a
 
     -- Read data from the socket until we hit an ending string.
     -- Return all data as a list, which does not include the ending string.
@@ -133,17 +160,20 @@ receiveMessage socket = do
         return $ line : remaining
       else return []
   
-
-sendMessage :: Socket a -> Message -> IO ()
+-- | Encode a message in the IPython ZeroMQ communication protocol 
+-- | and send it through the provided socket.
+sendMessage :: Sender a => Socket a -> Message -> IO ()
 sendMessage socket message = do
   let head = header message
-      parentHeaderStr = maybe "{}" encodeLazy $ parentHeader head
+      parentHeaderStr = maybe "{}" encodeStrict $ parentHeader head
       idents = identifiers head
       metadata = "{}"
-      content = encodeLazy message
-      headStr = encodeLazy head
+      content = encodeStrict message
+      headStr = encodeStrict head
 
   -- Send all pieces of the message.
+  putStr "idents: "
+  print idents
   mapM_ sendPiece idents
   sendPiece "<IDS|MSG>"
   sendPiece ""
@@ -155,8 +185,17 @@ sendMessage socket message = do
   sendLast content
 
   where
-    sendPiece str = send socket str [SndMore]
-    sendLast str = send socket str []
+    sendPiece str = do
+      putStr "Sending-piece:"
+      print str
+      send socket [SendMore] str
+      putStrLn "sent"
+    sendLast str = do
+      putStr "Sending-last:"
+      print str
+      send socket [] str
+      putStrLn "sent"
 
-    encodeLazy :: ToJSON a => a -> ByteString
-    encodeLazy = ByteString.toStrict . encode
+    -- Encode to a strict bytestring.
+    encodeStrict :: ToJSON a => a -> ByteString
+    encodeStrict = ByteString.toStrict . encode

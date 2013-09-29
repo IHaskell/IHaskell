@@ -58,7 +58,7 @@ executable IHaskell
   
   -- Other library packages from which modules are imported.
   build-depends:       base ==4.6.*,
-                       zeromq-haskell ==0.8.*,
+                       zeromq3-haskell ==0.5.*,
                        aeson ==0.6.*,
                        MissingH ==1.2.*,
                        basic-prelude ==0.3.*,

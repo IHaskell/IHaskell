@@ -14,11 +14,10 @@ import BasicPrelude
 import Data.Aeson
 import Data.UUID (UUID)
 import Data.ByteString.Char8 (unpack)
-import Data.Map (fromList)
 
 import qualified Data.UUID as UUID (fromString, toString)
 
--- Allos reading and writing UUIDs as Strings in JSON. 
+-- Allows reading and writing UUIDs as Strings in JSON. 
 instance FromJSON UUID where
   parseJSON val@(String _) = do
     -- Parse the string into a String.
@@ -115,7 +114,7 @@ data Message
   | ExecuteRequest {
       header :: MessageHeader,
       getCode :: ByteString,             -- ^ The code string.
-      getSilent :: ByteString,           -- ^ Whether this should be silently executed.
+      getSilent :: Bool,                 -- ^ Whether this should be silently executed.
       getStoreHistory :: Bool,           -- ^ Whether to store this in history.
       getAllowStdin :: Bool,             -- ^ Whether this code can use stdin.
 
@@ -135,35 +134,11 @@ data Message
 
     deriving Show
 
-data ExecutionState = Busy | Idle | Starting
-instance Show ExecutionState where
-  showsPrec _ Busy = ("busy" ++)
-  showsPrec _ Idle = ("idle" ++)
-  showsPrec _ Starting = ("starting" ++)
+-- | The execution state of the kernel.
+data ExecutionState = Busy | Idle | Starting deriving Show
 
 -- | Get the reply message type for a request message type.
 replyType :: MessageType -> MessageType
 replyType "kernel_info_request" = "kernel_info_reply"
 replyType "execute_request" = "execute_reply"
 replyType messageType = error $ "Unknown message type " ++ unpack messageType
-
--- Convert message bodies into JSON.
-instance ToJSON Message where
-  toJSON KernelInfoReply{} = object [
-                             "protocol_version" .= [4, 0 :: Int], -- current protocol version, major and minor
-                             "language_version" .= [7, 6, 2 :: Int],
-                             "language" .= ("haskell" :: String)
-                           ]
-
-  toJSON ExecuteReply{ status = status, executionCounter = counter} = object [
-                             "status" .= status,
-                             "execution_count" .= counter,
-                             "payload" .= ([] :: [Int]),
-                             "user_variables" .= (fromList [] :: Map String String),
-                             "user_expressions" .= (fromList [] :: Map String String)
-                           ]
-  toJSON IopubStatus{ executionState = executionState } = object [
-                             "execution_state" .= show executionState
-                           ]
-
-  toJSON body = error $ "Do not know how to convert to JSON for message " ++ textToString (show body)
