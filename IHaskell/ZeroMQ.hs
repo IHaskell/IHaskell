@@ -49,10 +49,10 @@ serveProfile profile = do
   -- withContext or withSocket complete, the context or socket become invalid.
   forkIO $ withContext $ \context -> do
     -- Serve on all sockets.
-    serveSocket context Rep    (hbPort profile)      $ heartbeat channels
-    serveSocket context Router (controlPort profile) $ control   channels
-    serveSocket context Router (shellPort profile)   $ shell     channels
-    serveSocket context Router (stdinPort profile)   $ stdin     channels
+    forkIO $ serveSocket context Rep    (hbPort profile)      $ heartbeat channels
+    forkIO $ serveSocket context Router (controlPort profile) $ control   channels
+    forkIO $ serveSocket context Router (shellPort profile)   $ shell     channels
+    forkIO $ serveSocket context Router (stdinPort profile)   $ stdin     channels
     serveSocket context Pub    (iopubPort profile)   $ iopub     channels
 
     -- Wait forever
@@ -64,11 +64,10 @@ serveProfile profile = do
 -- | given context and then loop the provided action, which should listen
 -- | on the socket and respond to any events.
 serveSocket :: SocketType a => Context -> a -> Port -> (Socket a -> IO b) -> IO ()
-serveSocket context socketType port action = void . forkIO $ do
+serveSocket context socketType port action = void $
   withSocket context socketType $ \socket -> do
     bind socket $ textToString $ "tcp://127.0.0.1:" ++ show port
     forever $ action socket
-  newEmptyMVar >>= takeMVar
 
 -- | Listener on the heartbeat port. Echoes back any data it was sent.
 heartbeat :: ZeroMQInterface -> Socket Rep -> IO ()
