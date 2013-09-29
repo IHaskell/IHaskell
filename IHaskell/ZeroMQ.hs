@@ -53,10 +53,12 @@ serveProfile profile = do
     forkIO $ serveSocket context Router (controlPort profile) $ control   channels
     forkIO $ serveSocket context Router (shellPort profile)   $ shell     channels
     forkIO $ serveSocket context Router (stdinPort profile)   $ stdin     channels
-    serveSocket context Pub    (iopubPort profile)   $ iopub     channels
 
-    -- Wait forever
-    newEmptyMVar >>= takeMVar
+    -- The context is reference counted in this thread only. Thus, the last
+    -- serveSocket cannot be asynchronous, because otherwise context would
+    -- be garbage collectable - since it would only be used in other
+    -- threads. Thus, keep the last serveSocket in this thread.
+    serveSocket context Pub    (iopubPort profile)   $ iopub     channels
 
   return channels
 

@@ -9,7 +9,9 @@ import qualified Data.ByteString.Lazy as ByteString
 import IHaskell.Types
 import IHaskell.ZeroMQ
 
-type KernelState = Int
+data KernelState = KernelState
+  { getExecutionCounter :: Int
+  }
 
 main ::  IO ()
 main = do
@@ -40,7 +42,9 @@ main = do
 
 -- Initial kernel state.
 initialKernelState :: IO (MVar KernelState)
-initialKernelState = newMVar 0
+initialKernelState = newMVar KernelState {
+  getExecutionCounter = 1
+  }
 
 -- | Create a new message header, given a parent message header.
 createReplyHeader :: MessageHeader -> IO MessageHeader
@@ -79,8 +83,10 @@ replyTo interface ExecuteRequest{} replyHeader state = do
   }
   writeChan (iopubChannel interface) statusMsg
 
-  return (state, ExecuteReply {
+  let counter = getExecutionCounter state
+      newState = state { getExecutionCounter = getExecutionCounter state + 1 }
+  return (newState, ExecuteReply {
     header = replyHeader,
-    executionCounter = 1,
+    executionCounter = counter,
     status = "ok"
   })
