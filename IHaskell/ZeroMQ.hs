@@ -120,16 +120,13 @@ iopub channels socket =
 stdin :: ZeroMQInterface -> Socket Router -> IO ()
 stdin _ socket = do
   next <- receive socket
-  putStrLn "stdin:"
-  print next
+  return ()
 
 -- | Receive and parse a message from a socket.
 receiveMessage :: Receiver a => Socket a -> IO Message
 receiveMessage socket = do
   -- Read all identifiers until the identifier/message delimiter.
-  putStrLn "starting idents"
   idents <- readUntil "<IDS|MSG>"
-  putStrLn "finished idents"
 
   -- Ignore the signature for now.
   void next
@@ -144,12 +141,7 @@ receiveMessage socket = do
 
   where
     -- Receive the next piece of data from the socket.
-    next = do
-      putStrLn "Receiving"
-      a <- receive socket
-      putStr "received: "
-      print a
-      return a
+    next = receive socket
 
     -- Read data from the socket until we hit an ending string.
     -- Return all data as a list, which does not include the ending string.
@@ -173,8 +165,6 @@ sendMessage socket message = do
       headStr = encodeStrict head
 
   -- Send all pieces of the message.
-  putStr "idents: "
-  print idents
   mapM_ sendPiece idents
   sendPiece "<IDS|MSG>"
   sendPiece ""
@@ -186,16 +176,8 @@ sendMessage socket message = do
   sendLast content
 
   where
-    sendPiece str = do
-      putStr "Sending-piece:"
-      print str
-      send socket [SendMore] str
-      putStrLn "sent"
-    sendLast str = do
-      putStr "Sending-last:"
-      print str
-      send socket [] str
-      putStrLn "sent"
+    sendPiece = send socket [SendMore]
+    sendLast = send socket []
 
     -- Encode to a strict bytestring.
     encodeStrict :: ToJSON a => a -> ByteString

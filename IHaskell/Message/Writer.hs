@@ -27,6 +27,10 @@ instance ToJSON Message where
   toJSON IopubStatus{ executionState = executionState } = object [
                              "execution_state" .= executionState
                            ]
+  toJSON IopubStream{ streamType = streamType, streamContent = content } = object [
+                             "data" .= content,
+                             "name" .= streamType
+                           ]
 
   toJSON body = error $ "Do not know how to convert to JSON for message " ++ textToString (show body)
 
@@ -34,6 +38,10 @@ instance ToJSON ExecutionState where
     toJSON Busy = String "busy"
     toJSON Idle = String "idle"
     toJSON Starting = String "starting"
+
+instance ToJSON StreamType where
+    toJSON Stdin = String "stdin"
+    toJSON Stdout = String "stdout"
 
 ----- Constants -----
 

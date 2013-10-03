@@ -8,6 +8,7 @@ module IHaskell.Types (
   Port,
   replyType,
   ExecutionState (..),
+  StreamType(..),
   ) where
 
 import BasicPrelude
@@ -23,10 +24,24 @@ instance FromJSON UUID where
     -- Parse the string into a String.
     str <- parseJSON val
 
+    -- If there are no hyphens, insert them.
+    -- This is an issue with IPython notebook.
+    let hyphenated = if '-' `notElem` str
+                     then hyphenate str
+                     else str
+
     -- Attempt to parse string into UUID.
-    case UUID.fromString str of
-      Nothing -> fail $ "Could not parse UUID from " ++ str
+    case UUID.fromString hyphenated of
+      Nothing -> fail $ "Could not parse UUID from " ++ hyphenated
       Just uuid -> return uuid
+
+    where
+      hyphenate str = concat [one, "-", two, "-", three, "-", four, "-", restFour]
+        where
+          (one, restOne) = splitAt 8 str
+          (two, restTwo) = splitAt 4 restOne
+          (three, restThree) = splitAt 4 restTwo
+          (four, restFour) = splitAt 4 restThree
 
   -- UUIDs must be Strings.
   parseJSON _ = mzero
@@ -132,10 +147,19 @@ data Message
       executionState :: ExecutionState
     }
 
+  | IopubStream {
+      header :: MessageHeader,
+      streamType :: StreamType,
+      streamContent :: String
+    }
+
     deriving Show
 
 -- | The execution state of the kernel.
 data ExecutionState = Busy | Idle | Starting deriving Show
+
+-- | Input and output streams.
+data StreamType = Stdin | Stdout deriving Show
 
 -- | Get the reply message type for a request message type.
 replyType :: MessageType -> MessageType

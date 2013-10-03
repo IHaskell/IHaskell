@@ -12,6 +12,10 @@ import qualified Data.ByteString.Lazy as Lazy
 import IHaskell.Types
 import IHaskell.Message.BodyParser
 
+import Debug.Trace
+
+debug x = trace (textToString $ show x) x
+
 ----- External interface -----
 
 -- | Parse a message from its ByteString components into a Message.
@@ -47,18 +51,18 @@ parseHeader idents headerData parentHeader metadata = MessageHeader {
   } where
       -- Decode the header data and the parent header data into JSON objects.
       -- If the parent header data is absent, just have Nothing instead.
-      Just result = decode $ Lazy.fromStrict headerData :: Maybe Object
+      Just result = debug $ decode $ Lazy.fromStrict headerData :: Maybe Object
       parentResult = if parentHeader == "{}"
                      then Nothing
                      else Just $ parseHeader idents parentHeader "{}" metadata
 
       -- Get the basic fields from the header.
-      Success (messageType, username, messageUUID, sessionUUID) = flip parse result $ \obj -> do 
+      Success (messageType, username, messageUUID, sessionUUID) = debug $ flip parse result $ \obj -> do 
         messType <- obj .: "msg_type"
         username <- obj .: "username"
         message <- obj .: "msg_id"
         session <- obj .: "session"
-        return (messType, username, message, session)
+        return (debug messType, debug username, debug message, debug session)
 
       -- Get metadata as a simple map.
       Just metadataMap = decode $ Lazy.fromStrict metadata :: Maybe (Map ByteString ByteString)

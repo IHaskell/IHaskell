@@ -68,6 +68,7 @@ replyTo _ KernelInfoRequest{} replyHeader state = return (state, KernelInfoReply
 replyTo interface ExecuteRequest{} replyHeader state = do
   -- Queue up a response on the iopub socket 
   newMessageId <- UUID.nextRandom
+  newMessageId2 <- UUID.nextRandom
   let header =  MessageHeader {
     identifiers = identifiers replyHeader,
     parentHeader = Nothing,
@@ -81,6 +82,17 @@ replyTo interface ExecuteRequest{} replyHeader state = do
     header = header,
     executionState = Idle
   }
+  let streamHeader =  MessageHeader {
+    identifiers = identifiers replyHeader,
+    parentHeader = Nothing,
+    metadata = Map.fromList [],
+    messageId = newMessageId2,
+    sessionId = sessionId replyHeader,
+    username = username replyHeader,
+    msgType = "stream"
+  }
+  let streamMsg = IopubStream streamHeader Stdout $ textToString $ "Hello! " ++ show (getExecutionCounter state)
+  writeChan (iopubChannel interface) streamMsg
   writeChan (iopubChannel interface) statusMsg
 
   let counter = getExecutionCounter state
