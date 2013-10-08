@@ -9,12 +9,14 @@ module IHaskell.Types (
   replyType,
   ExecutionState (..),
   StreamType(..),
+  MimeType(..),
   ) where
 
 import BasicPrelude
 import Data.Aeson
 import Data.UUID (UUID)
 import Data.ByteString.Char8 (unpack)
+import Data.Char (toUpper)
 
 import qualified Data.UUID as UUID (fromString, toString)
 
@@ -48,7 +50,7 @@ instance FromJSON UUID where
 
 instance ToJSON UUID where
   -- Convert a UUID to [Char] and then to Text.
-  toJSON = String . fromString . UUID.toString
+  toJSON = String . fromString . map toUpper . filter (/= '-') . UUID.toString
 
 -- | A TCP port.
 type Port = Int
@@ -153,10 +155,34 @@ data Message
       streamContent :: String
     }
 
+  | IopubDisplayData {
+      header :: MessageHeader,
+      source :: String,
+      displayData :: [(MimeType, String)]
+    }
+
+  | IopubPythonOut {
+      header :: MessageHeader,
+      reprText :: String,
+      executionCount :: Int
+    }
+
+  | IopubPythonIn {
+      header :: MessageHeader,
+      inCode :: String,
+      executionCount :: Int
+    }
     deriving Show
 
 -- | The execution state of the kernel.
 data ExecutionState = Busy | Idle | Starting deriving Show
+
+-- | Possible MIME types for the display data.
+data MimeType = PlainText | MimeHtml
+
+instance Show MimeType where
+  showsPrec prec PlainText str = str ++ "text/plain"
+  showsPrec prec MimeHtml str = str ++ "text/html"
 
 -- | Input and output streams.
 data StreamType = Stdin | Stdout deriving Show

@@ -31,8 +31,25 @@ instance ToJSON Message where
                              "data" .= content,
                              "name" .= streamType
                            ]
+  toJSON IopubDisplayData{ source = src, displayData = datas } = object [
+                             "source" .= src,
+                             "metadata" .= object [],
+                             "data" .= object  (map (uncurry displayDataToJson) datas)
+                           ]
+  toJSON IopubPythonOut{ executionCount = execCount, reprText = reprText } = object [
+                             "data" .= object ["text/plain" .= reprText, 
+                                               "text/html" .= reprText],
+                             "execution_count" .= execCount,
+                             "metadata" .= object []
+                           ]
+  toJSON IopubPythonIn{ executionCount = execCount, inCode = code } = object [
+                             "execution_count" .= execCount,
+                             "code" .= code
+                           ]
 
   toJSON body = error $ "Do not know how to convert to JSON for message " ++ textToString (show body)
+
+displayDataToJson mimeType dataStr = (show mimeType .= dataStr)
 
 instance ToJSON ExecutionState where
     toJSON Busy = String "busy"

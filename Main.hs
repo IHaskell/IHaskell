@@ -69,31 +69,56 @@ replyTo interface ExecuteRequest{} replyHeader state = do
   -- Queue up a response on the iopub socket 
   newMessageId <- UUID.nextRandom
   newMessageId2 <- UUID.nextRandom
+  newMessageId3 <- UUID.nextRandom
+  newMessageId4 <- UUID.nextRandom
+  newMessageId5 <- UUID.nextRandom
+  newMessageId6 <- UUID.nextRandom
+
   let header =  MessageHeader {
     identifiers = identifiers replyHeader,
-    parentHeader = Nothing,
+    parentHeader = parentHeader replyHeader,
     metadata = Map.fromList [],
     messageId = newMessageId,
     sessionId = sessionId replyHeader,
     username = username replyHeader,
     msgType = "status"
   }
+  let busyHeader = header { messageId = newMessageId5 }
   let statusMsg = IopubStatus {
     header = header,
     executionState = Idle
   }
+  let busyMsg = IopubStatus {
+    header = busyHeader,
+    executionState = Busy
+  }
   let streamHeader =  MessageHeader {
     identifiers = identifiers replyHeader,
-    parentHeader = Nothing,
+    parentHeader = parentHeader replyHeader,
     metadata = Map.fromList [],
     messageId = newMessageId2,
     sessionId = sessionId replyHeader,
     username = username replyHeader,
     msgType = "stream"
   }
+  let dispHeader =  MessageHeader {
+    identifiers = identifiers replyHeader,
+    parentHeader = parentHeader replyHeader,
+    metadata = Map.fromList [],
+    messageId = newMessageId3,
+    sessionId = sessionId replyHeader,
+    username = username replyHeader,
+    msgType = "display_data"
+  }
+  let pyoutHeader = dispHeader { messageId = newMessageId4, msgType = "pyout" }
+  let pyinHeader = dispHeader { messageId = newMessageId6, msgType = "pyin" }
+
+  let things = textToString "$a+b=c$"
   let streamMsg = IopubStream streamHeader Stdout $ textToString $ "Hello! " ++ show (getExecutionCounter state)
-  writeChan (iopubChannel interface) streamMsg
-  writeChan (iopubChannel interface) statusMsg
+  let displayMsg = IopubDisplayData dispHeader "haskell" [(PlainText, things), (MimeHtml, things)]
+      pyoutMsg = IopubPythonOut pyoutHeader ("Iopub python out " ++ textToString (show (getExecutionCounter state))) (getExecutionCounter state)
+      pyinMsg = IopubPythonIn pyinHeader "Who the fuck cares?!" (getExecutionCounter state)
+  mapM_ (writeChan $ iopubChannel interface) [pyinMsg, busyMsg, displayMsg, pyoutMsg, statusMsg]
 
   let counter = getExecutionCounter state
       newState = state { getExecutionCounter = getExecutionCounter state + 1 }
