@@ -10,47 +10,13 @@ module IHaskell.Types (
   ExecutionState (..),
   StreamType(..),
   MimeType(..),
+  DisplayData(..),
   ) where
 
-import BasicPrelude
+import ClassyPrelude
 import Data.Aeson
-import Data.UUID (UUID)
-import Data.ByteString.Char8 (unpack)
-import Data.Char (toUpper)
+import IHaskell.Message.UUID
 
-import qualified Data.UUID as UUID (fromString, toString)
-
--- Allows reading and writing UUIDs as Strings in JSON. 
-instance FromJSON UUID where
-  parseJSON val@(String _) = do
-    -- Parse the string into a String.
-    str <- parseJSON val
-
-    -- If there are no hyphens, insert them.
-    -- This is an issue with IPython notebook.
-    let hyphenated = if '-' `notElem` str
-                     then hyphenate str
-                     else str
-
-    -- Attempt to parse string into UUID.
-    case UUID.fromString hyphenated of
-      Nothing -> fail $ "Could not parse UUID from " ++ hyphenated
-      Just uuid -> return uuid
-
-    where
-      hyphenate str = concat [one, "-", two, "-", three, "-", four, "-", restFour]
-        where
-          (one, restOne) = splitAt 8 str
-          (two, restTwo) = splitAt 4 restOne
-          (three, restThree) = splitAt 4 restTwo
-          (four, restFour) = splitAt 4 restThree
-
-  -- UUIDs must be Strings.
-  parseJSON _ = mzero
-
-instance ToJSON UUID where
-  -- Convert a UUID to [Char] and then to Text.
-  toJSON = String . fromString . map toUpper . filter (/= '-') . UUID.toString
 
 -- | A TCP port.
 type Port = Int
@@ -158,7 +124,7 @@ data Message
   | IopubDisplayData {
       header :: MessageHeader,
       source :: String,
-      displayData :: [(MimeType, String)]
+      displayData :: [DisplayData]
     }
 
   | IopubPythonOut {
@@ -180,9 +146,12 @@ data ExecutionState = Busy | Idle | Starting deriving Show
 -- | Possible MIME types for the display data.
 data MimeType = PlainText | MimeHtml
 
+-- | Data for display: a string with associated MIME type.
+data DisplayData = Display MimeType String deriving Show
+
 instance Show MimeType where
-  showsPrec prec PlainText str = str ++ "text/plain"
-  showsPrec prec MimeHtml str = str ++ "text/html"
+  show PlainText = "text/plain"
+  show MimeHtml  = "text/html"
 
 -- | Input and output streams.
 data StreamType = Stdin | Stdout deriving Show
@@ -191,4 +160,4 @@ data StreamType = Stdin | Stdout deriving Show
 replyType :: MessageType -> MessageType
 replyType "kernel_info_request" = "kernel_info_reply"
 replyType "execute_request" = "execute_reply"
-replyType messageType = error $ "Unknown message type " ++ unpack messageType
+replyType messageType = error $ "Unknown message type " ++ show messageType

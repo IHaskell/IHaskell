@@ -119,7 +119,7 @@ iopub channels socket =
 
 stdin :: ZeroMQInterface -> Socket Router -> IO ()
 stdin _ socket = do
-  next <- receive socket
+  void $ receive socket
   return ()
 
 -- | Receive and parse a message from a socket.

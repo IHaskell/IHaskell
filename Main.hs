@@ -1,13 +1,12 @@
-import BasicPrelude
-import Control.Concurrent
+import ClassyPrelude
+import Control.Concurrent.Chan
 import Data.Aeson
 
 import qualified Data.Map as Map
-import qualified Data.UUID.V4 as UUID (nextRandom)
-import qualified Data.ByteString.Lazy as ByteString
 
 import IHaskell.Types
 import IHaskell.ZeroMQ
+import qualified IHaskell.Message.UUID as UUID
 
 data KernelState = KernelState
   { getExecutionCounter :: Int
@@ -19,7 +18,7 @@ main = do
   [profileSrc] <- getArgs
 
   -- Parse the profile file.
-  Just profile <- liftM decode $ ByteString.readFile (textToString profileSrc)
+  Just profile <- liftM decode $ readFile $ fpFromText profileSrc
 
   -- Serve on all sockets and ports defined in the profile.
   interface <- serveProfile profile
@@ -50,7 +49,7 @@ initialKernelState = newMVar KernelState {
 createReplyHeader :: MessageHeader -> IO MessageHeader
 createReplyHeader parent = do
   -- Generate a new message UUID.
-  newMessageId <- UUID.nextRandom
+  newMessageId <- UUID.random
 
   return MessageHeader {
     identifiers = identifiers parent,
@@ -67,23 +66,18 @@ replyTo _ KernelInfoRequest{} replyHeader state = return (state, KernelInfoReply
 
 replyTo interface ExecuteRequest{} replyHeader state = do
   -- Queue up a response on the iopub socket 
-  newMessageId <- UUID.nextRandom
-  newMessageId2 <- UUID.nextRandom
-  newMessageId3 <- UUID.nextRandom
-  newMessageId4 <- UUID.nextRandom
-  newMessageId5 <- UUID.nextRandom
-  newMessageId6 <- UUID.nextRandom
+  uuid1 : uuid2 : uuid3 : uuid4 : uuid5 : uuid6 : []   <- UUID.randoms 6
 
   let header =  MessageHeader {
     identifiers = identifiers replyHeader,
     parentHeader = parentHeader replyHeader,
     metadata = Map.fromList [],
-    messageId = newMessageId,
+    messageId = uuid1,
     sessionId = sessionId replyHeader,
     username = username replyHeader,
     msgType = "status"
   }
-  let busyHeader = header { messageId = newMessageId5 }
+  let busyHeader = header { messageId = uuid5 }
   let statusMsg = IopubStatus {
     header = header,
     executionState = Idle
@@ -96,7 +90,7 @@ replyTo interface ExecuteRequest{} replyHeader state = do
     identifiers = identifiers replyHeader,
     parentHeader = parentHeader replyHeader,
     metadata = Map.fromList [],
-    messageId = newMessageId2,
+    messageId = uuid2,
     sessionId = sessionId replyHeader,
     username = username replyHeader,
     msgType = "stream"
@@ -105,18 +99,18 @@ replyTo interface ExecuteRequest{} replyHeader state = do
     identifiers = identifiers replyHeader,
     parentHeader = parentHeader replyHeader,
     metadata = Map.fromList [],
-    messageId = newMessageId3,
+    messageId = uuid3,
     sessionId = sessionId replyHeader,
     username = username replyHeader,
     msgType = "display_data"
   }
-  let pyoutHeader = dispHeader { messageId = newMessageId4, msgType = "pyout" }
-  let pyinHeader = dispHeader { messageId = newMessageId6, msgType = "pyin" }
+  let pyoutHeader = dispHeader { messageId = uuid4, msgType = "pyout" }
+  let pyinHeader = dispHeader { messageId = uuid6, msgType = "pyin" }
 
-  let things = textToString "$a+b=c$"
-  let streamMsg = IopubStream streamHeader Stdout $ textToString $ "Hello! " ++ show (getExecutionCounter state)
-  let displayMsg = IopubDisplayData dispHeader "haskell" [(PlainText, things), (MimeHtml, things)]
-      pyoutMsg = IopubPythonOut pyoutHeader ("Iopub python out " ++ textToString (show (getExecutionCounter state))) (getExecutionCounter state)
+  let things = "$a+b=c$"
+  let streamMsg = IopubStream streamHeader Stdout $ "Hello! " ++ show (getExecutionCounter state)
+  let displayMsg = IopubDisplayData dispHeader "haskell" [Display PlainText things, Display MimeHtml things]
+      pyoutMsg = IopubPythonOut pyoutHeader ("Iopub python out " ++ (show (getExecutionCounter state))) (getExecutionCounter state)
       pyinMsg = IopubPythonIn pyinHeader "Who the fuck cares?!" (getExecutionCounter state)
   mapM_ (writeChan $ iopubChannel interface) [pyinMsg, busyMsg, displayMsg, pyoutMsg, statusMsg]
 

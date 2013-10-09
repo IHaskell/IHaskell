@@ -3,34 +3,28 @@
 -- | `parseMessage`, which should only be used in the low-level 0MQ interface.
 module IHaskell.Message.Parser (parseMessage) where
 
-import BasicPrelude
+import ClassyPrelude
 import Data.Aeson ((.:), decode, Result(..), Object)
 import Data.Aeson.Types (parse)
 
 import qualified Data.ByteString.Lazy as Lazy
 
 import IHaskell.Types
-import IHaskell.Message.BodyParser
-
-import Debug.Trace
-
-debug x = trace (textToString $ show x) x
 
 ----- External interface -----
 
 -- | Parse a message from its ByteString components into a Message.
 parseMessage :: [ByteString] -- ^ The list of identifiers sent with the message.
-             -> ByteString   -- ^ The header data.
-             -> ByteString   -- ^ The parent header, which is just "{}" if there is no header.
-             -> ByteString   -- ^ The metadata map, also "{}" for an empty map.
-             -> ByteString   -- ^ The message content.
-             -> Message      -- ^ A parsed message.
+              -> ByteString   -- ^ The header data.
+              -> ByteString   -- ^ The parent header, which is just "{}" if there is no header.
+              -> ByteString   -- ^ The metadata map, also "{}" for an empty map.
+              -> ByteString   -- ^ The message content.
+              -> Message      -- ^ A parsed message.
 parseMessage idents headerData parentHeader metadata content = 
   let header = parseHeader idents headerData parentHeader metadata
-      messageType = msgType header in
-    (parser messageType $ Lazy.fromStrict content) {
-      header = header                      
-    }
+      messageType = msgType header
+      messageWithoutHeader = parser messageType $ Lazy.fromStrict content in
+    messageWithoutHeader { header = header }
 
 ----- Module internals -----
 
@@ -51,26 +45,61 @@ parseHeader idents headerData parentHeader metadata = MessageHeader {
   } where
       -- Decode the header data and the parent header data into JSON objects.
       -- If the parent header data is absent, just have Nothing instead.
-      Just result = debug $ decode $ Lazy.fromStrict headerData :: Maybe Object
+      Just result = decode $ Lazy.fromStrict headerData :: Maybe Object
       parentResult = if parentHeader == "{}"
                      then Nothing
                      else Just $ parseHeader idents parentHeader "{}" metadata
 
       -- Get the basic fields from the header.
-      Success (messageType, username, messageUUID, sessionUUID) = debug $ flip parse result $ \obj -> do 
+      Success (messageType, username, messageUUID, sessionUUID) = flip parse result $ \obj -> do 
         messType <- obj .: "msg_type"
         username <- obj .: "username"
         message <- obj .: "msg_id"
         session <- obj .: "session"
-        return (debug messType, debug username, debug message, debug session)
+        return (messType, username, message, session)
 
       -- Get metadata as a simple map.
       Just metadataMap = decode $ Lazy.fromStrict metadata :: Maybe (Map ByteString ByteString)
 
+noHeader :: MessageHeader
+noHeader = error "No header created"
+
 parser :: MessageType            -- ^ The message type being parsed.
-      -> LByteString -> Message   -- The parser that converts the body into a message.
-                                -- This message should have an undefined
-                                -- header.
+       -> LByteString -> Message   -- The parser that converts the body into a message.
+                                 -- This message should have an undefined
+                                 -- header.
 parser "kernel_info_request"  = kernelInfoRequestParser
 parser "execute_request"      = executeRequestParser
-parser other = error $ "Unknown message type " ++ textToString (show other)
+parser other = error $ "Unknown message type " ++ show other
+
+-- | Parse a kernel info request.
+-- A kernel info request has no auxiliary information, so ignore the body.
+kernelInfoRequestParser :: LByteString -> Message
+kernelInfoRequestParser _ = KernelInfoRequest { header = noHeader }
+
+-- | Parse an execute request.
+-- Fields used are:
+--  1. "code": the code to execute.
+--  2. "silent": whether to execute silently.
+--  3. "store_history": whether to include this in history.
+--  4. "allow_stdin": whether to allow reading from stdin for this code.
+executeRequestParser :: LByteString -> Message
+executeRequestParser content = 
+  let parser obj = do
+        code <- obj .: "code"
+        silent <- obj .: "silent"
+        storeHistory <- obj .: "store_history"
+        allowStdin <- obj .: "allow_stdin"
+
+        return (code, silent, storeHistory, allowStdin)
+      Just decoded = decode content
+      Success (code, silent, storeHistory, allowStdin) = parse parser decoded in
+    ExecuteRequest {
+      header = noHeader,
+      getCode = code,
+      getSilent = silent,
+      getAllowStdin = allowStdin,
+      getStoreHistory = storeHistory,
+      getUserVariables = [],
+      getUserExpressions = []
+    }

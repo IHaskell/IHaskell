@@ -3,9 +3,8 @@ module IHaskell.Message.Writer (
   ToJSON(..)
 )  where
 
-import BasicPrelude
+import ClassyPrelude
 import Data.Aeson
-import Data.Map (fromList)
 
 import IHaskell.Types
 
@@ -34,8 +33,9 @@ instance ToJSON Message where
   toJSON IopubDisplayData{ source = src, displayData = datas } = object [
                              "source" .= src,
                              "metadata" .= object [],
-                             "data" .= object  (map (uncurry displayDataToJson) datas)
+                             "data" .= object  (map displayDataToJson datas)
                            ]
+
   toJSON IopubPythonOut{ executionCount = execCount, reprText = reprText } = object [
                              "data" .= object ["text/plain" .= reprText, 
                                                "text/html" .= reprText],
@@ -47,23 +47,28 @@ instance ToJSON Message where
                              "code" .= code
                            ]
 
-  toJSON body = error $ "Do not know how to convert to JSON for message " ++ textToString (show body)
+  toJSON body = error $ "Do not know how to convert to JSON for message " ++ show body
 
-displayDataToJson mimeType dataStr = (show mimeType .= dataStr)
 
+-- | Print an execution state as "busy", "idle", or "starting".
 instance ToJSON ExecutionState where
     toJSON Busy = String "busy"
     toJSON Idle = String "idle"
     toJSON Starting = String "starting"
 
+-- | Print a stream as "stdin" or "stdout" strings.
 instance ToJSON StreamType where
     toJSON Stdin = String "stdin"
     toJSON Stdout = String "stdout"
 
+-- | Convert a MIME type and value into a JSON dictionary pair.
+displayDataToJson :: DisplayData -> (Text, Value) 
+displayDataToJson (Display mimeType dataStr) = pack (show mimeType) .= dataStr
+
 ----- Constants -----
 
 emptyMap :: Map String String
-emptyMap = fromList []
+emptyMap = mempty
 
 emptyList :: [Int]
 emptyList = []

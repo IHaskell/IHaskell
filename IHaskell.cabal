@@ -62,6 +62,7 @@ executable IHaskell
                        aeson ==0.6.*,
                        MissingH ==1.2.*,
                        basic-prelude ==0.3.*,
+                       classy-prelude ==0.6.*,
                        unix ==2.6.*,
                        bytestring ==0.10.*,
                        transformers ==0.3.*,
