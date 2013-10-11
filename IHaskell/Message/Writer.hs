@@ -17,32 +17,31 @@ instance ToJSON Message where
                            ]
 
   toJSON ExecuteReply{ status = status, executionCounter = counter} = object [
-                             "status" .= status,
+                             "status" .= show status,
                              "execution_count" .= counter,
                              "payload" .= emptyList,
                              "user_variables" .= emptyMap,
                              "user_expressions" .= emptyMap
                            ]
-  toJSON IopubStatus{ executionState = executionState } = object [
+  toJSON PublishStatus{ executionState = executionState } = object [
                              "execution_state" .= executionState
                            ]
-  toJSON IopubStream{ streamType = streamType, streamContent = content } = object [
+  toJSON PublishStream{ streamType = streamType, streamContent = content } = object [
                              "data" .= content,
                              "name" .= streamType
                            ]
-  toJSON IopubDisplayData{ source = src, displayData = datas } = object [
+  toJSON PublishDisplayData{ source = src, displayData = datas } = object [
                              "source" .= src,
                              "metadata" .= object [],
                              "data" .= object  (map displayDataToJson datas)
                            ]
 
-  toJSON IopubPythonOut{ executionCount = execCount, reprText = reprText } = object [
-                             "data" .= object ["text/plain" .= reprText, 
-                                               "text/html" .= reprText],
+  toJSON PublishOutput{ executionCount = execCount, reprText = reprText } = object [
+                             "data" .= object ["text/plain" .= reprText],
                              "execution_count" .= execCount,
                              "metadata" .= object []
                            ]
-  toJSON IopubPythonIn{ executionCount = execCount, inCode = code } = object [
+  toJSON PublishInput{ executionCount = execCount, inCode = code } = object [
                              "execution_count" .= execCount,
                              "code" .= code
                            ]

@@ -68,8 +68,8 @@ parser :: MessageType            -- ^ The message type being parsed.
        -> LByteString -> Message   -- The parser that converts the body into a message.
                                  -- This message should have an undefined
                                  -- header.
-parser "kernel_info_request"  = kernelInfoRequestParser
-parser "execute_request"      = executeRequestParser
+parser KernelInfoRequestMessage  = kernelInfoRequestParser
+parser ExecuteRequestMessage     = executeRequestParser
 parser other = error $ "Unknown message type " ++ show other
 
 -- | Parse a kernel info request.

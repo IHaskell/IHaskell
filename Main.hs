@@ -7,9 +7,12 @@ import qualified Data.Map as Map
 import IHaskell.Types
 import IHaskell.ZeroMQ
 import qualified IHaskell.Message.UUID as UUID
+import IHaskell.Eval.Evaluate
+import qualified Data.ByteString.Char8 as Chars
 
 data KernelState = KernelState
   { getExecutionCounter :: Int
+  , getInterpreter :: Interpreter
   }
 
 main ::  IO ()
@@ -41,9 +44,20 @@ main = do
 
 -- Initial kernel state.
 initialKernelState :: IO (MVar KernelState)
-initialKernelState = newMVar KernelState {
-  getExecutionCounter = 1
+initialKernelState = do
+  interpreter <- makeInterpreter
+
+  newMVar KernelState {
+    getExecutionCounter = 1,
+    getInterpreter = interpreter
   }
+
+-- | Duplicate a message header, giving it a new UUID and message type.
+dupHeader :: MessageHeader -> MessageType -> IO MessageHeader
+dupHeader header messageType = do
+  uuid <- UUID.random
+
+  return header { messageId = uuid, msgType = messageType }
 
 -- | Create a new message header, given a parent message header.
 createReplyHeader :: MessageHeader -> IO MessageHeader
@@ -64,60 +78,32 @@ createReplyHeader parent = do
 replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> IO (KernelState, Message)
 replyTo _ KernelInfoRequest{} replyHeader state = return (state, KernelInfoReply { header = replyHeader })
 
-replyTo interface ExecuteRequest{} replyHeader state = do
-  -- Queue up a response on the iopub socket 
-  uuid1 : uuid2 : uuid3 : uuid4 : uuid5 : uuid6 : []   <- UUID.randoms 6
+replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
+  let execCount = getExecutionCounter state
+      interpreter = getInterpreter state
+      send = writeChan $ iopubChannel interface
 
-  let header =  MessageHeader {
-    identifiers = identifiers replyHeader,
-    parentHeader = parentHeader replyHeader,
-    metadata = Map.fromList [],
-    messageId = uuid1,
-    sessionId = sessionId replyHeader,
-    username = username replyHeader,
-    msgType = "status"
-  }
-  let busyHeader = header { messageId = uuid5 }
-  let statusMsg = IopubStatus {
-    header = header,
-    executionState = Idle
-  }
-  let busyMsg = IopubStatus {
-    header = busyHeader,
-    executionState = Busy
-  }
-  let streamHeader =  MessageHeader {
-    identifiers = identifiers replyHeader,
-    parentHeader = parentHeader replyHeader,
-    metadata = Map.fromList [],
-    messageId = uuid2,
-    sessionId = sessionId replyHeader,
-    username = username replyHeader,
-    msgType = "stream"
-  }
-  let dispHeader =  MessageHeader {
-    identifiers = identifiers replyHeader,
-    parentHeader = parentHeader replyHeader,
-    metadata = Map.fromList [],
-    messageId = uuid3,
-    sessionId = sessionId replyHeader,
-    username = username replyHeader,
-    msgType = "display_data"
-  }
-  let pyoutHeader = dispHeader { messageId = uuid4, msgType = "pyout" }
-  let pyinHeader = dispHeader { messageId = uuid6, msgType = "pyin" }
+  idleHeader <- dupHeader replyHeader StatusMessage
+  send $ PublishStatus idleHeader Idle
 
-  let things = "$a+b=c$"
-  let streamMsg = IopubStream streamHeader Stdout $ "Hello! " ++ show (getExecutionCounter state)
-  let displayMsg = IopubDisplayData dispHeader "haskell" [Display PlainText things, Display MimeHtml things]
-      pyoutMsg = IopubPythonOut pyoutHeader ("Iopub python out " ++ (show (getExecutionCounter state))) (getExecutionCounter state)
-      pyinMsg = IopubPythonIn pyinHeader "Who the fuck cares?!" (getExecutionCounter state)
-  mapM_ (writeChan $ iopubChannel interface) [pyinMsg, busyMsg, displayMsg, pyoutMsg, statusMsg]
+  busyHeader <- dupHeader replyHeader StatusMessage
+  send $ PublishStatus busyHeader Busy
 
-  let counter = getExecutionCounter state
-      newState = state { getExecutionCounter = getExecutionCounter state + 1 }
+  outputs <- evaluate interpreter $ Chars.unpack code
+
+  let isPlain (Display mime _) = mime == PlainText
+  case find isPlain outputs of
+    Just (Display PlainText text) -> do
+      outHeader <- dupHeader replyHeader OutputMessage
+      send $ PublishOutput outHeader text execCount
+    Nothing -> return ()
+
+  displayHeader <- dupHeader replyHeader DisplayDataMessage
+  send $ PublishDisplayData displayHeader "haskell" $ filter (not . isPlain) outputs
+
+  let newState = state { getExecutionCounter = execCount + 1 }
   return (newState, ExecuteReply {
     header = replyHeader,
-    executionCounter = counter,
-    status = "ok"
+    executionCounter = execCount,
+    status = Ok
   })

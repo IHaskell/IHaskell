@@ -2,7 +2,7 @@ module IHaskell.Types (
   Profile (..),
   Message (..),
   MessageHeader (..),
-  MessageType,
+  MessageType(..),
   Username,
   Metadata,
   Port,
@@ -11,6 +11,7 @@ module IHaskell.Types (
   StreamType(..),
   MimeType(..),
   DisplayData(..),
+  ExecuteReplyStatus(..),
   ) where
 
 import ClassyPrelude
@@ -74,7 +75,7 @@ instance ToJSON MessageHeader where
                     "msg_id"  .= messageId header,
                     "session" .= sessionId header,
                     "username" .= username header,
-                    "msg_type" .= msgType header
+                    "msg_type" .= show (msgType header)
                   ]
 
 -- | A username for the source of a message.
@@ -83,8 +84,41 @@ type Username = ByteString
 -- | A metadata dictionary.
 type Metadata = Map ByteString ByteString
 
--- | The type of a message, currently just a string.
-type MessageType = ByteString
+-- | The type of a message, corresponding to IPython message types.
+data MessageType = KernelInfoReplyMessage
+                 | KernelInfoRequestMessage
+                 | ExecuteReplyMessage
+                 | ExecuteRequestMessage
+                 | StatusMessage
+                 | StreamMessage
+                 | DisplayDataMessage
+                 | OutputMessage
+                 | InputMessage
+
+instance Show MessageType where
+  show KernelInfoReplyMessage     = "kernel_info_reply"
+  show KernelInfoRequestMessage   = "kernel_info_request"
+  show ExecuteReplyMessage        = "execute_reply"
+  show ExecuteRequestMessage      = "execute_request"
+  show StatusMessage              = "status"
+  show StreamMessage              = "stream"
+  show DisplayDataMessage         = "display_data"
+  show OutputMessage              = "pyout"
+  show InputMessage               = "pyin"
+
+instance FromJSON MessageType where
+  parseJSON (String s) = return $ case s of
+    "kernel_info_reply"   -> KernelInfoReplyMessage
+    "kernel_info_request" -> KernelInfoRequestMessage
+    "execute_reply"       -> ExecuteReplyMessage
+    "execute_request"     -> ExecuteRequestMessage
+    "status"              -> StatusMessage
+    "stream"              -> StreamMessage
+    "display_data"        -> DisplayDataMessage
+    "pyout"               -> OutputMessage
+    "pyin"                -> InputMessage
+  parseJSON _ = fail "Must be a string."
+
 
 -- | A message used to communicate with the IPython frontend.
 data Message 
@@ -104,50 +138,60 @@ data Message
       getUserVariables :: [ByteString],  -- ^ Unused.
       getUserExpressions :: [ByteString] -- ^ Unused.
     }
+
+-- | A reply to an execute request.
   | ExecuteReply {
       header :: MessageHeader,
-      status :: String,
-      executionCounter :: Int
+      status :: ExecuteReplyStatus,         -- ^ The status of the output.
+      executionCounter :: Int               -- ^ The execution count, i.e. which output this is.
     }
 
-  | IopubStatus {
+  | PublishStatus {
       header :: MessageHeader,
-      executionState :: ExecutionState
+      executionState :: ExecutionState      -- ^ The execution state of the kernel.
     }
 
-  | IopubStream {
+  | PublishStream {
       header :: MessageHeader,
-      streamType :: StreamType,
-      streamContent :: String
+      streamType :: StreamType,             -- ^ Which stream to publish to.
+      streamContent :: String               -- ^ What to publish.
     }
 
-  | IopubDisplayData {
+  | PublishDisplayData {
       header :: MessageHeader,
-      source :: String,
-      displayData :: [DisplayData]
+      source :: String,                     -- ^ The name of the data source.
+      displayData :: [DisplayData]          -- ^ A list of data representations.
     }
 
-  | IopubPythonOut {
+  | PublishOutput {
       header :: MessageHeader,
-      reprText :: String,
-      executionCount :: Int
+      reprText :: String,                   -- ^ Printed output text.
+      executionCount :: Int                 -- ^ Which output this is for.
     }
 
-  | IopubPythonIn {
+  | PublishInput {
       header :: MessageHeader,
-      inCode :: String,
-      executionCount :: Int
+      inCode :: String,                     -- ^ Submitted input code.
+      executionCount :: Int                 -- ^ Which input this is.
     }
     deriving Show
+
+-- | Possible statuses in the execution reply messages.
+data ExecuteReplyStatus = Ok | Err | Abort
+
+instance Show ExecuteReplyStatus where
+  show Ok = "ok"
+  show Err = "error"
+  show Abort = "abort"
 
 -- | The execution state of the kernel.
 data ExecutionState = Busy | Idle | Starting deriving Show
 
--- | Possible MIME types for the display data.
-data MimeType = PlainText | MimeHtml
-
 -- | Data for display: a string with associated MIME type.
 data DisplayData = Display MimeType String deriving Show
+
+-- | Possible MIME types for the display data.
+data MimeType = PlainText | MimeHtml deriving Eq
 
 instance Show MimeType where
   show PlainText = "text/plain"
@@ -158,6 +202,6 @@ data StreamType = Stdin | Stdout deriving Show
 
 -- | Get the reply message type for a request message type.
 replyType :: MessageType -> MessageType
-replyType "kernel_info_request" = "kernel_info_reply"
-replyType "execute_request" = "execute_reply"
-replyType messageType = error $ "Unknown message type " ++ show messageType
+replyType KernelInfoRequestMessage = KernelInfoReplyMessage
+replyType ExecuteRequestMessage = ExecuteReplyMessage
+replyType messageType = error $ "No reply for message type " ++ show messageType
