@@ -68,6 +68,7 @@ executable IHaskell
                        transformers ==0.3.*,
                        uuid ==1.2.*,
                        containers ==0.5.*,
-                       process == 1.1.*
+                       process ==1.1.*,
+                       haskell-src-exts ==1.14.*
 
   

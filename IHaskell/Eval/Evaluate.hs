@@ -4,14 +4,21 @@ module IHaskell.Eval.Evaluate (
   ) where
 
 import ClassyPrelude
-import Prelude(putChar)
+import Prelude(putChar, tail, init)
 import System.Process
 import System.IO (hSetBuffering, BufferMode(..), hPutStr, hGetChar)
 import Data.List.Utils
 import Data.String.Utils
 import Text.Printf
 
+import Language.Haskell.Exts.Parser
+import Language.Haskell.Exts.Pretty
+import Language.Haskell.Exts.Syntax
+
 import IHaskell.Types
+
+type LineNumber = Int
+type ColumnNumber = Int
 
 promptString :: String
 promptString = "+++GHCI_IHASKELL+++>"
@@ -72,7 +79,42 @@ evaluate interpreter code =
   case strip code of
     "" -> return []
     strippedCode ->
-      concat <$> mapM (getResponse interpreter) (lines strippedCode)
+      let codePieces = map makeCodePiece $ groupBy sameCodePiece $ lines strippedCode in
+        concat <$> mapM (evalCodePiece interpreter) codePieces
+
+data CodePiece = GhciDirectives String | HaskellStmts String
+
+makeCodePiece :: [String] -> CodePiece
+makeCodePiece lines =
+  if any isDirective lines
+  then GhciDirectives $ unlines lines
+  else HaskellStmts $ unlines lines
+
+isDirective :: String -> Bool
+isDirective line = 
+  let stripped = strip line in
+    startswith ":" stripped || startswith "import" stripped
+
+sameCodePiece :: String -> String -> Bool
+sameCodePiece = (==) `on` isDirective
+
+evalCodePiece :: Interpreter -> CodePiece -> IO [DisplayData]
+evalCodePiece interpreter (HaskellStmts code) =
+  case parseStmts code of
+    Left (errLine, errCol, errMsg) -> return [Display MimeHtml $ makeError $ printf "error Error (line %d, column %d): %s" errLine errCol errMsg]
+    Right statements -> do
+      mapM_ (putStrLn . pack) $ map prettyPrint statements
+      concat <$> mapM (getResponse interpreter . prettyPrint) (init statements)
+
+evalCodePiece interpreter (GhciDirectives directives) = do
+    mapM_ (getResponse interpreter) $ lines directives
+    return []
+
+stripDoBlock :: String -> String
+stripDoBlock =
+  unlines . map dedent . init . lines
+  where
+    dedent (' ':' ':rest) = rest
 
 getResponse :: Interpreter -> String -> IO [DisplayData]
 getResponse interpreter code = do
@@ -81,6 +123,18 @@ getResponse interpreter code = do
   case inlines of
     [] -> return []
     _ -> return $ parseOutput $ unlines inlines 
+
+parseStmts :: String -> Either (LineNumber, ColumnNumber, String) [Stmt]
+parseStmts code = 
+  case parseResult of
+    ParseOk (Do stmts) -> Right stmts
+    ParseOk _ -> Right []
+    ParseFailed srcLoc errMsg -> Left (srcLine srcLoc, srcColumn srcLoc, errMsg) 
+  where
+    parseResult = parseExp doBlock
+    doBlock = unlines $ ("do" : map indent (lines code)) ++ [indent returnStmt]
+    indent = ("  " ++) 
+    returnStmt = "return ()"
 
 
 parseOutput :: String -> [DisplayData]
