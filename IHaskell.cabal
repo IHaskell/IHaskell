@@ -69,6 +69,12 @@ executable IHaskell
                        uuid ==1.2.*,
                        containers ==0.5.*,
                        process ==1.1.*,
-                       haskell-src-exts ==1.14.*
+                       haskell-src-exts ==1.14.*,
+                       ghc ==7.6.*,
+                       ghc-paths ==0.1.*,
+                       knob ==0.1.*,
+                       directory ==1.2.*,
+                       deepseq ==1.3.*
+
 
   

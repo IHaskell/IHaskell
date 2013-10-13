@@ -1,4 +1,4 @@
-import ClassyPrelude
+import ClassyPrelude hiding (liftIO)
 import Control.Concurrent.Chan
 import Data.Aeson
 
@@ -12,7 +12,6 @@ import qualified Data.ByteString.Char8 as Chars
 
 data KernelState = KernelState
   { getExecutionCounter :: Int
-  , getInterpreter :: Interpreter
   }
 
 main ::  IO ()
@@ -29,33 +28,32 @@ main = do
   state <- initialKernelState
 
   -- Receive and reply to all messages on the shell socket.
-  forever $ do
+  interpret $ forever $ do
     -- Read the request from the request channel.
-    request <- readChan $ shellRequestChannel interface
+    request <- liftIO $ readChan $ shellRequestChannel interface
 
     -- Create a header for the reply.
-    replyHeader <- createReplyHeader (header request)
+    replyHeader <- liftIO $ createReplyHeader (header request)
 
     -- Create the reply, possibly modifying kernel state.
-    reply <- modifyMVar state $ replyTo interface request replyHeader
+    oldState <- liftIO $ takeMVar state
+    (newState, reply) <- replyTo interface request replyHeader oldState 
+    liftIO $ putMVar state newState
 
     -- Write the reply to the reply channel.
-    writeChan (shellReplyChannel interface) reply
+    liftIO $ writeChan (shellReplyChannel interface) reply
 
 -- Initial kernel state.
 initialKernelState :: IO (MVar KernelState)
-initialKernelState = do
-  interpreter <- makeInterpreter
-
+initialKernelState =
   newMVar KernelState {
-    getExecutionCounter = 1,
-    getInterpreter = interpreter
+    getExecutionCounter = 1
   }
 
 -- | Duplicate a message header, giving it a new UUID and message type.
-dupHeader :: MessageHeader -> MessageType -> IO MessageHeader
+dupHeader :: MessageHeader -> MessageType -> Interpreter MessageHeader
 dupHeader header messageType = do
-  uuid <- UUID.random
+  uuid <- liftIO UUID.random
 
   return header { messageId = uuid, msgType = messageType }
 
@@ -75,13 +73,12 @@ createReplyHeader parent = do
     msgType = replyType $ msgType parent
   }
 
-replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> IO (KernelState, Message)
+replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> Interpreter (KernelState, Message)
 replyTo _ KernelInfoRequest{} replyHeader state = return (state, KernelInfoReply { header = replyHeader })
 
 replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
   let execCount = getExecutionCounter state
-      interpreter = getInterpreter state
-      send = writeChan $ iopubChannel interface
+      send msg = liftIO $ writeChan (iopubChannel interface) msg
 
   idleHeader <- dupHeader replyHeader StatusMessage
   send $ PublishStatus idleHeader Idle
@@ -89,7 +86,7 @@ replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
   busyHeader <- dupHeader replyHeader StatusMessage
   send $ PublishStatus busyHeader Busy
 
-  outputs <- evaluate interpreter $ Chars.unpack code
+  outputs <- evaluate $ Chars.unpack code
 
   let isPlain (Display mime _) = mime == PlainText
   case find isPlain outputs of
