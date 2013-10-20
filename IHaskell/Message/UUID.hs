@@ -22,8 +22,9 @@ data UUID = UUID String deriving Eq
 instance Show UUID where
   show (UUID s) = s
 
--- | Generate an infinite list of random UUIDs.
-randoms :: Int -> IO [UUID]
+-- | Generate a list of random UUIDs.
+randoms :: Int      -- ^ Number of UUIDs to generate.
+        -> IO [UUID]
 randoms n = replicateM n random
 
 -- | Generate a single random UUID.

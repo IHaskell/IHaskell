@@ -1,3 +1,5 @@
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 import ClassyPrelude hiding (liftIO)
 import Control.Concurrent.Chan
 import Data.Aeson

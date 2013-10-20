@@ -75,6 +75,3 @@ executable IHaskell
                        knob ==0.1.*,
                        directory ==1.2.*,
                        deepseq ==1.3.*
-
-
-  

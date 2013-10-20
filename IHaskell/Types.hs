@@ -1,3 +1,5 @@
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module IHaskell.Types (
   Profile (..),
   Message (..),
@@ -139,7 +141,7 @@ data Message
       getUserExpressions :: [ByteString] -- ^ Unused.
     }
 
--- | A reply to an execute request.
+  -- | A reply to an execute request.
   | ExecuteReply {
       header :: MessageHeader,
       status :: ExecuteReplyStatus,         -- ^ The status of the output.
