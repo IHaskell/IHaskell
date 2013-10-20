@@ -33,7 +33,7 @@ main = do
     request <- liftIO $ readChan $ shellRequestChannel interface
 
     -- Create a header for the reply.
-    replyHeader <- liftIO $ createReplyHeader (header request)
+    replyHeader <- createReplyHeader (header request)
 
     -- Create the reply, possibly modifying kernel state.
     oldState <- liftIO $ takeMVar state
@@ -58,10 +58,10 @@ dupHeader header messageType = do
   return header { messageId = uuid, msgType = messageType }
 
 -- | Create a new message header, given a parent message header.
-createReplyHeader :: MessageHeader -> IO MessageHeader
+createReplyHeader :: MessageHeader -> Interpreter MessageHeader
 createReplyHeader parent = do
   -- Generate a new message UUID.
-  newMessageId <- UUID.random
+  newMessageId <- liftIO UUID.random
 
   return MessageHeader {
     identifiers = identifiers parent,
@@ -73,21 +73,35 @@ createReplyHeader parent = do
     msgType = replyType $ msgType parent
   }
 
+-- | Compute a reply to a message. 
 replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> Interpreter (KernelState, Message)
+
+-- Reply to kernel info requests with a kernel info reply. No computation
+-- needs to be done, as a kernel info reply is a static object (all info is
+-- hard coded into the representation of that message type).
 replyTo _ KernelInfoRequest{} replyHeader state = return (state, KernelInfoReply { header = replyHeader })
 
+-- Reply to an execution request. The reply itself does not require
+-- computation, but this causes messages to be sent to the IOPub socket
+-- with the output of the code in the execution request.
 replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
   let execCount = getExecutionCounter state
+      -- Convenience function to send a message to the IOPub socket.
       send msg = liftIO $ writeChan (iopubChannel interface) msg
 
-  idleHeader <- dupHeader replyHeader StatusMessage
-  send $ PublishStatus idleHeader Idle
-
+  -- Notify the frontend that the kernel is busy computing.
+  -- All the headers are copies of the reply header with a different
+  -- message type, because this preserves the session ID, parent header,
+  -- and other important information.
   busyHeader <- dupHeader replyHeader StatusMessage
   send $ PublishStatus busyHeader Busy
 
+  -- Get display data outputs of evaluating the code.
   outputs <- evaluate $ Chars.unpack code
 
+  -- Find all the plain text outputs.
+  -- Send plain text output via an output message, because we are just
+  -- publishing output and not some representation of data.
   let isPlain (Display mime _) = mime == PlainText
   case find isPlain outputs of
     Just (Display PlainText text) -> do
@@ -95,9 +109,15 @@ replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
       send $ PublishOutput outHeader text execCount
     Nothing -> return ()
 
+  -- Send all the non-plain-text representations of data to the frontend.
   displayHeader <- dupHeader replyHeader DisplayDataMessage
   send $ PublishDisplayData displayHeader "haskell" $ filter (not . isPlain) outputs
 
+  -- Notify the frontend that we're done computing.
+  idleHeader <- dupHeader replyHeader StatusMessage
+  send $ PublishStatus idleHeader Idle
+
+  -- Increment the execution counter in the kernel state.
   let newState = state { getExecutionCounter = execCount + 1 }
   return (newState, ExecuteReply {
     header = replyHeader,
