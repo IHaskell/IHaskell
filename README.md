@@ -59,7 +59,7 @@ Some ideas for improvements:
     - Support for `repa` or `hmatrix` vectors and matrices being displayed.
     - `A custom typeclass for displaying data types as HTML, similar to Show.
 
-Take a look at the developer notes as well - they are sparse but may be helpful.
+Take a look at the [developer notes](https://github.com/gibiansky/IHaskell/blob/master/README.md#developer-notes) as well - they are sparse but may be helpful.
 
 Developer Notes
 ===
