@@ -13,7 +13,10 @@ ipython args = do
   path <- which "ipython"
   case path of
     Nothing -> putStrLn "Could not find `ipython` executable."
-    Just ipythonPath -> run_ ipythonPath args
+    Just ipythonPath -> runHandles ipythonPath args inheritHandles doNothing
+      where inheritHandles = [InHandle Inherit, OutHandle Inherit, ErrorHandle Inherit]
+            doNothing _ _ _ = return ()
+
 
 -- | Run an IHaskell application using the given profile.
 runIHaskell :: String   -- ^ IHaskell profile name. 

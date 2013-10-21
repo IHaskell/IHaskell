@@ -25,7 +25,8 @@ main = do
     ["setup"] -> setupIPythonProfile "haskell"
 
     -- Run the ipython <cmd> --profile haskell <args> command.
-    "run":app:ipythonArgs -> runIHaskell "haskell" app ipythonArgs
+    "notebook":ipythonArgs -> runIHaskell "haskell" "notebook" ipythonArgs
+    "console":ipythonArgs -> runIHaskell "haskell" "console" ipythonArgs
 
     -- Read the profile JSON file from the argument list.
     ["kernel", profileSrc] -> kernel profileSrc
