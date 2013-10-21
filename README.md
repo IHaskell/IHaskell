@@ -59,8 +59,13 @@ Some ideas for improvements:
     - Support for `repa` or `hmatrix` vectors and matrices being displayed.
     - `A custom typeclass for displaying data types as HTML, similar to Show.
 
+Take a look at the developer notes as well - they are sparse but may be helpful.
+
 Developer Notes
 ===
+
+Before diving in, you should read the [brief description of IPython kernel architectures](http://andrew.gibiansky.com/blog/ipython/ipython-kernels/)
+and read the [complete messaging protocol specification](http://ipython.org/ipython-doc/dev/development/messaging.html).
 
 Module Quickstart: 
 - `Main`: Argument parsing and basic messaging loop, using Haskell Chans to communicate with the ZeroMQ sockets.
