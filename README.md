@@ -20,7 +20,7 @@ git clone https://github.com/gibiansky/IHaskell
 
 Install ZeroMQ:
 ```bash
-sudo apt-get install libzmq-dev # Ubuntu
+sudo apt-get install libzmq1 # Ubuntu
 brew install zeromq # Macs with Homebrew
 ```
 
