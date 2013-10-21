@@ -76,4 +76,5 @@ executable IHaskell
                        directory ==1.2.*,
                        deepseq ==1.3.*,
                        random ==1.0.*,
-                       strict ==0.3.*
+                       strict ==0.3.*,
+                       shelly ==1.3.*

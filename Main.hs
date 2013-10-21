@@ -11,6 +11,7 @@ import IHaskell.ZeroMQ
 import qualified IHaskell.Message.UUID as UUID
 import IHaskell.Eval.Evaluate
 import qualified Data.ByteString.Char8 as Chars
+import IHaskell.IPython
 
 data KernelState = KernelState
   { getExecutionCounter :: Int
@@ -18,11 +19,28 @@ data KernelState = KernelState
 
 main ::  IO ()
 main = do
-  -- Read the profile JSON file from the argument list.
-  [profileSrc] <- getArgs
+  args <- map unpack <$> getArgs
+  case args of
+    -- Create the "haskell" profile.
+    ["setup"] -> setupIPythonProfile "haskell"
 
+    -- Run the ipython <cmd> --profile haskell <args> command.
+    "run":app:ipythonArgs -> runIHaskell "haskell" app ipythonArgs
+
+    -- Read the profile JSON file from the argument list.
+    ["kernel", profileSrc] -> kernel profileSrc
+
+    -- Bad arguments.
+    [] -> putStrLn "Provide command to run ('setup', 'kernel <profile-file.json>', 'run <app> [args]')."
+    cmd:_ -> putStrLn $ "Unknown command: " ++ pack cmd
+
+
+-- | Run the IHaskell language kernel.
+kernel :: String -- ^ Filename of profile JSON file.
+       -> IO ()
+kernel profileSrc = do
   -- Parse the profile file.
-  Just profile <- liftM decode $ readFile $ fpFromText profileSrc
+  Just profile <- liftM decode . readFile . fpFromText $ pack profileSrc
 
   -- Serve on all sockets and ports defined in the profile.
   interface <- serveProfile profile
