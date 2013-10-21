@@ -67,6 +67,8 @@ Developer Notes
 Before diving in, you should read the [brief description of IPython kernel architectures](http://andrew.gibiansky.com/blog/ipython/ipython-kernels/)
 and read the [complete messaging protocol specification](http://ipython.org/ipython-doc/dev/development/messaging.html).
 
+Skim the rather-lacking [Haddock documentation](http://gibiansky.github.io/IHaskell/IHaskell/).
+
 Module Quickstart: 
 - `Main`: Argument parsing and basic messaging loop, using Haskell Chans to communicate with the ZeroMQ sockets.
 - `IHaskell.Types`: All message type definitions.
