@@ -27,9 +27,6 @@ brew install zeromq # Macs with Homebrew
 Install the package:
 ```bash
 cd IHaskell;
-cabal install --only-dependencies;
-cabal configure;
-cabal build;
 cabal install;
 ```
 
