@@ -20,9 +20,10 @@ git clone https://github.com/gibiansky/IHaskell
 
 Install ZeroMQ:
 ```bash
-sudo apt-get install libzmq1 # Ubuntu
+sudo apt-get install libzmq3-dev # Ubuntu (Saucy only)
 brew install zeromq # Macs with Homebrew
 ```
+(For older versions of Ubuntu, you should be able to download the ZeroMQ3 source and install without much difficulty.)
 
 Install the package:
 ```bash
