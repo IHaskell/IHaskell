@@ -111,15 +111,18 @@ parseCommands code = concatMap makeCommands pieces
     pieces = trace (show $ makePieces $ lines code ) $ makePieces $ lines code
     makeCommands lines
       | isDirective lines = [createDirective lines]
-      | isDeclaration lines =
-          case parseDecl $ trace ("Decl<" ++ lines ++ "<>>>") lines of
-            ParseOk declaration -> [Declaration $ prettyPrint declaration]
-            ParseFailed srcLoc errMsg -> [ParseError (srcLine srcLoc) (srcColumn srcLoc) errMsg]
-      | otherwise = 
-          case parseStmts $ trace ("STMT<" ++ lines ++ "<s>>") lines of
-            Left (srcLine, srcColumn, errMsg) -> [ParseError srcLine srcColumn errMsg]
-            Right stmts -> map (Statement . prettyPrint) $ init stmts
-    isDeclaration line = any (`isInfixOf` line) ["type", "newtype", "data"]
+      | otherwise = case (parseDecl lines, parseStmts lines) of
+            (ParseOk declaration, _) -> trace ("Decl<" ++ lines ++ "<>>>")
+                        [Declaration $ prettyPrint declaration]
+            (ParseFailed {}, Right stmts) -> trace ("STMT<" ++ lines ++ "<s>>")
+                        $ map (Statement . prettyPrint) $ init stmts
+
+            -- show the parse error for the most likely type
+            (ParseFailed srcLoc errMsg, _)
+                | isDeclaration lines  -> [ParseError (srcLine srcLoc) (srcColumn srcLoc) errMsg]
+            (_, Left (lineNumber, colNumber,errMsg)) -> [ParseError lineNumber colNumber errMsg]
+
+    isDeclaration line = any (`isInfixOf` line) ["type", "newtype", "data", "instance", "class"]
     isDirective line = startswith [directiveChar] stripped || startswith "import" stripped
       where stripped = strip line
     createDirective line =
