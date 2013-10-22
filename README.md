@@ -25,6 +25,11 @@ brew install zeromq # Macs with Homebrew
 ```
 (For older versions of Ubuntu, you should be able to download the ZeroMQ3 source and install without much difficulty.)
 
+Install Happy:
+```bash
+sudo apt-get install happy # Ubuntu
+```
+
 Install the package:
 ```bash
 cd IHaskell;
