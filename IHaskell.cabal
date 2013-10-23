@@ -64,7 +64,7 @@ executable IHaskell
                        basic-prelude ==0.3.*,
                        classy-prelude ==0.6.*,
                        bytestring ==0.10.*,
-                       uuid ==1.2.*,
+                       uuid >=1.2.6,
                        containers ==0.5.*,
                        haskell-src-exts ==1.14.*,
                        ghc ==7.6.*,
