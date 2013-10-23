@@ -145,3 +145,9 @@ replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
     executionCounter = execCount,
     status = Ok
   })
+
+
+replyTo _ cr@CompleteRequest{} replyHeader state = trace (show cr) $ do
+    return (state,  CompleteReply replyHeader []  "" True)
+
+ 

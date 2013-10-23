@@ -96,6 +96,8 @@ data MessageType = KernelInfoReplyMessage
                  | DisplayDataMessage
                  | OutputMessage
                  | InputMessage
+                 | CompleteRequestMessage
+                 | CompleteReplyMessage
 
 instance Show MessageType where
   show KernelInfoReplyMessage     = "kernel_info_reply"
@@ -107,18 +109,23 @@ instance Show MessageType where
   show DisplayDataMessage         = "display_data"
   show OutputMessage              = "pyout"
   show InputMessage               = "pyin"
+  show CompleteRequestMessage     = "complete_request"
+  show CompleteReplyMessage       = "complete_reply"
 
 instance FromJSON MessageType where
-  parseJSON (String s) = return $ case s of
-    "kernel_info_reply"   -> KernelInfoReplyMessage
-    "kernel_info_request" -> KernelInfoRequestMessage
-    "execute_reply"       -> ExecuteReplyMessage
-    "execute_request"     -> ExecuteRequestMessage
-    "status"              -> StatusMessage
-    "stream"              -> StreamMessage
-    "display_data"        -> DisplayDataMessage
-    "pyout"               -> OutputMessage
-    "pyin"                -> InputMessage
+  parseJSON (String s) = case s of
+    "kernel_info_reply"   -> return KernelInfoReplyMessage
+    "kernel_info_request" -> return KernelInfoRequestMessage
+    "execute_reply"       -> return ExecuteReplyMessage
+    "execute_request"     -> return ExecuteRequestMessage
+    "status"              -> return StatusMessage
+    "stream"              -> return StreamMessage
+    "display_data"        -> return DisplayDataMessage
+    "pyout"               -> return OutputMessage
+    "pyin"                -> return InputMessage
+    "complete_request"    -> return CompleteRequestMessage
+    "complete_reply"      -> return CompleteReplyMessage
+    _                     -> fail ("Unknown message type: " ++ show s)
   parseJSON _ = fail "Must be a string."
 
 
@@ -176,6 +183,42 @@ data Message
       inCode :: String,                     -- ^ Submitted input code.
       executionCount :: Int                 -- ^ Which input this is.
     }
+
+  | CompleteRequest {
+      header :: MessageHeader,
+      getCode :: ByteString, {- ^
+            The entire block of text where the line is.  This may be useful in the
+            case of multiline completions where more context may be needed.  Note: if
+            in practice this field proves unnecessary, remove it to lighten the
+            messages. json field @block@  -}
+      getCodeLine :: ByteString, -- ^ just the line with the cursor. json field @line@
+      getCursorPos :: Int -- ^ position of the cursor (index into the line?). json field @cursor_pos@
+
+    }
+
+  | CompleteReply {
+     header :: MessageHeader,
+     completionMatches :: [ByteString],
+     completionText :: ByteString,
+     completionStatus :: Bool
+  }
+      {- ^
+# The list of all matches to the completion request, such as
+# ['a.isalnum', 'a.isalpha'] for the above example.
+'matches' : list,
+
+# the substring of the matched text
+# this is typically the common prefix of the matches,
+# and the text that is already in the block that would be replaced by the full completion.
+# This would be 'a.is' in the above example.
+'text' : str,
+
+# status should be 'ok' unless an exception was raised during the request,
+# in which case it should be 'error', along with the usual error message content
+# in other messages.
+'status' : 'ok'
+} -}
+
     deriving Show
 
 -- | Possible statuses in the execution reply messages.
@@ -206,4 +249,5 @@ data StreamType = Stdin | Stdout deriving Show
 replyType :: MessageType -> MessageType
 replyType KernelInfoRequestMessage = KernelInfoReplyMessage
 replyType ExecuteRequestMessage = ExecuteReplyMessage
+replyType CompleteRequestMessage = CompleteReplyMessage
 replyType messageType = error $ "No reply for message type " ++ show messageType

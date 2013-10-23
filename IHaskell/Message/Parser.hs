@@ -72,6 +72,7 @@ parser :: MessageType            -- ^ The message type being parsed.
                                  -- header.
 parser KernelInfoRequestMessage  = kernelInfoRequestParser
 parser ExecuteRequestMessage     = executeRequestParser
+parser CompleteRequestMessage    = completeRequestParser
 parser other = error $ "Unknown message type " ++ show other
 
 -- | Parse a kernel info request.
@@ -105,3 +106,15 @@ executeRequestParser content =
       getUserVariables = [],
       getUserExpressions = []
     }
+
+completeRequestParser :: LByteString -> Message
+completeRequestParser content = parsed
+  where
+  Success parsed = flip parse decoded $ \ obj -> do
+        code     <- obj .: "block" <|> return ""
+        codeLine <- obj .: "line"
+        pos      <- obj .: "cursor_pos"
+        return $ CompleteRequest noHeader code codeLine pos
+
+  Just decoded = decode content
+

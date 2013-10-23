@@ -45,6 +45,11 @@ instance ToJSON Message where
                              "execution_count" .= execCount,
                              "code" .= code
                            ]
+  toJSON (CompleteReply _ m t s) = object [
+                             "matches" .= m,
+                             "text" .= t,
+                             "status" .= if s then "ok" :: String else "error"
+                           ]
 
   toJSON body = error $ "Do not know how to convert to JSON for message " ++ show body
 
