@@ -70,6 +70,8 @@ executable IHaskell
                        ghc ==7.6.*,
                        ghc-paths ==0.1.*,
                        random ==1.0.*,
+                       split,
+                       utf8-string,
                        strict ==0.3.*,
                        shelly ==1.3.*,
                        text ==0.11.*
