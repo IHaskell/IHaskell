@@ -1,18 +1,27 @@
+{-# LANGUAGE CPP #-}
 -- | This module contains the @ToJSON@ instance for @Message@.
 module IHaskell.Message.Writer (
   ToJSON(..)
 )  where
 
+import Prelude (read)
 import ClassyPrelude
 import Data.Aeson
 
 import IHaskell.Types
 
+-- ghc (api) version number like ints [7,6,2]. Could be done at compile
+-- time, but for now there's no template haskell in IHaskell
+ghcVersionInts = ints $
+    map read $ words $
+    map (\x -> case x of '.' -> ' '; _ -> x)
+    (VERSION_ghc :: String)
+
 -- Convert message bodies into JSON.
 instance ToJSON Message where
   toJSON KernelInfoReply{} = object [
                              "protocol_version" .= ints [4, 0], -- current protocol version, major and minor
-                             "language_version" .= ints [7, 6, 2],
+                             "language_version" .= ghcVersionInts,
                              "language" .= string "haskell"
                            ]
 
