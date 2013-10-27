@@ -50,7 +50,17 @@ executable IHaskell
   main-is:             Main.hs
   
   -- Modules included in this executable, other than Main.
-  -- other-modules:       
+  other-modules:       
+             IHaskell.Completion
+             IHaskell.Eval.Evaluate
+             IHaskell.IPython
+             IHaskell.Message.Parser
+             IHaskell.Message.UUID
+             IHaskell.Message.Writer
+             IHaskell.Types
+             IHaskell.ZeroMQ
+
+
   extensions: DoAndIfThenElse
               NoImplicitPrelude
               OverloadedStrings
@@ -70,6 +80,11 @@ executable IHaskell
                        ghc ==7.6.*,
                        ghc-paths ==0.1.*,
                        random ==1.0.*,
+                       split,
+                       utf8-string,
                        strict ==0.3.*,
                        shelly ==1.3.*,
+                       system-argv0,
+                       directory,
+                       system-filepath,
                        text ==0.11.*

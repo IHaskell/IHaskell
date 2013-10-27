@@ -6,6 +6,9 @@ module IHaskell.IPython (
 import ClassyPrelude
 import Shelly hiding (find, trace)
 import Text.Printf
+import System.Argv0
+import System.Directory
+import qualified Filesystem.Path.CurrentOS as FS
 
 -- | Run IPython with any arguments.
 ipython :: [Text] -> Sh ()
@@ -54,13 +57,8 @@ setupIPythonProfile profile = shelly $ do
 
   let profileDir = ipythonDir ++ "/profile_" ++ pack profile ++ "/"
 
-  -- Find out where IHaskell lives.
-  ihaskellPath <- which "IHaskell"
-  case ihaskellPath of
-    Nothing -> putStrLn "IHaskell not on $PATH."
-    Just path -> 
-      -- Finally, write configs!
-      writeConfigFilesTo profileDir (trace (unpack $ toTextIgnore path) $ unpack $ toTextIgnore path)
+  path <- liftIO $ fmap FS.encodeString getArgv0Absolute
+  writeConfigFilesTo profileDir (trace path $ path)
 
 -- | Write IPython configuration files to the profile directory.
 writeConfigFilesTo :: Text      -- ^ Profile directory to write to. Must have a trailing slash.
@@ -78,3 +76,14 @@ writeConfigFilesTo profileDir ihaskellPath = writeFile (fromText configFile) con
         , "c.Session.key = b''"
         , "c.Session.keyfile = b''"
         ]
+
+
+getArgv0Absolute :: IO FS.FilePath
+getArgv0Absolute = do
+    f <- getArgv0
+    f' <- if FS.absolute f then return f
+        else do
+            cd <- getCurrentDirectory
+            return $ FS.decodeString cd FS.</> f
+    print ("FS:" ++ FS.encodeString f')
+    return f'

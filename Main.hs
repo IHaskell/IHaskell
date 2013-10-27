@@ -12,6 +12,7 @@ import qualified IHaskell.Message.UUID as UUID
 import IHaskell.Eval.Evaluate
 import qualified Data.ByteString.Char8 as Chars
 import IHaskell.IPython
+import IHaskell.Completion (makeCompletions)
 
 data KernelState = KernelState
   { getExecutionCounter :: Int
@@ -145,3 +146,10 @@ replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
     executionCounter = execCount,
     status = Ok
   })
+
+
+replyTo _ creq@CompleteRequest{} replyHeader state = trace (show creq) $ do
+    cr <- makeCompletions replyHeader creq
+    return (state,  cr)
+
+ 
