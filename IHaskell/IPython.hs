@@ -10,6 +10,8 @@ import System.Argv0
 import System.Directory
 import qualified Filesystem.Path.CurrentOS as FS
 
+import qualified IHaskell.Config as Config
+
 -- | Run IPython with any arguments.
 ipython :: [Text] -> Sh ()
 ipython args = do
@@ -64,18 +66,13 @@ setupIPythonProfile profile = shelly $ do
 writeConfigFilesTo :: Text      -- ^ Profile directory to write to. Must have a trailing slash.
                    -> String    -- ^ Path to IHaskell executable.
                    -> Sh ()
-writeConfigFilesTo profileDir ihaskellPath = writeFile (fromText configFile) config
+writeConfigFilesTo profileDir ihaskellPath = do
+    writeFile (conf "ipython_config.py")          $ Config.ipython ihaskellPath
+    writeFile (conf "ipython_notebook_config.py")   Config.notebook
+    writeFile (conf "ipython_console_config.py")    Config.console
+    writeFile (conf "ipython_qtconsole_config.py")  Config.qtconsole
   where
-    configFile = profileDir ++ "ipython_config.py"
-
-    config :: String
-    config = unlines
-        [ "c = get_config()"
-        , printf "exe = '%s'.replace(' ', '\\\\ ')" ihaskellPath
-        , "c.KernelManager.kernel_cmd = [exe, 'kernel', '{connection_file}']"
-        , "c.Session.key = b''"
-        , "c.Session.keyfile = b''"
-        ]
+    conf filename = fromText $ profileDir ++ filename
 
 -- | Get the absolute path to this IHaskell executable.
 getIHaskellPath :: Sh String
