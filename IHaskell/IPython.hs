@@ -77,8 +77,7 @@ writeConfigFilesTo profileDir ihaskellPath = writeFile (fromText configFile) con
         , "c.Session.keyfile = b''"
         ]
 
-
--- | Get the absolute path. If this is using path reso
+-- | Get the absolute path to this IHaskell executable.
 getIHaskellPath :: Sh String
 getIHaskellPath = do
   --  Get the absolute filepath to the argument.
