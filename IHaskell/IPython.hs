@@ -57,8 +57,8 @@ setupIPythonProfile profile = shelly $ do
 
   let profileDir = ipythonDir ++ "/profile_" ++ pack profile ++ "/"
 
-  path <- liftIO $ fmap FS.encodeString getArgv0Absolute
-  writeConfigFilesTo profileDir (trace path $ path)
+  path <- getIHaskellPath
+  writeConfigFilesTo profileDir path
 
 -- | Write IPython configuration files to the profile directory.
 writeConfigFilesTo :: Text      -- ^ Profile directory to write to. Must have a trailing slash.
@@ -78,12 +78,26 @@ writeConfigFilesTo profileDir ihaskellPath = writeFile (fromText configFile) con
         ]
 
 
-getArgv0Absolute :: IO FS.FilePath
-getArgv0Absolute = do
-    f <- getArgv0
-    f' <- if FS.absolute f then return f
-        else do
-            cd <- getCurrentDirectory
-            return $ FS.decodeString cd FS.</> f
-    print ("FS:" ++ FS.encodeString f')
-    return f'
+-- | Get the absolute path. If this is using path reso
+getIHaskellPath :: Sh String
+getIHaskellPath = do
+  --  Get the absolute filepath to the argument.
+  f <- liftIO getArgv0
+
+  -- If we have an absolute path, that's the IHaskell we're interested in.
+  if FS.absolute f
+  then return $ FS.encodeString f
+  else
+    -- Check whether this is a relative path, or just 'IHaskell' with $PATH
+    -- resolution done by the shell. If it's just 'IHaskell', use the $PATH
+    -- variable to find where IHaskell lives.
+    if FS.filename f == f
+    then do
+      ihaskellPath <- which "IHaskell"
+      case ihaskellPath of
+        Nothing -> error "IHaskell not on $PATH and not referenced relative to directory."
+        Just path -> return $ FS.encodeString path
+    else do
+      -- If it's actually a relative path, make it absolute.
+      cd <- liftIO getCurrentDirectory
+      return $ FS.encodeString $ FS.decodeString cd FS.</> f
