@@ -87,6 +87,7 @@ writeConfigFilesTo profileDir ihaskellPath = do
     writeFile (conf "ipython_notebook_config.py")   Config.notebook
     writeFile (conf "ipython_console_config.py")    Config.console
     writeFile (conf "ipython_qtconsole_config.py")  Config.qtconsole
+    writeFile (conf "static/custom/custom.js")      Config.customjs
   where
     conf filename = fromText $ profileDir ++ filename
 
