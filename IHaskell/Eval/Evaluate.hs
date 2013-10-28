@@ -11,7 +11,6 @@ import Data.List.Utils
 import Data.List(findIndex)
 import Data.String.Utils
 import Text.Printf
-import System.Random
 
 import Language.Haskell.Exts.Parser
 import Language.Haskell.Exts.Pretty
@@ -29,7 +28,27 @@ import qualified System.IO.Strict as StrictIO
 import IHaskell.Types
 
 debug :: Bool
-debug = False
+debug = True
+
+makeWrapperStmts :: (String, [String], [String])
+makeWrapperStmts = (fileName, initStmts, postStmts)
+  where
+    randStr = "1345964344725219474" :: String
+    fileVariable = "file_var_" ++ randStr
+    oldVariable = fileVariable ++ "_old"
+    fileName = ".ihaskell_capture"
+
+    postStmts :: [String]
+    postStmts = [
+            "hFlush stdout",
+      printf "hDuplicateTo %s stdout" oldVariable,
+      printf "hClose %s" fileVariable]
+
+    initStmts :: [String]
+    initStmts = [
+      printf "%s <- openFile \"%s\" WriteMode" fileVariable fileName,
+      printf "%s <- hDuplicate stdout" oldVariable,
+      printf "hDuplicateTo %s stdout" fileVariable]
 
 write :: GhcMonad m => String -> m ()
 write x = when debug $ liftIO $ hPutStrLn stderr x
@@ -112,10 +131,8 @@ parseCommands code = concatMap makeCommands pieces
     makeCommands lines
       | isDirective lines = [createDirective lines]
       | otherwise = case (parseDecl lines, parseStmts lines) of
-            (ParseOk declaration, _) -> trace ("Decl<" ++ lines ++ "<>>>")
-                        [Declaration $ prettyPrint declaration]
-            (ParseFailed {}, Right stmts) -> trace ("STMT<" ++ lines ++ "<s>>")
-                        $ map (Statement . prettyPrint) $ init stmts
+            (ParseOk declaration, _) -> [Declaration $ prettyPrint declaration]
+            (ParseFailed {}, Right stmts) -> map (Statement . prettyPrint) $ init stmts
 
             -- show the parse error for the most likely type
             (ParseFailed srcLoc errMsg, _)
@@ -157,7 +174,12 @@ evalCommand (Statement stmt) = do
   where 
     handler :: SomeException -> Interpreter [DisplayData]
     handler exception = do
-      write $ concat ["Break: ", show exception, "\nfrom statement:\n", stmt]
+      write $ concat ["BreakCom: ", show exception, "\nfrom statement:\n", stmt]
+
+      -- Close the file handle we opened for writing stdout and other cleanup.
+      let (_, _, postStmts) = makeWrapperStmts
+      forM_ postStmts $ \s -> runStmt s RunToCompletion
+
       return [Display MimeHtml $ makeError $ show exception]
 
 evalCommand (Declaration decl) = do
@@ -166,7 +188,7 @@ evalCommand (Declaration decl) = do
   where 
     handler :: SomeException -> Interpreter [DisplayData]
     handler exception = do
-      write $ concat ["Break: ", show exception, "\nfrom declaration:\n", decl]
+      write $ concat ["BreakDecl: ", show exception, "\nfrom declaration:\n", decl]
       return [Display MimeHtml $ makeError $ show exception]
 
 evalCommand (ParseError line col err) =
@@ -176,20 +198,7 @@ capturedStatement :: String -> Interpreter (String, RunResult)
 capturedStatement stmt = do
   -- Generate random variable names to use so that we cannot accidentally
   -- override the variables by using the right names in the terminal.
-  randStr <- liftIO $ show . abs <$> (randomIO :: IO Int)
-  let fileVariable = "file_var_" ++ randStr :: String
-      fileName = ".ihaskell_capture" :: String
-      oldVariable = fileVariable ++ "_old" :: String
-      initStmts :: [String]
-      initStmts = [
-        printf "%s <- openFile \"%s\" WriteMode" fileVariable fileName,
-        printf "%s <- hDuplicate stdout" oldVariable,
-        printf "hDuplicateTo %s stdout" fileVariable]
-      postStmts :: [String]
-      postStmts = [
-               "hFlush stdout",
-        printf "hDuplicateTo %s stdout" oldVariable,
-        printf "hClose %s" fileVariable]
+  let (fileName, initStmts, postStmts) = makeWrapperStmts
       goStmt s = runStmt s RunToCompletion
 
   forM_ initStmts goStmt
