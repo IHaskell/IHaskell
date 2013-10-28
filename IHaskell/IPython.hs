@@ -1,6 +1,7 @@
 module IHaskell.IPython (
   runIHaskell,
-  setupIPythonProfile
+  setupIPythonProfile,
+  ipythonVersion
 ) where
 
 import ClassyPrelude
@@ -9,6 +10,10 @@ import Text.Printf
 import System.Argv0
 import System.Directory
 import qualified Filesystem.Path.CurrentOS as FS
+import Data.List.Utils (split)
+
+import Prelude (read)
+import qualified System.IO.Strict as StrictIO
 
 import qualified IHaskell.Config as Config
 
@@ -22,6 +27,17 @@ ipython args = do
       where inheritHandles = [InHandle Inherit, OutHandle Inherit, ErrorHandle Inherit]
             doNothing _ _ _ = return ()
 
+
+-- | Use the `ipython --version` command to figure out the version.
+-- Return a tuple with (major, minor, patch).
+ipythonVersion :: IO (Int, Int, Int)
+ipythonVersion = shelly $ do
+  path <- which "ipython"
+  case path of
+    Nothing -> error "Could not find `ipython` executable."
+    Just path -> do
+      [major, minor, patch] <- map read <$> split "." <$> runHandle path ["--version"] (liftIO . StrictIO.hGetContents) :: Sh [Int]
+      return (major, minor, patch)
 
 -- | Run an IHaskell application using the given profile.
 runIHaskell :: String   -- ^ IHaskell profile name. 

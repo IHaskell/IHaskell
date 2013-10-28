@@ -23,6 +23,7 @@ import GHC hiding (Stmt)
 import GHC.Paths
 import Exception hiding (evaluate)
 
+import Outputable
 import qualified System.IO.Strict as StrictIO
 
 import IHaskell.Types
@@ -164,7 +165,9 @@ evalCommand (Statement stmt) = do
   ghandle handler $ do
     (printed, result) <- capturedStatement stmt
     case result of
-      RunOk _ ->
+      RunOk names -> do
+        dflags <- getSessionDynFlags
+        write $ "Names: " ++ show (map (showPpr dflags) names)  
         return [Display PlainText printed]
       RunException exception -> do
         write $ "RunException: " ++ show exception

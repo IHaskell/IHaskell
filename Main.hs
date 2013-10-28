@@ -3,6 +3,7 @@
 import ClassyPrelude hiding (liftIO)
 import Control.Concurrent.Chan
 import Data.Aeson
+import Text.Printf
 
 import qualified Data.Map as Map
 
@@ -20,6 +21,11 @@ data KernelState = KernelState
 
 main ::  IO ()
 main = do
+  (major, minor, patch) <- ipythonVersion
+  when (major /= 1) $ do
+    printf "Expecting IPython version 1.*, found version %d.%d.%d.\n" major minor patch
+    error "Incorrect ipython --version."
+
   args <- map unpack <$> getArgs
   case args of
     -- Create the "haskell" profile.
