@@ -40,6 +40,8 @@ Install the package:
 cd IHaskell;
 cabal install;
 ```
+If you do not have GHC or Cabal, you should be able to install both via the [Haskell Platform](http://www.haskell.org/platform/).
+
 
 Create the IPython profile:
 ```bash
