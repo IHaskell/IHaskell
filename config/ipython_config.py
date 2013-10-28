@@ -3,5 +3,5 @@
 c = get_config()
 exe = '${executable}'.replace(' ', '\\\\ ')
 c.KernelManager.kernel_cmd = [exe, 'kernel', '{connection_file}']
-c.Session.key = b''
-c.Session.keyfile = b''
+c.Session.key = ''
+c.Session.keyfile = ''
