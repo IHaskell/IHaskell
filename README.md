@@ -13,6 +13,11 @@ As well as the IPython browser-based notebook interface:
 Installation
 ===
 
+Make sure you have IPython version 1.0 or higher. IHaskell will not work with older versions of IPython.
+```bash
+ipython --version # Should print 1.0.0 (or higher!)
+```
+
 Download the package from the Github repository:
 ```bash
 git clone https://github.com/gibiansky/IHaskell
