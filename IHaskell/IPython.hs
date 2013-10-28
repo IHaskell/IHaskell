@@ -5,6 +5,7 @@ module IHaskell.IPython (
 ) where
 
 import ClassyPrelude
+import Prelude (reads)
 import Shelly hiding (find, trace)
 import Text.Printf
 import System.Argv0
@@ -36,8 +37,21 @@ ipythonVersion = shelly $ do
   case path of
     Nothing -> error "Could not find `ipython` executable."
     Just path -> do
-      [major, minor, patch] <- map read <$> split "." <$> runHandle path ["--version"] (liftIO . StrictIO.hGetContents) :: Sh [Int]
+      [major, minor, patch] <- parseVersion <$> runHandle path ["--version"] (liftIO . StrictIO.hGetContents) :: Sh [Int]
       return (major, minor, patch)
+
+{- |
+
+>>> parseVersion `map` ["2.0.0-dev", "2.0.0-alpha", "12.5.10"]
+[[2,0,0],[2,0,0],[12,5,10]]
+
+
+-}
+parseVersion :: String -> [Int]
+parseVersion versionStr = map read' $ split "." versionStr
+    where read' x = case reads x of
+                        [(n, _)] -> n
+                        _ -> error $ "cannot parse version: "++ versionStr
 
 -- | Run an IHaskell application using the given profile.
 runIHaskell :: String   -- ^ IHaskell profile name. 
