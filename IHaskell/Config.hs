@@ -1,5 +1,5 @@
 {-# LANGUAGE QuasiQuotes #-}
-module IHaskell.Config (ipython, notebook, console, qtconsole) where
+module IHaskell.Config (ipython, notebook, console, qtconsole, customjs) where
 
 import Data.String.Here
 import ClassyPrelude
@@ -15,3 +15,6 @@ console = [template|config/ipython_console_config.py|]
 
 qtconsole :: String
 qtconsole = [template|config/ipython_qtconsole_config.py|]
+
+customjs :: String
+customjs = [template|config/custom.js|]

@@ -106,7 +106,9 @@ joinDisplays displays =
       other = filter (not . isPlain) allDisplays 
       getText (Display PlainText text) = text
       joinedPlains = Display PlainText $ concat $ map getText plains in
-    joinedPlains : other
+    case length plains of
+      0 -> other
+      _ -> joinedPlains : other
 
 parseCommands :: String     -- ^ Code containing commands.
               -> [Command]  -- ^ Commands contained in code string.
@@ -228,4 +230,4 @@ parseStmts code =
     returnStmt = "return ()"
 
 makeError :: String -> String
-makeError = printf "<span style='color: red; font-style: italic;'>%s</span>"
+makeError = printf "<span style='color: red; font-style: italic;'>%s</span>" . replace "\n" "<br/>"

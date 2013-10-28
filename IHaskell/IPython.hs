@@ -7,11 +7,11 @@ module IHaskell.IPython (
 import ClassyPrelude
 import Prelude (reads)
 import Shelly hiding (find, trace)
-import Text.Printf
 import System.Argv0
 import System.Directory
 import qualified Filesystem.Path.CurrentOS as FS
 import Data.List.Utils (split)
+import Data.String.Utils (rstrip)
 
 import Prelude (read)
 import qualified System.IO.Strict as StrictIO
@@ -19,15 +19,22 @@ import qualified System.IO.Strict as StrictIO
 import qualified IHaskell.Config as Config
 
 -- | Run IPython with any arguments.
-ipython :: [Text] -> Sh ()
-ipython args = do
+ipython :: Bool         -- ^ Whether to suppress output.
+        -> [Text]       -- ^ IPython command line arguments.
+        -> Sh String    -- ^ IPython output.
+ipython suppress args = do
   path <- which "ipython"
   case path of
-    Nothing -> putStrLn "Could not find `ipython` executable."
-    Just ipythonPath -> runHandles ipythonPath args inheritHandles doNothing
-      where inheritHandles = [InHandle Inherit, OutHandle Inherit, ErrorHandle Inherit]
-            doNothing _ _ _ = return ()
-
+    Nothing -> do
+      putStrLn "Could not find `ipython` executable."
+      fail "`ipython` not on $PATH."
+    Just ipythonPath -> runHandles ipythonPath args handles doNothing
+      where handles = [InHandle Inherit, outHandle suppress, ErrorHandle Inherit]
+            outHandle True = OutHandle CreatePipe
+            outHandle False = OutHandle Inherit
+            doNothing _ stdout _ = if suppress 
+                                   then liftIO $ StrictIO.hGetContents stdout
+                                   else return ""
 
 -- | Use the `ipython --version` command to figure out the version.
 -- Return a tuple with (major, minor, patch).
@@ -37,7 +44,7 @@ ipythonVersion = shelly $ do
   case path of
     Nothing -> error "Could not find `ipython` executable."
     Just path -> do
-      [major, minor, patch] <- parseVersion <$> runHandle path ["--version"] (liftIO . StrictIO.hGetContents) :: Sh [Int]
+      [major, minor, patch] <- parseVersion <$>  ipython True ["--version"]
       return (major, minor, patch)
 
 {- |
@@ -58,35 +65,18 @@ runIHaskell :: String   -- ^ IHaskell profile name.
            -> String    -- ^ IPython app name.
            -> [String]  -- ^ Arguments to IPython.
            -> IO ()
-runIHaskell profile app args = shelly . ipython $ [pack app, "--profile", pack profile] ++ map pack args
+runIHaskell profile app args = void . shelly . ipython False $ [pack app, "--profile", pack profile] ++ map pack args
 
 -- | Create the IPython profile.
 setupIPythonProfile :: String -- ^ IHaskell profile name.
                     -> IO ()
 setupIPythonProfile profile = shelly $ do
   -- Create the IPython profile.
-  ipython ["profile", "create", pack profile]
+  void $ ipython False ["profile", "create", pack profile]
 
-  -- Find the IPython profile directory.
-  ipythonDirs <- catMaybes <$> sequence [get_env "IPYTHON_DIR", get_env "IPYTHONDIR"]
-  ipythonDir <-  case ipythonDirs of
-    dir:_ -> return dir
-    [] -> do
-      home <- get_env "HOME"
-      case home of
-        Nothing -> error "Could not locate $HOME."
-        Just home -> do
-          dotIpython <- test_d . fromText $ home ++ "/.ipython"
-          dotConfigIpython <- test_d . fromText $ home ++ "/.config/ipython"
-
-          when (not dotIpython && not dotConfigIpython) $ do
-            putStrLn "Could not find ~/.ipython or ~/.config/ipython."
-            error "Could not find IPython directory."
-
-          return $ home ++ (if dotIpython
-                          then "/.ipython"
-                          else "/.config/ipython")
-
+  -- Find the IPython profile directory. Make sure to get rid of trailing
+  -- newlines from the output of the `ipython locate` call.
+  ipythonDir <- pack <$> rstrip <$> ipython True ["locate"]
   let profileDir = ipythonDir ++ "/profile_" ++ pack profile ++ "/"
 
   path <- getIHaskellPath
@@ -101,6 +91,10 @@ writeConfigFilesTo profileDir ihaskellPath = do
     writeFile (conf "ipython_notebook_config.py")   Config.notebook
     writeFile (conf "ipython_console_config.py")    Config.console
     writeFile (conf "ipython_qtconsole_config.py")  Config.qtconsole
+
+    -- The custom directory many not exist, in which case we'll create it.
+    mkdir_p (conf "static/custom/")
+    writeFile (conf "static/custom/custom.js")      Config.customjs
   where
     conf filename = fromText $ profileDir ++ filename
 
