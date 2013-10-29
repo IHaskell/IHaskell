@@ -89,3 +89,10 @@ executable IHaskell
                        here,
                        system-filepath,
                        text ==0.11.*
+
+Test-Suite doctests
+  Type:     exitcode-stdio-1.0
+  Ghc-Options: -threaded
+  Main-Is: rundoctests.hs
+  Build-Depends: base, doctest >= 0.8, process
+
