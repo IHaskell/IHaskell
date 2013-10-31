@@ -90,11 +90,11 @@ Module Quickstart:
 - `IHaskell.ZeroMQ`: Low-level ZeroMQ communication wrapper. `serveProfile` starts listening on all necessary sockets, and returns a `ZeroMQInterface` record. This record exposes reading and writing `Chan Message` messages for all the necessary sockets, so then the rest of the application can simply use that interface.
 
 First steps:
-- Fork and clone the repository. 
-- Build IHaskell. 
-˝
+- Fork the repository on Github and clone your fork for editing. 
+- Build IHaskell as follows:
+
 ```bash 
-cd <path-to-IHaskell>
+cd /path/to/IHaskell
 cabal configure
 cabal build
 ```
@@ -108,8 +108,7 @@ ghci -XOverloadedStrings -package ghc -optP-include -optPdist/build/autogen/caba
 or you can create a .ghci file in the top level directory, like so: 
 
 ```bash
-# IHaskell .ghci file
-
+# In the IHaskell .ghci file
 :set -package ghc
 :set -package ghc-paths
 :set -optP-include -optPdist/build/autogen/cabal_macros.h
