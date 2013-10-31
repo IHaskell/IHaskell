@@ -1,4 +1,5 @@
 {-# LANGUAGE QuasiQuotes #-}
+-- | Description : IPython configuration files are compiled-into IHaskell
 module IHaskell.Config (ipython, notebook, console, qtconsole, customjs) where
 
 import Data.String.Here

@@ -1,3 +1,5 @@
+-- | Description : Shell scripting wrapper using @Shelly@ for the @notebook@, @setup@, and
+--                 @console@ commands.
 module IHaskell.IPython (
   runIHaskell,
   setupIPythonProfile,

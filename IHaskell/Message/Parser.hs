@@ -1,8 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
--- | This module is responsible for converting from low-level ByteStrings
--- | obtained from the 0MQ sockets into Messages. The only exposed function is
--- | `parseMessage`, which should only be used in the low-level 0MQ interface.
+-- | Description : Parsing messages received from IPython
+--
+-- This module is responsible for converting from low-level ByteStrings
+-- obtained from the 0MQ sockets into Messages. The only exposed function is
+-- `parseMessage`, which should only be used in the low-level 0MQ interface.
 module IHaskell.Message.Parser (parseMessage) where
 
 import ClassyPrelude
