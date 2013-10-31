@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE OverloadedStrings #-}
 -- | This module contains the @ToJSON@ instance for @Message@.
 module IHaskell.Message.Writer (
   ToJSON(..)
