@@ -42,7 +42,8 @@ main = do
     ["kernel", profileSrc] -> kernel profileSrc
 
     -- Bad arguments.
-    [] -> putStrLn "Provide command to run ('setup', 'kernel <profile-file.json>', 'run <app> [args]')."
+    [] -> putStrLn "Provide command to run ('setup', 'kernel <profile-file.json>', \
+                                           \'notebook [args]', 'console [args]')."
     cmd:_ -> putStrLn $ "Unknown command: " ++ pack cmd
 
 
