@@ -1,4 +1,6 @@
--- | The "ZeroMQ" module abstracts away the low-level 0MQ based interface with IPython,
+-- | Description : Low-level ZeroMQ communication wrapper.
+--
+-- The "ZeroMQ" module abstracts away the low-level 0MQ based interface with IPython,
 -- replacing it instead with a Haskell Channel based interface. The `serveProfile` function
 -- takes a IPython profile specification and returns the channel interface to use.
 module IHaskell.ZeroMQ (

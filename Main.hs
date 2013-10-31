@@ -1,5 +1,8 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+-- | Description : Argument parsing and basic messaging loop, using Haskell
+--                 Chans to communicate with the ZeroMQ sockets. 
+module Main where
 import ClassyPrelude hiding (liftIO)
 import Control.Concurrent.Chan
 import Data.Aeson

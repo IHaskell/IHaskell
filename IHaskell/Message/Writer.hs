@@ -1,5 +1,7 @@
 {-# LANGUAGE CPP #-}
--- | This module contains the @ToJSON@ instance for @Message@.
+-- | Description : @ToJSON@ for Messages
+--
+-- This module contains the @ToJSON@ instance for @Message@.
 module IHaskell.Message.Writer (
   ToJSON(..)
 )  where
