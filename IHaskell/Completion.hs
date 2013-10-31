@@ -1,5 +1,7 @@
 {-# LANGUAGE PatternGuards #-}
-{- | very approximate completion. Seems to generate what is required by
+{- | Description : generates tab-completion options
+
+ very approximate completion. Seems to generate what is required by
  <http://ipython.org/ipython-doc/dev/development/messaging.html#complete>,
  but for whatever reason nothing gets added when the liftIO below prints
  stuff like:

@@ -1,6 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
--- | This module exports all functions used for evaluation of IHaskell input.
+{- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
+                   a statement, declaration, import, or directive.
+
+This module exports all functions used for evaluation of IHaskell input.
+-}
 module IHaskell.Eval.Evaluate (
   interpret, evaluate, Interpreter, liftIO
   ) where

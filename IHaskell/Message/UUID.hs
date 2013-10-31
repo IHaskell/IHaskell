@@ -1,4 +1,6 @@
--- | Generate, parse, and pretty print UUIDs for use with IPython.
+-- | Description : UUID generator and data structure
+--
+-- Generate, parse, and pretty print UUIDs for use with IPython.
 module IHaskell.Message.UUID (
   UUID,
   random, randoms,

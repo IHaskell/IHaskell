@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+-- | Description : All message type definitions.
 module IHaskell.Types (
   Profile (..),
   Message (..),
