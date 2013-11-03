@@ -56,8 +56,9 @@ instance ToJSON Message where
                              "execution_count" .= execCount,
                              "code" .= code
                            ]
-  toJSON (CompleteReply _ m t s) = object [
+  toJSON (CompleteReply _ m mt t s) = object [
                              "matches" .= m,
+                             "matched_text" .= mt,
                              "text" .= t,
                              "status" .= if s then "ok" :: String else "error"
                            ]

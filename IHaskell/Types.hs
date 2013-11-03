@@ -200,6 +200,7 @@ data Message
   | CompleteReply {
      header :: MessageHeader,
      completionMatches :: [ByteString],
+     completionMatchedText :: ByteString,
      completionText :: ByteString,
      completionStatus :: Bool
   }
