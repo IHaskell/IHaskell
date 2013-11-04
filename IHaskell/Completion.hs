@@ -1,14 +1,19 @@
 {-# LANGUAGE PatternGuards #-}
 {- | Description : generates tab-completion options
 
- very approximate completion. Seems to generate what is required by
- <http://ipython.org/ipython-doc/dev/development/messaging.html#complete>,
- but for whatever reason nothing gets added when the liftIO below prints
- stuff like:
+  context-insensitive completion for what is probably
+  the identifier under the cursor.
+  
+  [@Known issues@]
 
- > {"status":"ok","text":"import Data hea","matches":["head"]}
+  > import Data.Lef<tab>
+  > System.IO.h<tab>
+  > Just.he<tab>
 
- When the cursor is after the hea, and you press tab.
+  The first should not complete to Left. The second should only
+  include things like System.IO.hPutStrLn, not head. Qualified
+  names should not be confused by the third option.
+
 -}
 module IHaskell.Completion (makeCompletions) where
 
@@ -25,6 +30,7 @@ import Data.List.Split.Internals
 import Data.Aeson
 import IHaskell.Message.Writer
 import qualified Data.ByteString.Lazy as L
+import Data.Maybe
 
 makeCompletions
   :: GHC.GhcMonad m => MessageHeader -> Message -> m Message
@@ -36,20 +42,27 @@ makeCompletions replyHeader (CompleteRequest hdr code line pos) = do
     let candidate = getWordAt (toString line) pos
         opts | Just cand <- candidate = filter (cand `isPrefixOf`) $ map (showPpr fs) ns
              | otherwise = []
-        matched_text = fromString $ maybe "" id candidate
+        matched_text = fromString $ fromMaybe "" candidate
 
-    let reply = CompleteReply replyHeader (map fromString opts) matched_text line True
-    liftIO (L.putStrLn $ encode $ toJSON reply)
-    return reply
+    return $ CompleteReply replyHeader (map fromString opts) matched_text line True
 
 
--- there are better ways to accomplish this
+-- maybe there are better ways to be sure we're getting only
+-- the whole word under the cursor...
 getWordAt :: String -> Int -> Maybe String
 getWordAt xs n =
         fmap (map fst) $
         find (any (== n) .  map snd) $
         split (defaultSplitter{
-                        delimiter = Delimiter [ (==) ' ' . fst ],
+                        delimiter = Delimiter [ isDelim . fst ],
                         condensePolicy = Condense })
                 (zip xs [1 .. ])
 
+    where isDelim | x:_ <- Data.List.drop (max 0 (n-1)) xs = \s ->
+            (s `elem` neverIdent)
+            || if isSymbol x then isAlpha s
+                            else isSymbol s
+            | otherwise = \s -> s `elem` neverIdent
+          -- these (and others?) are never part of an identifier
+          -- except for the dot (qualified names are tricky)
+          neverIdent = " \t(),{}[]\\'\"`."
