@@ -90,6 +90,7 @@ Module Quickstart:
 - `IHaskell.ZeroMQ`: Low-level ZeroMQ communication wrapper. `serveProfile` starts listening on all necessary sockets, and returns a `ZeroMQInterface` record. This record exposes reading and writing `Chan Message` messages for all the necessary sockets, so then the rest of the application can simply use that interface.
 
 First steps:
+
 - Fork the repository on Github and clone your fork for editing. 
 - Build IHaskell as follows:
 
@@ -99,9 +100,28 @@ cabal configure
 cabal build
 ```
 
-Loading IHaskell into GHCi for testing:
-If you are at the top level of the IHaskell project, you can load GHCi with
-`cabal repl` or `ghci`. The first option hides all packages not listed in the
-`IHaskell.cabal`, while the second option only sets a couple options given in
-the `.ghci` file in the repo.  Once in ghci, it can then be useful to `:load
-*IHaskell/Config` or similar.
+**Loading IHaskell into GHCi for testing:**
+
+Use one of the methods below to access IHaskell files in GHCi. Once inside GHCi, you can load an IHaskell file; for example, `:load IHaskell/Config.hs`.
+
+**Using cabal repl**
+
+If you have the latest version of cabal (>v1.18.0), the simplest thing to do is 
+
+```bash
+cd <path-to-IHaskell>
+cabal repl
+```
+
+The will hide all packages not listed in the
+`IHaskell.cabal`
+
+**Using GHCi directly**
+
+If you don't want to use cabal repl, you can just call ghci with the appropriate options. You can find these in the IHaskell.cabal file. 
+
+```bash
+ghci -XDoAndIfThenElse -XNoImplicitPrelude -XOverloadedStrings -package ghc -optP-include -optPdist/build/autogen/cabal_macros.h
+```
+
+If you just call ghci, it will use the options present in the .ghci file that comes with the IHaskell repo. 

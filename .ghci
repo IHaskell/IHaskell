@@ -1,4 +1,4 @@
 :set -package ghc
 :set -package ghc-paths
 :set -optP-include -optPdist/build/autogen/cabal_macros.h
-:set -XOverloadedStrings
+:set -XDoAndIfThenElse -XNoImplicitPrelude -XOverloadedStrings
