@@ -15,7 +15,7 @@ module IHaskell.Completion (makeCompletions) where
 import Prelude
 import Data.List
 import IHaskell.Types
-import GhcMonad(liftIO)
+import GhcMonad(liftIO, GhcMonad)
 import qualified GHC
 import Outputable (showPpr)
 import Data.Char
@@ -26,6 +26,8 @@ import Data.Aeson
 import IHaskell.Message.Writer
 import qualified Data.ByteString.Lazy as L
 
+makeCompletions
+  :: GHC.GhcMonad m => MessageHeader -> Message -> m Message
 makeCompletions replyHeader (CompleteRequest hdr code line pos) = do
 
     ns <- GHC.getRdrNamesInScope
@@ -33,9 +35,10 @@ makeCompletions replyHeader (CompleteRequest hdr code line pos) = do
 
     let candidate = getWordAt (toString line) pos
         opts | Just cand <- candidate = filter (cand `isPrefixOf`) $ map (showPpr fs) ns
-            | otherwise = []
+             | otherwise = []
+        matched_text = fromString $ maybe "" id candidate
 
-    let reply = CompleteReply replyHeader (map fromString opts) line True
+    let reply = CompleteReply replyHeader (map fromString opts) matched_text line True
     liftIO (L.putStrLn $ encode $ toJSON reply)
     return reply
 
