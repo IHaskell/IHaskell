@@ -24,6 +24,7 @@ import InteractiveEval
 import HscTypes
 import GhcMonad (liftIO)
 import GHC hiding (Stmt)
+import GHC (exprType)
 import GHC.Paths
 import Exception hiding (evaluate)
 
@@ -61,8 +62,11 @@ write x = when debug $ liftIO $ hPutStrLn stderr x
 type LineNumber = Int
 type ColumnNumber = Int
 type Interpreter = Ghc
+data DirectiveType 
+  = GetType String
+  deriving Show
 data Command
-  = Directive String
+  = Directive DirectiveType
   | Import String
   | Declaration String
   | Statement String
@@ -114,6 +118,7 @@ joinDisplays displays =
       0 -> other
       _ -> joinedPlains : other
 
+
 parseCommands :: String     -- ^ Code containing commands.
               -> [Command]  -- ^ Commands contained in code string.
 parseCommands code = concatMap makeCommands pieces
@@ -129,6 +134,7 @@ parseCommands code = concatMap makeCommands pieces
     makePieces [] = []
     makePieces (first:rest)
       | isDirective first = first : makePieces rest
+      | isImport first = first : makePieces rest
       | otherwise = unlines (first:take endOfBlock rest) : makePieces (drop endOfBlock rest)
           where
             endOfBlock = fromMaybe (length rest) $ findIndex (\x -> indentLevel x <= indentLevel first) rest
@@ -137,6 +143,7 @@ parseCommands code = concatMap makeCommands pieces
     pieces = trace (show $ makePieces $ lines code ) $ makePieces $ lines code
     makeCommands lines
       | isDirective lines = [createDirective lines]
+      | isImport lines    = [Import $ strip lines]
       | otherwise = case (parseDecl lines, parseStmts lines) of
             (ParseOk declaration, _) -> [Declaration $ prettyPrint declaration]
             (ParseFailed {}, Right stmts) -> map (Statement . prettyPrint) $ init stmts
@@ -147,12 +154,12 @@ parseCommands code = concatMap makeCommands pieces
             (_, Left (lineNumber, colNumber,errMsg)) -> [ParseError lineNumber colNumber errMsg]
 
     isDeclaration line = any (`isInfixOf` line) ["type", "newtype", "data", "instance", "class"]
-    isDirective line = startswith [directiveChar] stripped || startswith "import" stripped
-      where stripped = strip line
-    createDirective line =
-      case strip line of
-        ':':_ -> Directive $ strip line
-        _ -> Import $ strip line
+    isDirective line = startswith [directiveChar] (strip line) 
+    isImport line = startswith "import" (strip line)
+
+    createDirective line = case strip line of
+      ':':'t':' ':expr -> Directive (GetType expr)
+      other            -> ParseError 0 0 $ "Unknown command: " ++ other ++ "."
 
 evalCommand :: Command -> Interpreter [DisplayData]
 evalCommand (Import importStr) = do
@@ -162,9 +169,18 @@ evalCommand (Import importStr) = do
   setContext $ IIDecl importDecl : context
   return []
 
-evalCommand (Directive directive) = do
-  write $ "Directive: " ++ directive
-  return [Display MimeHtml $ printf "<span style='font-weight: bold; color: green;'>%s</span>" directive]
+evalCommand (Directive (GetType expr)) 
+  = ghandle handler 
+    $ do result <- exprType expr
+         dflags <- getSessionDynFlags
+         return [Display MimeHtml 
+          $ printf "<span style='font-weight: bold; color: green;'>%s</span>" 
+          $ showSDocUnqual dflags $ ppr result]
+  where 
+    handler :: SomeException -> Interpreter [DisplayData]
+    handler exception = do
+      write $ concat ["BreakCom: ", show exception]
+      return [Display MimeHtml $ makeError $ show exception]
 
 evalCommand (Statement stmt) = do
   write $ "Statement: " ++ stmt
