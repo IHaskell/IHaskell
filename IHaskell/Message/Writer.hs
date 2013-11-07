@@ -62,6 +62,14 @@ instance ToJSON Message where
                              "text" .= t,
                              "status" .= if s then "ok" :: String else "error"
                            ]
+  toJSON o@ObjectInfoReply{} = object [
+                            "oname" .= objectName o,
+                            "found" .= objectFound o,
+                            "ismagic" .= False,
+                            "isalias" .= False,
+                            "type_name" .= objectTypeString o,
+                            "docstring" .= objectDocString o
+                           ]
 
   toJSON body = error $ "Do not know how to convert to JSON for message " ++ show body
 

@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 -- | Description : Argument parsing and basic messaging loop, using Haskell
 --                 Chans to communicate with the ZeroMQ sockets. 
 module Main where
@@ -17,6 +18,10 @@ import IHaskell.Eval.Evaluate
 import qualified Data.ByteString.Char8 as Chars
 import IHaskell.IPython
 import IHaskell.Completion (makeCompletions)
+
+import GHC
+import Exception (ghandle, gcatch)
+import Outputable (showSDoc, ppr)
 
 data KernelState = KernelState
   { getExecutionCounter :: Int
@@ -161,5 +166,24 @@ replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
 replyTo _ creq@CompleteRequest{} replyHeader state = trace (show creq) $ do
     cr <- makeCompletions replyHeader creq
     return (state,  cr)
+
+-- | Reply to the object_info_request message. Given an object name, return
+-- | the associated type calculated by GHC.
+replyTo _ ObjectInfoRequest{objectName=oname} replyHeader state = do
+         dflags <- getSessionDynFlags
+         maybeDocs  <- flip gcatch (\(e::SomeException) -> return Nothing) $ do
+                          result <- exprType . Chars.unpack $ oname
+                          let docs = (showSDoc dflags) . ppr $ result
+                          return (Just docs)
+         let docs = maybe "" id maybeDocs
+         let reply = ObjectInfoReply {
+                        header = replyHeader,
+                        objectName = oname, 
+                        objectFound = if isNothing maybeDocs then False else True,
+                        objectTypeString = Chars.pack docs,
+                        objectDocString  = Chars.pack docs                    
+                      }
+         return (state, reply)
+
 
  

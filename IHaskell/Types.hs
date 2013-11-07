@@ -99,6 +99,8 @@ data MessageType = KernelInfoReplyMessage
                  | InputMessage
                  | CompleteRequestMessage
                  | CompleteReplyMessage
+                 | ObjectInfoRequestMessage
+                 | ObjectInfoReplyMessage
 
 instance Show MessageType where
   show KernelInfoReplyMessage     = "kernel_info_reply"
@@ -112,6 +114,8 @@ instance Show MessageType where
   show InputMessage               = "pyin"
   show CompleteRequestMessage     = "complete_request"
   show CompleteReplyMessage       = "complete_reply"
+  show ObjectInfoRequestMessage   = "object_info_request"
+  show ObjectInfoReplyMessage     = "object_info_reply"
 
 instance FromJSON MessageType where
   parseJSON (String s) = case s of
@@ -126,6 +130,8 @@ instance FromJSON MessageType where
     "pyin"                -> return InputMessage
     "complete_request"    -> return CompleteRequestMessage
     "complete_reply"      -> return CompleteReplyMessage
+    "object_info_request" -> return ObjectInfoRequestMessage
+    "object_info_reply"   -> return ObjectInfoReplyMessage
     _                     -> fail ("Unknown message type: " ++ show s)
   parseJSON _ = fail "Must be a string."
 
@@ -220,6 +226,19 @@ data Message
 # in other messages.
 'status' : 'ok'
 } -}
+  | ObjectInfoRequest {
+      header :: MessageHeader, 
+      objectName :: ByteString, -- ^ name of object to be searched for
+      detailLevel :: Int       -- ^ level of detail desired. default (0) 
+                                --  is equivalent to typing foo?, (1) is foo?? (don't know yet what this means for haskell)
+    }
+  | ObjectInfoReply {
+      header :: MessageHeader, 
+      objectName :: ByteString, 
+      objectFound :: Bool, -- ^ was the object found? 
+      objectTypeString :: ByteString, -- ^ type info string
+      objectDocString  :: ByteString
+    }
 
     deriving Show
 
@@ -252,4 +271,5 @@ replyType :: MessageType -> MessageType
 replyType KernelInfoRequestMessage = KernelInfoReplyMessage
 replyType ExecuteRequestMessage = ExecuteReplyMessage
 replyType CompleteRequestMessage = CompleteReplyMessage
+replyType ObjectInfoRequestMessage = ObjectInfoReplyMessage
 replyType messageType = error $ "No reply for message type " ++ show messageType

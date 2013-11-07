@@ -97,6 +97,12 @@ writeConfigFilesTo profileDir ihaskellPath = do
     -- The custom directory many not exist, in which case we'll create it.
     mkdir_p (conf "static/custom/")
     writeFile (conf "static/custom/custom.js")      Config.customjs
+
+    -- The notebook/js directory many not exist, in which case we'll create it.
+    mkdir_p (conf "static/notebook/")
+    mkdir_p (conf "static/notebook/js")
+    writeFile (conf "static/notebook/js/tooltip.js") Config.tooltipjs
+
   where
     conf filename = fromText $ profileDir ++ filename
 
