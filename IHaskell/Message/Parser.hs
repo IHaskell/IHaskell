@@ -75,7 +75,7 @@ parser :: MessageType            -- ^ The message type being parsed.
 parser KernelInfoRequestMessage  = kernelInfoRequestParser
 parser ExecuteRequestMessage     = executeRequestParser
 parser CompleteRequestMessage    = completeRequestParser
-parser ObjectInfoRequestMessage    = objectInfoRequestParser
+parser ObjectInfoRequestMessage  = objectInfoRequestParser
 parser other = error $ "Unknown message type " ++ show other
 
 -- | Parse a kernel info request.

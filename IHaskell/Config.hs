@@ -1,6 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
 -- | Description : IPython configuration files are compiled-into IHaskell
-module IHaskell.Config (ipython, notebook, console, qtconsole, customjs) where
+module IHaskell.Config (ipython, notebook, console, qtconsole, customjs, tooltipjs) where
 
 import Data.String.Here
 import ClassyPrelude
@@ -19,3 +19,6 @@ qtconsole = [template|config/ipython_qtconsole_config.py|]
 
 customjs :: String
 customjs = [template|config/custom.js|]
+
+tooltipjs :: String
+tooltipjs = [template|deps/tooltip.js|]
