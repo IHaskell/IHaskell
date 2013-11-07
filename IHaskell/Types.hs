@@ -130,6 +130,8 @@ instance FromJSON MessageType where
     "pyin"                -> return InputMessage
     "complete_request"    -> return CompleteRequestMessage
     "complete_reply"      -> return CompleteReplyMessage
+    "object_info_request" -> return ObjectInfoRequestMessage
+    "object_info_reply"   -> return ObjectInfoReplyMessage
     _                     -> fail ("Unknown message type: " ++ show s)
   parseJSON _ = fail "Must be a string."
 
@@ -269,4 +271,5 @@ replyType :: MessageType -> MessageType
 replyType KernelInfoRequestMessage = KernelInfoReplyMessage
 replyType ExecuteRequestMessage = ExecuteReplyMessage
 replyType CompleteRequestMessage = CompleteReplyMessage
+replyType ObjectInfoRequestMessage = ObjectInfoReplyMessage
 replyType messageType = error $ "No reply for message type " ++ show messageType

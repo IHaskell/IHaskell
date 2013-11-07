@@ -167,6 +167,8 @@ replyTo _ creq@CompleteRequest{} replyHeader state = trace (show creq) $ do
     cr <- makeCompletions replyHeader creq
     return (state,  cr)
 
+-- | Reply to the object_info_request message. Given an object name, return
+-- | the associated type calculated by GHC.
 replyTo _ ObjectInfoRequest{objectName=oname} replyHeader state = do
          dflags <- getSessionDynFlags
          maybeDocs  <- flip gcatch (\(e::SomeException) -> return Nothing) $ do
