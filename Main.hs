@@ -119,7 +119,11 @@ replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> Interpr
 replyTo _ KernelInfoRequest{} replyHeader state = return (state, KernelInfoReply { header = replyHeader })
 
 -- Reply to a shutdown request by exiting the main thread.
-replyTo _ ShutdownRequest{} _ _ = liftIO exitSuccess
+-- Before shutdown, reply to the request to let the frontend know shutdown
+-- is happening.
+replyTo interface ShutdownRequest{restartPending = restartPending} replyHeader _ = liftIO $ do
+    writeChan (shellReplyChannel interface) $ ShutdownReply replyHeader restartPending
+    exitSuccess
 
 -- Reply to an execution request. The reply itself does not require
 -- computation, but this causes messages to be sent to the IOPub socket
