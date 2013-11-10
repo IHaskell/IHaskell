@@ -16,14 +16,14 @@ import Data.List(findIndex)
 import Data.String.Utils
 import Text.Printf
 
-import Language.Haskell.Exts.Parser
+import Language.Haskell.Exts.Parser hiding (parseType)
 import Language.Haskell.Exts.Pretty
 import Language.Haskell.Exts.Syntax hiding (Name)
 
 import InteractiveEval
 import HscTypes
 import GhcMonad (liftIO)
-import GHC hiding (Stmt)
+import GHC hiding (Stmt, TypeSig)
 import GHC.Paths
 import Exception hiding (evaluate)
 
@@ -36,6 +36,9 @@ data ErrorOccurred = Success | Failure
 
 debug :: Bool
 debug = True
+
+ignoreTypePrefixes :: [String]
+ignoreTypePrefixes = ["GHC.Types", "GHC.Base"]
 
 makeWrapperStmts :: (String, [String], [String])
 makeWrapperStmts = (fileName, initStmts, postStmts)
@@ -71,6 +74,7 @@ data Command
   | Import String
   | Declaration String
   | Statement String
+  | TypedStatement Command Command
   | ParseError LineNumber ColumnNumber String
   deriving Show
 
@@ -145,23 +149,47 @@ parseCommands code = concatMap makeCommands pieces
     makePieces (first:rest)
       | isDirective first = first : makePieces rest
       | isImport first = first : makePieces rest
-      | otherwise = unlines (first:take endOfBlock rest) : makePieces (drop endOfBlock rest)
-          where
-            endOfBlock = fromMaybe (length rest) $ findIndex (\x -> indentLevel x <= indentLevel first) rest
+      | otherwise =
+          -- Special case having a type declaration right before
+          -- a function declaration. Using normal parsing, the type
+          -- declaration and the function declaration are separate
+          -- statements.
+          if isTypeDeclaration firstStmt
+          then case restStmt of
+            funDec:rest -> (firstStmt ++ "\n" ++ funDec) : rest
+            [] -> [firstStmt]
+          else firstStmt : restStmt
+          where (firstStmt, otherLines) = splitByIndent $ first:rest
+                restStmt = makePieces otherLines
 
+    splitByIndent :: [String] -> (String, [String])
+    splitByIndent (first:rest) = (unlines $ first:take endOfBlock rest, filter (/= "") $ drop endOfBlock rest)
+      where
+        endOfBlock = fromMaybe (length rest) $ findIndex (\x -> indentLevel x <= indentLevel first) rest
 
-    pieces = trace (show $ makePieces $ lines code ) $ makePieces $ lines code
-    makeCommands lines
-      | isDirective lines = [createDirective lines]
-      | isImport lines    = [Import $ strip lines]
-      | otherwise = case (parseDecl lines, parseStmts lines) of
+    pieces = makePieces $ lines code
+    makeCommands str
+      | isDirective str = [createDirective str]
+      | isImport str    = [Import $ strip str]
+      | length rest > 0 && isTypeDeclaration first =
+          let (firstStmt:restStmts) = makeCommands $ unlines rest in
+            TypedStatement (Declaration first) firstStmt : restStmts
+      | otherwise = case (parseDecl str, parseStmts str) of
             (ParseOk declaration, _) -> [Declaration $ prettyPrint declaration]
             (ParseFailed {}, Right stmts) -> map (Statement . prettyPrint) $ init stmts
 
-            -- show the parse error for the most likely type
-            (ParseFailed srcLoc errMsg, _)
-                | isDeclaration lines  -> [ParseError (srcLine srcLoc) (srcColumn srcLoc) errMsg]
+            -- Show the parse error for the most likely type.
+            (ParseFailed srcLoc errMsg, _) | isDeclaration str  -> [ParseError (srcLine srcLoc) (srcColumn srcLoc) errMsg]
             (_, Left (lineNumber, colNumber,errMsg)) -> [ParseError lineNumber colNumber errMsg]
+      where
+        (first, rest) = trace (show $ splitByIndent $ lines str) $ splitByIndent $ lines str
+
+    -- Check whether this string reasonably represents a type declaration
+    -- for a variable. 
+    isTypeDeclaration :: String -> Bool
+    isTypeDeclaration str = case parseDecl str of
+      ParseOk TypeSig{} -> True
+      _ -> False
 
     isDeclaration line = any (`isInfixOf` line) ["type", "newtype", "data", "instance", "class"]
     isDirective line = startswith [directiveChar] (strip line) 
@@ -192,6 +220,12 @@ evalCommand (Directive (GetType expr)) = wrapExecution $ do
   result <- exprType expr
   dflags <- getSessionDynFlags
   return [Display MimeHtml $ printf "<span style='font-weight: bold; color: green;'>%s</span>" $ showSDocUnqual dflags $ ppr result]
+
+evalCommand (TypedStatement (Declaration declType) (Declaration typedDecl)) = evalCommand $ Declaration $ declType ++ typedDecl
+
+evalCommand (TypedStatement (Declaration declType) _) = return (Failure, [Display MimeHtml $ makeError err])
+  where
+    err = printf "Type annotation `%s` must be followed by value declaration." (strip declType)
 
 evalCommand (Statement stmt) = do
   write $ "Statement: " ++ stmt
@@ -254,5 +288,8 @@ parseStmts code =
     returnStmt = "return ()"
 
 makeError :: String -> String
-makeError = printf "<span style='color: red; font-style: italic;'>%s</span>" . replace "\n" "<br/>" . replace useDashV ""
-  where useDashV = "\nUse -v to see a list of the files searched for."
+makeError = printf "<span style='color: red; font-style: italic;'>%s</span>" . replace "\n" "<br/>" . dropper
+  where dropper = foldl' (.) useStringType (map (`replace` "") dropList)
+        dropList = useDashV : map (++ ".") ignoreTypePrefixes
+        useDashV = "\nUse -v to see a list of the files searched for."
+        useStringType = replace "[Char]" "String"
