@@ -291,4 +291,5 @@ replyType KernelInfoRequestMessage = KernelInfoReplyMessage
 replyType ExecuteRequestMessage = ExecuteReplyMessage
 replyType CompleteRequestMessage = CompleteReplyMessage
 replyType ObjectInfoRequestMessage = ObjectInfoReplyMessage
+replyType ShutdownRequestMessage = ShutdownReplyMessage
 replyType messageType = error $ "No reply for message type " ++ show messageType

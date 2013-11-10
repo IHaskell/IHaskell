@@ -14,10 +14,10 @@ import IHaskell.Types
 
 -- ghc (api) version number like ints [7,6,2]. Could be done at compile
 -- time, but for now there's no template haskell in IHaskell
-ghcVersionInts = ints $
-    map read $ words $
-    map (\x -> case x of '.' -> ' '; _ -> x)
-    (VERSION_ghc :: String)
+ghcVersionInts :: [Int]
+ghcVersionInts = ints . map read . words . map dotToSpace $ (VERSION_ghc :: String)
+  where dotToSpace '.' = ' '
+        dotToSpace x = x
 
 -- Convert message bodies into JSON.
 instance ToJSON Message where
@@ -70,6 +70,11 @@ instance ToJSON Message where
                             "type_name" .= objectTypeString o,
                             "docstring" .= objectDocString o
                            ]
+
+  toJSON ShutdownReply{restartPending = restart} = object [
+                            "restart" .= restart
+                           ]
+
 
   toJSON body = error $ "Do not know how to convert to JSON for message " ++ show body
 
