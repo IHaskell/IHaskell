@@ -69,6 +69,8 @@ kernel profileSrc = do
     -- Read the request from the request channel.
     request <- liftIO $ readChan $ shellRequestChannel interface
 
+    liftIO $ print request
+
     -- Create a header for the reply.
     replyHeader <- createReplyHeader (header request)
 
@@ -170,7 +172,7 @@ replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
   })
 
 
-replyTo _ creq@CompleteRequest{} replyHeader state = trace (show creq) $ do
+replyTo _ creq@CompleteRequest{} replyHeader state = do
     cr <- makeCompletions replyHeader creq
     return (state,  cr)
 
