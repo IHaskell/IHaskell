@@ -76,6 +76,7 @@ parser KernelInfoRequestMessage  = kernelInfoRequestParser
 parser ExecuteRequestMessage     = executeRequestParser
 parser CompleteRequestMessage    = completeRequestParser
 parser ObjectInfoRequestMessage  = objectInfoRequestParser
+parser ShutdownRequestMessage    = shutdownRequestParser
 parser other = error $ "Unknown message type " ++ show other
 
 -- | Parse a kernel info request.
@@ -132,3 +133,11 @@ objectInfoRequestParser content = parsed
     Just decoded = decode content
 
 
+shutdownRequestParser :: LByteString -> Message
+shutdownRequestParser content = parsed
+  where
+  Success parsed = flip parse decoded $ \ obj -> do
+        code     <- obj .: "restart"
+        return $ ShutdownRequest noHeader code
+
+  Just decoded = decode content

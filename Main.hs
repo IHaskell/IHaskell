@@ -8,6 +8,7 @@ import ClassyPrelude hiding (liftIO)
 import Control.Concurrent.Chan
 import Data.Aeson
 import Text.Printf
+import System.Exit (exitSuccess)
 
 import qualified Data.Map as Map
 
@@ -20,7 +21,6 @@ import IHaskell.IPython
 import IHaskell.Completion (makeCompletions)
 
 import GHC
-import Exception (ghandle, gcatch)
 import Outputable (showSDoc, ppr)
 
 data KernelState = KernelState
@@ -30,8 +30,8 @@ data KernelState = KernelState
 main ::  IO ()
 main = do
   (major, minor, patch) <- ipythonVersion
-  when (major /= 1) $ do
-    printf "Expecting IPython version 1.*, found version %d.%d.%d.\n" major minor patch
+  when (major < 1) $ do
+    void $ printf "Expecting IPython version 1.*, found version %d.%d.%d.\n" major minor patch
     error "Incorrect ipython --version."
 
   args <- map unpack <$> getArgs
@@ -47,8 +47,8 @@ main = do
     ["kernel", profileSrc] -> kernel profileSrc
 
     -- Bad arguments.
-    [] -> putStrLn "Provide command to run ('setup', 'kernel <profile-file.json>', \
-                                           \'notebook [args]', 'console [args]')."
+    [] -> putStrLn $ "Provide command to run ('setup', 'kernel <profile-file.json>', " ++
+                                           "'notebook [args]', 'console [args]')."
     cmd:_ -> putStrLn $ "Unknown command: " ++ pack cmd
 
 
@@ -118,6 +118,9 @@ replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> Interpr
 -- hard coded into the representation of that message type).
 replyTo _ KernelInfoRequest{} replyHeader state = return (state, KernelInfoReply { header = replyHeader })
 
+-- Reply to a shutdown request by exiting the main thread.
+replyTo _ ShutdownRequest{} _ _ = liftIO exitSuccess
+
 -- Reply to an execution request. The reply itself does not require
 -- computation, but this causes messages to be sent to the IOPub socket
 -- with the output of the code in the execution request.
@@ -171,15 +174,15 @@ replyTo _ creq@CompleteRequest{} replyHeader state = trace (show creq) $ do
 -- | the associated type calculated by GHC.
 replyTo _ ObjectInfoRequest{objectName=oname} replyHeader state = do
          dflags <- getSessionDynFlags
-         maybeDocs  <- flip gcatch (\(e::SomeException) -> return Nothing) $ do
+         maybeDocs  <- flip gcatch (\(_::SomeException) -> return Nothing) $ do
                           result <- exprType . Chars.unpack $ oname
-                          let docs = (showSDoc dflags) . ppr $ result
+                          let docs = showSDoc dflags . ppr $ result
                           return (Just docs)
-         let docs = maybe "" id maybeDocs
+         let docs = fromMaybe "" maybeDocs
          let reply = ObjectInfoReply {
                         header = replyHeader,
                         objectName = oname, 
-                        objectFound = if isNothing maybeDocs then False else True,
+                        objectFound = isJust maybeDocs,
                         objectTypeString = Chars.pack docs,
                         objectDocString  = Chars.pack docs                    
                       }

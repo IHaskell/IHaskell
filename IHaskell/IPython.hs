@@ -7,7 +7,7 @@ module IHaskell.IPython (
 ) where
 
 import ClassyPrelude
-import Prelude (reads)
+import Prelude (read, reads)
 import Shelly hiding (find, trace)
 import System.Argv0
 import System.Directory
@@ -15,7 +15,6 @@ import qualified Filesystem.Path.CurrentOS as FS
 import Data.List.Utils (split)
 import Data.String.Utils (rstrip)
 
-import Prelude (read)
 import qualified System.IO.Strict as StrictIO
 
 import qualified IHaskell.Config as Config
@@ -42,12 +41,8 @@ ipython suppress args = do
 -- Return a tuple with (major, minor, patch).
 ipythonVersion :: IO (Int, Int, Int)
 ipythonVersion = shelly $ do
-  path <- which "ipython"
-  case path of
-    Nothing -> error "Could not find `ipython` executable."
-    Just path -> do
-      [major, minor, patch] <- parseVersion <$>  ipython True ["--version"]
-      return (major, minor, patch)
+  [major, minor, patch] <- parseVersion <$>  ipython True ["--version"]
+  return (major, minor, patch)
 
 {- |
 

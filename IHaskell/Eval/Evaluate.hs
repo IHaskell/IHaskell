@@ -24,7 +24,6 @@ import InteractiveEval
 import HscTypes
 import GhcMonad (liftIO)
 import GHC hiding (Stmt)
-import GHC (exprType)
 import GHC.Paths
 import Exception hiding (evaluate)
 
@@ -90,7 +89,7 @@ interpret :: Interpreter a -> IO a
 interpret action = runGhc (Just libdir) $ do
   -- Set the dynamic session flags
   dflags <- getSessionDynFlags
-  setSessionDynFlags $ dflags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
+  void $ setSessionDynFlags $ dflags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
 
   -- Import modules.
   imports <- mapM parseImportDecl globalImports

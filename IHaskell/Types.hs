@@ -48,6 +48,8 @@ instance FromJSON Profile where
             <*> v .: "shell_port"
             <*> v .: "iopub_port"
             <*> v .: "key"
+  parseJSON _ = fail "Expecting JSON object."
+
 instance ToJSON Profile where
   toJSON profile = object [
                     "ip"          .= ip profile,
@@ -101,6 +103,8 @@ data MessageType = KernelInfoReplyMessage
                  | CompleteReplyMessage
                  | ObjectInfoRequestMessage
                  | ObjectInfoReplyMessage
+                 | ShutdownRequestMessage
+                 | ShutdownReplyMessage
 
 instance Show MessageType where
   show KernelInfoReplyMessage     = "kernel_info_reply"
@@ -116,6 +120,8 @@ instance Show MessageType where
   show CompleteReplyMessage       = "complete_reply"
   show ObjectInfoRequestMessage   = "object_info_request"
   show ObjectInfoReplyMessage     = "object_info_reply"
+  show ShutdownRequestMessage     = "shutdown_request"
+  show ShutdownReplyMessage       = "shutdown_reply"
 
 instance FromJSON MessageType where
   parseJSON (String s) = case s of
@@ -132,6 +138,9 @@ instance FromJSON MessageType where
     "complete_reply"      -> return CompleteReplyMessage
     "object_info_request" -> return ObjectInfoRequestMessage
     "object_info_reply"   -> return ObjectInfoReplyMessage
+    "shutdown_request"    -> return ShutdownRequestMessage
+    "shutdown_reply"      -> return ShutdownReplyMessage
+
     _                     -> fail ("Unknown message type: " ++ show s)
   parseJSON _ = fail "Must be a string."
 
@@ -228,16 +237,26 @@ data Message
 } -}
   | ObjectInfoRequest {
       header :: MessageHeader, 
-      objectName :: ByteString, -- ^ name of object to be searched for
-      detailLevel :: Int       -- ^ level of detail desired. default (0) 
-                                --  is equivalent to typing foo?, (1) is foo?? (don't know yet what this means for haskell)
+      objectName :: ByteString,  -- ^ Name of object being searched for.
+      detailLevel :: Int         -- ^ Level of detail desired (defaults to 0).
+                                -- 0 is equivalent to foo?, 1 is equivalent
+                                -- to foo??.
     }
   | ObjectInfoReply {
       header :: MessageHeader, 
-      objectName :: ByteString, 
-      objectFound :: Bool, -- ^ was the object found? 
-      objectTypeString :: ByteString, -- ^ type info string
+      objectName :: ByteString,       -- ^ Name of object which was searched for.
+      objectFound :: Bool,            -- ^ Whether the object was found.
+      objectTypeString :: ByteString, -- ^ Object type.
       objectDocString  :: ByteString
+    }
+
+  | ShutdownRequest {
+      header :: MessageHeader,
+      restartPending :: Bool    -- ^ Whether this shutdown precedes a restart.
+    }
+  | ShutdownReply {
+      header :: MessageHeader,
+      restartPending :: Bool    -- ^ Whether this shutdown precedes a restart.
     }
 
     deriving Show
