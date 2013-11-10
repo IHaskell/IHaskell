@@ -32,6 +32,8 @@ import qualified System.IO.Strict as StrictIO
 
 import IHaskell.Types
 
+data ErrorOccurred = Success | Failure
+
 debug :: Bool
 debug = True
 
@@ -103,14 +105,23 @@ evaluate :: String                    -- ^ Haskell code or other interpreter com
          -> Interpreter [DisplayData] -- ^ All of the output.
 evaluate code
   | strip code == "" = return [] 
-  | otherwise = joinDisplays <$> mapM evalCommand (parseCommands $ strip code)
+  | otherwise = joinDisplays <$> runUntilFailure (parseCommands $ strip code)
+  where
+    runUntilFailure :: [Command] -> Interpreter [DisplayData]
+    runUntilFailure [] = return []
+    runUntilFailure (cmd:rest) = do 
+      (success, result) <- evalCommand cmd
+      case success of
+        Success -> do
+          restRes <- runUntilFailure rest
+          return $ result ++ restRes
+        Failure -> return result
 
-joinDisplays :: [[DisplayData]] -> [DisplayData]
+joinDisplays :: [DisplayData] -> [DisplayData]
 joinDisplays displays = 
   let isPlain (Display mime _) = (mime == PlainText)
-      allDisplays = concat displays
-      plains = filter isPlain allDisplays
-      other = filter (not . isPlain) allDisplays 
+      plains = filter isPlain displays
+      other = filter (not . isPlain) displays 
       getText (Display PlainText text) = text
       joinedPlains = Display PlainText $ concat $ map getText plains in
     case length plains of
@@ -160,26 +171,27 @@ parseCommands code = concatMap makeCommands pieces
       ':':'t':' ':expr -> Directive (GetType expr)
       other            -> ParseError 0 0 $ "Unknown command: " ++ other ++ "."
 
-evalCommand :: Command -> Interpreter [DisplayData]
-evalCommand (Import importStr) = do
+wrapExecution :: Interpreter [DisplayData] -> Interpreter (ErrorOccurred, [DisplayData])
+wrapExecution exec = ghandle handler $ exec >>= \res ->
+    return (Success, res)
+  where 
+    handler :: SomeException -> Interpreter (ErrorOccurred, [DisplayData])
+    handler exception = return (Failure, [Display MimeHtml $ makeError $ show exception])
+
+-- | Return the display data for this command, as well as whether it
+-- resulted in an error.
+evalCommand :: Command -> Interpreter (ErrorOccurred, [DisplayData])
+evalCommand (Import importStr) = wrapExecution $ do
   write $ "Import: " ++ importStr
   importDecl <- parseImportDecl importStr
   context <- getContext
   setContext $ IIDecl importDecl : context
   return []
 
-evalCommand (Directive (GetType expr)) 
-  = ghandle handler 
-    $ do result <- exprType expr
-         dflags <- getSessionDynFlags
-         return [Display MimeHtml 
-          $ printf "<span style='font-weight: bold; color: green;'>%s</span>" 
-          $ showSDocUnqual dflags $ ppr result]
-  where 
-    handler :: SomeException -> Interpreter [DisplayData]
-    handler exception = do
-      write $ concat ["BreakCom: ", show exception]
-      return [Display MimeHtml $ makeError $ show exception]
+evalCommand (Directive (GetType expr)) = wrapExecution $ do
+  result <- exprType expr
+  dflags <- getSessionDynFlags
+  return [Display MimeHtml $ printf "<span style='font-weight: bold; color: green;'>%s</span>" $ showSDocUnqual dflags $ ppr result]
 
 evalCommand (Statement stmt) = do
   write $ "Statement: " ++ stmt
@@ -189,14 +201,14 @@ evalCommand (Statement stmt) = do
       RunOk names -> do
         dflags <- getSessionDynFlags
         write $ "Names: " ++ show (map (showPpr dflags) names)  
-        return [Display PlainText printed]
+        return (Success, [Display PlainText printed])
       RunException exception -> do
         write $ "RunException: " ++ show exception
-        return [Display MimeHtml $ makeError $ show exception]
+        return (Failure, [Display MimeHtml $ makeError $ show exception])
       RunBreak{} ->
         error "Should not break."
   where 
-    handler :: SomeException -> Interpreter [DisplayData]
+    handler :: SomeException -> Interpreter (ErrorOccurred, [DisplayData])
     handler exception = do
       write $ concat ["BreakCom: ", show exception, "\nfrom statement:\n", stmt]
 
@@ -204,18 +216,11 @@ evalCommand (Statement stmt) = do
       let (_, _, postStmts) = makeWrapperStmts
       forM_ postStmts $ \s -> runStmt s RunToCompletion
 
-      return [Display MimeHtml $ makeError $ show exception]
+      return (Failure, [Display MimeHtml $ makeError $ show exception])
 
-evalCommand (Declaration decl) = do
-  write $ "Declaration: " ++ decl
-  ghandle handler $ runDecls decl >> return []
-  where 
-    handler :: SomeException -> Interpreter [DisplayData]
-    handler exception = do
-      write $ concat ["BreakDecl: ", show exception, "\nfrom declaration:\n", decl]
-      return [Display MimeHtml $ makeError $ show exception]
+evalCommand (Declaration decl) = wrapExecution $ runDecls decl >> return []
 
-evalCommand (ParseError line col err) =
+evalCommand (ParseError line col err) = wrapExecution $
   return [Display MimeHtml $ makeError $ printf "Error (line %d, column %d): %s" line col err]
 
 capturedStatement :: String -> Interpreter (String, RunResult)
@@ -249,4 +254,5 @@ parseStmts code =
     returnStmt = "return ()"
 
 makeError :: String -> String
-makeError = printf "<span style='color: red; font-style: italic;'>%s</span>" . replace "\n" "<br/>"
+makeError = printf "<span style='color: red; font-style: italic;'>%s</span>" . replace "\n" "<br/>" . replace useDashV ""
+  where useDashV = "\nUse -v to see a list of the files searched for."

@@ -19,7 +19,6 @@ module IHaskell.Completion (makeCompletions) where
 import Prelude
 import Data.List (find, isPrefixOf, nub)
 import qualified GHC
-import GhcMonad(liftIO)
 import Outputable (showPpr)
 import Data.Char
 import Data.ByteString.UTF8 hiding (drop)
