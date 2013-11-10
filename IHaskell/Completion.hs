@@ -1,4 +1,3 @@
-{-# LANGUAGE PatternGuards #-}
 {- | Description : generates tab-completion options
 
   context-insensitive completion for what is probably
@@ -18,51 +17,54 @@
 module IHaskell.Completion (makeCompletions) where
 
 import Prelude
-import Data.List
-import IHaskell.Types
-import GhcMonad(liftIO, GhcMonad)
+import Data.List (find, isPrefixOf, nub)
 import qualified GHC
+import GhcMonad(liftIO)
 import Outputable (showPpr)
 import Data.Char
-import Data.ByteString.UTF8
+import Data.ByteString.UTF8 hiding (drop)
 import Data.List.Split
 import Data.List.Split.Internals
-import Data.Aeson
-import IHaskell.Message.Writer
-import qualified Data.ByteString.Lazy as L
 import Data.Maybe
 
-makeCompletions
-  :: GHC.GhcMonad m => MessageHeader -> Message -> m Message
-makeCompletions replyHeader (CompleteRequest hdr code line pos) = do
+import IHaskell.Types
 
-    ns <- GHC.getRdrNamesInScope
-    fs <- GHC.getProgramDynFlags
+import Control.Applicative ((<$>))
 
-    let candidate = getWordAt (toString line) pos
-        opts | Just cand <- candidate = filter (cand `isPrefixOf`) $ map (showPpr fs) ns
-             | otherwise = []
-        matched_text = fromString $ fromMaybe "" candidate
+makeCompletions :: GHC.GhcMonad m => MessageHeader -> Message -> m Message
+makeCompletions replyHeader (CompleteRequest _ _ line pos) = do
+    names <- GHC.getRdrNamesInScope
+    flags <- GHC.getProgramDynFlags
 
-    return $ CompleteReply replyHeader (map fromString opts) matched_text line True
+    let maybeCand = getWordAt (toString line) pos
+        options =
+          case maybeCand of
+            Nothing -> []
+            Just candidate -> nub $ filter (candidate `isPrefixOf`) $ map (showPpr flags) names
+        matched_text = fromString $ fromMaybe "" maybeCand
+
+    return $ CompleteReply replyHeader (map fromString options) matched_text line True
 
 
--- maybe there are better ways to be sure we're getting only
--- the whole word under the cursor...
+-- | Get the word under a given cursor location.
 getWordAt :: String -> Int -> Maybe String
-getWordAt xs n =
-        fmap (map fst) $
-        find (any (== n) .  map snd) $
-        split (defaultSplitter{
-                        delimiter = Delimiter [ isDelim . fst ],
-                        condensePolicy = Condense })
-                (zip xs [1 .. ])
+getWordAt xs n = map fst <$> find (elem n .  map snd) (split splitter $ zip xs [1 .. ])
+  where 
+    splitter = defaultSplitter {
+      -- Split using only the characters, which are the first elements of
+      -- the (char, index) tuple
+      delimiter = Delimiter [isDelim . fst],
+      -- Condense multiple delimiters into one
+      condensePolicy = Condense
+    }
 
-    where isDelim | x:_ <- Data.List.drop (max 0 (n-1)) xs = \s ->
-            (s `elem` neverIdent)
-            || if isSymbol x then isAlpha s
-                            else isSymbol s
-            | otherwise = \s -> s `elem` neverIdent
-          -- these (and others?) are never part of an identifier
-          -- except for the dot (qualified names are tricky)
-          neverIdent = " \t(),{}[]\\'\"`."
+    isDelim char =
+      case drop (max 0 (n - 1)) xs of
+        x:_ -> (char `elem` neverIdent) || if isSymbol x
+           then isAlpha char
+           else isSymbol char
+        _ -> char `elem` neverIdent
+
+    -- These are never part of an identifier, except for the dot.
+    -- Qualified names are tricky!
+    neverIdent = " \t(),{}[]\\'\"`."
