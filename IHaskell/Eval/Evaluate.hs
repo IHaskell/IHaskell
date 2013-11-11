@@ -46,19 +46,24 @@ makeWrapperStmts = (fileName, initStmts, postStmts)
     randStr = "1345964344725219474" :: String
     fileVariable = "file_var_" ++ randStr
     oldVariable = fileVariable ++ "_old"
+    itVariable = "it_var_" ++ randStr
     fileName = ".ihaskell_capture"
-
-    postStmts :: [String]
-    postStmts = [
-            "hFlush stdout",
-      printf "hDuplicateTo %s stdout" oldVariable,
-      printf "hClose %s" fileVariable]
 
     initStmts :: [String]
     initStmts = [
+      printf "let %s = it" itVariable,
       printf "%s <- openFile \"%s\" WriteMode" fileVariable fileName,
       printf "%s <- hDuplicate stdout" oldVariable,
-      printf "hDuplicateTo %s stdout" fileVariable]
+      printf "hDuplicateTo %s stdout" fileVariable,
+      printf "let it = %s" itVariable]
+
+    postStmts :: [String]
+    postStmts = [
+      printf "let %s = it" itVariable,
+      "hFlush stdout",
+      printf "hDuplicateTo %s stdout" oldVariable,
+      printf "hClose %s" fileVariable,
+      printf "let it = %s" itVariable]
 
 write :: GhcMonad m => String -> m ()
 write x = when debug $ liftIO $ hPutStrLn stderr x
@@ -101,15 +106,21 @@ interpret action = runGhc (Just libdir) $ do
   imports <- mapM parseImportDecl globalImports
   setContext $ map IIDecl imports
 
+  -- Give a value for `it`. This is required due to the way we handle `it`
+  -- in the wrapper statements - if it doesn't exist, the first statement
+  -- will fail.
+  runStmt "()" RunToCompletion
+
   -- Run the rest of the interpreter
   action
 
 -- | Evaluate some IPython input code.
-evaluate :: String                    -- ^ Haskell code or other interpreter commands.
+evaluate :: Int                       -- ^ The execution counter of this evaluation.
+         -> String                    -- ^ Haskell code or other interpreter commands.
          -> Interpreter [DisplayData] -- ^ All of the output.
-evaluate code
+evaluate execCount code
   | strip code == "" = return [] 
-  | otherwise = joinDisplays <$> runUntilFailure (parseCommands $ strip code)
+  | otherwise = joinDisplays <$> runUntilFailure (parseCommands (strip code) ++ [storeItCommand execCount])
   where
     runUntilFailure :: [Command] -> Interpreter [DisplayData]
     runUntilFailure [] = return []
@@ -120,6 +131,8 @@ evaluate code
           restRes <- runUntilFailure rest
           return $ result ++ restRes
         Failure -> return result
+
+    storeItCommand execCount = Statement $ printf "let it%d = it" execCount
 
 joinDisplays :: [DisplayData] -> [DisplayData]
 joinDisplays displays = 

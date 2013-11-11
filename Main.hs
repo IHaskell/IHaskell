@@ -143,7 +143,7 @@ replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
   send $ PublishStatus busyHeader Busy
 
   -- Get display data outputs of evaluating the code.
-  outputs <- evaluate $ Chars.unpack code
+  outputs <- evaluate execCount $ Chars.unpack code
 
   -- Find all the plain text outputs.
   -- Send plain text output via an output message, because we are just
