@@ -65,16 +65,16 @@ write x = when debug $ liftIO $ hPutStrLn stderr x
 
 type LineNumber = Int
 type ColumnNumber = Int
+
 type Interpreter = Ghc
-data DirectiveType 
-  = GetType String
-  deriving Show
+
+data DirectiveType = GetType String deriving Show
+
 data Command
   = Directive DirectiveType
   | Import String
   | Declaration String
   | Statement String
-  | TypedStatement Command Command
   | ParseError LineNumber ColumnNumber String
   deriving Show
 
@@ -135,7 +135,7 @@ joinDisplays displays =
 
 parseCommands :: String     -- ^ Code containing commands.
               -> [Command]  -- ^ Commands contained in code string.
-parseCommands code = concatMap makeCommands pieces
+parseCommands code = joinMultilineDeclarations $ concatMap makeCommands pieces
   where
     -- Group the text into different pieces.
     -- Pieces can be declarations, statement lists, or directives.
@@ -173,7 +173,9 @@ parseCommands code = concatMap makeCommands pieces
       | isImport str    = [Import $ strip str]
       | length rest > 0 && isTypeDeclaration first =
           let (firstStmt:restStmts) = makeCommands $ unlines rest in
-            TypedStatement (Declaration first) firstStmt : restStmts
+            case firstStmt of
+              Declaration decl -> Declaration (first ++ decl) : restStmts
+              _ -> [ParseError 0 0 ("Expected declaration after type declaration: " ++ first)]
       | otherwise = case (parseDecl str, parseStmts str) of
             (ParseOk declaration, _) -> [Declaration $ prettyPrint declaration]
             (ParseFailed {}, Right stmts) -> map (Statement . prettyPrint) $ init stmts
@@ -199,6 +201,21 @@ parseCommands code = concatMap makeCommands pieces
       ':':'t':' ':expr -> Directive (GetType expr)
       other            -> ParseError 0 0 $ "Unknown command: " ++ other ++ "."
 
+joinMultilineDeclarations :: [Command] -> [Command]
+joinMultilineDeclarations = map joinCommands . groupBy declaringSameFunction
+  where
+    joinCommands :: [Command] -> Command
+    joinCommands [x] = x
+    joinCommands commands = Declaration . unlines $ map getDeclarationText commands
+      where
+        getDeclarationText (Declaration text) = text
+
+    declaringSameFunction :: Command -> Command -> Bool
+    declaringSameFunction (Declaration first) (Declaration second) = declared first == declared second
+      where declared :: String -> String
+            declared = takeWhile (`notElem` (" \t\n:" :: String)) . strip
+    declaringSameFunction _ _ = False
+
 wrapExecution :: Interpreter [DisplayData] -> Interpreter (ErrorOccurred, [DisplayData])
 wrapExecution exec = ghandle handler $ exec >>= \res ->
     return (Success, res)
@@ -220,12 +237,6 @@ evalCommand (Directive (GetType expr)) = wrapExecution $ do
   result <- exprType expr
   dflags <- getSessionDynFlags
   return [Display MimeHtml $ printf "<span style='font-weight: bold; color: green;'>%s</span>" $ showSDocUnqual dflags $ ppr result]
-
-evalCommand (TypedStatement (Declaration declType) (Declaration typedDecl)) = evalCommand $ Declaration $ declType ++ typedDecl
-
-evalCommand (TypedStatement (Declaration declType) _) = return (Failure, [Display MimeHtml $ makeError err])
-  where
-    err = printf "Type annotation `%s` must be followed by value declaration." (strip declType)
 
 evalCommand (Statement stmt) = do
   write $ "Statement: " ++ stmt
