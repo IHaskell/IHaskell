@@ -30,7 +30,7 @@ var IPython = (function (IPython) {
     // tooltip constructor
     var Tooltip = function () {
             var that = this;
-            this.time_before_tooltip = 1200;
+            this.time_before_tooltip = 800;
 
             // handle to html
             this.tooltip = \$('#tooltip');

@@ -39,7 +39,8 @@ debug :: Bool
 debug = True
 
 ignoreTypePrefixes :: [String]
-ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO"]
+ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",
+                      "GHC.Floating"]
 
 typeCleaner :: String -> String
 typeCleaner = useStringType . foldl' (.) id (map (`replace` "") fullPrefixes)

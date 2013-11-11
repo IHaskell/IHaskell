@@ -96,7 +96,8 @@ writeConfigFilesTo profileDir ihaskellPath = do
     -- The notebook/js directory many not exist, in which case we'll create it.
     mkdir_p (conf "static/notebook/")
     mkdir_p (conf "static/notebook/js")
-    writeFile (conf "static/notebook/js/tooltip.js") Config.tooltipjs
+    forM_ Config.notebookJavascript $ \(file, content) ->
+      writeFile (conf "static/notebook/js/" ++ file) content
 
   where
     conf filename = fromText $ profileDir ++ filename
