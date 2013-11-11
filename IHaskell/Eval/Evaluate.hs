@@ -6,7 +6,8 @@
 This module exports all functions used for evaluation of IHaskell input.
 -}
 module IHaskell.Eval.Evaluate (
-  interpret, evaluate, Interpreter, liftIO
+  interpret, evaluate, Interpreter, liftIO,
+  typeCleaner
   ) where
 
 import ClassyPrelude hiding (liftIO, hGetContents)
@@ -38,7 +39,13 @@ debug :: Bool
 debug = True
 
 ignoreTypePrefixes :: [String]
-ignoreTypePrefixes = ["GHC.Types", "GHC.Base"]
+ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO"]
+
+typeCleaner :: String -> String
+typeCleaner = useStringType . foldl' (.) id (map (`replace` "") fullPrefixes)
+  where
+    fullPrefixes = map (++ ".") ignoreTypePrefixes
+    useStringType = replace "[Char]" "String"
 
 makeWrapperStmts :: (String, [String], [String])
 makeWrapperStmts = (fileName, initStmts, postStmts)
@@ -312,8 +319,9 @@ parseStmts code =
     returnStmt = "return ()"
 
 makeError :: String -> String
-makeError = printf "<span style='color: red; font-style: italic;'>%s</span>" . replace "\n" "<br/>" . dropper
-  where dropper = foldl' (.) useStringType (map (`replace` "") dropList)
-        dropList = useDashV : map (++ ".") ignoreTypePrefixes
+makeError = printf "<span style='color: red; font-style: italic;'>%s</span>" .
+            replace "\n" "<br/>" . 
+            replace useDashV "" .
+            typeCleaner
+  where 
         useDashV = "\nUse -v to see a list of the files searched for."
-        useStringType = replace "[Char]" "String"

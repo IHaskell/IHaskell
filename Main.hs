@@ -16,9 +16,10 @@ import IHaskell.Types
 import IHaskell.ZeroMQ
 import qualified IHaskell.Message.UUID as UUID
 import IHaskell.Eval.Evaluate
+import IHaskell.Eval.Completion (makeCompletions)
+import IHaskell.Eval.Info
 import qualified Data.ByteString.Char8 as Chars
 import IHaskell.IPython
-import IHaskell.Completion (makeCompletions)
 
 import GHC
 import Outputable (showSDoc, ppr)
@@ -179,16 +180,11 @@ replyTo _ creq@CompleteRequest{} replyHeader state = do
 -- | Reply to the object_info_request message. Given an object name, return
 -- | the associated type calculated by GHC.
 replyTo _ ObjectInfoRequest{objectName=oname} replyHeader state = do
-         dflags <- getSessionDynFlags
-         maybeDocs  <- flip gcatch (\(_::SomeException) -> return Nothing) $ do
-                          result <- exprType . Chars.unpack $ oname
-                          let docs = showSDoc dflags . ppr $ result
-                          return (Just docs)
-         let docs = fromMaybe "" maybeDocs
+         docs <- info $ Chars.unpack oname
          let reply = ObjectInfoReply {
                         header = replyHeader,
                         objectName = oname, 
-                        objectFound = isJust maybeDocs,
+                        objectFound = docs == "",
                         objectTypeString = Chars.pack docs,
                         objectDocString  = Chars.pack docs                    
                       }

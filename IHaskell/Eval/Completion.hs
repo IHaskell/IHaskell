@@ -14,7 +14,7 @@
   names should not be confused by the third option.
 
 -}
-module IHaskell.Completion (makeCompletions) where
+module IHaskell.Eval.Completion (makeCompletions) where
 
 import Prelude
 import Data.List (find, isPrefixOf, nub)

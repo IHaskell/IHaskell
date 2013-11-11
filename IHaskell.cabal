@@ -51,7 +51,8 @@ executable IHaskell
   
   -- Modules included in this executable, other than Main.
   other-modules:       
-             IHaskell.Completion
+             IHaskell.Eval.Completion
+             IHaskell.Eval.Info
              IHaskell.Eval.Evaluate
              IHaskell.IPython
              IHaskell.Message.Parser
