@@ -36,11 +36,11 @@ import IHaskell.Types
 data ErrorOccurred = Success | Failure
 
 debug :: Bool
-debug = True
+debug = False
 
 ignoreTypePrefixes :: [String]
 ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",
-                      "GHC.Floating"]
+                      "GHC.Float"]
 
 typeCleaner :: String -> String
 typeCleaner = useStringType . foldl' (.) id (map (`replace` "") fullPrefixes)
@@ -205,7 +205,7 @@ parseCommands code = joinMultilineDeclarations $ concatMap makeCommands pieces
             (ParseFailed srcLoc errMsg, _) | isDeclaration str  -> [ParseError (srcLine srcLoc) (srcColumn srcLoc) errMsg]
             (_, Left (lineNumber, colNumber,errMsg)) -> [ParseError lineNumber colNumber errMsg]
       where
-        (first, rest) = trace (show $ splitByIndent $ lines str) $ splitByIndent $ lines str
+        (first, rest) = splitByIndent $ lines str
 
     -- Check whether this string reasonably represents a type declaration
     -- for a variable. 

@@ -70,8 +70,6 @@ kernel profileSrc = do
     -- Read the request from the request channel.
     request <- liftIO $ readChan $ shellRequestChannel interface
 
-    liftIO $ print request
-
     -- Create a header for the reply.
     replyHeader <- createReplyHeader (header request)
 
