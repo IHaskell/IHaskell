@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 -- The name of the package.
-name:                IHaskell
+name:                ihaskell
 
 -- The package version.  See the Haskell package versioning policy (PVP) 
 -- for standards guiding when and how versions should be incremented.
@@ -44,6 +44,34 @@ build-type:          Simple
 -- Constraint on the version of Cabal needed to build this package.
 cabal-version:       >=1.8
 
+library
+  build-depends:       base ==4.6.*,
+                       zeromq3-haskell ==0.5.*,
+                       aeson ==0.6.*,
+                       MissingH ==1.2.*,
+                       basic-prelude ==0.3.*,
+                       classy-prelude ==0.6.*,
+                       bytestring ==0.10.*,
+                       uuid >=1.2.6,
+                       containers ==0.5.*,
+                       haskell-src-exts ==1.14.*,
+                       ghc ==7.6.*,
+                       ghc-paths ==0.1.*,
+                       random ==1.0.*,
+                       split,
+                       utf8-string,
+                       strict ==0.3.*,
+                       shelly ==1.3.*,
+                       system-argv0,
+                       directory,
+                       here,
+                       system-filepath,
+                       text ==0.11.*
+  exposed-modules: IHaskell.Display,
+                   IHaskell.Types,
+                   IHaskell.Message.UUID
+
+
 
 executable IHaskell
   -- .hs or .lhs file containing the Main module.
@@ -60,6 +88,7 @@ executable IHaskell
              IHaskell.Message.Writer
              IHaskell.Types
              IHaskell.ZeroMQ
+             IHaskell.Display
 
 
   extensions: DoAndIfThenElse
