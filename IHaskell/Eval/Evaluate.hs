@@ -11,11 +11,12 @@ module IHaskell.Eval.Evaluate (
   ) where
 
 import ClassyPrelude hiding (liftIO, hGetContents)
-import Prelude(putChar, tail, init)
+import Prelude(putChar, tail, init, (!!))
 import Data.List.Utils
 import Data.List(findIndex)
 import Data.String.Utils
 import Text.Printf
+import Data.Char as Char
 
 import Language.Haskell.Exts.Parser hiding (parseType)
 import Language.Haskell.Exts.Pretty
@@ -27,8 +28,10 @@ import GhcMonad (liftIO)
 import GHC hiding (Stmt, TypeSig)
 import GHC.Paths
 import Exception hiding (evaluate)
-
 import Outputable
+import Packages
+import Module
+
 import qualified System.IO.Strict as StrictIO
 
 import IHaskell.Types
@@ -36,7 +39,7 @@ import IHaskell.Types
 data ErrorOccurred = Success | Failure
 
 debug :: Bool
-debug = False
+debug = True
 
 ignoreTypePrefixes :: [String]
 ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",
@@ -110,14 +113,35 @@ interpret action = runGhc (Just libdir) $ do
   dflags <- getSessionDynFlags
   void $ setSessionDynFlags $ dflags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
 
+  -- Load packages that start with ihaskell-* and aren't just IHaskell.
+  displayPackages <- liftIO $ do
+    (dflags, _) <- initPackages dflags
+    let Just db = pkgDatabase dflags
+        packageNames = map (packageIdString . packageConfigId) db
+        initStr = "ihaskell-"
+        ihaskellPkgs = filter (startswith initStr) packageNames
+        displayPkgs = filter (isAlpha . (!! (length initStr + 1))) ihaskellPkgs
+    return displayPkgs
+
+  -- Generate import statements all Display modules.
+  let capitalize :: String -> String
+      capitalize (first:rest) = Char.toUpper first : rest
+
+      importFmt = "import IHaskell.Display.%s" 
+
+      toImportStmt :: String -> String
+      toImportStmt = printf importFmt . capitalize . (!! 1) . split "-"
+
+      displayImports = map toImportStmt displayPackages
+
   -- Import modules.
-  imports <- mapM parseImportDecl globalImports
+  imports <- mapM parseImportDecl $ globalImports ++ displayImports
   setContext $ map IIDecl imports
 
   -- Give a value for `it`. This is required due to the way we handle `it`
   -- in the wrapper statements - if it doesn't exist, the first statement
   -- will fail.
-  runStmt "()" RunToCompletion
+  runStmt "putStrLn \"\"" RunToCompletion
 
   -- Run the rest of the interpreter
   action
@@ -148,7 +172,7 @@ joinDisplays displays =
       plains = filter isPlain displays
       other = filter (not . isPlain) displays 
       getText (Display PlainText text) = text
-      joinedPlains = Display PlainText $ concat $ map getText plains in
+      joinedPlains = Display PlainText $ concatMap getText plains in
     case length plains of
       0 -> other
       _ -> joinedPlains : other
@@ -192,7 +216,7 @@ parseCommands code = joinMultilineDeclarations $ concatMap makeCommands pieces
     makeCommands str
       | isDirective str = [createDirective str]
       | isImport str    = [Import $ strip str]
-      | length rest > 0 && isTypeDeclaration first =
+      | not (null rest) && isTypeDeclaration first =
           let (firstStmt:restStmts) = makeCommands $ unlines rest in
             case firstStmt of
               Declaration decl -> Declaration (first ++ decl) : restStmts
