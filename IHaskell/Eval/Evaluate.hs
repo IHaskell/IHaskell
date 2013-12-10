@@ -1,5 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
 
@@ -35,6 +34,7 @@ import Module
 import qualified System.IO.Strict as StrictIO
 
 import IHaskell.Types
+import IHaskell.Eval.Parser
 
 data ErrorOccurred = Success | Failure
 
@@ -79,20 +79,7 @@ makeWrapperStmts = (fileName, initStmts, postStmts)
 write :: GhcMonad m => String -> m ()
 write x = when debug $ liftIO $ hPutStrLn stderr x
 
-type LineNumber = Int
-type ColumnNumber = Int
-
 type Interpreter = Ghc
-
-data DirectiveType = GetType String deriving Show
-
-data Command
-  = Directive DirectiveType
-  | Import String
-  | Declaration String
-  | Statement String
-  | ParseError LineNumber ColumnNumber String
-  deriving Show
 
 globalImports :: [String]
 globalImports = 
@@ -152,9 +139,11 @@ evaluate :: Int                       -- ^ The execution counter of this evaluat
          -> Interpreter [DisplayData] -- ^ All of the output.
 evaluate execCount code
   | strip code == "" = return [] 
-  | otherwise = joinDisplays <$> runUntilFailure (parseCommands (strip code) ++ [storeItCommand execCount])
+  | otherwise = do
+      cmds <- parseCommands (strip code) 
+      joinDisplays <$> runUntilFailure (cmds ++ [storeItCommand execCount])
   where
-    runUntilFailure :: [Command] -> Interpreter [DisplayData]
+    runUntilFailure :: [CodeBlock] -> Interpreter [DisplayData]
     runUntilFailure [] = return []
     runUntilFailure (cmd:rest) = do 
       (success, result) <- evalCommand cmd
@@ -178,8 +167,12 @@ joinDisplays displays =
       _ -> joinedPlains : other
 
 
+parseCommands :: GhcMonad m => String       -- ^ Code containing commands.
+              -> m [CodeBlock]  -- ^ Commands contained in code string.
+parseCommands  = parseCell 
+{-
 parseCommands :: String     -- ^ Code containing commands.
-              -> [Command]  -- ^ Commands contained in code string.
+              -> [CodeBlock]  -- ^ Commands contained in code string.
 parseCommands code = joinMultilineDeclarations $ concatMap makeCommands pieces
   where
     -- Group the text into different pieces.
@@ -246,20 +239,21 @@ parseCommands code = joinMultilineDeclarations $ concatMap makeCommands pieces
       ':':'t':' ':expr -> Directive (GetType expr)
       other            -> ParseError 0 0 $ "Unknown command: " ++ other ++ "."
 
-joinMultilineDeclarations :: [Command] -> [Command]
+joinMultilineDeclarations :: [CodeBlock] -> [CodeBlock]
 joinMultilineDeclarations = map joinCommands . groupBy declaringSameFunction
   where
-    joinCommands :: [Command] -> Command
+    joinCommands :: [CodeBlock] -> CodeBlock
     joinCommands [x] = x
     joinCommands commands = Declaration . unlines $ map getDeclarationText commands
       where
         getDeclarationText (Declaration text) = text
 
-    declaringSameFunction :: Command -> Command -> Bool
+    declaringSameFunction :: CodeBlock -> CodeBlock -> Bool
     declaringSameFunction (Declaration first) (Declaration second) = declared first == declared second
       where declared :: String -> String
             declared = takeWhile (`notElem` (" \t\n:" :: String)) . strip
     declaringSameFunction _ _ = False
+-}
 
 wrapExecution :: Interpreter [DisplayData] -> Interpreter (ErrorOccurred, [DisplayData])
 wrapExecution exec = ghandle handler $ exec >>= \res ->
@@ -270,7 +264,7 @@ wrapExecution exec = ghandle handler $ exec >>= \res ->
 
 -- | Return the display data for this command, as well as whether it
 -- resulted in an error.
-evalCommand :: Command -> Interpreter (ErrorOccurred, [DisplayData])
+evalCommand :: CodeBlock -> Interpreter (ErrorOccurred, [DisplayData])
 evalCommand (Import importStr) = wrapExecution $ do
   write $ "Import: " ++ importStr
   importDecl <- parseImportDecl importStr
@@ -278,7 +272,7 @@ evalCommand (Import importStr) = wrapExecution $ do
   setContext $ IIDecl importDecl : context
   return []
 
-evalCommand (Directive (GetType expr)) = wrapExecution $ do
+evalCommand (Directive GetType expr) = wrapExecution $ do
   result <- exprType expr
   dflags <- getSessionDynFlags
   return [Display MimeHtml $ printf "<span style='font-weight: bold; color: green;'>%s</span>" $ showSDocUnqual dflags $ ppr result]

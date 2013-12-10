@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {-# LANGUAGE CPP #-}
 -- | Description : @ToJSON@ for Messages
 --
@@ -18,6 +19,7 @@ ghcVersionInts :: [Int]
 ghcVersionInts = ints . map read . words . map dotToSpace $ (VERSION_ghc :: String)
   where dotToSpace '.' = ' '
         dotToSpace x = x
+--ghcVersionInts = [7,6,3]
 
 -- Convert message bodies into JSON.
 instance ToJSON Message where

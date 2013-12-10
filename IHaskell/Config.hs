@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 -- | Description : IPython configuration files are compiled-into IHaskell
 module IHaskell.Config (ipython, notebook, console, qtconsole, customjs, notebookJavascript) where

@@ -1,9 +1,8 @@
+{-# LANGUAGE OverloadedStrings #-}
 import System.Process
-import System.Exit
-import System.IO
 import Test.DocTest
-import Data.Char
 import System.Environment
+import Data.String.Utils
 
 -- | tests that all the >>> comments are followed by correct output. Easiest is to
 --
@@ -18,17 +17,24 @@ import System.Environment
 -- > runghc examples/rundoctests.hs Data/HList/File1.hs Data/HList/File2.hs
 --
 -- you need Cabal >= 1.18 since that's around when cabal repl got added.
+main :: IO ()
 main = do
-    as <- getArgs
-    o <- readProcess
-        "cabal" ["repl","--ghc-options","-v0 -w"]
-        ":show packages\n:show language"
-    let flags = words $ unlines $ filter ((=="-") . take 1 . dropWhile isSpace)
-                    $ lines o
+    -- Get files to run on.
+    args <- getArgs
 
-    let files = case as of
+    -- Get flags via cabal repl.
+    let cabalCmds = unlines [":show packages", ":show language"]
+        cabalOpts = ["repl","--ghc-options","-v0 -w"]
+    options <- readProcess "cabal" cabalOpts cabalCmds
+    let extraFlags = ["-fobject-code", "-XNoImplicitPrelude"]
+        flags = words (unlines $ filter (startswith "-" . strip) $ lines options) ++ extraFlags
+
+    let files = case args of
             [] -> ["Main.hs"]
-            _ -> as
+            _ -> args
+    putStrLn "Testing:\n--------"
+    mapM_ putStrLn files
+    putStr "\n"
 
     doctest $ "-i.": "-idist/build/autogen":
              "-optP-include":

@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 -- | Description : UUID generator and data structure
 --
 -- Generate, parse, and pretty print UUIDs for use with IPython.

@@ -1,346 +1,210 @@
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 module IHaskell.Eval.Parser (
-     chunkCode,
-     CodeChunk(..),
-     ChunkType(..),
+    parseCell,
+    CodeBlock(..),
+    DirectiveType(..),
+    LineNumber,
+    ColumnNumber,
+    splitAtLoc
     ) where
 
-import ClassyPrelude hiding (liftIO, hGetContents)
+import ClassyPrelude hiding (liftIO)
+
+import Data.String.Utils (startswith, strip)
+import Prelude (init, last)
 
 import FastString
 import StringBuffer
 import ErrUtils
 import SrcLoc
 import GHC
+import GhcMonad (liftIO)
 import Bag
+import Outputable hiding ((<>))
 import Lexer
+import OrdList
 
-import Data.String.Utils (strip, startswith)
-import Data.List.Utils (grab)
-import Control.Monad.State
+import IHaskell.GHC.HaskellParser
 
--- | A chunk of code with with a source span and an associated chunk type.
-data CodeChunk = Chunk RealSrcSpan ChunkType
+import Debug.Trace
 
--- | Possible types of code chunks.
-data ChunkType = Directive
-               | Expr
-               | Stmt
-               | Decl
-               | Import
-               deriving (Eq, Show, Ord)
+type LineNumber = Int
+type ColumnNumber = Int
 
--- | Simple tree data structure.
-data Tree a = Branch [Tree a] | Leaf a deriving Show
+data CodeBlock
+  = Expression String
+  | Declaration String
+  | Statement String
+  | Import String
+  | Directive DirectiveType String
+  | ParseError LineNumber ColumnNumber String
+  deriving Show
 
--- | Delimiter categorization as an opening, closing, or neither opening
--- nor closing delimiter. Used to generate trees of tokens.
-data DelimType = Opening | Closing | Neither
+data DirectiveType
+  = GetType
+  | GetInfo
+  deriving Show
 
--- | Put the given statements into a `do` block.
-wrapInDoBlock :: String -> String
-wrapInDoBlock codeStr =
-  if null stripped
-  then []
-  else unlines $ "do" : map indent (lines stripped)
+-- $setup
+-- >>> import GHC
+-- >>> import GHC.Paths
+-- >>> import IHaskell.Eval.Parser
+-- >>> let ghc = runGhc (Just libdir)
+-- >>> let test = ghc . parseCell
+
+-- $extendedParserTests
+--
+-- >>> test "let x = 3 in x + 3"
+-- [Expression "let x = 3 in x + 3"]
+--
+-- >>> test "3\n:t expr"
+-- [Expression "3",Directive GetType "expr"]
+--
+-- >>> test "3\nlet x = expr"
+-- [Expression "3",Statement "let x = expr"]
+--
+-- >>> test "y <- do print 'no'\nlet x = expr"
+-- [Statement "y <- do print 'no'",Statement "let x = expr"]
+--
+-- >>> test "y <- do print 'no'\nlet x = expr"
+-- [Statement "y <- print 'no'",Statement "let x = expr"]
+--
+-- >>> test "print yes\nprint no"
+-- [Expression "print yes",Statement "print no"]
+
+
+-- | Parse a single cell into code blocks.
+--
+-- >>> test "let x = 3"
+-- [Statement "let x = 3"]
+--
+-- >>> test ":type hello\n:in goodbye"
+-- [Directive GetType "hello",Directive GetInfo "goodbye"]
+--
+-- >>> test "import Data.Monoid"
+-- [Import "import Data.Monoid"]
+--
+-- >>> test "3 + 5"
+-- [Expression "3 + 5"]
+parseCell :: GhcMonad m => String -> m [CodeBlock]
+parseCell codeString = concat <$> processChunks 1 [] chunks
   where
-    stripped = strip codeStr
-    indent = ("    " ++)
+    chunks = splitOnDirectives [] $ lines codeString
+    parseChunk chunk line =
+      if isDirective chunk
+      then return [parseDirective chunk line]
+      else parseCell' chunk line
 
--- | Convert a string of code into raw, uncleaned code chunks.
-classifyCode :: DynFlags -> String -> Either String [CodeChunk]
-classifyCode flags codeStr = groupLikeChunks . treeToChunks . tokenTree <$> runLexer flags (wrapInDoBlock codeStr)
+    isDirective = startswith ":" . strip
 
--- | Group code chunks that are alike into one code chunk.
-groupLikeChunks :: [CodeChunk] -> [CodeChunk]
-groupLikeChunks chunks = map joinChunks $ groupBy sameChunkType chunks 
-  where
-    sameChunkType (Chunk _ firstType) (Chunk _ secondType) = firstType == secondType
+    processChunks _ results [] = return $ reverse results
+    processChunks line accum (chunk:remaining) = do
+      block <- parseChunk chunk line
+      processChunks (line + nlines chunk) (block : accum) remaining
 
-    joinChunks :: [CodeChunk] -> CodeChunk
-    joinChunks [chunk] = chunk
-    joinChunks (Chunk firstLoc chunkType:rest) = Chunk newSpan chunkType
-      where newSpan = mkRealSrcSpan (realSrcSpanStart firstLoc) (realSrcSpanEnd restChunkLoc)
-            Chunk restChunkLoc _ = joinChunks rest
+    splitOnDirectives results [] = reverse results
+    splitOnDirectives chunks (line:lines) =
+      if startswith ":" $ strip line
+      then splitOnDirectives (line : chunks) lines
+      else
+        let goodLines = takeWhile (not . startswith ":" . strip) (line:lines)
+            remaining = drop (length goodLines) (line:lines) in
+          splitOnDirectives (unlines goodLines : chunks) remaining
 
--- | Convert a list of tokens into a tree of tokens.
-tokenTree :: [Located Lexer.Token] -> Tree (Located Lexer.Token)
-tokenTree = toTree $ \x -> case x of
-            -- Opening delimiters are opening curly braces and opening parentheses. 
-            L _ ITvocurly -> Opening
-            L _ IToparen -> Opening
+    nlines = length . lines
 
-            -- Closing delimiters are closing curly braces and closing parentheses. 
-            L _ ITvccurly -> Closing
-            L _ ITcparen -> Closing
-
-            -- Everthing else isn't a delimiter.
-            _ -> Neither
-
--- | Convert a list into a tree given a function that can classify each
--- element of the list as a delimiter (opening or closing) or not
--- a delimiter.
-toTree :: (a -> DelimType) -- ^ Function which classifies the delimiter type of a list element.
-       -> [a]             -- ^ List of tokens.
-       -> Tree a          -- ^ Tree generated from tokens where each set of delimiters encodes a new level.
-toTree delimType tokens = 
-  case toTree' delimType 0 [[]] tokens of
-    x -> Branch $ reverse x
-
-  where
-    -- Helper function for tree conversion.
-    toTree' :: (a -> DelimType)   -- Convert list element to a tree.
-            -> Int               -- The level of the tree which is being parsed.
-            -> [[Tree a]]        -- The currently parsed branches at every level.
-                                -- The first element is a list of branches
-                                -- at the level currently being parsed, the
-                                -- second element is the branches at the
-                                -- level above, and so on.
-            -> [a]               -- Remaining tokens.
-            -> [Tree a]          -- Branches of the output tree.
-    toTree' delimType n accum (token:rest) =
-      case delimType token of
-        -- If we see an opening delimiter, go down one level.
-        -- Reset the parsed things at the current level to nothing, since
-        -- we haven't parsed any tokens. 
-        Opening -> toTree' delimType (n+1) ([] : accum) rest
-
-        -- If we see a closing parenthesis, go back up one level.
-        -- The level below just becomes a single parsed token at this level.
-        Closing -> case accum of
-          sublevel : currentLevel : uplevels -> toTree' delimType (n-1) levels rest
-            where first = Branch $ reverse sublevel
-                  currentLevelNodes = first : currentLevel
-                  levels = currentLevelNodes : uplevels
-
-        -- If we see something that isn't a delimiter, simply add it to the
-        -- current level of parsed nodes.
-        Neither -> case accum of
-          currentLevel : uplevels -> toTree' delimType n ((Leaf token : currentLevel) : uplevels) rest
-
-    -- Once done parsing, return the branches. We're done paring because
-    -- the remaining tokens are empty and because the level of the tree is
-    -- just zero (the top level).
-    toTree' _ 0 (a:_) [] = a
-
--- | Divide the code string into chunks. Each code chunk can be evaluated
--- separately.
-chunkCode :: GhcMonad m => String                        -- ^ String containing code to parse and split.
-          -> m (Either String [(String, ChunkType)])    -- ^ Either an error string or a list of code chunks.
-chunkCode codeString = do
-  flags <- getSessionDynFlags
-  let chunks = classifyCode flags codeString
-  return $ case chunks of
-    Right chunks -> Right $ evalState (extractDirectives chunks) $ lines codeString
-    Left str -> Left str
+parseCell' :: GhcMonad m => String -> Int  -> m [CodeBlock]
+parseCell' code startLine = do
+    flags <- getSessionDynFlags
+    let parseResults = map tryParser (parsers flags)
+    case rights parseResults of
+      [] -> return [ParseError startLine 0 "Failed"]
+      (result, used, remaining):_ -> do
+        remainResult <- parseCell' remaining $ startLine + length (lines used)
+        return $ result : if null (strip remaining)
+                          then []
+                          else remainResult
 
   where
-    -- Get number of lines in a source span.
-    nlines :: RealSrcSpan -> Int
-    nlines span = 1 + srcLocLine (realSrcSpanEnd span) - srcLocLine (realSrcSpanStart span)
+    tryParser :: (String -> CodeBlock, String -> (Either String String, String, String)) -> Either String (CodeBlock, String, String)
+    tryParser (blockType, parser) = case parser code of
+      (Left err, _, _) -> Left err
+      (Right res, used, remaining) -> Right (blockType res, used, remaining)
+    parsers flags =
+      [ (Import,      strParser flags partialImport)
+      , (Expression,  strParser flags partialExpression)
+      , (Statement,   strParser flags partialStatement)
+      , (Declaration, lstParser flags partialDeclaration)
+      ]
 
-    -- Extract all directives in this chunk. Convert a chunk into a list of
-    -- strings and their chunk types.
-    extractDirectives :: [CodeChunk] -> State [String] [(String, ChunkType)]
-    extractDirectives (Chunk span chunkType:rest) = do
-      spanLines <- grab $ nlines span
-      next <- extractDirectives rest
-      return $ catchDirectives spanLines chunkType ++ next
-      where
-        catchDirectives :: [String] -> ChunkType -> [(String, ChunkType)]
-        catchDirectives codeLines chunkType = case break isDirective codeLines of
-          -- If there are no directives...
-          (allLines, []) -> [(unlines allLines, chunkType)]
-          (preLines, directiveLine:postLines) -> [(unlines preLines, chunkType), (directiveLine, Directive)] ++ catchDirectives postLines chunkType
+    lstParser :: Outputable a => DynFlags -> P (OrdList a) -> String -> (Either String String, String, String)
+    lstParser flags parser code =
+      case runParser flags parser code of
+        Left err -> (Left err, code, "")
+        Right (out, used, remainingCode) -> (Right . showSDoc flags . ppr . fromOL $ out, used, remainingCode)
 
-        isDirective line = startswith ":" $ strip line
+    strParser :: Outputable a => DynFlags -> P a -> String -> (Either String String, String, String)
+    strParser flags parser code =
+      case runParser flags parser code of
+        Left err -> (Left err, code, "")
+        Right (out, used, remainingCode) -> (Right . showSDoc flags . ppr $ out, used, remainingCode)
 
-    extractDirectives [] = return []
-
--- | only go down one level
-treeToChunks :: Tree (Located Lexer.Token) -> [CodeChunk]
-treeToChunks = convertToChunks (convertToChunks leafToChunk)
+-- | Parse a directive of the form :directiveName.
+parseDirective :: String       -- ^ Directive string.
+               -> Int          -- ^ Line number at which the directive appears.
+               -> CodeBlock    -- ^ Directive code block or a parse error.
+parseDirective (':':directive) line = case find rightDirective directives of
+  Just (directiveType, _) -> Directive directiveType arg
+    where arg = unwords restLine
+          _:restLine = words directive
+  Nothing -> ParseError line 0 $ "Unknown command: '" ++ directive ++ "'."
   where
-    convertToChunks recursion (Branch subnodes) = concatMap recursion subnodes
-    convertToChunks _ (Leaf value) = makeChunk value
+    rightDirective (_, strings) = case words directive of
+      [] -> False
+      dir:_ -> dir `elem` strings
+    directives =
+      [(GetType, ["t", "ty", "typ", "type"])
+      ,(GetInfo, ["i", "in", "inf", "info"])
+      ]
 
-    leafToChunk (Leaf value) = makeChunk value
-    leafToChunk _ = []
+-- | Run a GHC parser on a string.
+runParser :: DynFlags -> P a -> String -> Either String (a, String, String)
+runParser dflags parser str = toEither (unP parser (mkPState dflags buffer location))
+    where
+       filename = "<interactive>"
+       location = mkRealSrcLoc (mkFastString filename) 1 1
+       buffer = stringToStringBuffer str
 
-    makeChunk (L (RealSrcSpan location) token) = [Chunk location $ classifyToken token]
-    makeChunk _ = []
+       toEither (PFailed span err) = Left $ printErrorBag $ unitBag $ mkPlainErrMsg dflags span err
+       toEither (POk parseState result) = 
+         let parseEnd = loc parseState
+             endLine = srcLocLine parseEnd
+             endCol = srcLocCol parseEnd
+             (before, after) = splitAtLoc endLine endCol str in
+           Right (result, before, after)
 
--- | Classifies a token based on what type of Haskell form it is likely to
--- be part of.  Certain tokens can mean you are in an import or in
--- a declaration.  However, you can have declarations inside expressions or
--- statements when between curly brackets. After lexing the input, lines
--- are classified based on tokens using `classifyToken` and then the
--- original input is split based on these classifications.
-classifyToken :: Lexer.Token -> ChunkType
-classifyToken tok = case tok of
-  ITclass               -> Decl 
-  ITdata                -> Decl 
-  ITdefault             -> Decl 
-  ITderiving            -> Decl 
-  IThiding              -> Decl 
-  ITimport              -> Import
-  ITinfix               -> Decl 
-  ITinfixl              -> Decl 
-  ITinfixr              -> Decl 
-  ITinstance            -> Decl 
-  ITmodule              -> Decl 
-  ITnewtype             -> Decl 
-  ITqualified           -> Import
-  ITtype                -> Decl 
-  ITwhere               -> Decl 
-  ITscc                 -> Decl 
-  ITforeign             -> Decl 
-  ITexport              -> Decl 
-  ITlabel               -> Decl  -- ?
-  ITdynamic             -> Decl 
-  ITsafe                -> Decl 
-  ITinterruptible       -> Decl 
-  ITunsafe              -> Decl 
-  ITstdcallconv         -> Decl 
-  ITccallconv           -> Decl 
-  ITcapiconv            -> Decl 
-  ITprimcallconv        -> Decl 
-  ITfamily              -> Decl 
-  ITinline_prag {}      -> Decl 
-  ITspec_prag {}        -> Decl 
-  ITspec_inline_prag {} -> Decl 
-  ITsource_prag {}      -> Decl 
-  ITrules_prag    {}    -> Decl 
-  ITwarning_prag   {}   -> Decl 
-  ITdeprecated_prag  {} -> Decl 
-  ITline_prag {}        -> Decl 
-  ITscc_prag            -> Decl 
-  ITgenerated_prag      -> Decl 
-  ITcore_prag           -> Decl 
-  ITunpack_prag         -> Decl 
-  ITnounpack_prag       -> Decl 
-  ITann_prag            -> Decl 
-  ITclose_prag          -> Decl 
-  IToptions_prag {}     -> Decl 
-  ITinclude_prag {}     -> Decl 
-  ITlanguage_prag       -> Decl 
-  ITvect_prag           -> Decl  -- ?
-  ITvect_scalar_prag    -> Decl 
-  ITnovect_prag         -> Decl 
-  ITctype               -> Decl 
-  ITdcolon              -> Decl 
-  ITequal               -> Decl 
-  ITvbar                -> Decl  -- |
-  ITdotdot              -> Expr  -- [1 .. ]
-  ITcolon               -> Expr
-  ITcase                -> Expr 
-  ITdo                  -> Expr 
-  ITelse                -> Expr 
-  ITif                  -> Expr 
-  ITin                  -> Expr 
-  ITlet                 -> Expr 
-  ITof                  -> Expr 
-  ITthen                -> Expr 
-  ITforall              -> Expr 
-  ITmdo                 -> Expr 
-  ITgroup               -> Expr  -- SQL comprehensions.
-  ITby                  -> Expr 
-  ITusing               -> Expr 
-  ITlam                 -> Expr 
-  ITlcase               -> Expr 
-  ITlarrow              -> Expr 
-  ITrarrow              -> Expr 
-  ITat                  -> Expr 
-  ITtilde               -> Expr 
-  ITtildehsh            -> Expr
-  ITdarrow              -> Expr 
-  ITminus               -> Expr 
-  ITbang                -> Expr 
-  ITstar                -> Expr 
-  ITdot                 -> Expr 
-  ITbiglam              -> Expr
-  ITocurly              -> Expr 
-  ITccurly              -> Expr 
-  ITvocurly             -> Expr 
-  ITvccurly             -> Expr 
-  ITobrack              -> Expr 
-  ITopabrack            -> Expr 
-  ITcpabrack            -> Expr 
-  ITcbrack              -> Expr 
-  IToparen              -> Expr 
-  ITcparen              -> Expr 
-  IToubxparen           -> Expr 
-  ITcubxparen           -> Expr 
-  ITsemi                -> Expr 
-  ITcomma               -> Expr 
-  ITunderscore          -> Expr 
-  ITbackquote           -> Expr 
-  ITsimpleQuote         -> Expr 
-  ITvarid {}            -> Expr 
-  ITconid {}            -> Expr 
-  ITvarsym {}           -> Expr 
-  ITconsym {}           -> Expr 
-  ITqvarid {}           -> Expr 
-  ITqconid {}           -> Expr 
-  ITqvarsym {}          -> Expr 
-  ITqconsym {}          -> Expr 
-  ITprefixqvarsym {}    -> Expr 
-  ITprefixqconsym {}    -> Expr 
-  ITdupipvarid {}       -> Expr
-  ITchar {}             -> Expr 
-  ITstring {}           -> Expr 
-  ITinteger{}           -> Expr 
-  ITrational{}          -> Expr 
-  ITprimchar {}         -> Expr 
-  ITprimstring{}        -> Expr 
-  ITprimint  {}         -> Expr 
-  ITprimword   {}       -> Expr 
-  ITprimfloat    {}     -> Expr 
-  ITprimdouble  {}      -> Expr 
-  ITopenExpQuote        -> Expr 
-  ITopenPatQuote        -> Expr 
-  ITopenDecQuote        -> Expr 
-  ITopenTypQuote        -> Expr 
-  ITcloseQuote          -> Expr 
-  ITidEscape  {}        -> Expr
-  ITparenEscape         -> Expr 
-  ITtyQuote             -> Expr 
-  ITquasiQuote {}       -> Expr 
-  ITqQuasiQuote {}      -> Expr 
-  ITproc                -> Expr 
-  ITrec                 -> Expr 
-  IToparenbar           -> Expr 
-  ITcparenbar           -> Expr 
-  ITlarrowtail          -> Expr 
-  ITrarrowtail          -> Expr 
-  ITLarrowtail          -> Expr 
-  ITRarrowtail          -> Expr 
-  ITunknown    {}       -> Expr 
-  ITeof                 -> Expr 
-  ITdocCommentNext {}   -> Expr 
-  ITdocCommentPrev {}   -> Expr 
-  ITdocCommentNamed {}  -> Expr 
-  ITdocSection {}       -> Expr 
-  ITdocOptions {}       -> Expr 
-  ITdocOptionsOld {}    -> Expr 
-  ITlineComment {}      -> Expr 
-  ITblockComment {}     -> Expr 
-  -- All constructors are listed above.
-  -- A new keyword addition to GHC will trigger a warning here.
+       -- Convert the bag of errors into an error string.
+       printErrorBag bag = unlines . map show $ bagToList bag
 
--- | Runs the GHC lexer on the code string. Returns an error string or
--- a list of tokens and locations for each token.
-runLexer :: DynFlags -> String -> Either String [Located Token]
-runLexer flags codeString = toEither (lexTokenStream buffer location flags)
+-- | Split a string at a given line and column.
+--
+-- >>> splitAtLoc 2 3 "abc\ndefghi\nxyz\n123"
+-- ("abc\ndef","ghi\nxyz\n123")
+--
+-- >>> splitAtLoc 2 1 "abc"
+-- ("abc","")
+splitAtLoc :: LineNumber -> ColumnNumber -> String -> (String, String)
+splitAtLoc line col string = 
+  if line > length (lines string)
+  then (string, "")
+  else (before, after)
   where
-    -- Location displayed as the parsing location.
-    filename = "<interactive>"
-    initLine = 1
-    initCol = 1
-    location  = mkRealSrcLoc (mkFastString filename) initLine initCol
-    buffer  = stringToStringBuffer codeString
+    (beforeLines, afterLines) = splitAt line $ lines string
+    theLine = last beforeLines
+    (beforeChars, afterChars) = splitAt col theLine
 
-    -- Convert a parse success or failure into an Either type.
-    toEither (PFailed span err) = Left $ printErrorBag $ unitBag $ mkPlainErrMsg flags span err
-    toEither (POk _ tokens) = Right tokens
-    printErrorBag bag = unlines $ map show $ bagToList bag
+    -- Not the same as 'unlines', due to trailing \n
+    joinLines = intercalate "\n"
+
+    before = joinLines (init beforeLines) ++ '\n' : beforeChars
+    after = afterChars ++ '\n' : joinLines afterLines

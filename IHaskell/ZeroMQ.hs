@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 -- | Description : Low-level ZeroMQ communication wrapper.
 --
 -- The "ZeroMQ" module abstracts away the low-level 0MQ based interface with IPython,

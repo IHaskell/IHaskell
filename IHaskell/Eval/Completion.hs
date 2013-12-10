@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {- | Description : generates tab-completion options
 
   context-insensitive completion for what is probably

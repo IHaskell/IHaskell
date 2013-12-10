@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module IHaskell.Display (
   IHaskellDisplay(..),
