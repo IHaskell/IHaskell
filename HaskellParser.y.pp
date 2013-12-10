@@ -25,7 +25,7 @@ to inline certain key external functions, so we instruct GHC not to
 throw away inlinings as it would normally do in -O0 mode.
 -}
 
-module IHaskell.GHC.HaskellParser (partialStatement, partialExpression, partialImport, partialDeclaration) where
+module IHaskell.GHC.HaskellParser (fullExpression, partialStatement, partialExpression, partialImport, partialDeclaration) where
 
 import HsSyn
 import RdrHsSyn
@@ -367,6 +367,7 @@ TH_QQUASIQUOTE  { L _ (ITqQuasiQuote _) }
 %partial partialImport importdecl
 %partial partialDeclaration topdecl
 %partial partialExpression exp
+%name fullExpression exp
 %%
 
 -----------------------------------------------------------------------------
