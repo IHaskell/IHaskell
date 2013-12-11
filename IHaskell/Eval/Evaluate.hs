@@ -140,7 +140,7 @@ evaluate :: Int                       -- ^ The execution counter of this evaluat
 evaluate execCount code
   | strip code == "" = return [] 
   | otherwise = do
-      cmds <- parseCommands (strip code) 
+      cmds <- parseCell (strip code) 
       joinDisplays <$> runUntilFailure (cmds ++ [storeItCommand execCount])
   where
     runUntilFailure :: [CodeBlock] -> Interpreter [DisplayData]
@@ -166,94 +166,6 @@ joinDisplays displays =
       0 -> other
       _ -> joinedPlains : other
 
-
-parseCommands :: GhcMonad m => String       -- ^ Code containing commands.
-              -> m [CodeBlock]  -- ^ Commands contained in code string.
-parseCommands  = parseCell 
-{-
-parseCommands :: String     -- ^ Code containing commands.
-              -> [CodeBlock]  -- ^ Commands contained in code string.
-parseCommands code = joinMultilineDeclarations $ concatMap makeCommands pieces
-  where
-    -- Group the text into different pieces.
-    -- Pieces can be declarations, statement lists, or directives.
-    -- We distinguish declarations from statements via the first line an
-    -- indentation, and directives based on the first character.
-    indentLevel (' ':str) = 1 + indentLevel str
-    indentLevel _ = 0 :: Int
-
-    makePieces :: [String] -> [String]
-    makePieces [] = []
-    makePieces (first:rest)
-      | isDirective first = first : makePieces rest
-      | isImport first = first : makePieces rest
-      | otherwise =
-          -- Special case having a type declaration right before
-          -- a function declaration. Using normal parsing, the type
-          -- declaration and the function declaration are separate
-          -- statements.
-          if isTypeDeclaration firstStmt
-          then case restStmt of
-            funDec:rest -> (firstStmt ++ "\n" ++ funDec) : rest
-            [] -> [firstStmt]
-          else firstStmt : restStmt
-          where (firstStmt, otherLines) = splitByIndent $ first:rest
-                restStmt = makePieces otherLines
-
-    splitByIndent :: [String] -> (String, [String])
-    splitByIndent (first:rest) = (unlines $ first:take endOfBlock rest, filter (/= "") $ drop endOfBlock rest)
-      where
-        endOfBlock = fromMaybe (length rest) $ findIndex (\x -> indentLevel x <= indentLevel first) rest
-
-    pieces = makePieces $ lines code
-    makeCommands str
-      | isDirective str = [createDirective str]
-      | isImport str    = [Import $ strip str]
-      | not (null rest) && isTypeDeclaration first =
-          let (firstStmt:restStmts) = makeCommands $ unlines rest in
-            case firstStmt of
-              Declaration decl -> Declaration (first ++ decl) : restStmts
-              _ -> [ParseError 0 0 ("Expected declaration after type declaration: " ++ first)]
-      | otherwise = case (parseDecl str, parseStmts str) of
-            (ParseOk declaration, _) -> [Declaration $ prettyPrint declaration]
-            (ParseFailed {}, Right stmts) -> map (Statement . prettyPrint) $ init stmts
-
-            -- Show the parse error for the most likely type.
-            (ParseFailed srcLoc errMsg, _) | isDeclaration str  -> [ParseError (srcLine srcLoc) (srcColumn srcLoc) errMsg]
-            (_, Left (lineNumber, colNumber,errMsg)) -> [ParseError lineNumber colNumber errMsg]
-      where
-        (first, rest) = splitByIndent $ lines str
-
-    -- Check whether this string reasonably represents a type declaration
-    -- for a variable. 
-    isTypeDeclaration :: String -> Bool
-    isTypeDeclaration str = case parseDecl str of
-      ParseOk TypeSig{} -> True
-      _ -> False
-
-    isDeclaration line = any (`isInfixOf` line) ["type", "newtype", "data", "instance", "class"]
-    isDirective line = startswith [directiveChar] (strip line) 
-    isImport line = startswith "import" (strip line)
-
-    createDirective line = case strip line of
-      ':':'t':' ':expr -> Directive (GetType expr)
-      other            -> ParseError 0 0 $ "Unknown command: " ++ other ++ "."
-
-joinMultilineDeclarations :: [CodeBlock] -> [CodeBlock]
-joinMultilineDeclarations = map joinCommands . groupBy declaringSameFunction
-  where
-    joinCommands :: [CodeBlock] -> CodeBlock
-    joinCommands [x] = x
-    joinCommands commands = Declaration . unlines $ map getDeclarationText commands
-      where
-        getDeclarationText (Declaration text) = text
-
-    declaringSameFunction :: CodeBlock -> CodeBlock -> Bool
-    declaringSameFunction (Declaration first) (Declaration second) = declared first == declared second
-      where declared :: String -> String
-            declared = takeWhile (`notElem` (" \t\n:" :: String)) . strip
-    declaringSameFunction _ _ = False
--}
 
 wrapExecution :: Interpreter [DisplayData] -> Interpreter (ErrorOccurred, [DisplayData])
 wrapExecution exec = ghandle handler $ exec >>= \res ->
