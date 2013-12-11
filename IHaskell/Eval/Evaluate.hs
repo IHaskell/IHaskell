@@ -43,7 +43,7 @@ debug = True
 
 ignoreTypePrefixes :: [String]
 ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",
-                      "GHC.Float"]
+                      "GHC.Float", ":Interactive"]
 
 typeCleaner :: String -> String
 typeCleaner = useStringType . foldl' (.) id (map (`replace` "") fullPrefixes)
@@ -301,6 +301,8 @@ evalCommand (Statement stmt) = do
       forM_ postStmts $ \s -> runStmt s RunToCompletion
 
       return (Failure, [Display MimeHtml $ makeError $ show exception])
+
+evalCommand (Expression expr) = evalCommand (Statement expr)
 
 evalCommand (Declaration decl) = wrapExecution $ runDecls decl >> return []
 

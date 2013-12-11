@@ -11,23 +11,20 @@ module IHaskell.Eval.Parser (
 import ClassyPrelude hiding (liftIO)
 
 import Data.String.Utils (startswith, strip)
-import Prelude (init, last)
+import Prelude (init, last, head)
 
 import FastString
 import StringBuffer
 import ErrUtils
 import SrcLoc
 import GHC
-import GhcMonad (liftIO)
 import Bag
 import Outputable hiding ((<>))
 import Lexer
 import OrdList
-import Data.List (findIndex)
+import Data.List (findIndex, maximumBy, maximum)
 
 import IHaskell.GHC.HaskellParser
-
-import Debug.Trace
 
 type LineNumber = Int
 type ColumnNumber = Int
@@ -37,6 +34,7 @@ data CodeBlock
   | Declaration String
   | Statement String
   | Import String
+  | TypeSignature String
   | Directive DirectiveType String
   | ParseError LineNumber ColumnNumber String
   deriving Show
@@ -61,6 +59,9 @@ data DirectiveType
 -- >>> test "let x = 3 in x + 3"
 -- [Expression "let x = 3 in x + 3"]
 --
+-- >>> test "data X = Y Int"
+-- [Declaration "data X = Y Int"]
+--
 -- >>> test "3\n:t expr"
 -- [Expression "3",Directive GetType "expr"]
 --
@@ -75,6 +76,27 @@ data DirectiveType
 --
 -- >>> test "print yes\nprint no"
 -- [Expression "print yes",Expression "print no"]
+--
+-- >>> test "fun [] = 10"
+-- [Declaration "fun [] = 10"]
+--
+-- >>> test "fun [] = 10\nprint 'h'"
+-- [Declaration "fun [] = 10",Expression "print 'h'"]
+--
+-- >>> test "fun (x:xs) = 100"
+-- [Declaration "fun (x : xs) = 100"]
+--
+-- >>> test "fun [] = 10\nfun (x:xs) = 100"
+-- [Declaration "fun [] = 10\nfun (x : xs) = 100"]
+--
+-- >>> test "fun :: [a] -> Int\nfun [] = 10\nfun (x:xs) = 100"
+-- [Declaration "fun :: [a] -> Int\nfun [] = 10\nfun (x : xs) = 100"]
+--
+-- >>> test "let x = 3 in"
+-- [ParseError 2 1 "parse error (possibly incorrect indentation or mismatched brackets)\n"]
+--
+-- >>> test "data X = 3"
+-- [ParseError 1 10 "Illegal literal in type (use -XDataKinds to enable): 3\n"]
 
 
 -- | Parse a single cell into code blocks.
@@ -117,21 +139,70 @@ parseCell codeString = concat <$> processChunks 1 [] chunks
 
     nlines = length . lines
 
+joinFunctions :: [CodeBlock] -> [CodeBlock]
+joinFunctions (Declaration decl : rest) =
+    let (decls, other) = havingSameName rest in
+      Declaration (joinLines $ map undecl decls) : joinFunctions other
+  where
+    undecl (Declaration decl) = decl
+    undecl _ = error "Expected declaration!"
+
+    havingSameName :: [CodeBlock] -> ([CodeBlock], [CodeBlock]) 
+    havingSameName blocks =
+      let name = head $ words decl
+          sameName = takeWhile (isNamedDecl name) rest 
+          others = drop (length sameName) rest in
+        (Declaration decl : sameName, others)
+
+    isNamedDecl :: String -> CodeBlock -> Bool
+    isNamedDecl name (Declaration dec) = head (words dec) == name
+    isNamedDecl _ _ = False
+joinFunctions (TypeSignature sig : Declaration decl : rest) = (Declaration $ sig ++ "\n" ++ joinedDecl):remaining
+  where Declaration joinedDecl:remaining = joinFunctions $ Declaration decl : rest 
+        
+joinFunctions (x:xs) = x : joinFunctions xs
+joinFunctions [] = []
+
 parseCell' :: GhcMonad m => String -> Int  -> m [CodeBlock]
 parseCell' code startLine = do
     flags <- getSessionDynFlags
-    let parseResults = map (stmtToExprs flags . tryParser) (parsers flags)
-    case rights parseResults of
-      [] -> return [ParseError startLine 0 "Failed"]
-      (result, used, remaining):_ -> do
-        remainResult <- parseCell' remaining $ startLine + length (lines used)
-        return $ result ++ if null (strip remaining)
-                          then []
-                          else remainResult
+    let chunks = separateByIndent code
+    return $ joinFunctions $ concatMap (parseBlock flags) chunks
+    --let parseResults = map (stmtToExprs flags . tryParser) (parsers flags)
+    --case rights parseResults of
+    --  [] -> 
+    --    let errors = lefts parseResults
+    --        longestParseError = maximumBy (compare `on` snd) errors in
+    --      return [fst longestParseError]
+    --  (result, used, remaining):_ -> do
+    --    remainResult <- parseCell' remaining $ startLine + length (lines used)
+    --    return $ result ++ if null (strip remaining)
+    --                      then []
+    --                      else remainResult
 
   where
+    parseBlock :: DynFlags -> String -> [CodeBlock]
+    parseBlock flags string = 
+      let results = map (stmtToExprs flags . tryParser string) (parsers flags) in
+      case rights results of
+        [] -> [bestError $ lefts results]
+        (result, used, remaining):_ -> 
+          if not . null . strip $ remaining
+          then error $ "Failed to fully parse " ++ string
+          else result
+
+    bestError :: [(CodeBlock, Int)] -> CodeBlock
+    bestError errors =
+      let longestParseLength = maximum $ map snd errors in
+        fst $ if all ((== longestParseLength) . snd) errors
+              then maximumBy (locCompare `on` fst) errors
+              else maximumBy (compare `on` snd) errors
+      where
+        locCompare (ParseError line1 col1 _) (ParseError line2 col2 _) = compare line1 line2 <> compare col1 col2
+        locCompare _ _ = EQ
+
     -- Attempt to convert a statement to an expression
-    stmtToExprs :: DynFlags -> Either String (CodeBlock, String, String) -> Either String ([CodeBlock], String, String)
+    stmtToExprs :: DynFlags -> Either (CodeBlock, Int) (CodeBlock, String, String) -> Either (CodeBlock, Int) ([CodeBlock], String, String)
     stmtToExprs flags (Right (Statement string, used, remaining)) = Right (blocks, used, remaining)
       where blocks = if isExpr flags string
                      then parseExpressions used
@@ -158,27 +229,29 @@ parseCell' code startLine = do
     splitByIndent (first:rest) = (unlines $ first:take endOfBlock rest, drop endOfBlock rest)
       where
         endOfBlock = fromMaybe (length rest) $ findIndex (\x -> indentLevel x <= indentLevel first) rest
+    splitByIndent [] = ("", [])
 
     indentLevel (' ':str) = 1 + indentLevel str
     indentLevel _ = 0 :: Int
 
-    tryParser :: (String -> CodeBlock, String -> (Either String String, String, String)) -> Either String (CodeBlock, String, String)
-    tryParser (blockType, parser) = case parser code of
-      (Left err, _, _) -> Left err
+    tryParser :: String -> (String -> CodeBlock, String -> (Either (String, LineNumber, ColumnNumber) String, String, String)) -> Either (CodeBlock, Int) (CodeBlock, String, String)
+    tryParser string (blockType, parser) = case parser string of
+      (Left (err, line, col), used, _) -> Left (ParseError line col err, length used)
       (Right res, used, remaining) -> Right (blockType res, used, remaining)
     parsers flags =
       [ (Import,      strParser flags partialImport)
-      , (Statement,   strParser flags partialStatement)
+      , (TypeSignature, strParser flags partialTypeSignature)
       , (Declaration, lstParser flags partialDeclaration)
+      , (Statement,   strParser flags partialStatement)
       ]
 
-    lstParser :: Outputable a => DynFlags -> P (OrdList a) -> String -> (Either String String, String, String)
+    lstParser :: Outputable a => DynFlags -> P (OrdList a) -> String -> (Either (String, LineNumber, ColumnNumber) String, String, String)
     lstParser flags parser code =
       case runParser flags parser code of
         Left err -> (Left err, code, "")
-        Right (out, used, remainingCode) -> (Right . showSDoc flags . ppr . fromOL $ out, used, remainingCode)
+        Right (out, used, remainingCode) -> (Right . strip . unlines $ map (showSDoc flags . ppr) (fromOL out), used, remainingCode)
 
-    strParser :: Outputable a => DynFlags -> P a -> String -> (Either String String, String, String)
+    strParser :: Outputable a => DynFlags -> P a -> String -> (Either (String, LineNumber, ColumnNumber) String, String, String)
     strParser flags parser code =
       case runParser flags parser code of
         Left err -> (Left err, code, "")
@@ -201,16 +274,26 @@ parseDirective (':':directive) line = case find rightDirective directives of
       [(GetType, ["t", "ty", "typ", "type"])
       ,(GetInfo, ["i", "in", "inf", "info"])
       ]
+parseDirective _ _ = error "Directive must start with colon!"
 
 -- | Run a GHC parser on a string.
-runParser :: DynFlags -> P a -> String -> Either String (a, String, String)
+runParser :: DynFlags -> P a -> String -> Either (String, LineNumber, ColumnNumber) (a, String, String)
 runParser dflags parser str = toEither (unP parser (mkPState dflags buffer location))
     where
        filename = "<interactive>"
        location = mkRealSrcLoc (mkFastString filename) 1 1
        buffer = stringToStringBuffer str
 
-       toEither (PFailed span err) = Left $ printErrorBag $ unitBag $ mkPlainErrMsg dflags span err
+       toEither (PFailed span@(RealSrcSpan realSpan) err) = 
+         let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg dflags span err
+             line = srcLocLine $ realSrcSpanStart realSpan
+             col = srcLocCol $ realSrcSpanStart realSpan
+           in Left (errMsg, line, col)
+
+       toEither (PFailed span err) = 
+         let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg dflags span err
+           in Left (errMsg, 0, 0)
+
        toEither (POk parseState result) = 
          let parseEnd = realSrcSpanStart $ last_loc parseState
              endLine = srcLocLine parseEnd
@@ -242,8 +325,8 @@ splitAtLoc line col string =
     theLine = last beforeLines
     (beforeChars, afterChars) = splitAt (col - 1) theLine
 
-    -- Not the same as 'unlines', due to trailing \n
-    joinLines = intercalate "\n"
-
     before = joinLines (init beforeLines) ++ '\n' : beforeChars
     after = joinLines $ afterChars : afterLines
+
+-- Not the same as 'unlines', due to trailing \n
+joinLines = intercalate "\n"

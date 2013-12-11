@@ -25,7 +25,7 @@ to inline certain key external functions, so we instruct GHC not to
 throw away inlinings as it would normally do in -O0 mode.
 -}
 
-module IHaskell.GHC.HaskellParser (fullExpression, partialStatement, partialExpression, partialImport, partialDeclaration) where
+module IHaskell.GHC.HaskellParser (fullExpression, partialTypeSignature, partialStatement, partialExpression, partialImport, partialDeclaration) where
 
 import HsSyn
 import RdrHsSyn
@@ -367,9 +367,30 @@ TH_QQUASIQUOTE  { L _ (ITqQuasiQuote _) }
 %partial partialImport importdecl
 %partial partialDeclaration topdecl
 %partial partialExpression exp
+{-
+%partial partialFundecl fundecl
+-}
+%partial partialTypeSignature signature
 %name fullExpression exp
 %%
 
+signature :: { LHsDecl RdrName }
+          : sigdecl { head (fromOL (unLoc $1)) }
+
+{-
+fundecl :: { OrdList (LHsDecl RdrName) }
+        : sigdecl ';' funcs     { unLoc $1 `appOL` $3 }
+        | funcs                 { $1 }
+
+funcs :: { OrdList (LHsDecl RdrName) }
+      : func ';' funcs        { unLoc $1 `appOL` $3 }
+      | func                  { unLoc $1 }
+
+func :: { Located (OrdList (LHsDecl RdrName)) }
+func : fexp opt_sig rhs  {% do { r <- checkValDef $1 $2 $3;
+                                 let { l = comb2 $1 $> };
+                                 return $! (sL l (unitOL $! (sL l $ ValD r))) } }
+-}
 -----------------------------------------------------------------------------
 -- Identifiers; one of the entry points
 identifier :: { Located RdrName }
@@ -609,7 +630,7 @@ topdecl :: { OrdList (LHsDecl RdrName) }
         -- The $(..) form is one possible form of infixexp
         -- but we treat an arbitrary expression just as if 
         -- it had a $(..) wrapped around it
-        | infixexp                              { unitOL (LL $ mkTopSpliceDecl $1) } 
+        -- | infixexp                              { unitOL (LL $ mkTopSpliceDecl $1) } 
 
 -- Type classes
 --
@@ -1347,8 +1368,7 @@ sigdecl :: { Located (OrdList (LHsDecl RdrName)) }
         : 
         -- See Note [Declaration/signature overlap] for why we need infixexp here
           infixexp '::' sigtypedoc
-                        {% do s <- checkValSig $1 $3 
-                        ; return (LL $ unitOL (LL $ SigD s)) }
+                        {% do s <- checkValSig $1 $3 ; return (LL $ unitOL (LL $ SigD s)) }
         | var ',' sig_vars '::' sigtypedoc
                                 { LL $ toOL [ LL $ SigD (TypeSig ($1 : unLoc $3) $5) ] }
         | infix prec ops        { LL $ toOL [ LL $ SigD (FixSig (FixitySig n (Fixity $2 (unLoc $1))))

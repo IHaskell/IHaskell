@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE DoAndIfThenElse #-}
 -- | Description : Shell scripting wrapper using @Shelly@ for the @notebook@, @setup@, and
 --                 @console@ commands.
 module IHaskell.IPython (
