@@ -11,7 +11,7 @@ module IHaskell.Eval.Parser (
 import ClassyPrelude hiding (liftIO)
 
 import Data.String.Utils (startswith, strip)
-import Prelude (init, last, head)
+import Prelude (init, last, head, tail)
 
 import FastString
 import StringBuffer
@@ -22,7 +22,7 @@ import Bag
 import Outputable hiding ((<>))
 import Lexer
 import OrdList
-import Data.List (findIndex, maximumBy, maximum)
+import Data.List (findIndex, maximumBy, maximum, inits)
 
 import IHaskell.GHC.HaskellParser
 
@@ -267,12 +267,12 @@ parseDirective (':':directive) line = case find rightDirective directives of
           _:restLine = words directive
   Nothing -> ParseError line 0 $ "Unknown command: '" ++ directive ++ "'."
   where
-    rightDirective (_, strings) = case words directive of
+    rightDirective (_, dirname) = case words directive of
       [] -> False
-      dir:_ -> dir `elem` strings
+      dir:_ -> dir `elem` tail (inits dirname)
     directives =
-      [(GetType, ["t", "ty", "typ", "type"])
-      ,(GetInfo, ["i", "in", "inf", "info"])
+      [(GetType, "type")
+      ,(GetInfo, "info")
       ]
 parseDirective _ _ = error "Directive must start with colon!"
 
