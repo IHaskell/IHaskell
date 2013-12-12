@@ -27,6 +27,7 @@ import Language.Haskell.Exts.Syntax hiding (Name, Type)
 import InteractiveEval
 import DynFlags
 import Type
+import Exception (gtry)
 import HscTypes
 import HscMain
 import TcType
@@ -227,6 +228,7 @@ evalCommand (Expression expr) = do
   case success of
     Failure -> return (success, out)
     Success -> do
+      {-
       -- Get the type of the output expression.
       outType <- exprType "it"
 
@@ -237,12 +239,18 @@ evalCommand (Expression expr) = do
       {-
       liftIO $ print $ (showSDoc flags . ppr) outType
       liftIO $ print $ map  (showSDoc flags . ppr) displayTypes
-      liftIO $ print $ map (showSDoc flags . ppr . tyVarsOfType) (outType:displayTypes)
       liftIO $ print $ map (instanceMatches outType) displayTypes 
       -}
+      liftIO $ print $ (showSDoc flags . ppr) outType
+      liftIO $ print $ (showSDoc flags . ppr) (head displayTypes)
+      liftIO $ print $ map (showSDoc flags . ppr . tyVarsOfType) (outType:displayTypes)
 
       -- Check if any of the instances match our expression type. 
       if any (instanceMatches outType) displayTypes 
+      -}
+
+      canRunDisplay <- attempt $ exprType "IHaskell.Display.display it"
+      if canRunDisplay
       then do
         -- If there are instance matches, convert the object into
         -- a [DisplayData]. We also serialize it into a bytestring. We get
@@ -251,7 +259,7 @@ evalCommand (Expression expr) = do
         -- attempting to do this without the serialization to binary and
         -- back gives very strange errors - all the types match but it
         -- refuses to decode back into a [DisplayData].
-        displayedBytestring <- dynCompileExpr "Serialize.encode (display it)"
+        displayedBytestring <- dynCompileExpr "Serialize.encode (IHaskell.Display.display it)"
         case fromDynamic displayedBytestring of
           Nothing -> error "Expecting lazy Bytestring"
           Just bytestring ->
@@ -263,6 +271,11 @@ evalCommand (Expression expr) = do
       else return (success, out)
 
   where
+    attempt :: Interpreter a -> Interpreter Bool
+    attempt action = gcatch (action >> return True) failure
+      where failure :: SomeException -> Interpreter Bool
+            failure _ = return False
+
     instanceMatches :: Type -> Type -> Bool
     instanceMatches exprType instanceType =
       case tcMatchTy (tyVarsOfType instanceType) instanceType exprType of
