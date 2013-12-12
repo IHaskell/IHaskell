@@ -6,6 +6,7 @@ module IHaskell.Eval.Parser (
     DirectiveType(..),
     LineNumber,
     ColumnNumber,
+    ErrMsg,
     splitAtLoc,
     layoutChunks,
     parseDirective
@@ -80,6 +81,9 @@ data ParseOutput a
 -- >>> let test = ghc . parseString
 
 -- $extendedParserTests
+--
+-- >>> test ""
+-- []
 --
 -- >>> test "3\nlet x = expr"
 -- [Expression "3",Statement "let x = expr"]
@@ -291,7 +295,7 @@ joinFunctions [] = []
 -- Directive GetInfo "goodbye"
 --
 -- >>> parseDirective ":nope goodbye" 11
--- ParseError (Loc 11 1) "Unknown command: 'nope'."
+-- ParseError (Loc 11 1) "Unknown directive: 'nope'."
 parseDirective :: String       -- ^ Directive string.
                -> Int          -- ^ Line number at which the directive appears.
                -> CodeBlock    -- ^ Directive code block or a parse error.
@@ -303,7 +307,7 @@ parseDirective (':':directive) line = case find rightDirective directives of
     let directiveStart = case words directive of
           [] -> ""
           first:_ -> first in
-      ParseError (Loc line 1) $ "Unknown command: '" ++ directiveStart ++ "'."
+      ParseError (Loc line 1) $ "Unknown directive: '" ++ directiveStart ++ "'."
   where
     rightDirective (_, dirname) = case words directive of
       [] -> False

@@ -134,45 +134,31 @@ interpret action = runGhc (Just libdir) $ do
   action
 
 -- | Evaluate some IPython input code.
-evaluate :: Int                       -- ^ The execution counter of this evaluation.
-         -> String                    -- ^ Haskell code or other interpreter commands.
-         -> Interpreter [DisplayData] -- ^ All of the output.
-evaluate execCount code
-  | strip code == "" = return [] 
-  | otherwise = do
-      cmds <- parseString (strip code) 
-      joinDisplays <$> runUntilFailure (cmds ++ [storeItCommand execCount])
+evaluate :: Int                                -- ^ The execution counter of this evaluation.
+         -> String                             -- ^ Haskell code or other interpreter commands.
+         -> ([DisplayData] -> Interpreter ())   -- ^ Function used to publish data outputs.
+         -> Interpreter ()
+evaluate execCount code output = do
+  cmds <- parseString (strip code)
+  runUntilFailure (cmds ++ [storeItCommand execCount])
   where
-    runUntilFailure :: [CodeBlock] -> Interpreter [DisplayData]
-    runUntilFailure [] = return []
+    runUntilFailure :: [CodeBlock] -> Interpreter ()
+    runUntilFailure [] = return ()
     runUntilFailure (cmd:rest) = do 
       (success, result) <- evalCommand cmd
+      output result
       case success of
-        Success -> do
-          restRes <- runUntilFailure rest
-          return $ result ++ restRes
-        Failure -> return result
+        Success -> runUntilFailure rest
+        Failure -> return ()
 
     storeItCommand execCount = Statement $ printf "let it%d = it" execCount
-
-joinDisplays :: [DisplayData] -> [DisplayData]
-joinDisplays displays = 
-  let isPlain (Display mime _) = (mime == PlainText)
-      plains = filter isPlain displays
-      other = filter (not . isPlain) displays 
-      getText (Display PlainText text) = text
-      joinedPlains = Display PlainText $ concatMap getText plains in
-    case length plains of
-      0 -> other
-      _ -> joinedPlains : other
-
 
 wrapExecution :: Interpreter [DisplayData] -> Interpreter (ErrorOccurred, [DisplayData])
 wrapExecution exec = ghandle handler $ exec >>= \res ->
     return (Success, res)
   where 
     handler :: SomeException -> Interpreter (ErrorOccurred, [DisplayData])
-    handler exception = return (Failure, [Display MimeHtml $ makeError $ show exception])
+    handler exception = return (Failure, [Display MimeHtml $ formatError $ show exception])
 
 -- | Return the display data for this command, as well as whether it
 -- resulted in an error.
@@ -186,8 +172,9 @@ evalCommand (Import importStr) = wrapExecution $ do
 
 evalCommand (Directive GetType expr) = wrapExecution $ do
   result <- exprType expr
-  dflags <- getSessionDynFlags
-  return [Display MimeHtml $ printf "<span style='font-weight: bold; color: green;'>%s</span>" $ showSDocUnqual dflags $ ppr result]
+  flags <- getSessionDynFlags
+  let typeStr = formatGetType $ showSDocUnqual flags $ ppr result
+  return [Display MimeHtml typeStr]
 
 evalCommand (Statement stmt) = do
   write $ "Statement: " ++ stmt
@@ -197,10 +184,11 @@ evalCommand (Statement stmt) = do
       RunOk names -> do
         dflags <- getSessionDynFlags
         write $ "Names: " ++ show (map (showPpr dflags) names)  
-        return (Success, [Display PlainText printed])
+        let output = [Display PlainText printed | not . null $ strip printed]
+        return (Success, output)
       RunException exception -> do
         write $ "RunException: " ++ show exception
-        return (Failure, [Display MimeHtml $ makeError $ show exception])
+        return (Failure, [Display MimeHtml $ formatError $ show exception])
       RunBreak{} ->
         error "Should not break."
   where 
@@ -212,14 +200,14 @@ evalCommand (Statement stmt) = do
       let (_, _, postStmts) = makeWrapperStmts
       forM_ postStmts $ \s -> runStmt s RunToCompletion
 
-      return (Failure, [Display MimeHtml $ makeError $ show exception])
+      return (Failure, [Display MimeHtml $ formatError $ show exception])
 
 evalCommand (Expression expr) = evalCommand (Statement expr)
 
 evalCommand (Declaration decl) = wrapExecution $ runDecls decl >> return []
 
-evalCommand (ParseError (Loc line col) err) = wrapExecution $
-  return [Display MimeHtml $ makeError $ printf "Error (line %d, column %d): %s" line col err]
+evalCommand (ParseError loc err) = wrapExecution $
+  return [Display MimeHtml $ formatParseError loc err]
 
 capturedStatement :: String -> Interpreter (String, RunResult)
 capturedStatement stmt = do
@@ -251,10 +239,17 @@ parseStmts code =
     indent = ("  " ++) 
     returnStmt = "return ()"
 
-makeError :: String -> String
-makeError = printf "<span style='color: red; font-style: italic;'>%s</span>" .
+formatError :: ErrMsg -> String
+formatError = printf "<span style='color: red; font-style: italic;'>%s</span>" .
             replace "\n" "<br/>" . 
             replace useDashV "" .
             typeCleaner
   where 
         useDashV = "\nUse -v to see a list of the files searched for."
+
+formatParseError :: StringLoc -> String -> ErrMsg
+formatParseError (Loc line col) msg = 
+  formatError $ printf "Parse error (line %d, column %d): %s" line col msg
+
+formatGetType :: String -> String
+formatGetType = printf "<span style='font-weight: bold; color: green;'>%s</span>"
