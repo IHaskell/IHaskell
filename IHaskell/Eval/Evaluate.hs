@@ -228,27 +228,10 @@ evalCommand (Expression expr) = do
   case success of
     Failure -> return (success, out)
     Success -> do
-      {-
-      -- Get the type of the output expression.
-      outType <- exprType "it"
-
-      -- Get all the types that match the IHaskellData typeclass.
-      displayTypes <- getIHaskellDisplayInstances
-
-      flags <- getSessionDynFlags
-      {-
-      liftIO $ print $ (showSDoc flags . ppr) outType
-      liftIO $ print $ map  (showSDoc flags . ppr) displayTypes
-      liftIO $ print $ map (instanceMatches outType) displayTypes 
-      -}
-      liftIO $ print $ (showSDoc flags . ppr) outType
-      liftIO $ print $ (showSDoc flags . ppr) (head displayTypes)
-      liftIO $ print $ map (showSDoc flags . ppr . tyVarsOfType) (outType:displayTypes)
-
-      -- Check if any of the instances match our expression type. 
-      if any (instanceMatches outType) displayTypes 
-      -}
-
+      -- Try to use `display` to convert our type into the output
+      -- DisplayData. If typechecking fails and there is no appropriate
+      -- typeclass, this will throw an exception and thus `attempt` will
+      -- return False, and we just resort to plaintext.
       canRunDisplay <- attempt $ exprType "IHaskell.Display.display it"
       if canRunDisplay
       then do
@@ -271,32 +254,12 @@ evalCommand (Expression expr) = do
       else return (success, out)
 
   where
+    -- Try to evaluate an action. Return True if it succeeds and False if
+    -- it throws an exception. The result of the action is discarded.
     attempt :: Interpreter a -> Interpreter Bool
     attempt action = gcatch (action >> return True) failure
       where failure :: SomeException -> Interpreter Bool
             failure _ = return False
-
-    instanceMatches :: Type -> Type -> Bool
-    instanceMatches exprType instanceType =
-      case tcMatchTy (tyVarsOfType instanceType) instanceType exprType of
-        Nothing -> False
-        Just _ -> True
-
-    getIHaskellDisplayInstances :: GhcMonad m => m [Type]
-    getIHaskellDisplayInstances = withSession $ \hscEnv -> do
-      ident <- liftIO $ unLoc <$> hscParseIdentifier hscEnv "IHaskellDisplay"
-      names <- liftIO $ hscTcRnLookupRdrName hscEnv ident
-      case names of
-        [] -> return []
-        [name] -> do
-          maybeThings <- liftIO $ hscTcRnGetInfo hscEnv name
-          case maybeThings of
-            Nothing -> return []
-            -- Just get the first type in the instances, because we know
-            -- that the IHaskellDisplay typeclass only has one type
-            -- argument. Return these types, as these are the ones with
-            -- a match.
-            Just (_, _, instances) -> return $ map (head . is_tys) instances
 
 evalCommand (Declaration decl) = wrapExecution $ runDecls decl >> return []
 
