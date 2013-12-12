@@ -3,3 +3,6 @@
 dist
 IHaskell/GHC
 env
+.shelly
+.ihaskell_capture
+.ipynb_checkpoints
