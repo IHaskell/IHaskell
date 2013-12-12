@@ -39,7 +39,7 @@ maintainer:          andrew.gibiansky@gmail.com
 
 category:            Development
 
-build-type:          Simple
+build-type:          Custom
 
 -- Constraint on the version of Cabal needed to build this package.
 cabal-version:       >=1.8
@@ -75,6 +75,8 @@ library
 executable IHaskell
   -- .hs or .lhs file containing the Main module.
   main-is:             Main.hs
+
+  build-tools:         happy, cpphs
   
   -- Modules included in this executable, other than Main.
   other-modules:       
