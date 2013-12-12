@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, DoAndIfThenElse #-}
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
 
@@ -10,20 +10,29 @@ module IHaskell.Eval.Evaluate (
   ) where
 
 import ClassyPrelude hiding (liftIO, hGetContents)
-import Prelude(putChar, tail, init, (!!))
+import Prelude (putChar, head, tail, init, (!!))
 import Data.List.Utils
 import Data.List(findIndex)
 import Data.String.Utils
 import Text.Printf
 import Data.Char as Char
+import Data.Dynamic
+import Data.Typeable
+import qualified Data.Serialize as Serialize
 
-import Language.Haskell.Exts.Parser hiding (parseType)
+import Language.Haskell.Exts.Parser hiding (parseType, Type)
 import Language.Haskell.Exts.Pretty
-import Language.Haskell.Exts.Syntax hiding (Name)
+import Language.Haskell.Exts.Syntax hiding (Name, Type)
 
 import InteractiveEval
+import DynFlags
+import Type
 import HscTypes
-import GhcMonad (liftIO)
+import HscMain
+import TcType
+import Unify
+import InstEnv
+import GhcMonad (liftIO, withSession)
 import GHC hiding (Stmt, TypeSig)
 import GHC.Paths
 import Exception hiding (evaluate)
@@ -35,8 +44,9 @@ import qualified System.IO.Strict as StrictIO
 
 import IHaskell.Types
 import IHaskell.Eval.Parser
+import IHaskell.Display
 
-data ErrorOccurred = Success | Failure
+data ErrorOccurred = Success | Failure deriving Show
 
 debug :: Bool
 debug = True
@@ -84,20 +94,25 @@ type Interpreter = Ghc
 globalImports :: [String]
 globalImports = 
   [ "import Prelude"
+  -- IHaskell.Display must be imported in order for the IHaskellDisplay
+  -- data typeclass to function properly.
+  --, "import Data.Typeable"
+  , "import qualified Data.Serialize as Serialize"
+  , "import Data.Serialize"
+  , "import IHaskell.Types"
+  , "import IHaskell.Display"
   , "import Control.Applicative ((<$>))"
   , "import GHC.IO.Handle (hDuplicateTo, hDuplicate)"
   , "import System.IO"
   ]
-
-directiveChar :: Char
-directiveChar = ':'
 
 -- | Run an interpreting action. This is effectively runGhc with
 -- initialization and importing.
 interpret :: Interpreter a -> IO a
 interpret action = runGhc (Just libdir) $ do
   -- Set the dynamic session flags
-  dflags <- getSessionDynFlags
+  originalFlags <- getSessionDynFlags
+  let dflags = xopt_set originalFlags Opt_ExtendedDefaultRules
   void $ setSessionDynFlags $ dflags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
 
   -- Load packages that start with ihaskell-* and aren't just IHaskell.
@@ -202,7 +217,73 @@ evalCommand (Statement stmt) = do
 
       return (Failure, [Display MimeHtml $ formatError $ show exception])
 
-evalCommand (Expression expr) = evalCommand (Statement expr)
+evalCommand (Expression expr) = do
+  -- Evaluate this expression as though it's just a statement.
+  -- The output is bound to 'it', so we can then use it.
+  (success, out) <- evalCommand (Statement expr)
+
+  -- If evaluation failed, return the failure.  If it was successful, we
+  -- may be able to use the IHaskellDisplay typeclass.
+  case success of
+    Failure -> return (success, out)
+    Success -> do
+      -- Get the type of the output expression.
+      outType <- exprType "it"
+
+      -- Get all the types that match the IHaskellData typeclass.
+      displayTypes <- getIHaskellDisplayInstances
+
+      flags <- getSessionDynFlags
+      {-
+      liftIO $ print $ (showSDoc flags . ppr) outType
+      liftIO $ print $ map  (showSDoc flags . ppr) displayTypes
+      liftIO $ print $ map (showSDoc flags . ppr . tyVarsOfType) (outType:displayTypes)
+      liftIO $ print $ map (instanceMatches outType) displayTypes 
+      -}
+
+      -- Check if any of the instances match our expression type. 
+      if any (instanceMatches outType) displayTypes 
+      then do
+        -- If there are instance matches, convert the object into
+        -- a [DisplayData]. We also serialize it into a bytestring. We get
+        -- the bytestring as a dynamic and then convert back to
+        -- a bytestring, which we promptly unserialize. Note that
+        -- attempting to do this without the serialization to binary and
+        -- back gives very strange errors - all the types match but it
+        -- refuses to decode back into a [DisplayData].
+        displayedBytestring <- dynCompileExpr "Serialize.encode (display it)"
+        case fromDynamic displayedBytestring of
+          Nothing -> error "Expecting lazy Bytestring"
+          Just bytestring ->
+            case Serialize.decode bytestring of
+              Left err -> error err
+              Right displayData -> do
+                write $ show displayData
+                return (success, displayData)
+      else return (success, out)
+
+  where
+    instanceMatches :: Type -> Type -> Bool
+    instanceMatches exprType instanceType =
+      case tcMatchTy (tyVarsOfType instanceType) instanceType exprType of
+        Nothing -> False
+        Just _ -> True
+
+    getIHaskellDisplayInstances :: GhcMonad m => m [Type]
+    getIHaskellDisplayInstances = withSession $ \hscEnv -> do
+      ident <- liftIO $ unLoc <$> hscParseIdentifier hscEnv "IHaskellDisplay"
+      names <- liftIO $ hscTcRnLookupRdrName hscEnv ident
+      case names of
+        [] -> return []
+        [name] -> do
+          maybeThings <- liftIO $ hscTcRnGetInfo hscEnv name
+          case maybeThings of
+            Nothing -> return []
+            -- Just get the first type in the instances, because we know
+            -- that the IHaskellDisplay typeclass only has one type
+            -- argument. Return these types, as these are the ones with
+            -- a match.
+            Just (_, _, instances) -> return $ map (head . is_tys) instances
 
 evalCommand (Declaration decl) = wrapExecution $ runDecls decl >> return []
 

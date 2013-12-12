@@ -147,27 +147,8 @@ replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
         header <- dupHeader replyHeader DisplayDataMessage
         send $ PublishDisplayData header "haskell" outputs
 
-  -- Get display data outputs of evaluating the code.
+  -- Run code and publish to the frontend as we go.
   evaluate execCount (Chars.unpack code) publish
-
-  {-
-  -- Get display data outputs of evaluating the code.
-  outputs <- evaluate execCount (Chars.unpack code) publish
-
-  -- Find all the plain text outputs.
-  -- Send plain text output via an output message, because we are just
-  -- publishing output and not some representation of data.
-  let isPlain (Display mime _) = mime == PlainText
-  case find isPlain outputs of
-    Just (Display PlainText text) -> do
-      outHeader <- dupHeader replyHeader OutputMessage
-      send $ PublishOutput outHeader text execCount
-    Nothing -> return ()
-
-  -- Send all the non-plain-text representations of data to the frontend.
-  displayHeader <- dupHeader replyHeader DisplayDataMessage
-  send $ PublishDisplayData displayHeader "haskell" $ filter (not . isPlain) outputs
-  -}
 
   -- Notify the frontend that we're done computing.
   idleHeader <- dupHeader replyHeader StatusMessage

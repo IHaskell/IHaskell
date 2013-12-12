@@ -1,5 +1,5 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric #-}
 -- | Description : All message type definitions.
 module IHaskell.Types (
   Profile (..),
@@ -20,6 +20,9 @@ module IHaskell.Types (
 import ClassyPrelude
 import Data.Aeson
 import IHaskell.Message.UUID
+import Data.Serialize
+import GHC.Generics (Generic)
+
 
 
 -- | A TCP port.
@@ -273,10 +276,15 @@ instance Show ExecuteReplyStatus where
 data ExecutionState = Busy | Idle | Starting deriving Show
 
 -- | Data for display: a string with associated MIME type.
-data DisplayData = Display MimeType String deriving Show
+data DisplayData = Display MimeType String deriving (Show, Typeable, Generic)
+
+-- Allow DisplayData serialization
+instance Serialize DisplayData
+instance Serialize MimeType
 
 -- | Possible MIME types for the display data.
-data MimeType = PlainText | MimeHtml deriving Eq
+data MimeType = PlainText | MimeHtml deriving (Eq, Typeable, Generic)
+
 
 instance Show MimeType where
   show PlainText = "text/plain"
