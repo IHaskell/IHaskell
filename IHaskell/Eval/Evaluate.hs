@@ -140,7 +140,7 @@ evaluate :: Int                       -- ^ The execution counter of this evaluat
 evaluate execCount code
   | strip code == "" = return [] 
   | otherwise = do
-      cmds <- parseCell (strip code) 
+      cmds <- parseString (strip code) 
       joinDisplays <$> runUntilFailure (cmds ++ [storeItCommand execCount])
   where
     runUntilFailure :: [CodeBlock] -> Interpreter [DisplayData]
@@ -218,7 +218,7 @@ evalCommand (Expression expr) = evalCommand (Statement expr)
 
 evalCommand (Declaration decl) = wrapExecution $ runDecls decl >> return []
 
-evalCommand (ParseError line col err) = wrapExecution $
+evalCommand (ParseError (Loc line col) err) = wrapExecution $
   return [Display MimeHtml $ makeError $ printf "Error (line %d, column %d): %s" line col err]
 
 capturedStatement :: String -> Interpreter (String, RunResult)
