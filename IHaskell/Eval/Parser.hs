@@ -192,9 +192,9 @@ parseCodeChunk code startLine = do
 
         -- If one of the parsers succeeded
         (result, used, remaining):_ -> 
-          if not . null . strip $ remaining
-          then error $ "Failed to fully parse " ++ code
-          else return result
+          return $ if not . null . strip $ remaining
+                   then ParseError (Loc 1 1) $ "Could not parse " ++ code
+                   else result
   where
     successes :: [ParseOutput a] -> [(a, String, String)]
     successes [] = []

@@ -144,6 +144,7 @@ replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
   -- Construct a function for publishing output as this is going.
   let publish :: [DisplayData] -> Interpreter ()
       publish outputs = do
+        liftIO $ print outputs
         header <- dupHeader replyHeader DisplayDataMessage
         send $ PublishDisplayData header "haskell" outputs
 

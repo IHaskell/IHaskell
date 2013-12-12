@@ -2,12 +2,21 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module IHaskell.Display (
   IHaskellDisplay(..),
-  MimeType(..),
-  DisplayData(..),
+  plain,
+  html
   ) where
 
+import ClassyPrelude
 import IHaskell.Types
 
 -- | A class for displayable Haskell types.
 class IHaskellDisplay a where
   display :: a -> [DisplayData]
+
+-- | Generate a plain text display.
+plain :: String -> DisplayData
+plain = Display PlainText
+
+-- | Generate an HTML display.
+html :: String -> DisplayData
+html = Display MimeHtml

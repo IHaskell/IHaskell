@@ -50,7 +50,7 @@ import IHaskell.Display
 data ErrorOccurred = Success | Failure deriving Show
 
 debug :: Bool
-debug = True
+debug = False
 
 ignoreTypePrefixes :: [String]
 ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",
@@ -162,7 +162,7 @@ evaluate execCount code output = do
     runUntilFailure [] = return ()
     runUntilFailure (cmd:rest) = do 
       (success, result) <- evalCommand cmd
-      output result
+      unless (null result) $ output result
       case success of
         Success -> runUntilFailure rest
         Failure -> return ()
@@ -174,7 +174,7 @@ wrapExecution exec = ghandle handler $ exec >>= \res ->
     return (Success, res)
   where 
     handler :: SomeException -> Interpreter (ErrorOccurred, [DisplayData])
-    handler exception = return (Failure, [Display MimeHtml $ formatError $ show exception])
+    handler exception = return (Failure, displayError $ show exception)
 
 -- | Return the display data for this command, as well as whether it
 -- resulted in an error.
@@ -189,8 +189,8 @@ evalCommand (Import importStr) = wrapExecution $ do
 evalCommand (Directive GetType expr) = wrapExecution $ do
   result <- exprType expr
   flags <- getSessionDynFlags
-  let typeStr = formatGetType $ showSDocUnqual flags $ ppr result
-  return [Display MimeHtml typeStr]
+  let typeStr = showSDocUnqual flags $ ppr result
+  return [Display PlainText typeStr, Display MimeHtml $ formatGetType typeStr]
 
 evalCommand (Statement stmt) = do
   write $ "Statement: " ++ stmt
@@ -204,7 +204,7 @@ evalCommand (Statement stmt) = do
         return (Success, output)
       RunException exception -> do
         write $ "RunException: " ++ show exception
-        return (Failure, [Display MimeHtml $ formatError $ show exception])
+        return (Failure, displayError $ show exception)
       RunBreak{} ->
         error "Should not break."
   where 
@@ -216,7 +216,7 @@ evalCommand (Statement stmt) = do
       let (_, _, postStmts) = makeWrapperStmts
       forM_ postStmts $ \s -> runStmt s RunToCompletion
 
-      return (Failure, [Display MimeHtml $ formatError $ show exception])
+      return (Failure, displayError $ show exception)
 
 evalCommand (Expression expr) = do
   -- Evaluate this expression as though it's just a statement.
@@ -264,7 +264,7 @@ evalCommand (Expression expr) = do
 evalCommand (Declaration decl) = wrapExecution $ runDecls decl >> return []
 
 evalCommand (ParseError loc err) = wrapExecution $
-  return [Display MimeHtml $ formatParseError loc err]
+  return $ displayError $ formatParseError loc err
 
 capturedStatement :: String -> Interpreter (String, RunResult)
 capturedStatement stmt = do
@@ -305,8 +305,11 @@ formatError = printf "<span style='color: red; font-style: italic;'>%s</span>" .
         useDashV = "\nUse -v to see a list of the files searched for."
 
 formatParseError :: StringLoc -> String -> ErrMsg
-formatParseError (Loc line col) msg = 
-  formatError $ printf "Parse error (line %d, column %d): %s" line col msg
+formatParseError (Loc line col) = 
+  printf "Parse error (line %d, column %d): %s" line col
 
 formatGetType :: String -> String
 formatGetType = printf "<span style='font-weight: bold; color: green;'>%s</span>"
+
+displayError :: ErrMsg -> [DisplayData]
+displayError msg = [Display PlainText msg, Display MimeHtml $ formatError msg] 
