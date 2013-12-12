@@ -33,11 +33,14 @@ brew install zeromq # Macs with Homebrew
 Install Happy:
 ```bash
 sudo apt-get install happy # Ubuntu
+cabal install happy
+cabal install cpphs
 ```
 
 Install the package:
 ```bash
 cd IHaskell;
+./build-parser.sh;
 cabal install;
 ```
 If you do not have GHC or Cabal, you should be able to install both via the [Haskell Platform](http://www.haskell.org/platform/).
