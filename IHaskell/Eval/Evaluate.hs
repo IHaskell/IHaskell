@@ -190,7 +190,7 @@ evalCommand (Directive GetType expr) = wrapExecution $ do
   result <- exprType expr
   flags <- getSessionDynFlags
   let typeStr = showSDocUnqual flags $ ppr result
-  return [Display PlainText typeStr, Display MimeHtml $ formatGetType typeStr]
+  return [plain typeStr, html $ formatGetType typeStr]
 
 evalCommand (Statement stmt) = do
   write $ "Statement: " ++ stmt
@@ -200,7 +200,7 @@ evalCommand (Statement stmt) = do
       RunOk names -> do
         dflags <- getSessionDynFlags
         write $ "Names: " ++ show (map (showPpr dflags) names)  
-        let output = [Display PlainText printed | not . null $ strip printed]
+        let output = [plain printed | not . null $ strip printed]
         return (Success, output)
       RunException exception -> do
         write $ "RunException: " ++ show exception
@@ -300,6 +300,7 @@ formatError :: ErrMsg -> String
 formatError = printf "<span style='color: red; font-style: italic;'>%s</span>" .
             replace "\n" "<br/>" . 
             replace useDashV "" .
+            rstrip . 
             typeCleaner
   where 
         useDashV = "\nUse -v to see a list of the files searched for."
@@ -312,4 +313,4 @@ formatGetType :: String -> String
 formatGetType = printf "<span style='font-weight: bold; color: green;'>%s</span>"
 
 displayError :: ErrMsg -> [DisplayData]
-displayError msg = [Display PlainText msg, Display MimeHtml $ formatError msg] 
+displayError msg = [plain msg, html $ formatError msg] 

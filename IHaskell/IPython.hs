@@ -97,6 +97,9 @@ writeConfigFilesTo profileDir ihaskellPath = do
     mkdir_p (conf "static/custom/")
     writeFile (conf "static/custom/custom.js")      Config.customjs
 
+    -- Make directory for images.
+    mkdir_p (conf "static/base/images")
+
     -- The notebook/js directory many not exist, in which case we'll create it.
     mkdir_p (conf "static/notebook/")
     mkdir_p (conf "static/notebook/js")

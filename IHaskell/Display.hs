@@ -7,6 +7,8 @@ module IHaskell.Display (
   ) where
 
 import ClassyPrelude
+import Data.String.Utils (rstrip) 
+
 import IHaskell.Types
 
 -- | A class for displayable Haskell types.
@@ -15,7 +17,7 @@ class IHaskellDisplay a where
 
 -- | Generate a plain text display.
 plain :: String -> DisplayData
-plain = Display PlainText
+plain = Display PlainText . rstrip
 
 -- | Generate an HTML display.
 html :: String -> DisplayData
