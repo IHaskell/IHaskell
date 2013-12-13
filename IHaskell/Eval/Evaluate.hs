@@ -1,4 +1,3 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, DoAndIfThenElse #-}
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
 
@@ -10,7 +9,7 @@ module IHaskell.Eval.Evaluate (
   ) where
 
 import ClassyPrelude hiding (liftIO, hGetContents)
-import Prelude (putChar, head, tail, init, (!!))
+import Prelude (putChar, head, tail, last, init, (!!))
 import Data.List.Utils
 import Data.List(findIndex)
 import Data.String.Utils
@@ -19,10 +18,11 @@ import Data.Char as Char
 import Data.Dynamic
 import Data.Typeable
 import qualified Data.Serialize as Serialize
+import System.Directory (removeFile, createDirectoryIfMissing, removeDirectoryRecursive)
 
 import Language.Haskell.Exts.Parser hiding (parseType, Type)
 import Language.Haskell.Exts.Pretty
-import Language.Haskell.Exts.Syntax hiding (Name, Type)
+import Language.Haskell.Exts.Syntax hiding (Name, Type, Module)
 
 import NameSet
 import Name
@@ -119,7 +119,16 @@ interpret action = runGhc (Just libdir) $ do
   let dflags = xopt_set originalFlags Opt_ExtendedDefaultRules
   void $ setSessionDynFlags $ dflags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
 
+  initializeGhc
+
+  -- Run the rest of the interpreter
+  action
+
+-- | Initialize our GHC session with imports and a value for 'it'.
+initializeGhc :: Interpreter ()
+initializeGhc = do
   -- Load packages that start with ihaskell-* and aren't just IHaskell.
+  dflags <- getSessionDynFlags
   displayPackages <- liftIO $ do
     (dflags, _) <- initPackages dflags
     let Just db = pkgDatabase dflags
@@ -147,10 +156,7 @@ interpret action = runGhc (Just libdir) $ do
   -- Give a value for `it`. This is required due to the way we handle `it`
   -- in the wrapper statements - if it doesn't exist, the first statement
   -- will fail.
-  runStmt "putStrLn \"\"" RunToCompletion
-
-  -- Run the rest of the interpreter
-  action
+  void $ runStmt "let it = ()" RunToCompletion
 
 -- | Evaluate some IPython input code.
 evaluate :: Int                                -- ^ The execution counter of this evaluation.
@@ -188,6 +194,32 @@ evalCommand (Import importStr) = wrapExecution $ do
   context <- getContext
   setContext $ IIDecl importDecl : context
   return []
+
+evalCommand (Module contents) = wrapExecution $ do
+  -- Write the module contents to a temporary file in our work directory
+  namePieces <- getModuleName contents
+  let directory = "./" ++ intercalate "/" (init namePieces) ++ "/"
+      filename = last namePieces ++ ".hs"
+  liftIO $ do
+    createDirectoryIfMissing True directory
+    writeFile (fpFromString $ directory ++ filename) contents
+
+  -- Clear old modules of this name
+  let moduleName = intercalate "." namePieces
+  removeTarget $ TargetModule $ mkModuleName  moduleName
+  removeTarget $ TargetFile filename Nothing
+
+  -- Create a new target
+  target <- guessTarget moduleName Nothing
+  addTarget target
+  result <- load LoadAllTargets
+
+  -- Reset the context, since loading things screws it up.
+  initializeGhc
+
+  case result of
+    Succeeded -> return []
+    Failed -> return $ displayError $ "Failed to load module " ++ moduleName
 
 evalCommand (Directive SetExtension exts) = wrapExecution $ do
     results <- mapM setExtension (words exts)

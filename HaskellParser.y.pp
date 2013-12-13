@@ -25,7 +25,7 @@ to inline certain key external functions, so we instruct GHC not to
 throw away inlinings as it would normally do in -O0 mode.
 -}
 
-module IHaskell.GHC.HaskellParser (fullExpression, partialTypeSignature, partialStatement, partialExpression, partialImport, partialDeclaration) where
+module IHaskell.GHC.HaskellParser (fullExpression, fullModule, partialTypeSignature, partialStatement, partialExpression, partialImport, partialDeclaration) where
 
 import HsSyn
 import RdrHsSyn
@@ -367,15 +367,19 @@ TH_QQUASIQUOTE  { L _ (ITqQuasiQuote _) }
 %partial partialImport importdecl
 %partial partialDeclaration topdecl
 %partial partialExpression exp
-{-
-%partial partialFundecl fundecl
--}
 %partial partialTypeSignature signature
+%name fullModule namedModule
 %name fullExpression exp
 %%
 
 signature :: { LHsDecl RdrName }
           : sigdecl { head (fromOL (unLoc $1)) }
+
+namedModule  :: { Located (HsModule RdrName) }
+        : maybedocheader 'module' modid maybemodwarning maybeexports 'where' body
+                {% fileSrcSpan >>= \ loc ->
+                   return (L loc (HsModule (Just $3) $5 (fst $7) (snd $7) $4 $1
+                          ) )}
 
 {-
 fundecl :: { OrdList (LHsDecl RdrName) }

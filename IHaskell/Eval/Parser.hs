@@ -9,14 +9,15 @@ module IHaskell.Eval.Parser (
     ErrMsg,
     splitAtLoc,
     layoutChunks,
-    parseDirective
+    parseDirective,
+    getModuleName
     ) where
 
 -- Hide 'unlines' to use our own 'joinLines' instead.
 import ClassyPrelude hiding (liftIO, unlines)
 
 import Data.List (findIndex, maximumBy, maximum, inits)
-import Data.String.Utils (startswith, strip)
+import Data.String.Utils (startswith, strip, split)
 import Data.List.Utils (subIndex)
 import Prelude (init, last, head, tail)
 
@@ -55,6 +56,7 @@ data CodeBlock
   | Import String                      -- ^ An import statement.
   | TypeSignature String               -- ^ A lonely type signature (not above a function declaration).
   | Directive DirectiveType String     -- ^ An IHaskell directive.
+  | Module String                      -- ^ A full Haskell module, to be compiled and loaded.
   | ParseError StringLoc ErrMsg        -- ^ An error indicating that parsing the code block failed.
   deriving Show
 
@@ -127,6 +129,12 @@ data ParseOutput a
 -- >>> test "fun :: [a] -> Int\nfun [] = 10\nfun (x:xs) = 100"
 -- [Declaration "fun :: [a] -> Int\nfun [] = 10\nfun (x : xs) = 100"]
 --
+-- >>> test "module A where x = 3"
+-- [Module "module A where\nx = 3"]
+--
+-- >>> test "module B (x) where x = 3"
+-- [Module "module B (\n        x\n    ) where\nx = 3"]
+--
 -- >>> test "let x = 3 in"
 -- [ParseError (Loc 1 13) "parse error (possibly incorrect indentation or mismatched brackets)"]
 --
@@ -148,10 +156,16 @@ data ParseOutput a
 -- >>> test "3 + 5"
 -- [Expression "3 + 5"]
 parseString :: GhcMonad m => String -> m [CodeBlock]
-parseString codeString =
-  -- Split input into chunks based on indentation.
-  let chunks = layoutChunks $ dropComments codeString in
-    joinFunctions <$> processChunks 1 [] chunks
+parseString codeString = do
+  -- Try to parse this as a single module.
+  flags <- getSessionDynFlags
+  let output = runParser flags fullModule codeString
+  case output of
+    Success {} -> return [Module codeString]
+    Failure {} ->
+      -- Split input into chunks based on indentation.
+      let chunks = layoutChunks $ dropComments codeString in
+        joinFunctions <$> processChunks 1 [] chunks
   where
     parseChunk :: GhcMonad m => String -> LineNumber -> m CodeBlock
     parseChunk chunk line =
@@ -438,3 +452,30 @@ dropComments = removeOneLineComments . removeMultilineComments
         Just idx -> removeMultilineComments $ drop (2 + idx) remaining
     removeMultilineComments (x:xs) = x:removeMultilineComments xs
     removeMultilineComments x = x
+
+-- | Parse a module and return the name declared in the 'module X where'
+-- line. That line is required, and if it does not exist, this will error.
+-- Names with periods in them are returned piece y piece.
+--
+-- >>> ghc $ getModuleName "module A where\nx = 3"
+-- ["A"]
+--
+-- >>> ghc $ getModuleName "module A.B.C where x = 3"
+-- ["A","B","C"]
+--
+-- >>> ghc $ getModuleName "module A.B.C ( x ) where x = 3"
+-- ["A","B","C"]
+-- 
+-- >>> ghc $ getModuleName "x = 3"
+-- *** Exception: Module parsing failed.
+--
+getModuleName :: GhcMonad m => String -> m [String]
+getModuleName moduleSrc = do
+  flags <- getSessionDynFlags
+  let output = runParser flags fullModule moduleSrc
+  case output of
+    Failure {} -> error "Module parsing failed."
+    Success mod _ -> 
+      case unLoc <$> hsmodName (unLoc mod) of
+        Nothing -> error "Module must have a name."
+        Just name -> return $ split "." $ moduleNameString name
