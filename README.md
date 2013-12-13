@@ -1,3 +1,5 @@
+![IHaskell](https://raw.github.com/gibiansky/IHaskell/master/images/ihaskell-logo.png)
+
 IHaskell
 ===
 IHaskell is an implementation of the [IPython](http://ipython.org) kernel protocol which allows you to use Haskell inside IPython frontends such as `qtconsole` and `notebook`.
