@@ -20,10 +20,6 @@ import Data.Typeable
 import qualified Data.Serialize as Serialize
 import System.Directory (removeFile, createDirectoryIfMissing, removeDirectoryRecursive)
 
-import Language.Haskell.Exts.Parser hiding (parseType, Type)
-import Language.Haskell.Exts.Pretty
-import Language.Haskell.Exts.Syntax hiding (Name, Type, Module)
-
 import NameSet
 import DynFlags (defaultObjectTarget)
 import Name
@@ -58,7 +54,8 @@ debug = False
 
 ignoreTypePrefixes :: [String]
 ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",
-                      "GHC.Float", ":Interactive", "GHC.Num", "GHC.IO"]
+                      "GHC.Float", ":Interactive", "GHC.Num", "GHC.IO",
+                      "GHC.Integer.Type"]
 
 typeCleaner :: String -> String
 typeCleaner = useStringType . foldl' (.) id (map (`replace` "") fullPrefixes)
@@ -98,8 +95,7 @@ type Interpreter = Ghc
 
 globalImports :: [String]
 globalImports = 
-  [ "import Prelude"
-  , "import IHaskell.Types"
+  [ "import IHaskell.Types"
   , "import IHaskell.Display"
   , "import Control.Applicative ((<$>))"
   , "import GHC.IO.Handle (hDuplicateTo, hDuplicate)"
@@ -115,14 +111,15 @@ interpret action = runGhc (Just libdir) $ do
   let dflags = xopt_set originalFlags Opt_ExtendedDefaultRules
   void $ setSessionDynFlags $ dflags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
 
-  initializeGhc
+  initializeImports
+  initializeItVariable
 
   -- Run the rest of the interpreter
   action
 
 -- | Initialize our GHC session with imports and a value for 'it'.
-initializeGhc :: Interpreter ()
-initializeGhc = do
+initializeImports :: Interpreter ()
+initializeImports = do
   -- Load packages that start with ihaskell-* and aren't just IHaskell.
   dflags <- getSessionDynFlags
   displayPackages <- liftIO $ do
@@ -145,13 +142,18 @@ initializeGhc = do
 
       displayImports = map toImportStmt displayPackages
 
+  -- Import implicit prelude.
+  importDecl <- parseImportDecl "import Prelude"
+  let implicitPrelude = importDecl { ideclImplicit = True }
+
   -- Import modules.
   imports <- mapM parseImportDecl $ globalImports ++ displayImports
-  setContext $ map IIDecl imports
+  setContext $ map IIDecl $ implicitPrelude : imports
 
-  -- Give a value for `it`. This is required due to the way we handle `it`
-  -- in the wrapper statements - if it doesn't exist, the first statement
-  -- will fail.
+  -- | Give a value for the `it` variable. initializeItVariable :: Interpreter ()
+initializeItVariable =
+  -- This is required due to the way we handle `it` in the wrapper
+  -- statements - if it doesn't exist, the first statement will fail.
   void $ runStmt "let it = ()" RunToCompletion
 
 -- | Evaluate some IPython input code.
@@ -188,8 +190,17 @@ evalCommand (Import importStr) = wrapExecution $ do
   write $ "Import: " ++ importStr
   importDecl <- parseImportDecl importStr
   context <- getContext
-  setContext $ IIDecl importDecl : context
+
+  -- If we've imported this implicitly, remove the old import.
+  let noImplicit = filter (not . implicitImportOf importDecl) context
+  setContext $ IIDecl importDecl : noImplicit
+
+  flags <- getSessionDynFlags
   return []
+  where
+    implicitImportOf :: ImportDecl RdrName -> InteractiveImport -> Bool
+    implicitImportOf _ (IIModule _) = False
+    implicitImportOf imp (IIDecl decl) = ideclImplicit decl && ((==) `on` (unLoc . ideclName)) decl imp
 
 evalCommand (Module contents) = wrapExecution $ do
   -- Write the module contents to a temporary file in our work directory
@@ -202,6 +213,7 @@ evalCommand (Module contents) = wrapExecution $ do
 
   -- Clear old modules of this name
   let moduleName = intercalate "." namePieces
+  removeTarget $ TargetModule $ mkModuleName moduleName
   removeTarget $ TargetFile filename Nothing
 
   -- Set to use object code for fast running times, as that is the only
@@ -210,13 +222,21 @@ evalCommand (Module contents) = wrapExecution $ do
   let objTarget = defaultObjectTarget
   setSessionDynFlags flags{ hscTarget = objTarget }
 
+  -- Remember which modules we've loaded before.
+  importedModules <- getContext
+
   -- Create a new target
   target <- guessTarget moduleName Nothing
   addTarget target
   result <- load LoadAllTargets
 
   -- Reset the context, since loading things screws it up.
-  initializeGhc
+  initializeItVariable
+
+  -- Add imports
+  importDecl <- parseImportDecl $ "import " ++ moduleName
+  let implicitImport = importDecl { ideclImplicit = True }
+  setContext $ IIDecl implicitImport : importedModules
 
   -- Switch back to interpreted mode.
   flags <- getSessionDynFlags
@@ -410,18 +430,6 @@ capturedStatement stmt = do
   printedOutput <- liftIO $ StrictIO.readFile fileName
 
   return (printedOutput, result)
-
-parseStmts :: String -> Either (LineNumber, ColumnNumber, String) [Stmt]
-parseStmts code = 
-  case parseResult of
-    ParseOk (Do stmts) -> Right stmts
-    ParseOk _ -> Right []
-    ParseFailed srcLoc errMsg -> Left (srcLine srcLoc, srcColumn srcLoc, errMsg) 
-  where
-    parseResult = parseExp doBlock
-    doBlock = unlines $ ("do" : map indent (lines code)) ++ [indent returnStmt]
-    indent = ("  " ++) 
-    returnStmt = "return ()"
 
 formatError :: ErrMsg -> String
 formatError = printf "<span style='color: red; font-style: italic;'>%s</span>" .
