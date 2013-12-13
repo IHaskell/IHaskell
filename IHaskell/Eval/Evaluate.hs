@@ -230,6 +230,27 @@ evalCommand (Directive GetType expr) = wrapExecution $ do
   return [plain typeStr, html $ formatGetType typeStr]
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
+evalCommand (Directive HelpForSet _) = return (Success, [out])
+  where out = plain $ intercalate "\n"
+          [":set is not implemented in IHaskell."
+          ,"  Use :extension <Extension> to enable a GHC extension."
+          ,"  Use :extension No<Extension> to disable a GHC extension."
+          ]
+
+-- This is taken largely from GHCi's info section in InteractiveUI.
+evalCommand (Directive GetHelp _) = return (Success, [out])
+  where out = plain $ intercalate "\n"
+          ["The following commands are available:"
+          ,"    :extension <Extension>    -  enable a GHC extension."
+          ,"    :extension No<Extension>  -  disable a GHC extension."
+          ,"    :type <expression>        -  Print expression type."
+          ,"    :info <name>              -  Print all info for a name."
+          ,"    :?, :help                 -  Show this help text."
+          ,""
+          ,"Any prefix of the commands will also suffice, e.g. use :ty for :type."
+          ]
+
+-- This is taken largely from GHCi's info section in InteractiveUI.
 evalCommand (Directive GetInfo str) = wrapExecution $ do
   -- Get all the info for all the names we're given.
   names     <- parseName str
