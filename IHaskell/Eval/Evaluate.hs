@@ -98,11 +98,6 @@ type Interpreter = Ghc
 globalImports :: [String]
 globalImports = 
   [ "import Prelude"
-  -- IHaskell.Display must be imported in order for the IHaskellDisplay
-  -- data typeclass to function properly.
-  --, "import Data.Typeable"
-  , "import qualified Data.Serialize as Serialize"
-  , "import Data.Serialize"
   , "import IHaskell.Types"
   , "import IHaskell.Display"
   , "import Control.Applicative ((<$>))"
@@ -364,7 +359,7 @@ evalCommand (Expression expr) = do
         -- attempting to do this without the serialization to binary and
         -- back gives very strange errors - all the types match but it
         -- refuses to decode back into a [DisplayData].
-        displayedBytestring <- dynCompileExpr "Serialize.encode (IHaskell.Display.display it)"
+        displayedBytestring <- dynCompileExpr "IHaskell.Display.serializeDisplay (IHaskell.Display.display it)"
         case fromDynamic displayedBytestring of
           Nothing -> error "Expecting lazy Bytestring"
           Just bytestring ->

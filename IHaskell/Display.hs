@@ -3,10 +3,13 @@
 module IHaskell.Display (
   IHaskellDisplay(..),
   plain,
-  html
+  html,
+  serializeDisplay
   ) where
 
 import ClassyPrelude
+import Data.Serialize as Serialize
+import Data.ByteString
 import Data.String.Utils (rstrip) 
 
 import IHaskell.Types
@@ -22,3 +25,6 @@ plain = Display PlainText . rstrip
 -- | Generate an HTML display.
 html :: String -> DisplayData
 html = Display MimeHtml
+
+serializeDisplay :: [DisplayData] -> ByteString
+serializeDisplay = Serialize.encode
