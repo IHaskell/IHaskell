@@ -24,6 +24,9 @@ import Language.Haskell.Exts.Parser hiding (parseType, Type)
 import Language.Haskell.Exts.Pretty
 import Language.Haskell.Exts.Syntax hiding (Name, Type)
 
+import NameSet
+import Name
+import PprTyThing
 import InteractiveEval
 import DynFlags
 import Type
@@ -191,6 +194,38 @@ evalCommand (Directive GetType expr) = wrapExecution $ do
   flags <- getSessionDynFlags
   let typeStr = showSDocUnqual flags $ ppr result
   return [plain typeStr, html $ formatGetType typeStr]
+
+-- This is taken largely from GHCi's info section in InteractiveUI.
+evalCommand (Directive GetInfo str) = wrapExecution $ do
+  -- Get all the info for all the names we're given.
+  names     <- parseName str
+  maybeInfos <- mapM getInfo names
+
+  -- Filter out types that have parents in the same set.
+  -- GHCi also does this.
+  let getType (theType, _, _) = theType
+      infos = catMaybes maybeInfos
+      allNames = mkNameSet $ map (getName . getType) infos
+      hasParent info = case tyThingParent_maybe (getType info) of
+        Just parent -> getName parent `elemNameSet` allNames
+        Nothing -> False
+      filteredOutput = filter (not . hasParent) infos
+
+  -- Convert to textual data.
+  let printInfo (thing, fixity, classInstances) = 
+        pprTyThingInContextLoc False thing $$ showFixity fixity $$ vcat (map GHC.pprInstance classInstances)
+        where
+          showFixity fixity =
+            if fixity == GHC.defaultFixity
+            then empty
+            else ppr fixity <+> pprInfixName (getName thing)
+      outs = map printInfo filteredOutput
+
+  -- Print nicely.
+  unqual <- getPrintUnqual
+  flags <- getSessionDynFlags
+  let strings = map (showSDocForUser flags unqual) outs
+  return [plain $ intercalate "\n" strings]
 
 evalCommand (Statement stmt) = do
   write $ "Statement: " ++ stmt
