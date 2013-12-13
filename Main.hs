@@ -9,6 +9,7 @@ import Control.Concurrent.Chan
 import Data.Aeson
 import Text.Printf
 import System.Exit (exitSuccess)
+import System.Directory
 
 import qualified Data.Map as Map
 
@@ -57,6 +58,12 @@ main = do
 kernel :: String -- ^ Filename of profile JSON file.
        -> IO ()
 kernel profileSrc = do
+  -- Switch to a temporary directory so that any files we create aren't
+  -- visible. On Unix, this is usually /tmp.  If there is no temporary
+  -- directory available, just stay in the current one and ignore the
+  -- raised exception.
+  try (getTemporaryDirectory >>= setCurrentDirectory) :: IO (Either SomeException ())
+
   -- Parse the profile file.
   Just profile <- liftM decode . readFile . fpFromText $ pack profileSrc
 
