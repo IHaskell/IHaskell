@@ -189,6 +189,40 @@ evalCommand (Import importStr) = wrapExecution $ do
   setContext $ IIDecl importDecl : context
   return []
 
+evalCommand (Directive SetExtension exts) = wrapExecution $ do
+    results <- mapM setExtension (words exts)
+    case catMaybes results of
+      [] -> return []
+      errors -> return $ displayError $ intercalate "\n" errors
+  where
+    -- Set an extension and update flags.
+    -- Return Nothing on success. On failure, return an error message.
+    setExtension :: String -> Interpreter (Maybe ErrMsg)
+    setExtension ext = do
+      flags <- getSessionDynFlags
+      -- First, try to check if this flag matches any extension name.
+      let newFlags =
+            case find (flagMatches ext) xFlags of
+              Just (_, flag, _) -> Just $ xopt_set flags flag
+              -- If it doesn't match an extension name, try matching against
+              -- disabling an extension.
+              Nothing -> 
+                case find (flagMatchesNo ext) xFlags of
+                  Just (_, flag, _) -> Just $ xopt_unset flags flag
+                  Nothing -> Nothing
+
+      -- Set the flag if we need to.
+      case newFlags of
+        Just flags -> setSessionDynFlags flags >> return Nothing
+        Nothing -> return $ Just $ "Could not parse extension name: " ++ ext
+
+    -- Check if a FlagSpec matches an extension name.
+    flagMatches ext (name, _, _) = ext == name
+
+    -- Check if a FlagSpec matches "No<ExtensionName>".
+    -- In that case, we disable the extension.
+    flagMatchesNo ext (name, _, _) = ext == "No"  ++ name
+
 evalCommand (Directive GetType expr) = wrapExecution $ do
   result <- exprType expr
   flags <- getSessionDynFlags

@@ -63,6 +63,7 @@ data CodeBlock
 data DirectiveType
   = GetType         -- ^ Get the type of an expression via ':type' (or unique prefixes)
   | GetInfo         -- ^ Get info about the identifier via ':info' (or unique prefixes)
+  | SetExtension    -- ^ Enable or disable an extension via ':extension' (or prefixes)
   deriving Show
 
 -- | Output from running a parser.
@@ -315,6 +316,7 @@ parseDirective (':':directive) line = case find rightDirective directives of
     directives =
       [(GetType, "type")
       ,(GetInfo, "info")
+      ,(SetExtension, "extension")
       ]
 parseDirective _ _ = error "Directive must start with colon!"
 
