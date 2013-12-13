@@ -25,6 +25,7 @@ import Language.Haskell.Exts.Pretty
 import Language.Haskell.Exts.Syntax hiding (Name, Type, Module)
 
 import NameSet
+import DynFlags (defaultObjectTarget)
 import Name
 import PprTyThing
 import InteractiveEval
@@ -201,8 +202,13 @@ evalCommand (Module contents) = wrapExecution $ do
 
   -- Clear old modules of this name
   let moduleName = intercalate "." namePieces
-  removeTarget $ TargetModule $ mkModuleName  moduleName
   removeTarget $ TargetFile filename Nothing
+
+  -- Set to use object code for fast running times, as that is the only
+  -- reason you would want to use modules in IHaskell.
+  flags <- getSessionDynFlags
+  let objTarget = defaultObjectTarget
+  setSessionDynFlags flags{ hscTarget = objTarget }
 
   -- Create a new target
   target <- guessTarget moduleName Nothing
@@ -211,6 +217,10 @@ evalCommand (Module contents) = wrapExecution $ do
 
   -- Reset the context, since loading things screws it up.
   initializeGhc
+
+  -- Switch back to interpreted mode.
+  flags <- getSessionDynFlags
+  setSessionDynFlags flags{ hscTarget = HscInterpreted }
 
   case result of
     Succeeded -> return []
