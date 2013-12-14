@@ -30,7 +30,9 @@ If you do not have GHC or Cabal, you should be able to install both via the
 ```bash
 # Macs with Homebrew only, if you don't have GHC or Cabal
 brew install haskell-platform
+cabal update && cabal install cabal-install
 ```
+Use `cabal install cabal-install` to update Cabal if you still have version 1.16 instead of 1.18.
 
 Install ZeroMQ:
 ```bash
