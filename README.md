@@ -15,7 +15,7 @@ As well as the IPython browser-based notebook interface:
 Installation
 ===
 
-Make sure you have IPython version 1.0 or higher. IHaskell will not work with older versions of IPython.
+Make sure you have [IPython](http://ipython.org/) version 1.0 or higher. IHaskell will not work with older versions of IPython.
 ```bash
 ipython --version     # Should print 1.0.0 (or higher!)
 ```
@@ -26,7 +26,11 @@ ghc --numeric-version # Should be 7.6.3
 cabal --version       # Should be 1.18.*
 ```
 If you do not have GHC or Cabal, you should be able to install both via the 
-[Haskell Platform](http://www.haskell.org/platform/).
+[Haskell Platform](http://www.haskell.org/platform/). On Macs with Homebrew, you can do this via
+```bash
+# Macs with Homebrew only, if you don't have GHC or Cabal
+brew install haskell-platform
+```
 
 Install ZeroMQ:
 ```bash
