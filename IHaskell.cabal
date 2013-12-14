@@ -46,6 +46,7 @@ cabal-version:       >=1.8
 
 library
   build-depends:       base ==4.6.*,
+                       hspec,
                        zeromq3-haskell ==0.5.*,
                        aeson ==0.6.*,
                        MissingH ==1.2.*,
@@ -63,10 +64,12 @@ library
                        shelly ==1.3.*,
                        system-argv0,
                        directory,
-                       cereal ==0.3.*,
                        here,
                        system-filepath,
-                       text ==0.11.*
+                       cereal ==0.3.*,
+                       text ==0.11.*,
+                       mtl == 2.1.*,
+                       template-haskell
   exposed-modules: IHaskell.Display,
                    IHaskell.Types,
                    IHaskell.Message.UUID
@@ -96,6 +99,7 @@ executable IHaskell
   
   -- Other library packages from which modules are imported.
   build-depends:       base ==4.6.*,
+                       hspec,
                        zeromq3-haskell ==0.5.*,
                        aeson ==0.6.*,
                        MissingH ==1.2.*,
@@ -120,9 +124,32 @@ executable IHaskell
                        mtl == 2.1.*,
                        template-haskell
 
-Test-Suite doctests
+Test-Suite hspec
   Type:     exitcode-stdio-1.0
   Ghc-Options: -threaded
-  Main-Is: rundoctests.hs
-  Build-Depends: base, doctest >= 0.8, process, text ==0.11.*, shelly ==1.3.*, MissingH ==1.2.*
-
+  Main-Is: Hspec.hs
+  build-depends:       base ==4.6.*,
+                       hspec,
+                       zeromq3-haskell ==0.5.*,
+                       aeson ==0.6.*,
+                       MissingH ==1.2.*,
+                       basic-prelude ==0.3.*,
+                       classy-prelude ==0.6.*,
+                       bytestring ==0.10.*,
+                       uuid >=1.2.6,
+                       containers ==0.5.*,
+                       ghc ==7.6.*,
+                       ghc-paths ==0.1.*,
+                       random ==1.0.*,
+                       split,
+                       utf8-string,
+                       strict ==0.3.*,
+                       shelly ==1.3.*,
+                       system-argv0,
+                       directory,
+                       here,
+                       system-filepath,
+                       cereal ==0.3.*,
+                       text ==0.11.*,
+                       mtl == 2.1.*,
+                       template-haskell

@@ -6,3 +6,4 @@ env
 .shelly
 .ihaskell_capture
 .ipynb_checkpoints
+Hspec

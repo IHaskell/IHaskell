@@ -22,10 +22,6 @@ import qualified System.IO.Strict as StrictIO
 
 import qualified IHaskell.Config as Config
 
--- $setup
--- >>> import ClassyPrelude
--- >>> import IHaskell.IPython
-
 -- | Run IPython with any arguments.
 ipython :: Bool         -- ^ Whether to suppress output.
         -> [Text]       -- ^ IPython command line arguments.
@@ -52,9 +48,6 @@ ipythonVersion = shelly $ do
   return (major, minor, patch)
 
 -- | Parse an IPython version string into a list of integers.
---
--- >>> parseVersion `map` ["2.0.0-dev", "2.0.0-alpha", "12.5.10"]
--- [[2,0,0],[2,0,0],[12,5,10]]
 parseVersion :: String -> [Int]
 parseVersion versionStr = map read' $ split "." versionStr
     where read' x = case reads x of

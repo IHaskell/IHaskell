@@ -43,7 +43,7 @@ type ColumnNumber = Int
 type ErrMsg = String
 
 -- | A location in an input string.
-data StringLoc = Loc LineNumber ColumnNumber deriving Show
+data StringLoc = Loc LineNumber ColumnNumber deriving (Show, Eq)
 
 -- | A block of code to be evaluated.
 -- Each block contains a single element - one declaration, statement,
@@ -58,7 +58,7 @@ data CodeBlock
   | Directive DirectiveType String     -- ^ An IHaskell directive.
   | Module String                      -- ^ A full Haskell module, to be compiled and loaded.
   | ParseError StringLoc ErrMsg        -- ^ An error indicating that parsing the code block failed.
-  deriving Show
+  deriving (Show, Eq)
 
 -- | Directive types. Each directive is associated with a string in the
 -- directive code block.
@@ -68,93 +68,17 @@ data DirectiveType
   | SetExtension    -- ^ Enable or disable an extension via ':extension' (or prefixes)
   | HelpForSet      -- ^ Provide useful info if people try ':set'.
   | GetHelp         -- ^ General help via ':?' or ':help'.
-  deriving Show
+  deriving (Show, Eq)
 
 -- | Output from running a parser.
 data ParseOutput a
     = Failure ErrMsg StringLoc    -- ^ Parser failed with given error message and location.
     | Success a (String, String)  -- ^ Parser succeeded with an output.
-                                  -- Auxiliary strings say what part of the
+    deriving (Eq, Show)                  -- Auxiliary strings say what part of the
                                   -- input string was used and what
                                   -- part is remaining.
 
--- $setup
--- >>> import GHC
--- >>> import GHC.Paths
--- >>> import IHaskell.Eval.Parser
--- >>> let ghc = runGhc (Just libdir)
--- >>> let test = ghc . parseString
-
--- $extendedParserTests
---
--- >>> test ""
--- []
---
--- >>> test "3\nlet x = expr"
--- [Expression "3",Statement "let x = expr"]
---
--- >>> test "let x = 3 in x + 3"
--- [Expression "let x = 3 in x + 3"]
---
--- >>> test "data X = Y Int"
--- [Declaration "data X = Y Int"]
---
--- >>> test "3\n:t expr"
--- [Expression "3",Directive GetType "expr"]
---
--- >>> test "y <- print 'no'"
--- [Statement "y <- print 'no'"]
---
--- >>> test "y <- do print 'no'\nlet x = expr"
--- [Statement "y <- do { print 'no' }",Statement "let x = expr"]
---
--- >>> test "y <- do print 'no'\nlet x = expr\nexpression"
--- [Statement "y <- do { print 'no' }",Statement "let x = expr",Expression "expression"]
---
--- >>> test "print yes\nprint no"
--- [Expression "print yes",Expression "print no"]
---
--- >>> test "fun [] = 10"
--- [Declaration "fun [] = 10"]
---
--- >>> test "fun [] = 10\nprint 'h'"
--- [Declaration "fun [] = 10",Expression "print 'h'"]
---
--- >>> test "fun (x:xs) = 100"
--- [Declaration "fun (x : xs) = 100"]
---
--- >>> test "fun [] = 10\nfun (x:xs) = 100"
--- [Declaration "fun [] = 10\nfun (x : xs) = 100"]
---
--- >>> test "fun :: [a] -> Int\nfun [] = 10\nfun (x:xs) = 100"
--- [Declaration "fun :: [a] -> Int\nfun [] = 10\nfun (x : xs) = 100"]
---
--- >>> test "module A where x = 3"
--- [Module "module A where\nx = 3"]
---
--- >>> test "module B (x) where x = 3"
--- [Module "module B (\n        x\n    ) where\nx = 3"]
---
--- >>> test "let x = 3 in"
--- [ParseError (Loc 1 13) "parse error (possibly incorrect indentation or mismatched brackets)"]
---
--- >>> test "data X = 3"
--- [ParseError (Loc 1 10) "Illegal literal in type (use -XDataKinds to enable): 3"]
-
-
 -- | Parse a string into code blocks.
---
--- >>> test "let x = 3"
--- [Statement "let x = 3"]
---
--- >>> test ":type hello\n:in goodbye"
--- [Directive GetType "hello",Directive GetInfo "goodbye"]
---
--- >>> test "import Data.Monoid"
--- [Import "import Data.Monoid"]
---
--- >>> test "3 + 5"
--- [Expression "3 + 5"]
 parseString :: GhcMonad m => String -> m [CodeBlock]
 parseString codeString = do
   -- Try to parse this as a single module.
@@ -304,15 +228,6 @@ joinFunctions [] = []
 
 
 -- | Parse a directive of the form :directiveName.
---
--- >>> parseDirective ":ty hello" 0
--- Directive GetType "hello"
---
--- >>> parseDirective ":inf goodbye" 0
--- Directive GetInfo "goodbye"
---
--- >>> parseDirective ":nope goodbye" 11
--- ParseError (Loc 11 1) "Unknown directive: 'nope'."
 parseDirective :: String       -- ^ Directive string.
                -> Int          -- ^ Line number at which the directive appears.
                -> CodeBlock    -- ^ Directive code block or a parse error.
@@ -374,15 +289,6 @@ runParser flags parser str =
 
 -- | Split a string at a given line and column. The column is included in
 -- the second part of the split.
---
--- >>> splitAtLoc 2 3 "abc\ndefghi\nxyz\n123"
--- ("abc\nde","fghi\nxyz\n123")
---
--- >>> splitAtLoc 2 1 "abc"
--- ("abc","")
---
--- >>> splitAtLoc 2 1 "abc\nhello"
--- ("abc\n","hello")
 splitAtLoc :: LineNumber -> ColumnNumber -> String -> (String, String)
 splitAtLoc line col string = 
   if line > length (lines string)
@@ -400,15 +306,6 @@ splitAtLoc line col string =
 -- A chunk is a line and all lines immediately following that are indented
 -- beyond the indentation of the first line. This parses Haskell layout
 -- rules properly, and allows using multiline expressions via indentation. 
---
--- >>> layoutChunks "a string"
--- ["a string"]
---
--- >>> layoutChunks "a\n string"
--- ["a\n string"]
---
--- >>> layoutChunks "a\n string\nextra"
--- ["a\n string","extra"]
 layoutChunks :: String -> [String]
 layoutChunks string = layoutLines (lines string)
   where
@@ -456,19 +353,6 @@ dropComments = removeOneLineComments . removeMultilineComments
 -- | Parse a module and return the name declared in the 'module X where'
 -- line. That line is required, and if it does not exist, this will error.
 -- Names with periods in them are returned piece y piece.
---
--- >>> ghc $ getModuleName "module A where\nx = 3"
--- ["A"]
---
--- >>> ghc $ getModuleName "module A.B.C where x = 3"
--- ["A","B","C"]
---
--- >>> ghc $ getModuleName "module A.B.C ( x ) where x = 3"
--- ["A","B","C"]
--- 
--- >>> ghc $ getModuleName "x = 3"
--- *** Exception: Module parsing failed.
---
 getModuleName :: GhcMonad m => String -> m [String]
 getModuleName moduleSrc = do
   flags <- getSessionDynFlags

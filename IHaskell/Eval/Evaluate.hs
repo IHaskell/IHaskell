@@ -150,7 +150,8 @@ initializeImports = do
   imports <- mapM parseImportDecl $ globalImports ++ displayImports
   setContext $ map IIDecl $ implicitPrelude : imports
 
-  -- | Give a value for the `it` variable. initializeItVariable :: Interpreter ()
+-- | Give a value for the `it` variable.
+initializeItVariable :: Interpreter ()
 initializeItVariable =
   -- This is required due to the way we handle `it` in the wrapper
   -- statements - if it doesn't exist, the first statement will fail.
