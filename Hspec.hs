@@ -284,7 +284,7 @@ parseStringTests = describe "Parser" $ do
         Import "import X",
         Expression "print 3" 
       ]
-    parses "import X\n\n\nprint 3" `like` [
+    parses "import X\n\nprint 3" `like` [
         Import "import X",
         Expression "print 3" 
       ]
