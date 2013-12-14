@@ -1,7 +1,17 @@
+{-# LANGUAGE QuasiQuotes #-}
 import GHC
 import GHC.Paths
+import Data.IORef
+import Control.Monad
+import Data.List
+import System.Directory
+import Data.String.Here
+import Data.String.Utils (strip)
+
 import IHaskell.Eval.Parser
+import IHaskell.Types
 import IHaskell.IPython
+import IHaskell.Eval.Evaluate
 
 import Test.Hspec
 import Test.Hspec.HUnit
@@ -16,11 +26,89 @@ is string blockType = do
   result <- doGhc $ parseString string
   result `shouldBe` [blockType string]
 
+eval string = do
+  outputAccum <- newIORef []
+  let publish displayDatas = liftIO $ modifyIORef outputAccum (displayDatas :)
+  getTemporaryDirectory >>= setCurrentDirectory
+  interpret $ evaluate 1 string publish
+  out <- readIORef outputAccum
+  return $ reverse out
+
+becomes string expected = do
+    let indent (' ':x) = 1 + indent x
+        indent _ = 0
+        empty = null . strip
+        stringLines = filter (not . empty) $ lines string
+        minIndent = minimum (map indent stringLines)
+        newString = unlines $ map (drop minIndent) stringLines
+    eval newString >>= comparison
+  where 
+    comparison results = do
+      when (length results /= length expected) $
+        expectationFailure $ "Expected result to have " ++ show (length expected)
+                             ++ " results. Got " ++ show results
+
+      let isPlain (Display PlainText _) = True
+          isPlain _ = False
+
+      forM_ (zip results expected) $ \(result, expected) ->
+        case find isPlain result of
+          Just (Display PlainText str) -> expected `shouldBe` str
+          Nothing -> expectationFailure $ "No plain-text output in " ++ show result
+
+
 
 main :: IO ()
 main = hspec $ do
   parserTests
   ipythonTests
+  evalTests
+
+evalTests = do
+  describe "Code Evaluation" $ do
+    it "evaluates expressions" $  do
+      "3" `becomes` ["3"]
+      "3+5" `becomes` ["8"]
+      "print 3" `becomes` ["3"]
+      [hereLit|
+        let x = 11
+            z = 10 in
+          x+z
+      |] `becomes` ["21"]
+
+    it "evaluates multiline expressions" $  do
+      [hereLit|
+        import Control.Monad
+        forM_ [1, 2, 3] $ \x ->
+          print x
+      |] `becomes` ["1\n2\n3"]
+
+    it "evaluates function declarations silently" $ do
+      [hereLit|
+        fun :: [Int] -> Int
+        fun [] = 3
+        fun (x:xs) = 10
+        fun [1, 2]
+      |] `becomes` ["10"]
+
+    it "evaluates data declarations" $ do
+      [hereLit|
+        data X = Y Int
+               | Z String
+               deriving (Show, Eq)
+        print [Y 3, Z "No"]
+        print (Y 3 == Z "No")
+      |] `becomes` ["[Y 3,Z \"No\"]", "False"]
+
+    it "is silent for imports" $ do
+      "import Control.Monad" `becomes` []
+      "import qualified Control.Monad" `becomes` []
+      "import qualified Control.Monad as CM" `becomes` []
+      "import Control.Monad (when)" `becomes` []
+
+    it "evaluates directives" $ do
+      ":typ 3" `becomes` ["forall a. Num a => a"]
+      ":in String" `becomes` ["type String = [Char] \t-- Defined in `GHC.Base'"]
 
 ipythonTests = do
   describe "Parse IPython Version" $ do

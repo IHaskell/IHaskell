@@ -4,8 +4,7 @@
 This module exports all functions used for evaluation of IHaskell input.
 -}
 module IHaskell.Eval.Evaluate (
-  interpret, evaluate, Interpreter, liftIO,
-  typeCleaner
+  interpret, evaluate, Interpreter, liftIO, typeCleaner
   ) where
 
 import ClassyPrelude hiding (liftIO, hGetContents)
