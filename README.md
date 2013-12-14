@@ -15,11 +15,15 @@ As well as the IPython browser-based notebook interface:
 Installation
 ===
 
+IPython
+---
 Make sure you have [IPython](http://ipython.org/) version 1.0 or higher. IHaskell will not work with older versions of IPython.
 ```bash
 ipython --version     # Should print 1.0.0 (or higher!)
 ```
 
+Haskell and Cabal
+---
 You should also have GHC and modern Cabal:
 ```bash
 ghc --numeric-version # Should be 7.6.3
@@ -34,7 +38,15 @@ cabal update && cabal install cabal-install
 ```
 Use `cabal install cabal-install` to update Cabal if you still have version 1.16 instead of 1.18.
 
-Install ZeroMQ:
+Also, in order to use executables which `cabal` installs, they must be in your path. Execute this in your shell or add it to your `~/.bashrc`:
+```bash
+export PATH=~/.cabal/bin:$PATH
+```
+
+ZeroMQ
+---
+Make sure that ZeroMQ 3 is installed. Eventually IHaskell will be ported to ZeroMQ 4, but for now it is on version 3.
+Note that there are different instructions for different platforms:
 ```bash
 # For Ubuntu (Saucy):
 sudo apt-get install libzmq3-dev
@@ -50,12 +62,16 @@ sudo make install
 sudo ldconfig
 ```
 
-Install Happy and Cpphs:
+Compilation Tools
+---
+Install the `happy`
 ```bash
 cabal install happy
 cabal install cpphs
 ```
 
+IHaskell Installation
+---
 Install the package from Hackage:
 ```bash
 cabal install ihaskell
@@ -68,6 +84,9 @@ cd IHaskell
 cabal install
 ```
 
+Running IHaskell
+---
+
 Finally, run the notebook or console interface:
 ```bash
 IHaskell notebook # Should open a browser window!
@@ -76,23 +95,20 @@ IHaskell console
 
 There is a test notebook in the `IHaskell` directory.
 
+**Important Note:** Using `IHaskell console` requires a proper patch to IPython. There is 
+[a pull request](https://github.com/ipython/ipython/pull/4678) open on the IPython repository to fix this, but until it is merged, you need to install IPython from [this branch](https://github.com/ivanov/ipython/tree/console-display-text).
+
+**Note**: You may have some trouble due to browser caches with the notebook interface if you also use IPython's notebook interface or have used it in the past. If something doesn't work or IPython says it can't connect to the notebook server, make sure to clear the browser cache in whatever browser you're using, or try another browser.
+
 Contributing
 ===
 
-IHaskell is an extremely young project, and I'd love your help getting it to a stable and useful point. There's a lot to do, and if you'd like to contribute, feel free to get in touch with me via my email at andrew period gibiansky at gmail - although browsing the code should be enough to get you started, I'm more than happy to answer any questions myself.
+IHaskell is a young project, and I'd love your help getting it to a stable and useful point. There's a lot to do, and if you'd like to contribute, feel free to get in touch with me via my email at andrew period gibiansky at gmail - although browsing the code should be enough to get you started, I'm more than happy to answer any questions myself.
 
-Some ideas for improvements:
-- Type annotations. When a statement is evaluated, the GHC API returns the names of all bound variables. It should be possible to take those names and find the types of the variables, and display them in a table via the `display_data` message. 
-- Implementing useful directives. Currently, support for GHCi-style ":"-initiated directives exist, but they do not do anything (and are instead just printed in green). Useful directives such as ":t" and ":i" and ":m [+-]" have yet to be implemented, and adding them would be a good way to get started with the codebase.
-- Parsing and viewing of formats via `display_data` and HTML:
-    - `aeson` compatibility which displays JSON as syntax highlighted JSON code via HTML.
-    - Support for `repa` or `hmatrix` vectors and matrices being displayed.
-    - `A custom typeclass for displaying data types as HTML, similar to Show.
-
-Take a look at the [developer notes](https://github.com/gibiansky/IHaskell/blob/master/README.md#developer-notes) as well - they are sparse but may be helpful.
+**For package maintainers:** IHaskell has an ability to display data types it knows about with a rich format based on images or HTML. In order to do so, an external package `ihaskell-something` must be created and installed. Writing these packages is simply - they must just contain instance of the `IHaskellDisplay` typeclass, defined in `IHaskell.Display`, and for a package `ihaskell-something` should have a single module `IHaskell.Display.Something`. If you have a package with interesting data types that would benefit from a rich display format, please get in contact with me (andrew dot gibiansky at gmail) to write one of these packages! A sample package is available [here](https://github.com/gibiansky/IHaskell-Display).
 
 Developer Notes
-===
+---
 
 Before diving in, you should read the [brief description of IPython kernel architectures](http://andrew.gibiansky.com/blog/ipython/ipython-kernels/)
 and read the [complete messaging protocol specification](http://ipython.org/ipython-doc/dev/development/messaging.html).
@@ -116,7 +132,7 @@ First steps:
 
 ```bash 
 cd /path/to/IHaskell
-cabal configure
+cabal configure --enable-tests
 cabal build
 ```
 
