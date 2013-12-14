@@ -17,43 +17,52 @@ Installation
 
 Make sure you have IPython version 1.0 or higher. IHaskell will not work with older versions of IPython.
 ```bash
-ipython --version # Should print 1.0.0 (or higher!)
+ipython --version     # Should print 1.0.0 (or higher!)
 ```
 
-Download the package from the Github repository:
+You should also have GHC and modern Cabal:
 ```bash
-git clone https://github.com/gibiansky/IHaskell
+ghc --numeric-version # Should be 7.6.3
+cabal --version       # Should be 1.18.*
 ```
+If you do not have GHC or Cabal, you should be able to install both via the 
+[Haskell Platform](http://www.haskell.org/platform/).
 
 Install ZeroMQ:
 ```bash
-sudo apt-get install libzmq3-dev # Ubuntu (Saucy only)
-brew install zeromq # Macs with Homebrew
-```
-(For older versions of Ubuntu, you should be able to download the ZeroMQ3 source and install without much difficulty.)
+# For Ubuntu (Saucy):
+sudo apt-get install libzmq3-dev
 
-Install Happy:
+# For Macs with Homebrew:
+brew install zeromq
+brew switch zeromq 3.2.4
+
+# Compiling from source:
+git clone git@github.com:zeromq/zeromq3-x.git libzmq
+./autogen.sh && ./configure && make
+sudo make install
+sudo ldconfig
+```
+
+Install Happy and Cpphs:
 ```bash
-sudo apt-get install happy # Ubuntu
 cabal install happy
 cabal install cpphs
 ```
 
-Install the package:
+Install the package from Hackage:
 ```bash
-cd IHaskell;
-./build-parser.sh;
-cabal install;
-```
-If you do not have GHC or Cabal, you should be able to install both via the [Haskell Platform](http://www.haskell.org/platform/).
-
-
-Create the IPython profile:
-```bash
-IHaskell setup
+cabal install ihaskell
 ```
 
-Run the notebook or console interface:
+**Alternatively**, for the most recent version, you can install package from the Github repository and compile it from there:
+```bash
+git clone https://github.com/gibiansky/IHaskell
+cd IHaskell
+cabal install
+```
+
+Finally, run the notebook or console interface:
 ```bash
 IHaskell notebook # Should open a browser window!
 IHaskell console
