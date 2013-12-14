@@ -144,6 +144,9 @@ layoutChunkerTests = describe "Layout Chunk" $ do
   it "chunks 'a\\n string\\nextra'" $
     layoutChunks "a\n string\nextra" `shouldBe` ["a\n string","extra"]
 
+  it "chunks strings with too many lines" $
+    layoutChunks "a\n\nstring" `shouldBe` ["a","string"]
+
 moduleNameTests = describe "Get Module Name" $ do
   it "parses simple module names" $
     "module A where\nx = 3" `named` ["A"]
@@ -275,3 +278,13 @@ parseStringTests = describe "Parser" $ do
     parses "data X = 3" `like` [
       ParseError (Loc 1 10) "Illegal literal in type (use -XDataKinds to enable): 3"
     ]
+
+  it "parses statements after imports" $ do
+    parses "import X\nprint 3" `like` [
+        Import "import X",
+        Expression "print 3" 
+      ]
+    parses "import X\n\n\nprint 3" `like` [
+        Import "import X",
+        Expression "print 3" 
+      ]

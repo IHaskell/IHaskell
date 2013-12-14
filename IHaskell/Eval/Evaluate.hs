@@ -95,8 +95,7 @@ type Interpreter = Ghc
 
 globalImports :: [String]
 globalImports = 
-  [ "import IHaskell.Types"
-  , "import IHaskell.Display"
+  [ "import IHaskell.Display"
   , "import Control.Applicative ((<$>))"
   , "import GHC.IO.Handle (hDuplicateTo, hDuplicate)"
   , "import System.IO"
@@ -213,8 +212,8 @@ evalCommand (Module contents) = wrapExecution $ do
     writeFile (fpFromString $ directory ++ filename) contents
 
   -- Clear old modules of this name
-  let moduleName = intercalate "." namePieces
-  removeTarget $ TargetModule $ mkModuleName moduleName
+  let modName = intercalate "." namePieces
+  removeTarget $ TargetModule $ mkModuleName modName
   removeTarget $ TargetFile filename Nothing
 
   -- Set to use object code for fast running times, as that is the only
@@ -226,26 +225,50 @@ evalCommand (Module contents) = wrapExecution $ do
   -- Remember which modules we've loaded before.
   importedModules <- getContext
 
-  -- Create a new target
-  target <- guessTarget moduleName Nothing
-  addTarget target
-  result <- load LoadAllTargets
+  let -- Get the dot-delimited pieces of hte module name.
+      moduleNameOf :: InteractiveImport -> [String]
+      moduleNameOf (IIDecl decl) = split "." . moduleNameString . unLoc . ideclName $ decl
+      moduleNameOf (IIModule imp) = split "." . moduleNameString $ imp
 
-  -- Reset the context, since loading things screws it up.
-  initializeItVariable
+      -- Return whether this module prevents the loading of the one we're
+      -- trying to load. If a module B exist, we cannot load A.B. All
+      -- modules must have unique last names (where A.B has last name B).
+      -- However, we *can* just reload a module.
+      preventsLoading mod = 
+        let pieces = moduleNameOf mod in
+            last namePieces == last pieces && namePieces /= pieces
 
-  -- Add imports
-  importDecl <- parseImportDecl $ "import " ++ moduleName
-  let implicitImport = importDecl { ideclImplicit = True }
-  setContext $ IIDecl implicitImport : importedModules
+  -- If we've loaded anything with the same last name, we can't use this.
+  -- Otherwise, GHC tries to load the original *.hs fails and then fails.
+  case find preventsLoading importedModules of
+    -- If something prevents loading this module, return an error.
+    Just previous -> 
+      let prevLoaded = intercalate "." (moduleNameOf previous) in
+        return $ displayError $
+          printf "Can't load module %s because already loaded %s" modName prevLoaded
 
-  -- Switch back to interpreted mode.
-  flags <- getSessionDynFlags
-  setSessionDynFlags flags{ hscTarget = HscInterpreted }
+    -- Since nothing prevents loading the module, compile and load it.
+    Nothing -> do
+      -- Create a new target
+      target <- guessTarget modName Nothing
+      addTarget target
+      result <- load LoadAllTargets
 
-  case result of
-    Succeeded -> return []
-    Failed -> return $ displayError $ "Failed to load module " ++ moduleName
+      -- Reset the context, since loading things screws it up.
+      initializeItVariable
+
+      -- Add imports
+      importDecl <- parseImportDecl $ "import " ++ modName
+      let implicitImport = importDecl { ideclImplicit = True }
+      setContext $ IIDecl implicitImport : importedModules
+
+      -- Switch back to interpreted mode.
+      flags <- getSessionDynFlags
+      setSessionDynFlags flags{ hscTarget = HscInterpreted }
+
+      case result of
+        Succeeded -> return []
+        Failed -> return $ displayError $ "Failed to load module " ++ modName
 
 evalCommand (Directive SetExtension exts) = wrapExecution $ do
     results <- mapM setExtension (words exts)

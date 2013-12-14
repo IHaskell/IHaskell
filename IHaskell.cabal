@@ -42,6 +42,17 @@ build-type:          Custom
 -- Constraint on the version of Cabal needed to build this package.
 cabal-version:       >=1.8
 
+extra-source-files: 
+  config/custom.js
+  config/ipython_config.py
+  config/ipython_console_config.py
+  config/ipython_notebook_config.py
+  config/ipython_qtconsole_config.py
+  deps/codecell.js
+  deps/tooltip.js
+  build-parser.sh
+  images/ihaskell-logo.png
+
 library
   build-depends:       base ==4.6.*,
                        hspec,
@@ -91,6 +102,10 @@ executable IHaskell
              IHaskell.Types
              IHaskell.ZeroMQ
              IHaskell.Display
+             IHaskell.Config
+             IHaskell.GHC.HaskellParser
+
+
 
 
   extensions: DoAndIfThenElse

@@ -307,7 +307,7 @@ splitAtLoc line col string =
 -- beyond the indentation of the first line. This parses Haskell layout
 -- rules properly, and allows using multiline expressions via indentation. 
 layoutChunks :: String -> [String]
-layoutChunks string = layoutLines (lines string)
+layoutChunks string = filter (not . null . strip) $ layoutLines $ lines string
   where
     layoutLines :: [String] -> [String]
     -- Empty string case.  If there's no input, output is empty.
