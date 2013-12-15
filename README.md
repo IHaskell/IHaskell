@@ -52,8 +52,10 @@ Note that there are different instructions for different platforms:
 sudo apt-get install libzmq3-dev
 
 # For Macs with Homebrew:
+# Make sure you're not in a git repository while doing this!
+brew unlink zeromq # If you happen to have ZeroMQ already installed...
+git checkout c356bf7 `brew --prefix`/Library/Formula/zeromq.rb
 brew install zeromq
-brew switch zeromq 3.2.4
 
 # Compiling from source:
 git clone git@github.com:zeromq/zeromq3-x.git libzmq
