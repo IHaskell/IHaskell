@@ -22,6 +22,15 @@ Make sure you have [IPython](http://ipython.org/) version 1.0 or higher. IHaskel
 ipython --version     # Should print 1.0.0 (or higher!)
 ```
 
+Even newer versions tend to work better. Note that at the moment Ubuntu does not have newer IPython in it's repositories. 
+
+If you'd like to install it the most modern IPython from Github, run the following commands:
+```bash
+git clone git@github.com:ipython/ipython.git
+cd ipython
+sudo python setup.py install
+```
+
 Haskell and Cabal
 ---
 You should also have GHC and modern Cabal:
