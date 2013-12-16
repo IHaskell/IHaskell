@@ -22,6 +22,21 @@ Make sure you have [IPython](http://ipython.org/) version 1.0 or higher. IHaskel
 ipython --version     # Should print 1.0.0 (or higher!)
 ```
 
+Even newer versions tend to work better. Note that at the moment Ubuntu does not have newer IPython in it's repositories. 
+
+If you'd like to install it the most modern IPython from Github, run the following commands:
+```bash
+git clone git@github.com:ipython/ipython.git
+cd ipython
+sudo python setup.py install
+```
+
+You will need to install several libraries for the notebook and console interfaces to work:
+```bash
+# If you don't have pip on Mac OS X, you probably can run "sudo easy_install pip"
+sudo pip install pyzmq tornado jinja2
+```
+
 Haskell and Cabal
 ---
 You should also have GHC and modern Cabal:
@@ -29,6 +44,8 @@ You should also have GHC and modern Cabal:
 ghc --numeric-version # Should be 7.6.3
 cabal --version       # Should be 1.18.*
 ```
+Since IHaskell uses the GHC API for evaluation and parsing, other versions of GHC may not work.
+
 If you do not have GHC or Cabal, you should be able to install both via the 
 [Haskell Platform](http://www.haskell.org/platform/). On Macs with Homebrew, you can do this via
 ```bash
@@ -40,7 +57,11 @@ Use `cabal install cabal-install` to update Cabal if you still have version 1.16
 
 Also, in order to use executables which `cabal` installs, they must be in your path. Execute this in your shell or add it to your `~/.bashrc`:
 ```bash
+# If you have a ~/.cabal/bin folder:
 export PATH=~/.cabal/bin:$PATH
+
+# If you have a ~/Library/Haskell/bin folder on OS X:
+export PATH=~/Library/Haskell/bin:$PATH
 ```
 
 ZeroMQ
@@ -52,11 +73,14 @@ Note that there are different instructions for different platforms:
 sudo apt-get install libzmq3-dev
 
 # For Macs with Homebrew:
+# Make sure you're not in a git repository while doing this!
+brew unlink zeromq # If you happen to have ZeroMQ already installed...
+git checkout c356bf7 `brew --prefix`/Library/Formula/zeromq.rb
 brew install zeromq
-brew switch zeromq 3.2.4
 
 # Compiling from source:
 git clone git@github.com:zeromq/zeromq3-x.git libzmq
+cd libzmq
 ./autogen.sh && ./configure && make
 sudo make install
 sudo ldconfig
@@ -64,7 +88,7 @@ sudo ldconfig
 
 Compilation Tools
 ---
-Install the `happy`
+Install the `happy` parser generator tool and `cpphs` preprocessor:
 ```bash
 cabal install happy
 cabal install cpphs
@@ -72,12 +96,8 @@ cabal install cpphs
 
 IHaskell Installation
 ---
-Install the package from Hackage:
-```bash
-cabal install ihaskell
-```
 
-**Alternatively**, for the most recent version, you can install package from the Github repository and compile it from there:
+Install the IHaskell package from the Github repository:
 ```bash
 git clone https://github.com/gibiansky/IHaskell
 cd IHaskell
