@@ -53,7 +53,7 @@ becomes string expected = do
 
       forM_ (zip results expected) $ \(result, expected) ->
         case find isPlain result of
-          Just (Display PlainText str) -> expected `shouldBe` str
+          Just (Display PlainText str) -> str `shouldBe` expected
           Nothing -> expectationFailure $ "No plain-text output in " ++ show result
 
 
@@ -99,6 +99,14 @@ evalTests = do
         print [Y 3, Z "No"]
         print (Y 3 == Z "No")
       |] `becomes` ["[Y 3,Z \"No\"]", "False"]
+
+    it "evaluates do blocks in expressions" $ do
+      [hereLit|
+        show (show (do
+            Just 10
+            Nothing
+            Just 100))
+      |] `becomes` ["\"\\\"Nothing\\\"\""]
 
     it "is silent for imports" $ do
       "import Control.Monad" `becomes` []
@@ -228,13 +236,13 @@ parseStringTests = describe "Parser" $ do
 
   it "parses a <- stmt followed by let stmt" $
     parses "y <- do print 'no'\nlet x = expr" `like` [
-      Statement "y <- do { print 'no' }",
+      Statement "y <- do print 'no'",
       Statement "let x = expr"
     ]
 
   it "parses <- followed by let followed by expr" $
     parses "y <- do print 'no'\nlet x = expr\nexpression" `like` [
-      Statement "y <- do { print 'no' }",
+      Statement "y <- do print 'no'",
       Statement "let x = expr",
       Expression "expression"
     ]
@@ -288,3 +296,15 @@ parseStringTests = describe "Parser" $ do
         Import "import X",
         Expression "print 3" 
       ]
+  it "doesn't break on long strings" $ do
+    let longString = concat $ replicate 20 "hello "
+    ("img ! src \"" ++ longString ++ "\" ! width \"500\"") `is` Expression
+
+  it "parses do blocks in expression" $ do
+    [hereLit|
+      show (show (do
+        Just 10
+        Nothing
+        Just 100))
+    |] `is` Expression
+    

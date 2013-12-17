@@ -50,7 +50,7 @@ import IHaskell.Display
 data ErrorOccurred = Success | Failure deriving Show
 
 debug :: Bool
-debug = False
+debug = True
 
 ignoreTypePrefixes :: [String]
 ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",
@@ -394,35 +394,23 @@ evalCommand (Expression expr) = do
   -- The output is bound to 'it', so we can then use it.
   (success, out) <- evalCommand (Statement expr)
 
+    -- Try to use `display` to convert our type into the output
+  -- DisplayData. If typechecking fails and there is no appropriate
+  -- typeclass, this will throw an exception and thus `attempt` will
+  -- return False, and we just resort to plaintext.
+  let displayExpr = printf "(IHaskell.Display.display (%s))" expr
+  canRunDisplay <- attempt $ exprType displayExpr
+  write displayExpr
+
   -- If evaluation failed, return the failure.  If it was successful, we
   -- may be able to use the IHaskellDisplay typeclass.
-  case success of
-    Failure -> return (success, out)
-    Success -> do
-      -- Try to use `display` to convert our type into the output
-      -- DisplayData. If typechecking fails and there is no appropriate
-      -- typeclass, this will throw an exception and thus `attempt` will
-      -- return False, and we just resort to plaintext.
-      canRunDisplay <- attempt $ exprType "IHaskell.Display.display it"
-      if canRunDisplay
-      then do
-        -- If there are instance matches, convert the object into
-        -- a [DisplayData]. We also serialize it into a bytestring. We get
-        -- the bytestring as a dynamic and then convert back to
-        -- a bytestring, which we promptly unserialize. Note that
-        -- attempting to do this without the serialization to binary and
-        -- back gives very strange errors - all the types match but it
-        -- refuses to decode back into a [DisplayData].
-        displayedBytestring <- dynCompileExpr "IHaskell.Display.serializeDisplay (IHaskell.Display.display it)"
-        case fromDynamic displayedBytestring of
-          Nothing -> error "Expecting lazy Bytestring"
-          Just bytestring ->
-            case Serialize.decode bytestring of
-              Left err -> error err
-              Right displayData -> do
-                write $ show displayData
-                return (success, displayData)
-      else return (success, out)
+  if not canRunDisplay
+  then return (success, out)
+  else case success of
+    Success -> useDisplay displayExpr
+    Failure -> if isShowError out
+              then useDisplay displayExpr
+              else return (success, out)
 
   where
     -- Try to evaluate an action. Return True if it succeeds and False if
@@ -431,6 +419,35 @@ evalCommand (Expression expr) = do
     attempt action = gcatch (action >> return True) failure
       where failure :: SomeException -> Interpreter Bool
             failure _ = return False
+
+    -- Check if the error is due to trying to print something that doesn't
+    -- implement the Show typeclass.
+    isShowError errs = case find isPlain errs of
+      Just (Display PlainText msg) -> 
+        startswith "No instance for (GHC.Show.Show " msg &&
+        isInfixOf " arising from a use of `System.IO.print'" msg
+      Nothing -> False
+      where isPlain (Display mime _) = (mime == PlainText)
+
+    useDisplay displayExpr = wrapExecution $ do
+      -- If there are instance matches, convert the object into
+      -- a [DisplayData]. We also serialize it into a bytestring. We get
+      -- the bytestring as a dynamic and then convert back to
+      -- a bytestring, which we promptly unserialize. Note that
+      -- attempting to do this without the serialization to binary and
+      -- back gives very strange errors - all the types match but it
+      -- refuses to decode back into a [DisplayData].
+      runStmt displayExpr RunToCompletion
+      displayedBytestring <- dynCompileExpr "IHaskell.Display.serializeDisplay it"
+      case fromDynamic displayedBytestring of
+        Nothing -> error "Expecting lazy Bytestring"
+        Just bytestring ->
+          case Serialize.decode bytestring of
+            Left err -> error err
+            Right displayData -> do
+              write $ show displayData
+              return displayData
+
 
 evalCommand (Declaration decl) = wrapExecution $ runDecls decl >> return []
 

@@ -173,22 +173,16 @@ parseCodeChunk code startLine = do
 
     parsers :: DynFlags -> [(String -> CodeBlock, String -> ParseOutput String)]
     parsers flags =
-      [ (Import,        unparser toCode   partialImport)
-      , (TypeSignature, unparser toCode   partialTypeSignature)
-      , (Declaration,   unparser listCode partialDeclaration)
-      , (Statement,     unparser toCode   partialStatement)
+      [ (Import,        unparser partialImport)
+      , (TypeSignature, unparser partialTypeSignature)
+      , (Declaration,   unparser partialDeclaration)
+      , (Statement,     unparser partialStatement)
       ]
       where
-        toCode :: Outputable a => a -> String
-        toCode = strip . showSDoc flags . ppr
-
-        listCode :: Outputable a => OrdList a -> String
-        listCode = joinLines . map toCode . fromOL
-
-        unparser :: (a -> String) -> P a -> String -> ParseOutput String
-        unparser postprocess parser code =
+        unparser :: P a -> String -> ParseOutput String
+        unparser parser code =
           case runParser flags parser code of
-            Success out strs -> Success (postprocess out) strs
+            Success out strs -> Success code strs
             Failure err loc -> Failure err loc
 
 -- | Find consecutive declarations of the same function and join them into
