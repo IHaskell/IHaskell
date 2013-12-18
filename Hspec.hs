@@ -95,48 +95,48 @@ main = hspec $ do
 completionTests = do
   describe "Completion" $ do
     it "correctly gets the completion identifier without dots" $ do
-       "hello!" `completes` ["hello"]
+       "hello!"              `completes` ["hello"]
        "hello aa!bb goodbye" `completes` ["aa"]
        "hello aabb! goodbye" `completes` ["aabb"]
-       "aacc! goodbye" `completes` ["aacc"]
+       "aacc! goodbye"       `completes` ["aacc"]
        "hello !aabb goodbye" `completes` []
-       "!aabb goodbye" `completes` []
+       "!aabb goodbye"       `completes` []
 
     it "correctly gets the completion identifier with dots" $ do
        "hello test.aa!bb goodbye" `completes` ["test", "aa"]
-       "Test.!" `completes` ["Test", ""]
-       "Test.Thing!" `completes` ["Test", "Thing"]
-       "Test.Thing.!" `completes` ["Test", "Thing", ""]
-       "Test.Thing.!nope" `completes` ["Test", "Thing", ""]
+       "Test.!"                   `completes` ["Test", ""]
+       "Test.Thing!"              `completes` ["Test", "Thing"]
+       "Test.Thing.!"             `completes` ["Test", "Thing", ""]
+       "Test.Thing.!nope"         `completes` ["Test", "Thing", ""]
 
     it "correctly gets the completion type" $ do
-      completionType "import Data." ["Data", ""]   `shouldBe` ModuleName "Data" ""
-      completionType "import Prel" ["Prel"]   `shouldBe` ModuleName "" "Prel"
-      completionType "import Data.Bloop.M" ["Data", "Bloop", "M"]   `shouldBe` ModuleName "Data.Bloop" "M"
-      completionType " import A." ["A", ""]  `shouldBe` ModuleName "A" ""
-      completionType "import a.x" ["a", "x"] `shouldBe` Identifier "x"
-      completionType "A.x" ["A", "x"]        `shouldBe` Qualified "A" "x"
-      completionType "a.x" ["a", "x"]        `shouldBe` Identifier "x"
-      completionType "pri" ["pri"]           `shouldBe` Identifier "pri"
+      completionType "import Data." ["Data", ""]      `shouldBe` ModuleName "Data" ""
+      completionType "import Prel" ["Prel"]           `shouldBe` ModuleName "" "Prel"
+      completionType "import D.B.M" ["D", "B", "M"]   `shouldBe` ModuleName "D.B" "M"
+      completionType " import A." ["A", ""]           `shouldBe` ModuleName "A" ""
+      completionType "import a.x" ["a", "x"]          `shouldBe` Identifier "x"
+      completionType "A.x" ["A", "x"]                 `shouldBe` Qualified "A" "x"
+      completionType "a.x" ["a", "x"]                 `shouldBe` Identifier "x"
+      completionType "pri" ["pri"]                    `shouldBe` Identifier "pri"
 
     it "properly completes identifiers" $ do
-       "pri!" `completionHas` ["print"]
-       "ma!" `completionHas` ["map"]
-       "hello ma!" `completionHas` ["map"]
+       "pri!"           `completionHas` ["print"]
+       "ma!"            `completionHas` ["map"]
+       "hello ma!"      `completionHas` ["map"]
        "print $ catMa!" `completionHas` ["catMaybes"]
 
     it "properly completes qualified identifiers" $ do
-       "Control.Monad.liftM!" `completionHas` [ "Control.Monad.liftM"
-                                              , "Control.Monad.liftM2"
-                                              , "Control.Monad.liftM5"]
-       "print $ List.intercal!" `completionHas` ["List.intercalate"]
+       "Control.Monad.liftM!"    `completionHas` [ "Control.Monad.liftM"
+                                                 , "Control.Monad.liftM2"
+                                                 , "Control.Monad.liftM5"]
+       "print $ List.intercal!"  `completionHas` ["List.intercalate"]
        "print $ Data.Maybe.cat!" `completionHas` ["Data.Maybe.catMaybes"]
-       "print $ Maybe.catM!" `completionHas` ["Maybe.catMaybes"]
+       "print $ Maybe.catM!"     `completionHas` ["Maybe.catMaybes"]
 
     it "properly completes imports" $ do
-      "import Data.!" `completionHas` ["Data.Maybe", "Data.List"]
+      "import Data.!"  `completionHas` ["Data.Maybe", "Data.List"]
       "import Data.M!" `completionHas` ["Data.Maybe"]
-      "import Prel!" `completionHas` ["Prelude"]
+      "import Prel!"   `completionHas` ["Prelude"]
 
 evalTests = do
   describe "Code Evaluation" $ do
