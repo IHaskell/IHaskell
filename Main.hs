@@ -17,7 +17,7 @@ import IHaskell.Types
 import IHaskell.ZeroMQ
 import qualified IHaskell.Message.UUID as UUID
 import IHaskell.Eval.Evaluate
-import IHaskell.Eval.Completion (makeCompletions)
+import IHaskell.Eval.Completion (complete)
 import IHaskell.Eval.Info
 import qualified Data.ByteString.Char8 as Chars
 import IHaskell.IPython
@@ -170,9 +170,11 @@ replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
   })
 
 
-replyTo _ creq@CompleteRequest{} replyHeader state = do
-    cr <- makeCompletions replyHeader creq
-    return (state,  cr)
+replyTo _ req@CompleteRequest{} replyHeader state = do
+    (matchedText, completions) <- complete (Chars.unpack $ getCodeLine req) (getCursorPos req)
+
+    let reply =  CompleteReply replyHeader (map Chars.pack completions) (Chars.pack matchedText) (getCodeLine req) True
+    return (state,  reply)
 
 -- | Reply to the object_info_request message. Given an object name, return
 -- | the associated type calculated by GHC.

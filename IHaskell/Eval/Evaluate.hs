@@ -5,7 +5,7 @@
 This module exports all functions used for evaluation of IHaskell input.
 -}
 module IHaskell.Eval.Evaluate (
-  interpret, evaluate, Interpreter, liftIO, typeCleaner
+  interpret, evaluate, Interpreter, liftIO, typeCleaner, globalImports
   ) where
 
 import ClassyPrelude hiding (liftIO, hGetContents)
@@ -50,7 +50,7 @@ import IHaskell.Display
 data ErrorOccurred = Success | Failure deriving Show
 
 debug :: Bool
-debug = True
+debug = False
 
 ignoreTypePrefixes :: [String]
 ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",

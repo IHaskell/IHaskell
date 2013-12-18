@@ -15,56 +15,129 @@
   names should not be confused by the third option.
 
 -}
-module IHaskell.Eval.Completion (makeCompletions) where
+module IHaskell.Eval.Completion (complete, completionTarget, completionType, CompletionType(..)) where
 
 import Prelude
-import Data.List (find, isPrefixOf, nub)
-import qualified GHC
+import Data.List (find, isPrefixOf, nub, findIndex, intercalate)
+import GHC
+import GhcMonad
+import PackageConfig
 import Outputable (showPpr)
 import Data.Char
-import Data.ByteString.UTF8 hiding (drop)
+import Data.ByteString.UTF8 hiding (drop, take)
 import Data.List.Split
 import Data.List.Split.Internals
+import Data.String.Utils (strip, startswith, replace)
 import Data.Maybe
 
 import IHaskell.Types
 
 import Control.Applicative ((<$>))
+import Debug.Trace
 
-makeCompletions :: GHC.GhcMonad m => MessageHeader -> Message -> m Message
-makeCompletions replyHeader (CompleteRequest _ _ line pos) = do
-    names <- GHC.getRdrNamesInScope
-    flags <- GHC.getProgramDynFlags
+data CompletionType 
+     = Empty 
+     | Identifier String
+     | Qualified String String
+     | ModuleName String String
+     deriving (Show, Eq)
 
-    let maybeCand = getWordAt (toString line) pos
-        options =
-          case maybeCand of
-            Nothing -> []
-            Just candidate -> nub $ filter (candidate `isPrefixOf`) $ map (showPpr flags) names
-        matched_text = fromString $ fromMaybe "" maybeCand
+complete :: GHC.GhcMonad m => String -> Int -> m (String, [String])
+complete line pos = do
+  flags <- getSessionDynFlags
+  rdrNames <- map (showPpr flags) <$> getRdrNamesInScope
+  scopeNames <- nub <$> map (showPpr flags) <$> getNamesInScope
+  let isQualified = ('.' `elem`)
+      unqualNames = nub $ filter (not . isQualified) rdrNames
+      qualNames = nub $ scopeNames ++ filter isQualified rdrNames
 
-    return $ CompleteReply replyHeader (map fromString options) matched_text line True
+  let Just db = pkgDatabase flags
+      getNames = map moduleNameString . exposedModules
+      moduleNames = nub $ concat $ map getNames db
+
+  let target = completionTarget line pos
+      matchedText = intercalate "." target
+
+  options <- 
+        case completionType line target of
+          Empty -> return []
+          Identifier candidate ->
+            return $ filter (candidate `isPrefixOf`) unqualNames
+          Qualified moduleName candidate -> do
+            trueName <- getTrueModuleName moduleName
+            let prefix = intercalate "." [trueName, candidate]
+                completions = filter (prefix `isPrefixOf`)  qualNames
+                falsifyName = replace trueName moduleName
+            return $ map falsifyName completions
+          ModuleName previous candidate -> do
+            let prefix = if null previous
+                         then candidate
+                         else intercalate "." [previous, candidate]
+            return $ filter (prefix `isPrefixOf`) moduleNames
+
+  return (matchedText, options)
+
+getTrueModuleName :: GhcMonad m => String -> m String
+getTrueModuleName name = do
+  -- Only use the things that were actually imported
+  let onlyImportDecl (IIDecl decl) = Just decl
+      onlyImportDecl _ = Nothing
+
+  -- Get all imports that we use.
+  imports <- catMaybes <$> map onlyImportDecl <$> getContext
+
+  -- Find the ones that have a qualified name attached.
+  -- If this name isn't one of them, it already is the true name.
+  flags <- getSessionDynFlags
+  let qualifiedImports = filter (isJust . ideclAs) imports
+      hasName imp = name == (showPpr flags . fromJust . ideclAs) imp
+  case find hasName qualifiedImports of
+    Nothing -> return name  
+    Just trueImp -> return $ showPpr flags $ unLoc $ ideclName trueImp
+
+completionType :: String -> [String] -> CompletionType
+completionType line [] = Empty
+completionType line target =
+  if startswith "import" (strip line) && isModName
+  then ModuleName dotted candidate
+  else 
+    if isModName && (not . null . init) target
+    then Qualified dotted candidate
+    else Identifier candidate
+  where
+    dotted = dots target
+    candidate = last target
+    dots = intercalate "." . init
+    isModName = all isCapitalized (init target)
+    isCapitalized = isUpper . head
 
 
 -- | Get the word under a given cursor location.
-getWordAt :: String -> Int -> Maybe String
-getWordAt xs n = map fst <$> find (elem n .  map snd) (split splitter $ zip xs [1 .. ])
+completionTarget :: String -> Int -> [String]
+completionTarget code cursor = expandCompletionPiece pieceToComplete
   where 
+    pieceToComplete = map fst <$> find (elem cursor . map snd) pieces
+    pieces = splitAlongCursor $ split splitter $ zip code [1 .. ]
     splitter = defaultSplitter {
       -- Split using only the characters, which are the first elements of
       -- the (char, index) tuple
-      delimiter = Delimiter [isDelim . fst],
-      -- Condense multiple delimiters into one
-      condensePolicy = Condense
+      delimiter = Delimiter [uncurry isDelim],
+      -- Condense multiple delimiters into one and then drop them.
+      condensePolicy = Condense,
+      delimPolicy = Drop
     }
 
-    isDelim char =
-      case drop (max 0 (n - 1)) xs of
-        x:_ -> (char `elem` neverIdent) || if isSymbol x
-           then isAlpha char
-           else isSymbol char
-        _ -> char `elem` neverIdent
+    isDelim char idx = char `elem` neverIdent || isSymbol char
 
-    -- These are never part of an identifier, except for the dot.
-    -- Qualified names are tricky!
-    neverIdent = " \t(),{}[]\\'\"`."
+    splitAlongCursor :: [[(Char, Int)]] -> [[(Char, Int)]]
+    splitAlongCursor [] = []
+    splitAlongCursor (x:xs) = 
+      case findIndex (== cursor) $  map snd x of
+        Nothing -> x:splitAlongCursor xs
+        Just idx -> take (idx + 1) x:drop (idx + 1) x:splitAlongCursor xs
+
+    -- These are never part of an identifier.
+    neverIdent = " \n\t(),{}[]\\'\"`"
+
+    expandCompletionPiece Nothing = []
+    expandCompletionPiece (Just str) = splitOn "." str 

@@ -6,12 +6,13 @@ import Control.Monad
 import Data.List
 import System.Directory
 import Data.String.Here
-import Data.String.Utils (strip)
+import Data.String.Utils (strip, replace)
 
 import IHaskell.Eval.Parser
 import IHaskell.Types
 import IHaskell.IPython
 import IHaskell.Eval.Evaluate
+import IHaskell.Eval.Completion
 
 import Test.Hspec
 import Test.Hspec.HUnit
@@ -56,13 +57,86 @@ becomes string expected = do
           Just (Display PlainText str) -> str `shouldBe` expected
           Nothing -> expectationFailure $ "No plain-text output in " ++ show result
 
+completes string expected = completionTarget newString cursorloc `shouldBe` expected
+  where (newString, cursorloc) = case findIndex (=='!') string of
+          Nothing -> error "Expected cursor written as '!'."
+          Just idx -> (replace "!" "" string, idx)
 
+completionHas string expected = do
+    (matched, completions) <- doGhc $ do
+      initCompleter
+      complete newString cursorloc
+    let existsInCompletion =  (`elem` completions)
+        unmatched = filter (not . existsInCompletion) expected
+    unmatched `shouldBe` []
+  where (newString, cursorloc) = case findIndex (=='!') string of
+          Nothing -> error "Expected cursor written as '!'."
+          Just idx -> (replace "!" "" string, idx)
+
+initCompleter :: GhcMonad m => m ()
+initCompleter = do
+  flags <- getSessionDynFlags
+  setSessionDynFlags $ flags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
+
+  -- Import modules.
+  imports <- mapM parseImportDecl ["import Prelude",
+                                  "import qualified Control.Monad",
+                                  "import qualified Data.List as List",
+                                  "import Data.Maybe as Maybe"]
+  setContext $ map IIDecl imports
 
 main :: IO ()
 main = hspec $ do
   parserTests
   ipythonTests
   evalTests
+  completionTests
+
+completionTests = do
+  describe "Completion" $ do
+    it "correctly gets the completion identifier without dots" $ do
+       "hello!" `completes` ["hello"]
+       "hello aa!bb goodbye" `completes` ["aa"]
+       "hello aabb! goodbye" `completes` ["aabb"]
+       "aacc! goodbye" `completes` ["aacc"]
+       "hello !aabb goodbye" `completes` []
+       "!aabb goodbye" `completes` []
+
+    it "correctly gets the completion identifier with dots" $ do
+       "hello test.aa!bb goodbye" `completes` ["test", "aa"]
+       "Test.!" `completes` ["Test", ""]
+       "Test.Thing!" `completes` ["Test", "Thing"]
+       "Test.Thing.!" `completes` ["Test", "Thing", ""]
+       "Test.Thing.!nope" `completes` ["Test", "Thing", ""]
+
+    it "correctly gets the completion type" $ do
+      completionType "import Data." ["Data", ""]   `shouldBe` ModuleName "Data" ""
+      completionType "import Prel" ["Prel"]   `shouldBe` ModuleName "" "Prel"
+      completionType "import Data.Bloop.M" ["Data", "Bloop", "M"]   `shouldBe` ModuleName "Data.Bloop" "M"
+      completionType " import A." ["A", ""]  `shouldBe` ModuleName "A" ""
+      completionType "import a.x" ["a", "x"] `shouldBe` Identifier "x"
+      completionType "A.x" ["A", "x"]        `shouldBe` Qualified "A" "x"
+      completionType "a.x" ["a", "x"]        `shouldBe` Identifier "x"
+      completionType "pri" ["pri"]           `shouldBe` Identifier "pri"
+
+    it "properly completes identifiers" $ do
+       "pri!" `completionHas` ["print"]
+       "ma!" `completionHas` ["map"]
+       "hello ma!" `completionHas` ["map"]
+       "print $ catMa!" `completionHas` ["catMaybes"]
+
+    it "properly completes qualified identifiers" $ do
+       "Control.Monad.liftM!" `completionHas` [ "Control.Monad.liftM"
+                                              , "Control.Monad.liftM2"
+                                              , "Control.Monad.liftM5"]
+       "print $ List.intercal!" `completionHas` ["List.intercalate"]
+       "print $ Data.Maybe.cat!" `completionHas` ["Data.Maybe.catMaybes"]
+       "print $ Maybe.catM!" `completionHas` ["Maybe.catMaybes"]
+
+    it "properly completes imports" $ do
+      "import Data.!" `completionHas` ["Data.Maybe", "Data.List"]
+      "import Data.M!" `completionHas` ["Data.Maybe"]
+      "import Prel!" `completionHas` ["Prelude"]
 
 evalTests = do
   describe "Code Evaluation" $ do
