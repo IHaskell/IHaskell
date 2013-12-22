@@ -18,7 +18,7 @@
 module IHaskell.Eval.Completion (complete, completionTarget, completionType, CompletionType(..)) where
 
 import Prelude
-import Data.List (find, isPrefixOf, nub, findIndex, intercalate)
+import Data.List (find, isPrefixOf, nub, findIndex, intercalate, elemIndex)
 import GHC
 import GhcMonad
 import PackageConfig
@@ -53,7 +53,7 @@ complete line pos = do
 
   let Just db = pkgDatabase flags
       getNames = map moduleNameString . exposedModules
-      moduleNames = nub $ concat $ map getNames db
+      moduleNames = nub $ concatMap getNames db
 
   let target = completionTarget line pos
       matchedText = intercalate "." target
@@ -97,19 +97,17 @@ getTrueModuleName name = do
 
 completionType :: String -> [String] -> CompletionType
 completionType line [] = Empty
-completionType line target =
-  if startswith "import" (strip line) && isModName
-  then ModuleName dotted candidate
-  else 
-    if isModName && (not . null . init) target
-    then Qualified dotted candidate
-    else Identifier candidate
-  where
-    dotted = dots target
-    candidate = last target
-    dots = intercalate "." . init
-    isModName = all isCapitalized (init target)
-    isCapitalized = isUpper . head
+completionType line target
+  | startswith "import" (strip line) && isModName =
+    ModuleName dotted candidate
+  | isModName && (not . null . init) target =
+    Qualified dotted candidate
+  | otherwise = Identifier candidate
+  where dotted = dots target
+        candidate = last target
+        dots = intercalate "." . init
+        isModName = all isCapitalized (init target)
+        isCapitalized = isUpper . head
 
 
 -- | Get the word under a given cursor location.
@@ -132,7 +130,7 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
     splitAlongCursor :: [[(Char, Int)]] -> [[(Char, Int)]]
     splitAlongCursor [] = []
     splitAlongCursor (x:xs) = 
-      case findIndex (== cursor) $  map snd x of
+      case elemIndex cursor $  map snd x of
         Nothing -> x:splitAlongCursor xs
         Just idx -> take (idx + 1) x:drop (idx + 1) x:splitAlongCursor xs
 

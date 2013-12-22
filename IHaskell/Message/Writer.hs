@@ -81,6 +81,10 @@ instance ToJSON Message where
                             "restart" .= restart
                            ]
 
+  toJSON ClearOutput{wait = wait} = object [
+                            "wait" .= wait
+                           ]
+
 
   toJSON body = error $ "Do not know how to convert to JSON for message " ++ show body
 

@@ -29,7 +29,7 @@ is string blockType = do
 
 eval string = do
   outputAccum <- newIORef []
-  let publish displayDatas = liftIO $ modifyIORef outputAccum (displayDatas :)
+  let publish _ displayDatas = modifyIORef outputAccum (displayDatas :)
   getTemporaryDirectory >>= setCurrentDirectory
   interpret $ evaluate 1 string publish
   out <- readIORef outputAccum

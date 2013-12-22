@@ -108,6 +108,7 @@ data MessageType = KernelInfoReplyMessage
                  | ObjectInfoReplyMessage
                  | ShutdownRequestMessage
                  | ShutdownReplyMessage
+                 | ClearOutputMessage
 
 instance Show MessageType where
   show KernelInfoReplyMessage     = "kernel_info_reply"
@@ -125,6 +126,7 @@ instance Show MessageType where
   show ObjectInfoReplyMessage     = "object_info_reply"
   show ShutdownRequestMessage     = "shutdown_request"
   show ShutdownReplyMessage       = "shutdown_reply"
+  show ClearOutputMessage         = "clear_output"
 
 instance FromJSON MessageType where
   parseJSON (String s) = case s of
@@ -143,6 +145,7 @@ instance FromJSON MessageType where
     "object_info_reply"   -> return ObjectInfoReplyMessage
     "shutdown_request"    -> return ShutdownRequestMessage
     "shutdown_reply"      -> return ShutdownReplyMessage
+    "clear_output"        -> return ClearOutputMessage
 
     _                     -> fail ("Unknown message type: " ++ show s)
   parseJSON _ = fail "Must be a string."
@@ -222,22 +225,7 @@ data Message
      completionText :: ByteString,
      completionStatus :: Bool
   }
-      {- ^
-# The list of all matches to the completion request, such as
-# ['a.isalnum', 'a.isalpha'] for the above example.
-'matches' : list,
 
-# the substring of the matched text
-# this is typically the common prefix of the matches,
-# and the text that is already in the block that would be replaced by the full completion.
-# This would be 'a.is' in the above example.
-'text' : str,
-
-# status should be 'ok' unless an exception was raised during the request,
-# in which case it should be 'error', along with the usual error message content
-# in other messages.
-'status' : 'ok'
-} -}
   | ObjectInfoRequest {
       header :: MessageHeader, 
       objectName :: ByteString,  -- ^ Name of object being searched for.
@@ -245,6 +233,7 @@ data Message
                                 -- 0 is equivalent to foo?, 1 is equivalent
                                 -- to foo??.
     }
+
   | ObjectInfoReply {
       header :: MessageHeader, 
       objectName :: ByteString,       -- ^ Name of object which was searched for.
@@ -261,6 +250,11 @@ data Message
       header :: MessageHeader,
       restartPending :: Bool    -- ^ Whether this shutdown precedes a restart.
     }
+
+  | ClearOutput {
+      header :: MessageHeader,
+      wait :: Bool -- ^ Whether to wait to redraw until there is more output.
+  }
 
     deriving Show
 

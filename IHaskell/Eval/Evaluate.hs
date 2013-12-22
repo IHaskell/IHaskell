@@ -9,6 +9,7 @@ module IHaskell.Eval.Evaluate (
   ) where
 
 import ClassyPrelude hiding (liftIO, hGetContents)
+import Control.Concurrent (forkIO, threadDelay)
 import Prelude (putChar, head, tail, last, init, (!!))
 import Data.List.Utils
 import Data.List(findIndex)
@@ -19,9 +20,11 @@ import Data.Dynamic
 import Data.Typeable
 import qualified Data.Serialize as Serialize
 import System.Directory (removeFile, createDirectoryIfMissing, removeDirectoryRecursive)
+import System.Posix.IO
+import System.IO (hGetChar, hFlush)
+import System.Random (getStdGen, randomRs)
 
 import NameSet
-import DynFlags (defaultObjectTarget)
 import Name
 import PprTyThing
 import InteractiveEval
@@ -63,31 +66,6 @@ typeCleaner = useStringType . foldl' (.) id (map (`replace` "") fullPrefixes)
     fullPrefixes = map (++ ".") ignoreTypePrefixes
     useStringType = replace "[Char]" "String"
 
-makeWrapperStmts :: (String, [String], [String])
-makeWrapperStmts = (fileName, initStmts, postStmts)
-  where
-    randStr = "1345964344725219474" :: String
-    fileVariable = "file_var_" ++ randStr
-    oldVariable = fileVariable ++ "_old"
-    itVariable = "it_var_" ++ randStr
-    fileName = ".ihaskell_capture"
-
-    initStmts :: [String]
-    initStmts = [
-      printf "let %s = it" itVariable,
-      printf "%s <- openFile \"%s\" WriteMode" fileVariable fileName,
-      printf "%s <- hDuplicate stdout" oldVariable,
-      printf "hDuplicateTo %s stdout" fileVariable,
-      printf "let it = %s" itVariable]
-
-    postStmts :: [String]
-    postStmts = [
-      printf "let %s = it" itVariable,
-      "hFlush stdout",
-      printf "hDuplicateTo %s stdout" oldVariable,
-      printf "hClose %s" fileVariable,
-      printf "let it = %s" itVariable]
-
 write :: GhcMonad m => String -> m ()
 write x = when debug $ liftIO $ hPutStrLn stderr x
 
@@ -98,6 +76,8 @@ globalImports =
   [ "import IHaskell.Display"
   , "import Control.Applicative ((<$>))"
   , "import GHC.IO.Handle (hDuplicateTo, hDuplicate)"
+  , "import System.Posix.IO"
+  , "import System.Posix.Files"
   , "import System.IO"
   ]
 
@@ -156,10 +136,14 @@ initializeItVariable =
   -- statements - if it doesn't exist, the first statement will fail.
   void $ runStmt "let it = ()" RunToCompletion
 
+-- | Publisher for IHaskell outputs.  The first argument indicates whether
+-- this output is final (true) or intermediate (false).
+type Publisher = (Bool -> [DisplayData] -> IO ())
+
 -- | Evaluate some IPython input code.
-evaluate :: Int                                -- ^ The execution counter of this evaluation.
-         -> String                             -- ^ Haskell code or other interpreter commands.
-         -> ([DisplayData] -> Interpreter ())   -- ^ Function used to publish data outputs.
+evaluate :: Int              -- ^ The execution counter of this evaluation.
+         -> String           -- ^ Haskell code or other interpreter commands.
+         -> Publisher        -- ^ Function used to publish data outputs.
          -> Interpreter ()
 evaluate execCount code output = do
   cmds <- parseString (strip code)
@@ -168,8 +152,8 @@ evaluate execCount code output = do
     runUntilFailure :: [CodeBlock] -> Interpreter ()
     runUntilFailure [] = return ()
     runUntilFailure (cmd:rest) = do 
-      (success, result) <- evalCommand cmd
-      unless (null result) $ output result
+      (success, result) <- evalCommand output cmd
+      unless (null result) $ liftIO $ output True result
       case success of
         Success -> runUntilFailure rest
         Failure -> return ()
@@ -185,8 +169,8 @@ wrapExecution exec = ghandle handler $ exec >>= \res ->
 
 -- | Return the display data for this command, as well as whether it
 -- resulted in an error.
-evalCommand :: CodeBlock -> Interpreter (ErrorOccurred, [DisplayData])
-evalCommand (Import importStr) = wrapExecution $ do
+evalCommand :: Publisher -> CodeBlock -> Interpreter (ErrorOccurred, [DisplayData])
+evalCommand _ (Import importStr) = wrapExecution $ do
   write $ "Import: " ++ importStr
   importDecl <- parseImportDecl importStr
   context <- getContext
@@ -202,7 +186,7 @@ evalCommand (Import importStr) = wrapExecution $ do
     implicitImportOf _ (IIModule _) = False
     implicitImportOf imp (IIDecl decl) = ideclImplicit decl && ((==) `on` (unLoc . ideclName)) decl imp
 
-evalCommand (Module contents) = wrapExecution $ do
+evalCommand _ (Module contents) = wrapExecution $ do
   -- Write the module contents to a temporary file in our work directory
   namePieces <- getModuleName contents
   let directory = "./" ++ intercalate "/" (init namePieces) ++ "/"
@@ -270,7 +254,7 @@ evalCommand (Module contents) = wrapExecution $ do
         Succeeded -> return []
         Failed -> return $ displayError $ "Failed to load module " ++ modName
 
-evalCommand (Directive SetExtension exts) = wrapExecution $ do
+evalCommand _ (Directive SetExtension exts) = wrapExecution $ do
     results <- mapM setExtension (words exts)
     case catMaybes results of
       [] -> return []
@@ -304,14 +288,14 @@ evalCommand (Directive SetExtension exts) = wrapExecution $ do
     -- In that case, we disable the extension.
     flagMatchesNo ext (name, _, _) = ext == "No"  ++ name
 
-evalCommand (Directive GetType expr) = wrapExecution $ do
+evalCommand _ (Directive GetType expr) = wrapExecution $ do
   result <- exprType expr
   flags <- getSessionDynFlags
   let typeStr = showSDocUnqual flags $ ppr result
   return [plain typeStr, html $ formatGetType typeStr]
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
-evalCommand (Directive HelpForSet _) = return (Success, [out])
+evalCommand _ (Directive HelpForSet _) = return (Success, [out])
   where out = plain $ intercalate "\n"
           [":set is not implemented in IHaskell."
           ,"  Use :extension <Extension> to enable a GHC extension."
@@ -319,7 +303,7 @@ evalCommand (Directive HelpForSet _) = return (Success, [out])
           ]
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
-evalCommand (Directive GetHelp _) = return (Success, [out])
+evalCommand _ (Directive GetHelp _) = return (Success, [out])
   where out = plain $ intercalate "\n"
           ["The following commands are available:"
           ,"    :extension <Extension>    -  enable a GHC extension."
@@ -332,7 +316,7 @@ evalCommand (Directive GetHelp _) = return (Success, [out])
           ]
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
-evalCommand (Directive GetInfo str) = wrapExecution $ do
+evalCommand _ (Directive GetInfo str) = wrapExecution $ do
   -- Get all the info for all the names we're given.
   names     <- parseName str
   maybeInfos <- mapM getInfo names
@@ -363,10 +347,11 @@ evalCommand (Directive GetInfo str) = wrapExecution $ do
   let strings = map (showSDocForUser flags unqual) outs
   return [plain $ intercalate "\n" strings]
 
-evalCommand (Statement stmt) = do
+evalCommand output (Statement stmt) = do
   write $ "Statement: " ++ stmt
   ghandle handler $ do
-    (printed, result) <- capturedStatement stmt
+    let outputter str = output False [plain str]
+    (printed, result) <- capturedStatement outputter stmt
     case result of
       RunOk names -> do
         dflags <- getSessionDynFlags
@@ -383,16 +368,12 @@ evalCommand (Statement stmt) = do
     handler exception = do
       write $ concat ["BreakCom: ", show exception, "\nfrom statement:\n", stmt]
 
-      -- Close the file handle we opened for writing stdout and other cleanup.
-      let (_, _, postStmts) = makeWrapperStmts
-      forM_ postStmts $ \s -> runStmt s RunToCompletion
-
       return (Failure, displayError $ show exception)
 
-evalCommand (Expression expr) = do
+evalCommand output (Expression expr) = do
   -- Evaluate this expression as though it's just a statement.
   -- The output is bound to 'it', so we can then use it.
-  (success, out) <- evalCommand (Statement expr)
+  (success, out) <- evalCommand output (Statement expr)
 
     -- Try to use `display` to convert our type into the output
   -- DisplayData. If typechecking fails and there is no appropriate
@@ -427,7 +408,7 @@ evalCommand (Expression expr) = do
         startswith "No instance for (GHC.Show.Show " msg &&
         isInfixOf " arising from a use of `System.IO.print'" msg
       Nothing -> False
-      where isPlain (Display mime _) = (mime == PlainText)
+      where isPlain (Display mime _) = mime == PlainText
 
     useDisplay displayExpr = wrapExecution $ do
       -- If there are instance matches, convert the object into
@@ -449,27 +430,143 @@ evalCommand (Expression expr) = do
               return displayData
 
 
-evalCommand (Declaration decl) = wrapExecution $ runDecls decl >> return []
+evalCommand _ (Declaration decl) = wrapExecution $ runDecls decl >> return []
 
-evalCommand (ParseError loc err) = wrapExecution $
+evalCommand _ (ParseError loc err) = wrapExecution $
   return $ displayError $ formatParseError loc err
 
-capturedStatement :: String -> Interpreter (String, RunResult)
-capturedStatement stmt = do
+capturedStatement :: (String -> IO ())         -- ^ Function used to publish intermediate output.
+                  -> String                            -- ^ Statement to evaluate.
+                  -> Interpreter (String, RunResult)   -- ^ Return the output and result.
+capturedStatement output stmt = do
   -- Generate random variable names to use so that we cannot accidentally
   -- override the variables by using the right names in the terminal.
-  let (fileName, initStmts, postStmts) = makeWrapperStmts
-      goStmt s = runStmt s RunToCompletion
+  gen <- liftIO getStdGen
+  let
+    -- Variable names generation.
+    rand = take 20 $ randomRs ('0', '9') gen
+    var name = name ++ rand
+    
+    -- Variables for the pipe input and outputs.
+    readVariable = var "file_read_var_"
+    writeVariable = var "file_write_var_"
 
+    -- Variable where to store old stdout.
+    oldVariable = var "old_var_"
+
+    -- Variable used to store true `it` value.
+    itVariable = var "it_var_"
+
+    voidpf str = printf $ str ++ " >> return ()"
+    
+    -- Statements run before the thing we're evaluating.
+    initStmts = 
+      [ printf "let %s = it" itVariable
+      , printf "(%s, %s) <- createPipe" readVariable writeVariable
+      , printf "%s <- dup stdOutput" oldVariable
+      , voidpf "dupTo %s stdOutput" writeVariable
+      , voidpf "hSetBuffering stdout NoBuffering"
+      , printf "let it = %s" itVariable
+      ]
+    
+    -- Statements run after evaluation.
+    postStmts = 
+      [ printf "let %s = it" itVariable
+      , voidpf "hFlush stdout"
+      , voidpf "dupTo %s stdOutput" oldVariable
+      , voidpf "closeFd %s" writeVariable
+      , printf "let it = %s" itVariable
+      ]
+
+    goStmt s = runStmt s RunToCompletion
+
+  -- Initialize evaluation context.
   forM_ initStmts goStmt
-  result <- goStmt stmt
-  forM_ postStmts goStmt
 
-  -- We must use strict IO, because we write to that file again if we
-  -- execute more statements. If we read lazily, we may cause errors when
-  -- trying to open the file for writing later.
-  printedOutput <- liftIO $ StrictIO.readFile fileName
+  -- Get the pipe to read printed output from.
+  dynPipe <- dynCompileExpr readVariable
+  pipe <- case fromDynamic dynPipe of
+    Nothing -> error "Expecting lazy Bytestring"
+    Just fd -> liftIO $ fdToHandle fd
 
+  -- Read from a file handle until we hit a delimieter or until we've read
+  -- as many characters as requested
+  let 
+    readChars :: Handle -> String -> Int -> IO String
+
+    -- If we're done reading, return nothing.
+    readChars handle delims 0 = return []
+
+    readChars handle delims nchars = do
+      -- Try reading a single character. It will throw an exception if the
+      -- handle is already closed.
+      tryRead <- gtry $ hGetChar handle :: IO (Either SomeException Char)
+      case tryRead of
+        Right char ->
+          -- If this is a delimiter, stop reading.
+          if char `elem` delims
+          then return [char]
+          else do
+            next <- readChars handle delims (nchars - 1)
+            return $ char:next
+        -- An error occurs at the end of the stream, so just stop reading.
+        Left _ -> return []
+
+  -- Keep track of whether execution has completed.
+  completed <- liftIO $ newMVar False
+  finishedReading <- liftIO newEmptyMVar
+  outputAccum <- liftIO $ newMVar ""
+
+  -- Start a loop to publish intermediate results.
+  let 
+    -- Compute how long to wait between reading pieces of the output. 
+    -- `threadDelay` takes an argument of microseconds.
+    ms = 1000
+    delay = 100 * ms
+
+    -- How much to read each time.
+    chunkSize = 100
+
+    -- Maximum size of the output (after which we truncate).
+    maxSize = 100 * 1000
+
+    loop = do
+      -- Wait and then check if the computation is done.
+      threadDelay delay
+      computationDone <- readMVar completed
+
+      if not computationDone
+      then do
+        -- Read next chunk and append to accumulator.
+        nextChunk <- readChars pipe "\n" 100
+        modifyMVar_ outputAccum (return . (++ nextChunk))
+
+        -- Write to frontend and repeat.
+        readMVar outputAccum >>= output
+        loop
+      else do
+        -- Read remainder of output and accumulate it.
+        nextChunk <- readChars pipe "" maxSize
+        modifyMVar_ outputAccum (return . (++ nextChunk))
+
+        -- We're done reading.
+        putMVar finishedReading True
+
+  liftIO $ forkIO loop
+
+  result <- gfinally (goStmt stmt) $ do
+    -- Execution is done.
+    liftIO $ modifyMVar_ completed (const $ return True)
+
+    -- Finalize evaluation context.
+    forM_ postStmts goStmt
+
+    -- Once context is finalized, reading can finish.
+    -- Wait for reading to finish to that the output accumulator is
+    -- completely filled.
+    liftIO $ takeMVar finishedReading
+    
+  printedOutput <- liftIO $ readMVar outputAccum
   return (printedOutput, result)
 
 formatError :: ErrMsg -> String

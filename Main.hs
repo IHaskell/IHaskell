@@ -96,7 +96,7 @@ initialKernelState =
   }
 
 -- | Duplicate a message header, giving it a new UUID and message type.
-dupHeader :: MessageHeader -> MessageType -> Interpreter MessageHeader
+dupHeader :: MessageHeader -> MessageType -> IO MessageHeader
 dupHeader header messageType = do
   uuid <- liftIO UUID.random
 
@@ -145,20 +145,48 @@ replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
   -- All the headers are copies of the reply header with a different
   -- message type, because this preserves the session ID, parent header,
   -- and other important information.
-  busyHeader <- dupHeader replyHeader StatusMessage
+  busyHeader <- liftIO $ dupHeader replyHeader StatusMessage
   send $ PublishStatus busyHeader Busy
 
   -- Construct a function for publishing output as this is going.
-  let publish :: [DisplayData] -> Interpreter ()
-      publish outputs = do
+  -- This function accepts a boolean indicating whether this is the final
+  -- output and the thing to display. Store the final outputs in a list so
+  -- that when we receive an updated non-final output, we can clear the
+  -- entire output and re-display with the updated output.
+  displayed <- liftIO $ newMVar []
+  updateNeeded <- liftIO $ newMVar False
+  let clearOutput = do
+        header <- dupHeader replyHeader ClearOutputMessage
+        send $ ClearOutput header True
+
+      sendOutput outs = do
         header <- dupHeader replyHeader DisplayDataMessage
-        send $ PublishDisplayData header "haskell" outputs
+        send $ PublishDisplayData header "haskell" outs
+
+      publish :: Bool -> [DisplayData] -> IO ()
+      publish final outputs = do
+        -- If necessary, clear all previous output and redraw.
+        clear <- readMVar updateNeeded
+        when clear $ do
+          clearOutput
+          disps <- readMVar displayed
+          mapM_ sendOutput $ reverse disps
+
+        -- Draw this message.
+        sendOutput outputs
+
+        -- If this is the final message, add it to the list of completed
+        -- messages. If it isn't, make sure we clear it later by marking
+        -- update needed as true.
+        modifyMVar_ updateNeeded (const $ return $ not final)
+        when final $
+          modifyMVar_ displayed (return . (outputs:))
 
   -- Run code and publish to the frontend as we go.
   evaluate execCount (Chars.unpack code) publish
 
   -- Notify the frontend that we're done computing.
-  idleHeader <- dupHeader replyHeader StatusMessage
+  idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
   send $ PublishStatus idleHeader Idle
 
   -- Increment the execution counter in the kernel state.
