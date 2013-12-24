@@ -11,7 +11,7 @@ import Data.String.Utils (strip, replace)
 import IHaskell.Eval.Parser
 import IHaskell.Types
 import IHaskell.IPython
-import IHaskell.Eval.Evaluate
+import IHaskell.Eval.Evaluate as Eval
 import IHaskell.Eval.Completion
 
 import Test.Hspec
@@ -31,7 +31,7 @@ eval string = do
   outputAccum <- newIORef []
   let publish _ displayDatas = modifyIORef outputAccum (displayDatas :)
   getTemporaryDirectory >>= setCurrentDirectory
-  interpret $ evaluate 1 string publish
+  interpret $ Eval.evaluate 1 string publish
   out <- readIORef outputAccum
   return $ reverse out
 
@@ -58,7 +58,7 @@ becomes string expected = do
           Nothing -> expectationFailure $ "No plain-text output in " ++ show result
 
 completes string expected = completionTarget newString cursorloc `shouldBe` expected
-  where (newString, cursorloc) = case findIndex (=='!') string of
+  where (newString, cursorloc) = case elemIndex '!' string of
           Nothing -> error "Expected cursor written as '!'."
           Just idx -> (replace "!" "" string, idx)
 
@@ -69,7 +69,7 @@ completionHas string expected = do
     let existsInCompletion =  (`elem` completions)
         unmatched = filter (not . existsInCompletion) expected
     unmatched `shouldBe` []
-  where (newString, cursorloc) = case findIndex (=='!') string of
+  where (newString, cursorloc) = case elemIndex '!' string of
           Nothing -> error "Expected cursor written as '!'."
           Just idx -> (replace "!" "" string, idx)
 
