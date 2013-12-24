@@ -23,6 +23,7 @@ import System.Directory (removeFile, createDirectoryIfMissing, removeDirectoryRe
 import System.Posix.IO
 import System.IO (hGetChar, hFlush)
 import System.Random (getStdGen, randomRs)
+import Unsafe.Coerce
 
 import NameSet
 import Name
@@ -347,28 +348,18 @@ evalCommand _ (Directive GetInfo str) = wrapExecution $ do
   let strings = map (showSDocForUser flags unqual) outs
   return [plain $ intercalate "\n" strings]
 
-evalCommand output (Statement stmt) = do
+evalCommand output (Statement stmt) = wrapExecution $ do
   write $ "Statement: " ++ stmt
-  ghandle handler $ do
-    let outputter str = output False [plain str]
-    (printed, result) <- capturedStatement outputter stmt
-    case result of
-      RunOk names -> do
-        dflags <- getSessionDynFlags
-        write $ "Names: " ++ show (map (showPpr dflags) names)  
-        let output = [plain printed | not . null $ strip printed]
-        return (Success, output)
-      RunException exception -> do
-        write $ "RunException: " ++ show exception
-        return (Failure, displayError $ show exception)
-      RunBreak{} ->
-        error "Should not break."
-  where 
-    handler :: SomeException -> Interpreter (ErrorOccurred, [DisplayData])
-    handler exception = do
-      write $ concat ["BreakCom: ", show exception, "\nfrom statement:\n", stmt]
-
-      return (Failure, displayError $ show exception)
+  let outputter str = output False [plain str]
+  (printed, result) <- capturedStatement outputter stmt
+  case result of
+    RunOk names -> do
+      dflags <- getSessionDynFlags
+      write $ "Names: " ++ show (map (showPpr dflags) names)  
+      let output = [plain printed | not . null $ strip printed]
+      return output
+    RunException exception -> throw exception
+    RunBreak{} -> error "Should not break."
 
 evalCommand output (Expression expr) = do
   -- Evaluate this expression as though it's just a statement.
@@ -381,7 +372,6 @@ evalCommand output (Expression expr) = do
   -- return False, and we just resort to plaintext.
   let displayExpr = printf "(IHaskell.Display.display (%s))" expr
   canRunDisplay <- attempt $ exprType displayExpr
-  write displayExpr
 
   -- If evaluation failed, return the failure.  If it was successful, we
   -- may be able to use the IHaskellDisplay typeclass.
@@ -430,7 +420,11 @@ evalCommand output (Expression expr) = do
               return displayData
 
 
-evalCommand _ (Declaration decl) = wrapExecution $ runDecls decl >> return []
+evalCommand _ (Declaration decl) = wrapExecution $ do
+  runDecls decl
+
+  -- Do not display any output
+  return []
 
 evalCommand _ (ParseError loc err) = wrapExecution $
   return $ displayError $ formatParseError loc err
@@ -477,6 +471,7 @@ capturedStatement output stmt = do
       , voidpf "closeFd %s" writeVariable
       , printf "let it = %s" itVariable
       ]
+    pipeExpr = printf "let %s = %s" (var "pipe_var_") readVariable
 
     goStmt s = runStmt s RunToCompletion
 
@@ -484,12 +479,21 @@ capturedStatement output stmt = do
   forM_ initStmts goStmt
 
   -- Get the pipe to read printed output from.
-  dynPipe <- dynCompileExpr readVariable
-  pipe <- case fromDynamic dynPipe of
-    Nothing -> error "Expecting lazy Bytestring"
-    Just fd -> liftIO $ fdToHandle fd
+  -- This is effectively the source code of dynCompileExpr from GHC API's
+  -- InteractiveEval. However, instead of using a `Dynamic` as an
+  -- intermediary, it just directly reads the value. This is incredibly
+  -- unsafe! However, for some reason the `getContext` and `setContext`
+  -- required by dynCompileExpr (to import and clear Data.Dynamic) cause
+  -- issues with data declarations being updated (e.g. it drops newer
+  -- versions of data declarations for older ones for unknown reasons).
+  -- First, compile down to an HValue.
+  Just (_, hValues, _) <- withSession $ liftIO . flip hscStmt pipeExpr
+  -- Then convert the HValue into an executable bit, and read the value.
+  pipe <- liftIO $ do
+    fd <- head <$> unsafeCoerce hValues
+    fdToHandle fd
 
-  -- Read from a file handle until we hit a delimieter or until we've read
+  -- Read from a file handle until we hit a delimiter or until we've read
   -- as many characters as requested
   let 
     readChars :: Handle -> String -> Int -> IO String
