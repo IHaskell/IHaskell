@@ -17,27 +17,29 @@
 -}
 module IHaskell.Eval.Completion (complete, completionTarget, completionType, CompletionType(..)) where
 
-import Prelude
+import Control.Applicative ((<$>))
+import Data.ByteString.UTF8 hiding (drop, take)
+import Data.Char
 import Data.List (find, isPrefixOf, nub, findIndex, intercalate, elemIndex)
+import Data.List.Split
+import Data.List.Split.Internals
+import Data.Maybe
+import Data.String.Utils (strip, startswith, replace)
+import Prelude
+
 import GHC
+import DynFlags
 import GhcMonad
 import PackageConfig
 import Outputable (showPpr)
-import Data.Char
-import Data.ByteString.UTF8 hiding (drop, take)
-import Data.List.Split
-import Data.List.Split.Internals
-import Data.String.Utils (strip, startswith, replace)
-import Data.Maybe
 
 import IHaskell.Types
 
-import Control.Applicative ((<$>))
-import Debug.Trace
 
 data CompletionType 
      = Empty 
      | Identifier String
+     | Extension String
      | Qualified String String
      | ModuleName String String
      deriving (Show, Eq)
@@ -61,19 +63,28 @@ complete line pos = do
   options <- 
         case completionType line target of
           Empty -> return []
+
           Identifier candidate ->
             return $ filter (candidate `isPrefixOf`) unqualNames
+
           Qualified moduleName candidate -> do
             trueName <- getTrueModuleName moduleName
             let prefix = intercalate "." [trueName, candidate]
                 completions = filter (prefix `isPrefixOf`)  qualNames
                 falsifyName = replace trueName moduleName
             return $ map falsifyName completions
+
           ModuleName previous candidate -> do
             let prefix = if null previous
                          then candidate
                          else intercalate "." [previous, candidate]
             return $ filter (prefix `isPrefixOf`) moduleNames
+
+          Extension ext -> do
+            let extName (name, _, _) = name
+                names = map extName xFlags
+                nonames = map ("No" ++) names
+            return $ filter (ext `isPrefixOf`) $ names ++ nonames
 
   return (matchedText, options)
 
@@ -98,12 +109,16 @@ getTrueModuleName name = do
 completionType :: String -> [String] -> CompletionType
 completionType line [] = Empty
 completionType line target
-  | startswith "import" (strip line) && isModName =
-    ModuleName dotted candidate
-  | isModName && (not . null . init) target =
-    Qualified dotted candidate
-  | otherwise = Identifier candidate
-  where dotted = dots target
+  | startswith "import" stripped && isModName
+    = ModuleName dotted candidate
+  | isModName && (not . null . init) target
+    = Qualified dotted candidate
+  | startswith ":e" stripped
+    = Extension candidate 
+  | otherwise
+    = Identifier candidate
+  where stripped = strip line
+        dotted = dots target
         candidate = last target
         dots = intercalate "." . init
         isModName = all isCapitalized (init target)
