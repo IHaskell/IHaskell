@@ -25,7 +25,7 @@ like parser desired = parser >>= (`shouldBe` desired)
 
 is string blockType = do
   result <- doGhc $ parseString string
-  result `shouldBe` [blockType string]
+  result `shouldBe` [blockType $ strip string]
 
 eval string = do
   outputAccum <- newIORef []
@@ -370,6 +370,14 @@ parseStringTests = describe "Parser" $ do
         Import "import X",
         Expression "print 3" 
       ]
+  it "ignores blank lines properly" $ 
+    [hereLit|
+      test arg = hello
+        where
+          x = y
+
+          z = w
+    |] `is` Declaration
   it "doesn't break on long strings" $ do
     let longString = concat $ replicate 20 "hello "
     ("img ! src \"" ++ longString ++ "\" ! width \"500\"") `is` Expression

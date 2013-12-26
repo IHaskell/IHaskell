@@ -54,7 +54,7 @@ import IHaskell.Display
 data ErrorOccurred = Success | Failure deriving Show
 
 debug :: Bool
-debug = False
+debug = True
 
 ignoreTypePrefixes :: [String]
 ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",
@@ -127,6 +127,7 @@ initializeImports = do
   let implicitPrelude = importDecl { ideclImplicit = True }
 
   -- Import modules.
+  mapM_ (write . ("Importing " ++ )) displayImports
   imports <- mapM parseImportDecl $ globalImports ++ displayImports
   setContext $ map IIDecl $ implicitPrelude : imports
 
@@ -188,6 +189,7 @@ evalCommand _ (Import importStr) = wrapExecution $ do
     implicitImportOf imp (IIDecl decl) = ideclImplicit decl && ((==) `on` (unLoc . ideclName)) decl imp
 
 evalCommand _ (Module contents) = wrapExecution $ do
+  write $ "Module:\n" ++ contents
   -- Write the module contents to a temporary file in our work directory
   namePieces <- getModuleName contents
   let directory = "./" ++ intercalate "/" (init namePieces) ++ "/"
@@ -256,10 +258,11 @@ evalCommand _ (Module contents) = wrapExecution $ do
         Failed -> return $ displayError $ "Failed to load module " ++ modName
 
 evalCommand _ (Directive SetExtension exts) = wrapExecution $ do
-    results <- mapM setExtension (words exts)
-    case catMaybes results of
-      [] -> return []
-      errors -> return $ displayError $ intercalate "\n" errors
+  write $ "Extension: " ++ exts
+  results <- mapM setExtension (words exts)
+  case catMaybes results of
+    [] -> return []
+    errors -> return $ displayError $ intercalate "\n" errors
   where
     -- Set an extension and update flags.
     -- Return Nothing on success. On failure, return an error message.
@@ -290,13 +293,16 @@ evalCommand _ (Directive SetExtension exts) = wrapExecution $ do
     flagMatchesNo ext (name, _, _) = ext == "No"  ++ name
 
 evalCommand _ (Directive GetType expr) = wrapExecution $ do
+  write $ "Type: " ++ expr
   result <- exprType expr
   flags <- getSessionDynFlags
   let typeStr = showSDocUnqual flags $ ppr result
   return [plain typeStr, html $ formatGetType typeStr]
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
-evalCommand _ (Directive HelpForSet _) = return (Success, [out])
+evalCommand _ (Directive HelpForSet _) = do
+  write "Help for :set."
+  return (Success, [out])
   where out = plain $ intercalate "\n"
           [":set is not implemented in IHaskell."
           ,"  Use :extension <Extension> to enable a GHC extension."
@@ -304,7 +310,9 @@ evalCommand _ (Directive HelpForSet _) = return (Success, [out])
           ]
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
-evalCommand _ (Directive GetHelp _) = return (Success, [out])
+evalCommand _ (Directive GetHelp _) = do
+  write "Help via :help or :?."
+  return (Success, [out])
   where out = plain $ intercalate "\n"
           ["The following commands are available:"
           ,"    :extension <Extension>    -  enable a GHC extension."
@@ -318,6 +326,7 @@ evalCommand _ (Directive GetHelp _) = return (Success, [out])
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
 evalCommand _ (Directive GetInfo str) = wrapExecution $ do
+  write $ "Info: " ++ str
   -- Get all the info for all the names we're given.
   names     <- parseName str
   maybeInfos <- mapM getInfo names
@@ -349,7 +358,7 @@ evalCommand _ (Directive GetInfo str) = wrapExecution $ do
   return [plain $ intercalate "\n" strings]
 
 evalCommand output (Statement stmt) = wrapExecution $ do
-  write $ "Statement: " ++ stmt
+  write $ "Statement:\n" ++ stmt
   let outputter str = output False [plain str]
   (printed, result) <- capturedStatement outputter stmt
   case result of
@@ -362,6 +371,7 @@ evalCommand output (Statement stmt) = wrapExecution $ do
     RunBreak{} -> error "Should not break."
 
 evalCommand output (Expression expr) = do
+  write $ "Expression:\n" ++ expr
   -- Evaluate this expression as though it's just a statement.
   -- The output is bound to 'it', so we can then use it.
   (success, out) <- evalCommand output (Statement expr)
@@ -372,6 +382,9 @@ evalCommand output (Expression expr) = do
   -- return False, and we just resort to plaintext.
   let displayExpr = printf "(IHaskell.Display.display (%s))" expr
   canRunDisplay <- attempt $ exprType displayExpr
+  write $ printf "%s: Attempting %s" (if canRunDisplay then "Success" else "Failure") displayExpr
+  write $ "Show Error: " ++ show (isShowError out)
+  write $ show out
 
   -- If evaluation failed, return the failure.  If it was successful, we
   -- may be able to use the IHaskellDisplay typeclass.
@@ -395,7 +408,7 @@ evalCommand output (Expression expr) = do
     -- implement the Show typeclass.
     isShowError errs = case find isPlain errs of
       Just (Display PlainText msg) -> 
-        startswith "No instance for (GHC.Show.Show " msg &&
+        startswith "No instance for (GHC.Show.Show" msg &&
         isInfixOf " arising from a use of `System.IO.print'" msg
       Nothing -> False
       where isPlain (Display mime _) = mime == PlainText
@@ -421,12 +434,14 @@ evalCommand output (Expression expr) = do
 
 
 evalCommand _ (Declaration decl) = wrapExecution $ do
+  write $ "Declaration:\n" ++ decl
   runDecls decl
 
   -- Do not display any output
   return []
 
-evalCommand _ (ParseError loc err) = wrapExecution $
+evalCommand _ (ParseError loc err) = wrapExecution $ do
+  write $ "Parse Error."
   return $ displayError $ formatParseError loc err
 
 capturedStatement :: (String -> IO ())         -- ^ Function used to publish intermediate output.

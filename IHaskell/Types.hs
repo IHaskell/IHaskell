@@ -277,12 +277,22 @@ instance Serialize DisplayData
 instance Serialize MimeType
 
 -- | Possible MIME types for the display data.
-data MimeType = PlainText | MimeHtml deriving (Eq, Typeable, Generic)
+data MimeType = PlainText
+              | MimeHtml
+              | MimePng
+              | MimeJpg
+              | MimeSvg
+              | MimeLatex
+              deriving (Eq, Typeable, Generic)
 
 
 instance Show MimeType where
   show PlainText = "text/plain"
   show MimeHtml  = "text/html"
+  show MimePng   = "image/png" 
+  show MimeJpg   = "image/jpeg"
+  show MimeSvg   = "image/svg+xml"
+  show MimeLatex = "text/latex"
 
 -- | Input and output streams.
 data StreamType = Stdin | Stdout deriving Show

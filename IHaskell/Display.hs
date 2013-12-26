@@ -2,8 +2,7 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module IHaskell.Display (
   IHaskellDisplay(..),
-  plain,
-  html,
+  plain, html, png, jpg, svg, latex,
   serializeDisplay
   ) where
 
@@ -25,6 +24,18 @@ plain = Display PlainText . rstrip
 -- | Generate an HTML display.
 html :: String -> DisplayData
 html = Display MimeHtml
+
+png :: String -> DisplayData
+png = Display MimePng 
+
+jpg :: String -> DisplayData
+jpg = Display MimeJpg
+
+svg :: String -> DisplayData
+svg = Display MimeSvg
+
+latex :: String -> DisplayData
+latex = Display MimeLatex
 
 serializeDisplay :: [DisplayData] -> ByteString
 serializeDisplay = Serialize.encode

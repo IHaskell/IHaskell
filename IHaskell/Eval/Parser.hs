@@ -301,7 +301,7 @@ splitAtLoc line col string =
 -- beyond the indentation of the first line. This parses Haskell layout
 -- rules properly, and allows using multiline expressions via indentation. 
 layoutChunks :: String -> [String]
-layoutChunks string = filter (not . null . strip) $ layoutLines $ lines string
+layoutChunks string = filter (not . null) $ map strip $ layoutLines $ lines string
   where
     layoutLines :: [String] -> [String]
     -- Empty string case.  If there's no input, output is empty.
@@ -323,6 +323,13 @@ layoutChunks string = filter (not . null . strip) $ layoutLines $ lines string
     -- Compute indent level of a string as number of leading spaces.
     indentLevel :: String -> Int
     indentLevel (' ':str) = 1 + indentLevel str
+
+    -- Count a tab as two spaces.
+    indentLevel ('\t':str) = 2 + indentLevel str
+  
+    -- Count empty lines as a large indent level, so they're always with the previous expression.
+    indentLevel "" = 100000
+
     indentLevel _ = 0
 
 -- Not the same as 'unlines', due to trailing \n
