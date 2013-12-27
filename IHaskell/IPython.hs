@@ -90,35 +90,6 @@ setupIPythonProfile profile = shelly $ do
 
   liftIO $ copyProfile profileDir
   insertIHaskellPath profileDir
-{-
-  writeConfigFilesTo profileDir path
-
--- | Write IPython configuration files to the profile directory.
-writeConfigFilesTo :: Text      -- ^ Profile directory to write to. Must have a trailing slash.
-                   -> String    -- ^ Path to IHaskell executable.
-                   -> Sh ()
-writeConfigFilesTo profileDir ihaskellPath = do
-    writeFile (conf "ipython_config.py")          $ Config.ipython ihaskellPath
-    writeFile (conf "ipython_notebook_config.py")   Config.notebook
-    writeFile (conf "ipython_console_config.py")    Config.console
-    writeFile (conf "ipython_qtconsole_config.py")  Config.qtconsole
-
-    -- The custom directory many not exist, in which case we'll create it.
-    mkdir_p (conf "static/custom/")
-    writeFile (conf "static/custom/custom.js")      Config.customjs
-
-    -- Make directory for images.
-    mkdir_p (conf "static/base/images")
-
-    -- The notebook/js directory many not exist, in which case we'll create it.
-    mkdir_p (conf "static/notebook/")
-    mkdir_p (conf "static/notebook/js")
-    forM_ Config.notebookJavascript $ \(file, content) ->
-      writeFile (conf "static/notebook/js/" ++ file) content
-
-  where
-    conf filename = fromText $ profileDir ++ filename
--}
 
 -- | Copy the profile files into the IPython profile. 
 copyProfile :: Text -> IO ()
