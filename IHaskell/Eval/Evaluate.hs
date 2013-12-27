@@ -54,7 +54,7 @@ import IHaskell.Display
 data ErrorOccurred = Success | Failure deriving Show
 
 debug :: Bool
-debug = True
+debug = False
 
 ignoreTypePrefixes :: [String]
 ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",
