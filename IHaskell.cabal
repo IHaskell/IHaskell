@@ -55,7 +55,7 @@ library
                        aeson ==0.6.*,
                        MissingH ==1.2.*,
                        basic-prelude ==0.3.*,
-                       classy-prelude ==0.6.*,
+                       classy-prelude >=0.6,
                        bytestring ==0.10.*,
                        uuid >=1.2.6,
                        containers ==0.5.*,
