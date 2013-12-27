@@ -9,5 +9,5 @@ happy Parser.y
 rm Parser.y
 
 # Move output Haskell to source directory.
-mkdir -p IHaskell/GHC
-mv Parser.hs IHaskell/GHC/HaskellParser.hs
+mkdir -p Language/Haskell/GHC
+mv Parser.hs Language/Haskell/GHC/HappyParser.hs

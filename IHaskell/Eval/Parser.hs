@@ -7,7 +7,6 @@ module IHaskell.Eval.Parser (
     LineNumber,
     ColumnNumber,
     ErrMsg,
-    splitAtLoc,
     layoutChunks,
     parseDirective,
     getModuleName
@@ -31,19 +30,7 @@ import Outputable hiding ((<>))
 import SrcLoc
 import StringBuffer
 
-import IHaskell.GHC.HaskellParser
-
--- | A line number in an input string.
-type LineNumber   = Int
-
--- | A column number in an input string.
-type ColumnNumber = Int
-
--- | An error message string.
-type ErrMsg = String
-
--- | A location in an input string.
-data StringLoc = Loc LineNumber ColumnNumber deriving (Show, Eq)
+import Language.Haskell.GHC.Parser
 
 -- | A block of code to be evaluated.
 -- Each block contains a single element - one declaration, statement,
@@ -70,22 +57,14 @@ data DirectiveType
   | GetHelp         -- ^ General help via ':?' or ':help'.
   deriving (Show, Eq)
 
--- | Output from running a parser.
-data ParseOutput a
-    = Failure ErrMsg StringLoc    -- ^ Parser failed with given error message and location.
-    | Success a (String, String)  -- ^ Parser succeeded with an output.
-    deriving (Eq, Show)                  -- Auxiliary strings say what part of the
-                                  -- input string was used and what
-                                  -- part is remaining.
-
 -- | Parse a string into code blocks.
 parseString :: GhcMonad m => String -> m [CodeBlock]
 parseString codeString = do
   -- Try to parse this as a single module.
   flags <- getSessionDynFlags
-  let output = runParser flags fullModule codeString
+  let output = runParser flags parserModule codeString
   case output of
-    Success {} -> return [Module codeString]
+    Parsed {} -> return [Module codeString]
     Failure {} ->
       -- Split input into chunks based on indentation.
       let chunks = layoutChunks $ dropComments codeString in
@@ -132,14 +111,11 @@ parseCodeChunk code startLine = do
         [] -> return $ bestError $ failures results
 
         -- If one of the parsers succeeded
-        (result, used, remaining):_ -> 
-          return $ if not . null . strip $ remaining
-                   then ParseError (Loc 1 1) $ "Could not parse " ++ code
-                   else result
+        result:_ -> return result
   where
-    successes :: [ParseOutput a] -> [(a, String, String)]
+    successes :: [ParseOutput a] -> [a]
     successes [] = []
-    successes (Success a (used, rem):rest) = (a, used, rem) : successes rest
+    successes (Parsed a:rest) = a : successes rest
     successes (_:rest) = successes rest
 
     failures :: [ParseOutput a] -> [(ErrMsg, LineNumber, ColumnNumber)]
@@ -154,7 +130,7 @@ parseCodeChunk code startLine = do
         compareLoc (_, line1, col1) (_, line2, col2) = compare line1 line2 <> compare col1 col2
 
     statementToExpression :: DynFlags -> ParseOutput CodeBlock -> ParseOutput CodeBlock
-    statementToExpression flags (Success (Statement stmt) strs) = Success result strs
+    statementToExpression flags (Parsed (Statement stmt)) = Parsed result
       where result = if isExpr flags stmt
                      then Expression stmt
                      else Statement stmt
@@ -162,27 +138,28 @@ parseCodeChunk code startLine = do
 
     -- Check whether a string is a valid expression.
     isExpr :: DynFlags -> String -> Bool
-    isExpr flags str = case runParser flags fullExpression str of
-      Failure {} -> False
-      Success {} -> True
+    isExpr flags str = case runParser flags parserExpression str of
+      Parsed {} -> True
+      _ -> False
 
     tryParser :: String -> (String -> CodeBlock, String -> ParseOutput String) -> ParseOutput CodeBlock
     tryParser string (blockType, parser) = case parser string of
-      Success res (used, remaining) -> Success (blockType res) (used, remaining)
+      Parsed res -> Parsed (blockType res)
       Failure err loc -> Failure err loc
 
     parsers :: DynFlags -> [(String -> CodeBlock, String -> ParseOutput String)]
     parsers flags =
-      [ (Import,        unparser partialImport)
-      , (TypeSignature, unparser partialTypeSignature)
-      , (Declaration,   unparser partialDeclaration)
-      , (Statement,     unparser partialStatement)
+      [ (Import,        unparser parserImport)
+      , (TypeSignature, unparser parserTypeSignature)
+      , (Declaration,   unparser parserDeclaration)
+      , (Statement,     unparser parserStatement)
       ]
       where
-        unparser :: P a -> String -> ParseOutput String
+        unparser :: Parser a -> String -> ParseOutput String
         unparser parser code =
           case runParser flags parser code of
-            Success out strs -> Success code strs
+            Parsed out -> Parsed code
+            Partial out strs -> Partial code strs
             Failure err loc -> Failure err loc
 
 -- | Find consecutive declarations of the same function and join them into
@@ -248,53 +225,6 @@ parseDirective (':':directive) line = case find rightDirective directives of
       ]
 parseDirective _ _ = error "Directive must start with colon!"
 
--- | Run a GHC parser on a string. Return success or failure with
--- associated information for both.
-runParser :: DynFlags -> P a -> String -> ParseOutput a
-runParser flags parser str =
-  -- Create an initial parser state.
-  let filename = "<interactive>"
-      location = mkRealSrcLoc (mkFastString filename) 1 1
-      buffer = stringToStringBuffer str
-      parseState = mkPState flags buffer location in
-    -- Convert a GHC parser output into our own.
-    toParseOut $ unP parser parseState
-  where
-    toParseOut :: ParseResult a -> ParseOutput a
-    toParseOut (PFailed span@(RealSrcSpan realSpan) err) = 
-      let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags span err
-          line = srcLocLine $ realSrcSpanStart realSpan
-          col = srcLocCol $ realSrcSpanStart realSpan
-        in Failure errMsg $ Loc line col
-
-    toParseOut (PFailed span err) = 
-      let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags span err
-        in Failure errMsg $ Loc 0 0
-
-    toParseOut (POk parseState result) = 
-      let parseEnd = realSrcSpanStart $ last_loc parseState
-          endLine = srcLocLine parseEnd
-          endCol = srcLocCol parseEnd
-          (before, after) = splitAtLoc endLine endCol str in
-        Success result (before, after)
-
-    -- Convert the bag of errors into an error string.
-    printErrorBag bag = joinLines . map show $ bagToList bag
-
--- | Split a string at a given line and column. The column is included in
--- the second part of the split.
-splitAtLoc :: LineNumber -> ColumnNumber -> String -> (String, String)
-splitAtLoc line col string = 
-  if line > length (lines string)
-  then (string, "")
-  else (before, after)
-  where
-    (beforeLines, afterLines) = splitAt line $ lines string
-    theLine = last beforeLines
-    (beforeChars, afterChars) = splitAt (col - 1) theLine
-
-    before = joinLines (init beforeLines) ++ '\n' : beforeChars
-    after = joinLines $ afterChars : afterLines
 
 -- | Split an input string into chunks based on indentation.
 -- A chunk is a line and all lines immediately following that are indented
@@ -357,10 +287,10 @@ dropComments = removeOneLineComments . removeMultilineComments
 getModuleName :: GhcMonad m => String -> m [String]
 getModuleName moduleSrc = do
   flags <- getSessionDynFlags
-  let output = runParser flags fullModule moduleSrc
+  let output = runParser flags parserModule moduleSrc
   case output of
     Failure {} -> error "Module parsing failed."
-    Success mod _ -> 
+    Parsed mod -> 
       case unLoc <$> hsmodName (unLoc mod) of
         Nothing -> error "Module must have a name."
         Just name -> return $ split "." $ moduleNameString name

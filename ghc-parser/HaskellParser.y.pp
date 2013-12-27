@@ -17,7 +17,6 @@
 --     http://hackage.haskell.org/trac/ghc/wiki/Commentary/CodingStyle#Warnings
 -- for details
 
-{-# OPTIONS_GHC -O0 -fno-ignore-interface-pragmas #-}
 {-
 Careful optimisation of the parser: we don't want to throw everything
 at it, because that takes too long and doesn't buy much, but we do want
@@ -25,7 +24,20 @@ to inline certain key external functions, so we instruct GHC not to
 throw away inlinings as it would normally do in -O0 mode.
 -}
 
-module IHaskell.GHC.HaskellParser (fullExpression, fullModule, partialTypeSignature, partialStatement, partialExpression, partialImport, partialDeclaration) where
+module Language.Haskell.GHC.HappyParser (
+  fullModule,
+  fullTypeSignature,
+  fullStatement,
+  fullExpression,
+  fullImport,
+  fullDeclaration,
+  partialModule,
+  partialTypeSignature,
+  partialStatement,
+  partialExpression,
+  partialImport,
+  partialDeclaration
+  ) where
 
 import HsSyn
 import RdrHsSyn
@@ -355,21 +367,22 @@ TH_QQUASIQUOTE  { L _ (ITqQuasiQuote _) }
 
 %monad { P } { >>= } { return }
 %lexer { lexer } { L _ ITeof }
-%name parseModule module
-%name parseStmt   maybe_stmt
-%name parseIdentifier  identifier
-%name parseType ctype
-%partial parseHeader header
 %tokentype { (Located Token) }
 
---- Partial parsers for IHaskell
+--- Parsers for IHaskell
 %partial partialStatement stmt
 %partial partialImport importdecl
 %partial partialDeclaration topdecl
-%partial partialExpression exp
 %partial partialTypeSignature signature
-%name fullModule namedModule
+%partial partialModule namedModule
+%partial partialExpression exp
+
+%name fullStatement stmt
+%name fullImport importdecl
+%name fullDeclaration topdecl
 %name fullExpression exp
+%name fullTypeSignature signature
+%name fullModule namedModule
 %%
 
 signature :: { LHsDecl RdrName }

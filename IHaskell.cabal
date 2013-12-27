@@ -37,7 +37,7 @@ maintainer:          andrew.gibiansky@gmail.com
 
 category:            Development
 
-build-type:          Custom
+build-type:          Simple
 
 -- Constraint on the version of Cabal needed to build this package.
 cabal-version:       >=1.8
@@ -56,6 +56,7 @@ extra-source-files:
 
 library
   build-depends:       base ==4.6.*,
+                       ghc-parser,
                        unix >= 2.6,
                        hspec,
                        zeromq3-haskell ==0.5.*,
@@ -105,15 +106,12 @@ executable IHaskell
              IHaskell.ZeroMQ
              IHaskell.Display
              IHaskell.Config
-             IHaskell.GHC.HaskellParser
-
-
-
 
   extensions: DoAndIfThenElse
   
   -- Other library packages from which modules are imported.
   build-depends:       base ==4.6.*,
+                       ghc-parser,
                        unix >= 2.6,
                        hspec,
                        zeromq3-haskell ==0.5.*,
@@ -145,6 +143,7 @@ Test-Suite hspec
   Ghc-Options: -threaded
   Main-Is: Hspec.hs
   build-depends:       base ==4.6.*,
+                       ghc-parser,
                        unix >= 2.6,
                        hspec,
                        zeromq3-haskell ==0.5.*,

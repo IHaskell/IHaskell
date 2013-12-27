@@ -202,19 +202,9 @@ ipythonTests = do
       parseVersion "12.5.10" `shouldBe` [12, 5, 10]
 
 parserTests = do
-  splitAtLocTests
   layoutChunkerTests
   moduleNameTests
   parseStringTests
-
-
-splitAtLocTests = describe "String Splitting Util" $ do
-  it "splits properly (example 1)" $
-    splitAtLoc 2 3 "abc\ndefghi\nxyz\n123" `shouldBe` ("abc\nde","fghi\nxyz\n123")
-  it "splits properly (example 2)" $
-    splitAtLoc 2 1 "abc" `shouldBe` ("abc","")
-  it "splits properly (example 3)" $
-    splitAtLoc 2 1 "abc\nhello" `shouldBe` ("abc\n","hello")
 
 layoutChunkerTests = describe "Layout Chunk" $ do
   it "chunks 'a string'" $
