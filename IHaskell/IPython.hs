@@ -33,9 +33,11 @@ ipython suppress args = do
       putStrLn "Could not find `ipython` executable."
       fail "`ipython` not on $PATH."
     Just ipythonPath -> runHandles ipythonPath args handles doNothing
-      where handles = [InHandle Inherit, outHandle suppress, ErrorHandle Inherit]
+      where handles = [InHandle Inherit, outHandle suppress, errorHandle suppress]
             outHandle True = OutHandle CreatePipe
             outHandle False = OutHandle Inherit
+            errorHandle True =  ErrorHandle CreatePipe
+            errorHandle False = ErrorHandle Inherit
             doNothing _ stdout _ = if suppress 
                                    then liftIO $ StrictIO.hGetContents stdout
                                    else return ""
@@ -59,14 +61,25 @@ runIHaskell :: String   -- ^ IHaskell profile name.
            -> String    -- ^ IPython app name.
            -> [String]  -- ^ Arguments to IPython.
            -> IO ()
-runIHaskell profile app args = void . shelly . ipython False $ [pack app, "--profile", pack profile] ++ map pack args
+runIHaskell profile app args = void . shelly $ do
+  -- Try to locate the profile. Do not die if it doesn't exist.
+  errExit False $ ipython True ["locate", "profile", pack profile]
+
+  -- If the profile doesn't exist, create it.
+  exitCode <- lastExitCode
+  when (exitCode /= 0) $ liftIO $ do
+    putStrLn "Creating IPython profile."
+    setupIPythonProfile profile
+
+  -- Run the IHaskell command.
+  ipython False $ map pack $ [app, "--profile", profile] ++ args
 
 -- | Create the IPython profile.
 setupIPythonProfile :: String -- ^ IHaskell profile name.
                     -> IO ()
 setupIPythonProfile profile = shelly $ do
   -- Create the IPython profile.
-  void $ ipython False ["profile", "create", pack profile]
+  void $ ipython True ["profile", "create", pack profile]
 
   -- Find the IPython profile directory. Make sure to get rid of trailing
   -- newlines from the output of the `ipython locate` call.
