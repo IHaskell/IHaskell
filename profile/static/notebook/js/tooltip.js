@@ -33,7 +33,7 @@ var IPython = (function (IPython) {
             this.time_before_tooltip = 800;
 
             // handle to html
-            this.tooltip = \$('#tooltip');
+            this.tooltip = $('#tooltip');
             this._hidden = true;
 
             // variable for consecutive call
@@ -48,40 +48,40 @@ var IPython = (function (IPython) {
             this._hide_if_no_docstring = false;
 
             // contain the button in the upper right corner
-            this.buttons = \$('<div/>').addClass('tooltipbuttons');
+            this.buttons = $('<div/>').addClass('tooltipbuttons');
 
             // will contain the docstring
-            this.text = \$('<div/>').addClass('tooltiptext').addClass('smalltooltip');
+            this.text = $('<div/>').addClass('tooltiptext').addClass('smalltooltip');
 
             // build the buttons menu on the upper right
             // expand the tooltip to see more
-            var expandlink = \$('<a/>').attr('href', "#").addClass("ui-corner-all") //rounded corner
+            var expandlink = $('<a/>').attr('href', "#").addClass("ui-corner-all") //rounded corner
             .attr('role', "button").attr('id', 'expanbutton').attr('title', 'Grow the tooltip vertically (press tab 2 times)').click(function () {
                 that.expand()
             }).append(
-            \$('<span/>').text('Expand').addClass('ui-icon').addClass('ui-icon-plus'));
+            $('<span/>').text('Expand').addClass('ui-icon').addClass('ui-icon-plus'));
 
             // open in pager
-            var morelink = \$('<a/>').attr('href', "#").attr('role', "button").addClass('ui-button').attr('title', 'show the current docstring in pager (press tab 4 times)');
-            var morespan = \$('<span/>').text('Open in Pager').addClass('ui-icon').addClass('ui-icon-arrowstop-l-n');
+            var morelink = $('<a/>').attr('href', "#").attr('role', "button").addClass('ui-button').attr('title', 'show the current docstring in pager (press tab 4 times)');
+            var morespan = $('<span/>').text('Open in Pager').addClass('ui-icon').addClass('ui-icon-arrowstop-l-n');
             morelink.append(morespan);
             morelink.click(function () {
                 that.showInPager(that._old_cell);
             });
 
             // close the tooltip
-            var closelink = \$('<a/>').attr('href', "#").attr('role', "button").addClass('ui-button');
-            var closespan = \$('<span/>').text('Close').addClass('ui-icon').addClass('ui-icon-close');
+            var closelink = $('<a/>').attr('href', "#").attr('role', "button").addClass('ui-button');
+            var closespan = $('<span/>').text('Close').addClass('ui-icon').addClass('ui-icon-close');
             closelink.append(closespan);
             closelink.click(function () {
                 that.remove_and_cancel_tooltip(true);
             });
 
-            this._clocklink = \$('<a/>').attr('href', "#");
+            this._clocklink = $('<a/>').attr('href', "#");
             this._clocklink.attr('role', "button");
             this._clocklink.addClass('ui-button');
             this._clocklink.attr('title', 'Tootip is not dismissed while typing for 10 seconds');
-            var clockspan = \$('<span/>').text('Close');
+            var clockspan = $('<span/>').text('Close');
             clockspan.addClass('ui-icon');
             clockspan.addClass('ui-icon-clock');
             this._clocklink.append(clockspan);
@@ -104,7 +104,7 @@ var IPython = (function (IPython) {
             // we need a phony element to make the small arrow
             // of the tooltip in css
             // we will move the arrow later
-            this.arrow = \$('<div/>').addClass('pretooltiparrow');
+            this.arrow = $('<div/>').addClass('pretooltiparrow');
             this.tooltip.append(this.buttons);
             this.tooltip.append(this.arrow);
             this.tooltip.append(this.text);
@@ -150,14 +150,14 @@ var IPython = (function (IPython) {
     Tooltip.prototype.expand = function () {
         this.text.removeClass('smalltooltip');
         this.text.addClass('bigtooltip');
-        \$('#expanbutton').hide('slow');
+        $('#expanbutton').hide('slow');
     }
 
     // deal with all the logic of hiding the tooltip
     // and reset it's status
     Tooltip.prototype._hide = function () {
         this.tooltip.fadeOut('fast');
-        \$('#expanbutton').show('slow');
+        $('#expanbutton').show('slow');
         this.text.removeClass('bigtooltip');
         this.text.addClass('smalltooltip');
         // keep scroll top to be sure to always see the first line
@@ -201,8 +201,8 @@ var IPython = (function (IPython) {
         // basicaly you shoul be able to get xxx.xxx.xxx from
         // something(range(10), kwarg=smth) ; xxx.xxx.xxx( firstarg, rand(234,23), kwarg1=2,
         // remove everything between matchin bracket (need to iterate)
-        var matchBracket = /\\([^\\(\\)]+\\)/g;
-        var endBracket = /\\([^\\(]*\$/g;
+        var matchBracket = /\([^\(\)]+\)/g;
+        var endBracket = /\([^\(]*$/g;
         var oldfunc = func;
 
         func = func.replace(matchBracket, "");
@@ -213,13 +213,13 @@ var IPython = (function (IPython) {
         // remove everything after last open bracket
         func = func.replace(endBracket, "");
 
-        var re = /[a-z_][0-9a-z._!]+\$/gi; // casse insensitive
+        var re = /[a-z_][0-9a-z._!]+$/gi; // casse insensitive
         var that = this
         var callbacks_v2 = function(data){
-            \$.proxy(that._show(data.content), that)
+            $.proxy(that._show(data.content), that)
         }
         var callbacks = {
-            'object_info_reply': \$.proxy(this._show, this)
+            'object_info_reply': $.proxy(this._show, this)
         }
         if(cell.kernel.object_info_request){
             // we are on IPython 1.x and early 2.0 (before bidirectionnal js comm)
@@ -306,9 +306,9 @@ var IPython = (function (IPython) {
 
         // do some math to have the tooltip arrow on more or less on left or right
         // width of the editor
-        var w = \$(this.code_mirror.getScrollerElement()).width();
+        var w = $(this.code_mirror.getScrollerElement()).width();
         // ofset of the editor
-        var o = \$(this.code_mirror.getScrollerElement()).offset();
+        var o = $(this.code_mirror.getScrollerElement()).offset();
 
         // whatever anchor/head order but arrow at mid x selection
         var anchor = this.code_mirror.cursorCoords(false);
@@ -364,9 +364,9 @@ var IPython = (function (IPython) {
         this._hidden = false;
         this.text.children().remove();
 
-        var pre = \$('<pre/>').html(utils.fixConsole(docstring));
+        var pre = $('<pre/>').html(utils.fixConsole(docstring));
         if (defstring) {
-            var defstring_html = \$('<pre/>').html(utils.fixConsole(defstring));
+            var defstring_html = $('<pre/>').html(utils.fixConsole(defstring));
             this.text.append(defstring_html);
         }
         this.text.append(pre);

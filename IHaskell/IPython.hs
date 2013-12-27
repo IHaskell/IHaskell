@@ -17,10 +17,12 @@ import System.Directory
 import qualified Filesystem.Path.CurrentOS as FS
 import Data.List.Utils (split)
 import Data.String.Utils (rstrip)
+import Text.Printf
 
 import qualified System.IO.Strict as StrictIO
 
-import qualified IHaskell.Config as Config
+import qualified Paths_ihaskell as Paths
+import qualified Codec.Archive.Tar as Tar
 
 -- | Run IPython with any arguments.
 ipython :: Bool         -- ^ Whether to suppress output.
@@ -86,7 +88,9 @@ setupIPythonProfile profile = shelly $ do
   ipythonDir <- pack <$> rstrip <$> ipython True ["locate"]
   let profileDir = ipythonDir ++ "/profile_" ++ pack profile ++ "/"
 
-  path <- getIHaskellPath
+  liftIO $ copyProfile profileDir
+  insertIHaskellPath profileDir
+{-
   writeConfigFilesTo profileDir path
 
 -- | Write IPython configuration files to the profile directory.
@@ -114,6 +118,25 @@ writeConfigFilesTo profileDir ihaskellPath = do
 
   where
     conf filename = fromText $ profileDir ++ filename
+-}
+
+-- | Copy the profile files into the IPython profile. 
+copyProfile :: Text -> IO ()
+copyProfile profileDir = do
+  profileTar <- Paths.getDataFileName "profile/profile.tar"
+  Tar.extract (unpack profileDir) profileTar 
+
+-- | Insert the IHaskell path into the IPython configuration.
+insertIHaskellPath :: Text -> Sh ()
+insertIHaskellPath profileDir = do
+  path <- getIHaskellPath
+  let filename = profileDir ++ "ipython_config.py"
+      template = "exe = '%s'.replace(' ', '\\\\ ')"
+      exeLine = printf template $ unpack path :: String
+
+  liftIO $ do
+    contents <- StrictIO.readFile $ unpack filename
+    writeFile (fromText filename) $ exeLine ++ "\n" ++ contents
 
 -- | Get the absolute path to this IHaskell executable.
 getIHaskellPath :: Sh String

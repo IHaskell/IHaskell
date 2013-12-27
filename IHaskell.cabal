@@ -42,20 +42,12 @@ build-type:          Simple
 -- Constraint on the version of Cabal needed to build this package.
 cabal-version:       >=1.8
 
-extra-source-files: 
-  config/custom.js
-  config/ipython_config.py
-  config/ipython_console_config.py
-  config/ipython_notebook_config.py
-  config/ipython_qtconsole_config.py
-  deps/codecell.js
-  deps/tooltip.js
-  build-parser.sh
-  images/ihaskell-logo.png
-  HaskellParser.y.pp
+data-files: 
+  profile/profile.tar
 
 library
   build-depends:       base ==4.6.*,
+                       tar,
                        ghc-parser,
                        unix >= 2.6,
                        hspec,
@@ -83,6 +75,7 @@ library
                        mtl == 2.1.*,
                        template-haskell
   exposed-modules: IHaskell.Display,
+                   Paths_ihaskell,
                    IHaskell.Types,
                    IHaskell.Message.UUID
 
@@ -111,6 +104,7 @@ executable IHaskell
   
   -- Other library packages from which modules are imported.
   build-depends:       base ==4.6.*,
+                       tar,
                        ghc-parser,
                        unix >= 2.6,
                        hspec,
@@ -143,6 +137,7 @@ Test-Suite hspec
   Ghc-Options: -threaded
   Main-Is: Hspec.hs
   build-depends:       base ==4.6.*,
+                       tar,
                        ghc-parser,
                        unix >= 2.6,
                        hspec,
