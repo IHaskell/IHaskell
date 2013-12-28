@@ -31,10 +31,8 @@ data KernelState = KernelState
 
 main ::  IO ()
 main = do
-  (major, minor, patch) <- ipythonVersion
-  when (major < 1) $ do
-    void $ printf "Expecting IPython version 1.*, found version %d.%d.%d.\n" major minor patch
-    error "Incorrect ipython --version."
+  installed <- ipythonInstalled
+  unless installed installIPython
 
   args <- map unpack <$> getArgs
   case args of
