@@ -6,6 +6,7 @@
 module Main where
 import ClassyPrelude hiding (liftIO)
 import Control.Concurrent.Chan
+import Control.Concurrent (threadDelay)
 import Data.Aeson
 import Text.Printf
 import System.Exit (exitSuccess)
@@ -31,10 +32,13 @@ data KernelState = KernelState
 
 main ::  IO ()
 main = do
+  args <- map unpack <$> getArgs
+  ihaskell args
+
+ihaskell args = do
   installed <- ipythonInstalled
   unless installed installIPython
 
-  args <- map unpack <$> getArgs
   case args of
     -- Create the "haskell" profile.
     ["setup"] -> setupIPythonProfile "haskell"
@@ -47,8 +51,16 @@ main = do
     ["kernel", profileSrc] -> kernel profileSrc
 
     -- Bad arguments.
-    [] -> putStrLn $ "Provide command to run ('setup', 'kernel <profile-file.json>', " ++
-                                           "'notebook [args]', 'console [args]')."
+    [] -> do
+      mapM_ putStrLn [
+        "Available Commands:",
+        "    `IHaskell console`         - run command-line console.",
+        "    `IHaskell setup`           - repeat setup.",
+        "    `IHaskell notebook`        - run browser-based notebook.",
+        "    `IHaskell kernel <file>`   - just run the kernel.",
+        "Defaulting to `IHaskell notebook.`"]
+      threadDelay $ 2 * 1000 * 1000
+      ihaskell ["notebook"]
     cmd:_ -> putStrLn $ "Unknown command: " ++ pack cmd
 
 

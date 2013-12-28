@@ -12,7 +12,7 @@ module IHaskell.IPython (
 ) where
 
 import ClassyPrelude
-import Prelude (read, reads)
+import Prelude (read, reads, init)
 import Shelly hiding (find, trace, path)
 import System.Argv0
 import System.Directory
@@ -22,7 +22,6 @@ import Data.String.Utils (rstrip)
 import Text.Printf
 
 import qualified System.IO.Strict as StrictIO
-
 import qualified Paths_ihaskell as Paths
 import qualified Codec.Archive.Tar as Tar
 
@@ -35,7 +34,7 @@ ipython :: Bool         -- ^ Whether to suppress output.
         -> [Text]       -- ^ IPython command line arguments.
         -> Sh String    -- ^ IPython output.
 ipython suppress args = do
-  (_, ipythonDir) <- ihaskellDirs
+  (_, ipythonDir, _) <- ihaskellDirs
   let ipythonPath = fromText $ ipythonDir ++ "/bin/ipython"
   sub $ do
     setenv "PYTHONPATH" $ ipythonDir ++ "/lib/python2.7/site-packages"
@@ -56,21 +55,23 @@ quietRun path args = runHandles path args handles nothing
     nothing _ _ _ = return ()
 
 -- | Return the data directory for IHaskell and the IPython subdirectory. 
-ihaskellDirs :: Sh (Text, Text)
+ihaskellDirs :: Sh (Text, Text, Text)
 ihaskellDirs = do
   home <- maybe (error "$HOME not defined.") id <$> get_env "HOME" :: Sh Text
   let ihaskellDir = home ++ "/.ihaskell"
       ipythonDir = ihaskellDir ++ "/ipython"
+      notebookDir = ihaskellDir ++ "/notebooks"
 
   -- Make sure the directories exist.
   mkdir_p $ fromText ipythonDir
+  mkdir_p $ fromText notebookDir
 
-  return (ihaskellDir, ipythonDir)
+  return (ihaskellDir, ipythonDir, notebookDir)
 
 -- | Install IPython from source.
 installIPython :: IO ()
 installIPython = void . shellyNoDir $ do
-  (ihaskellDir, ipythonDir) <- ihaskellDirs
+  (ihaskellDir, ipythonDir, _) <- ihaskellDirs
 
   -- Install all Python dependencies.
   pipPath <- path "pip"
@@ -98,7 +99,7 @@ installIPython = void . shellyNoDir $ do
 -- | Check whether IPython is properly installed.
 ipythonInstalled :: IO Bool
 ipythonInstalled = shellyNoDir $ do
-  (_, ipythonDir) <- ihaskellDirs
+  (_, ipythonDir, _) <- ihaskellDirs
   let ipythonPath = ipythonDir ++ "/bin/ipython"
   test_f $ fromText ipythonPath
 
@@ -133,6 +134,10 @@ runIHaskell :: String   -- ^ IHaskell profile name.
            -> [String]  -- ^ Arguments to IPython.
            -> IO ()
 runIHaskell profile app args = void . shellyNoDir $ do
+  -- Switch to our directory.
+  (_, _, notebookDir) <- ihaskellDirs
+  cd $ fromText notebookDir
+
   -- Try to locate the profile. Do not die if it doesn't exist.
   errExit False $ ipython True ["locate", "profile", pack profile]
 
@@ -164,6 +169,17 @@ setupIPythonProfile profile = shellyNoDir $ do
 copyProfile :: Text -> IO ()
 copyProfile profileDir = do
   profileTar <- Paths.getDataFileName "profile/profile.tar"
+  {-
+  -- Load profile from Resources directory of Mac *.app.
+  ihaskellPath <- shellyNoDir getIHaskellPath
+  profileTar <- if "IHaskell.app/Contents/MacOS" `isInfixOf` ihaskellPath
+               then
+                let pieces = split "/" ihaskellPath
+                    pathPieces = init pieces ++ ["..", "Resources", "profile.tar"] in
+                  return $ intercalate "/" pathPieces
+               else Paths.getDataFileName "profile/profile.tar"
+  -}
+  putStrLn $ pack $ "Loading profile from " ++ profileTar 
   Tar.extract (unpack profileDir) profileTar 
 
 -- | Insert the IHaskell path into the IPython configuration.
