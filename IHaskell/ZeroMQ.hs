@@ -9,9 +9,9 @@ module IHaskell.ZeroMQ (
   serveProfile
   ) where
 
-import BasicPrelude
+import ClassyPrelude hiding (stdin)
 import Control.Concurrent
-import System.ZMQ3
+import System.ZMQ3 hiding (stdin)
 import Data.Aeson (encode)
 
 import qualified Data.ByteString.Lazy as ByteString
@@ -71,7 +71,7 @@ serveProfile profile = do
 serveSocket :: SocketType a => Context -> a -> Port -> (Socket a -> IO b) -> IO ()
 serveSocket context socketType port action = void $
   withSocket context socketType $ \socket -> do
-    bind socket $ textToString $ "tcp://127.0.0.1:" ++ show port
+    bind socket $ unpack $ "tcp://127.0.0.1:" ++ show port
     forever $ action socket
 
 -- | Listener on the heartbeat port. Echoes back any data it was sent.
