@@ -15,26 +15,26 @@ As well as the IPython browser-based notebook interface:
 Installation
 ===
 
-IPython
+ZeroMQ
 ---
-Make sure you have [IPython](http://ipython.org/) version 1.0 or higher. IHaskell will not work with older versions of IPython.
+IHaskell uses a library known as ZeroMQ for asynchronous communication. Make sure that ZeroMQ 3 is installed. Eventually IHaskell will be ported to ZeroMQ 4, but for now it is on version 3.
+Note that there are different instructions for different platforms:
 ```bash
-ipython --version     # Should print 1.0.0 (or higher!)
-```
+# For Ubuntu (Saucy):
+sudo apt-get install libzmq3-dev
 
-Even newer versions tend to work better. Note that at the moment Ubuntu does not have newer IPython in it's repositories. 
+# For Macs with Homebrew:
+# Make sure you're not in a git repository while doing this!
+brew unlink zeromq # If you happen to have ZeroMQ already installed...
+git checkout c356bf7 `brew --prefix`/Library/Formula/zeromq.rb
+brew install zeromq
 
-If you'd like to install it the most modern IPython from Github, run the following commands:
-```bash
-git clone git@github.com:ipython/ipython.git
-cd ipython
-sudo python setup.py install
-```
-
-You will need to install several libraries for the notebook and console interfaces to work:
-```bash
-# If you don't have pip on Mac OS X, you probably can run "sudo easy_install pip"
-sudo pip install pyzmq tornado jinja2
+# Compiling from source:
+git clone git@github.com:zeromq/zeromq3-x.git libzmq
+cd libzmq
+./autogen.sh && ./configure && make
+sudo make install
+sudo ldconfig
 ```
 
 Haskell and Cabal
@@ -64,28 +64,6 @@ export PATH=~/.cabal/bin:$PATH
 export PATH=~/Library/Haskell/bin:$PATH
 ```
 
-ZeroMQ
----
-Make sure that ZeroMQ 3 is installed. Eventually IHaskell will be ported to ZeroMQ 4, but for now it is on version 3.
-Note that there are different instructions for different platforms:
-```bash
-# For Ubuntu (Saucy):
-sudo apt-get install libzmq3-dev
-
-# For Macs with Homebrew:
-# Make sure you're not in a git repository while doing this!
-brew unlink zeromq # If you happen to have ZeroMQ already installed...
-git checkout c356bf7 `brew --prefix`/Library/Formula/zeromq.rb
-brew install zeromq
-
-# Compiling from source:
-git clone git@github.com:zeromq/zeromq3-x.git libzmq
-cd libzmq
-./autogen.sh && ./configure && make
-sudo make install
-sudo ldconfig
-```
-
 Compilation Tools
 ---
 Install the `happy` parser generator tool and `cpphs` preprocessor:
@@ -97,11 +75,9 @@ cabal install cpphs
 IHaskell Installation
 ---
 
-Install the IHaskell package from the Github repository:
+Install the IHaskell package from Hackage:
 ```bash
-git clone https://github.com/gibiansky/IHaskell
-cd IHaskell
-cabal install
+cabal install ihaskell
 ```
 
 Running IHaskell
@@ -114,9 +90,6 @@ IHaskell console
 ```
 
 There is a test notebook in the `IHaskell` directory.
-
-**Important Note:** Using `IHaskell console` requires a proper patch to IPython. There is 
-[a pull request](https://github.com/ipython/ipython/pull/4678) open on the IPython repository to fix this, but until it is merged, you need to install IPython from [this branch](https://github.com/ivanov/ipython/tree/console-display-text).
 
 **Note**: You may have some trouble due to browser caches with the notebook interface if you also use IPython's notebook interface or have used it in the past. If something doesn't work or IPython says it can't connect to the notebook server, make sure to clear the browser cache in whatever browser you're using, or try another browser.
 
