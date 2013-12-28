@@ -37,7 +37,9 @@ ipython :: Bool         -- ^ Whether to suppress output.
 ipython suppress args = do
   (_, ipythonDir) <- ihaskellDirs
   let ipythonPath = fromText $ ipythonDir ++ "/bin/ipython"
-  runHandles ipythonPath args handles doNothing
+  sub $ do
+    setenv "PYTHONPATH" $ ipythonDir ++ "/lib/python2.7/site-packages"
+    runHandles ipythonPath args handles doNothing
   where handles = [InHandle Inherit, outHandle suppress, errorHandle suppress]
         outHandle True = OutHandle CreatePipe
         outHandle False = OutHandle Inherit
@@ -75,16 +77,17 @@ installIPython = void . shellyNoDir $ do
   let pipDeps = ["pyzmq", "tornado", "jinja2"]
       installDep dep = do
         putStrLn $ "Installing dependency: " ++ dep 
-        quietRun pipPath ["install", "--user", dep]
+        let opt = "--install-option=--prefix=" ++ ipythonDir
+        run_ pipPath ["install", opt, dep]
   mapM_ installDep pipDeps
 
   -- Get the IPython source.
   gitPath <- path "git"
   putStrLn "Downloading IPython... (this may take a while)"
   cd $ fromText ihaskellDir
-  quietRun gitPath ["clone", "--recursive", "https://github.com/ipython/ipython.git", "ipython-src"]
+  run_ gitPath ["clone", "--recursive", "https://github.com/ipython/ipython.git", "ipython-src"]
   cd "ipython-src"
-  quietRun gitPath ["checkout", ipythonCommit]
+  run_ gitPath ["checkout", ipythonCommit]
 
   -- Install IPython locally.
   pythonPath <- path "python"
