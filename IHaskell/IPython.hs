@@ -89,7 +89,7 @@ installIPython = void . shellyNoDir $ do
   -- Install IPython locally.
   pythonPath <- path "python"
   putStrLn "Installing IPython."
-  quietRun pythonPath ["setup.py", "install", "--prefix=" ++ ipythonDir]
+  run_ pythonPath ["setup.py", "install", "--prefix=" ++ ipythonDir]
   cd ".."
 
 -- | Check whether IPython is properly installed.
