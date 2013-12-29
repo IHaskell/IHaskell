@@ -28,12 +28,6 @@ import IHaskell.IPython
 import GHC hiding (extensions)
 import Outputable (showSDoc, ppr)
 
--- All state stored in the kernel between executions.
-data KernelState = KernelState
-  { getExecutionCounter :: Int,
-    getLintStatus :: LintStatus  -- Whether to use hlint, and what arguments to pass it. 
-  }
-
 -- Command line arguments to IHaskell.  A set of aruments is annotated with
 -- the mode being invoked.
 data Args = Args IHaskellMode [Argument]
@@ -207,8 +201,12 @@ runKernel profileSrc initInfo = do
     -- running some code.
     let extLines = map (":extension " ++) $ extensions initInfo
         noPublish _ _ = return ()       
-        zero = 0   -- To please hlint
-        evaluator line = evaluate zero line noPublish
+        evaluator line = do
+          -- Create a new state each time.
+          stateVar <- liftIO initialKernelState
+          state <- liftIO $ takeMVar stateVar
+          evaluate state line noPublish
+
     mapM_ evaluator extLines
     mapM_ evaluator $ initCells initInfo
 
@@ -277,9 +275,8 @@ replyTo interface ShutdownRequest{restartPending = restartPending} replyHeader _
 -- computation, but this causes messages to be sent to the IOPub socket
 -- with the output of the code in the execution request.
 replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
-  let execCount = getExecutionCounter state
-      -- Convenience function to send a message to the IOPub socket.
-      send msg = liftIO $ writeChan (iopubChannel interface) msg
+ -- Convenience function to send a message to the IOPub socket.
+  let send msg = liftIO $ writeChan (iopubChannel interface) msg
 
   -- Notify the frontend that the kernel is busy computing.
   -- All the headers are copies of the reply header with a different
@@ -323,15 +320,14 @@ replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
           modifyMVar_ displayed (return . (outputs:))
 
   -- Run code and publish to the frontend as we go.
-  evaluate execCount (Chars.unpack code) publish
+  let execCount = getExecutionCounter state
+  updatedState <- evaluate state (Chars.unpack code) publish
 
   -- Notify the frontend that we're done computing.
   idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
   send $ PublishStatus idleHeader Idle
 
-  -- Increment the execution counter in the kernel state.
-  let newState = state { getExecutionCounter = execCount + 1 }
-  return (newState, ExecuteReply {
+  return (updatedState, ExecuteReply {
     header = replyHeader,
     executionCounter = execCount,
     status = Ok

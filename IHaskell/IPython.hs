@@ -10,6 +10,7 @@ module IHaskell.IPython (
   runNotebook,
   readInitInfo,
   defaultConfFile,
+  getIHaskellDir,
 ) where
 
 import ClassyPrelude
@@ -74,6 +75,11 @@ ihaskellDirs = do
   mkdir_p $ fromText notebookDir
 
   return (ihaskellDir, ipythonDir, notebookDir)
+
+getIHaskellDir :: IO String
+getIHaskellDir = shellyNoDir $ do
+  (ihaskellDir, _, _) <- ihaskellDirs
+  return $ unpack ihaskellDir
 
 defaultConfFile :: IO (Maybe String)
 defaultConfFile = shellyNoDir $ do

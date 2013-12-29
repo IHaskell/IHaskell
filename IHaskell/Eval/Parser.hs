@@ -9,7 +9,9 @@ module IHaskell.Eval.Parser (
     ErrMsg,
     layoutChunks,
     parseDirective,
-    getModuleName
+    getModuleName,
+    unloc,
+    Located(..),
     ) where
 
 -- Hide 'unlines' to use our own 'joinLines' instead.
@@ -23,11 +25,11 @@ import Prelude (init, last, head, tail)
 import Bag
 import ErrUtils hiding (ErrMsg)
 import FastString
-import GHC
+import GHC hiding (Located)
 import Lexer
 import OrdList
 import Outputable hiding ((<>))
-import SrcLoc
+import SrcLoc hiding (Located)
 import StringBuffer
 
 import Language.Haskell.GHC.Parser
@@ -47,6 +49,9 @@ data CodeBlock
   | ParseError StringLoc ErrMsg        -- ^ An error indicating that parsing the code block failed.
   deriving (Show, Eq)
 
+-- | Store locations along with a value.
+data Located a = Located LineNumber a deriving Show
+
 -- | Directive types. Each directive is associated with a string in the
 -- directive code block.
 data DirectiveType
@@ -57,26 +62,34 @@ data DirectiveType
   | GetHelp         -- ^ General help via ':?' or ':help'.
   deriving (Show, Eq)
 
+-- | Unlocate something - drop the position.
+unloc :: Located a -> a
+unloc (Located _ a) = a
+
+-- | Get the line number of a located element.
+line :: Located a -> LineNumber
+line (Located l _) = l
+
 -- | Parse a string into code blocks.
-parseString :: GhcMonad m => String -> m [CodeBlock]
+parseString :: GhcMonad m => String -> m [Located CodeBlock]
 parseString codeString = do
   -- Try to parse this as a single module.
   flags <- getSessionDynFlags
   let output = runParser flags parserModule codeString
   case output of
-    Parsed {} -> return [Module codeString]
+    Parsed {} -> return [Located 1 $ Module codeString]
     Failure {} ->
       -- Split input into chunks based on indentation.
       let chunks = layoutChunks $ dropComments codeString in
         joinFunctions <$> processChunks 1 [] chunks
   where
-    parseChunk :: GhcMonad m => String -> LineNumber -> m CodeBlock
-    parseChunk chunk line =
+    parseChunk :: GhcMonad m => String -> LineNumber -> m (Located CodeBlock)
+    parseChunk chunk line = Located line <$>
       if isDirective chunk
       then return $ parseDirective chunk line
       else parseCodeChunk chunk line
 
-    processChunks :: GhcMonad m => LineNumber -> [CodeBlock] -> [String] -> m [CodeBlock]
+    processChunks :: GhcMonad m => LineNumber -> [Located CodeBlock] -> [String] -> m [Located CodeBlock]
     processChunks line accum remaining =
       case remaining of
         -- If we have no more remaining lines, return the accumulated results.
@@ -165,12 +178,12 @@ parseCodeChunk code startLine = do
 -- | Find consecutive declarations of the same function and join them into
 -- a single declaration. These declarations may also include a type
 -- signature, which is also joined with the subsequent declarations.
-joinFunctions :: [CodeBlock] -> [CodeBlock]
-joinFunctions (Declaration decl : rest) =
+joinFunctions :: [Located CodeBlock] -> [Located CodeBlock]
+joinFunctions (Located line (Declaration decl) : rest) =
     -- Find all declarations having the same name as this one.
     let (decls, other) = havingSameName rest in
       -- Convert them into a single declaration.
-      Declaration (joinLines $ map undecl decls) : joinFunctions other
+      Located line (Declaration (joinLines $ map (undecl . unloc) decls)) : joinFunctions other
   where
     undecl (Declaration decl) = decl
     undecl _ = error "Expected declaration!"
@@ -178,21 +191,22 @@ joinFunctions (Declaration decl : rest) =
     -- Get all declarations with the same name as the first declaration.
     -- The name of a declaration is the first word, which we expect to be
     -- the name of the function.
-    havingSameName :: [CodeBlock] -> ([CodeBlock], [CodeBlock]) 
+    havingSameName :: [Located CodeBlock] -> ([Located CodeBlock], [Located CodeBlock]) 
     havingSameName blocks =
       let name = head $ words decl
           sameName = takeWhile (isNamedDecl name) rest 
           others = drop (length sameName) rest in
-        (Declaration decl : sameName, others)
+        (Located line (Declaration decl) : sameName, others)
 
-    isNamedDecl :: String -> CodeBlock -> Bool
-    isNamedDecl name (Declaration dec) = head (words dec) == name
+    isNamedDecl :: String -> Located CodeBlock -> Bool
+    isNamedDecl name (Located _ (Declaration dec)) = head (words dec) == name
     isNamedDecl _ _ = False
 
 -- Allow a type signature followed by declarations to be joined to the
 -- declarations. Parse the declaration joining separately.
-joinFunctions (TypeSignature sig : Declaration decl : rest) = (Declaration $ sig ++ "\n" ++ joinedDecl):remaining
-  where Declaration joinedDecl:remaining = joinFunctions $ Declaration decl : rest 
+joinFunctions (Located line (TypeSignature sig) : Located dl (Declaration decl) : rest) =
+  Located line (Declaration $ sig ++ "\n" ++ joinedDecl):remaining
+  where Located _ (Declaration joinedDecl):remaining = joinFunctions $ Located dl (Declaration decl) : rest 
         
 joinFunctions (x:xs) = x : joinFunctions xs
 joinFunctions [] = []

@@ -47,6 +47,7 @@ data-files:
 
 library
   build-depends:       base ==4.6.*,
+                       hlint,
                        cmdargs >= 0.10,
                        tar,
                        ghc-parser,
@@ -87,6 +88,7 @@ executable IHaskell
   
   -- Modules included in this executable, other than Main.
   other-modules:       
+             IHaskell.Eval.Lint
              IHaskell.Eval.Completion
              IHaskell.Eval.Info
              IHaskell.Eval.Evaluate
@@ -104,6 +106,7 @@ executable IHaskell
   
   -- Other library packages from which modules are imported.
   build-depends:       base ==4.6.*,
+                       hlint,
                        cmdargs >= 0.10,
                        tar,
                        ghc-parser,
@@ -137,6 +140,7 @@ Test-Suite hspec
   Ghc-Options: -threaded
   Main-Is: Hspec.hs
   build-depends:       base ==4.6.*,
+                       hlint,
                        cmdargs >= 0.10,
                        tar,
                        ghc-parser,

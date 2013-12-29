@@ -1,0 +1,24 @@
+/*
+Custom IHaskell CSS.
+*/
+table.suggestion-table {
+    border: 0px;
+    text-align: center;
+}
+tr.suggestion-row {
+    border: 0px;
+}
+td.suggestion-cell {
+    border: 0px;
+}
+.suggestion-warning { 
+    font-weight: bold;
+    color: rgb(200, 130, 0);
+}
+.suggestion-error { 
+    font-weight: bold;
+    color: red;
+}
+.suggestion-name {
+    font-weight: bold;
+}

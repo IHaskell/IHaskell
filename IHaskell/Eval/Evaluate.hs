@@ -49,6 +49,7 @@ import qualified System.IO.Strict as StrictIO
 
 import IHaskell.Types
 import IHaskell.Eval.Parser
+import IHaskell.Eval.Lint
 import IHaskell.Display
 
 data ErrorOccurred = Success | Failure deriving Show
@@ -142,37 +143,70 @@ initializeItVariable =
 -- this output is final (true) or intermediate (false).
 type Publisher = (Bool -> [DisplayData] -> IO ())
 
+-- | Output of a command evaluation.
+data EvalOut = EvalOut {
+    evalStatus :: ErrorOccurred,
+    evalResult :: [DisplayData],
+    evalState :: KernelState
+  }
+
 -- | Evaluate some IPython input code.
-evaluate :: Int              -- ^ The execution counter of this evaluation.
+evaluate :: KernelState      -- ^ The kernel state.
          -> String           -- ^ Haskell code or other interpreter commands.
          -> Publisher        -- ^ Function used to publish data outputs.
-         -> Interpreter ()
-evaluate execCount code output = do
+         -> Interpreter KernelState
+evaluate kernelState code output = do
   cmds <- parseString (strip code)
-  runUntilFailure (cmds ++ [storeItCommand execCount])
+  let execCount = getExecutionCounter kernelState
+
+  when (getLintStatus kernelState /= LintOff) $ liftIO $ do
+    lintSuggestions <- lint cmds
+    output True lintSuggestions
+
+  updated <- runUntilFailure kernelState (map unloc cmds ++ [storeItCommand execCount])
+  return updated {
+    getExecutionCounter = execCount + 1
+  }
   where
-    runUntilFailure :: [CodeBlock] -> Interpreter ()
-    runUntilFailure [] = return ()
-    runUntilFailure (cmd:rest) = do 
-      (success, result) <- evalCommand output cmd
-      unless (null result) $ liftIO $ output True result
-      case success of
-        Success -> runUntilFailure rest
-        Failure -> return ()
+    runUntilFailure :: KernelState -> [CodeBlock] -> Interpreter KernelState
+    runUntilFailure state [] = return state
+    runUntilFailure state (cmd:rest) = do 
+      evalOut <- evalCommand output cmd state
+
+      -- Output things only if they are non-empty.
+      let result = evalResult evalOut
+      unless (null result) $
+        liftIO $ output True result
+
+      let newState = evalState evalOut
+      case evalStatus evalOut of
+        Success -> runUntilFailure newState rest
+        Failure -> return newState
 
     storeItCommand execCount = Statement $ printf "let it%d = it" execCount
 
-wrapExecution :: Interpreter [DisplayData] -> Interpreter (ErrorOccurred, [DisplayData])
-wrapExecution exec = ghandle handler $ exec >>= \res ->
-    return (Success, res)
+wrapExecution :: KernelState
+              -> Interpreter [DisplayData]
+              -> Interpreter EvalOut
+wrapExecution state exec = ghandle handler $ exec >>= \res ->
+    return EvalOut {
+      evalStatus = Success,
+      evalResult = res,
+      evalState = state
+    }
   where 
-    handler :: SomeException -> Interpreter (ErrorOccurred, [DisplayData])
-    handler exception = return (Failure, displayError $ show exception)
+    handler :: SomeException -> Interpreter EvalOut
+    handler exception =
+      return EvalOut {
+        evalStatus = Failure,
+        evalResult = displayError $ show exception,
+        evalState = state
+      }
 
 -- | Return the display data for this command, as well as whether it
 -- resulted in an error.
-evalCommand :: Publisher -> CodeBlock -> Interpreter (ErrorOccurred, [DisplayData])
-evalCommand _ (Import importStr) = wrapExecution $ do
+evalCommand :: Publisher -> CodeBlock -> KernelState -> Interpreter EvalOut
+evalCommand _ (Import importStr) state = wrapExecution state $ do
   write $ "Import: " ++ importStr
   importDecl <- parseImportDecl importStr
   context <- getContext
@@ -188,7 +222,7 @@ evalCommand _ (Import importStr) = wrapExecution $ do
     implicitImportOf _ (IIModule _) = False
     implicitImportOf imp (IIDecl decl) = ideclImplicit decl && ((==) `on` (unLoc . ideclName)) decl imp
 
-evalCommand _ (Module contents) = wrapExecution $ do
+evalCommand _ (Module contents) state = wrapExecution state $ do
   write $ "Module:\n" ++ contents
   -- Write the module contents to a temporary file in our work directory
   namePieces <- getModuleName contents
@@ -257,7 +291,7 @@ evalCommand _ (Module contents) = wrapExecution $ do
         Succeeded -> return []
         Failed -> return $ displayError $ "Failed to load module " ++ modName
 
-evalCommand _ (Directive SetExtension exts) = wrapExecution $ do
+evalCommand _ (Directive SetExtension exts) state = wrapExecution state $ do
   write $ "Extension: " ++ exts
   results <- mapM setExtension (words exts)
   case catMaybes results of
@@ -292,7 +326,7 @@ evalCommand _ (Directive SetExtension exts) = wrapExecution $ do
     -- In that case, we disable the extension.
     flagMatchesNo ext (name, _, _) = ext == "No"  ++ name
 
-evalCommand _ (Directive GetType expr) = wrapExecution $ do
+evalCommand _ (Directive GetType expr) state = wrapExecution state $ do
   write $ "Type: " ++ expr
   result <- exprType expr
   flags <- getSessionDynFlags
@@ -300,9 +334,13 @@ evalCommand _ (Directive GetType expr) = wrapExecution $ do
   return [plain typeStr, html $ formatGetType typeStr]
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
-evalCommand _ (Directive HelpForSet _) = do
+evalCommand _ (Directive HelpForSet _) state = do
   write "Help for :set."
-  return (Success, [out])
+  return EvalOut {
+    evalStatus = Success,
+    evalResult = [out],
+    evalState = state
+  }
   where out = plain $ intercalate "\n"
           [":set is not implemented in IHaskell."
           ,"  Use :extension <Extension> to enable a GHC extension."
@@ -310,9 +348,13 @@ evalCommand _ (Directive HelpForSet _) = do
           ]
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
-evalCommand _ (Directive GetHelp _) = do
+evalCommand _ (Directive GetHelp _) state = do
   write "Help via :help or :?."
-  return (Success, [out])
+  return EvalOut {
+    evalStatus = Success,
+    evalResult = [out],
+    evalState = state
+  }
   where out = plain $ intercalate "\n"
           ["The following commands are available:"
           ,"    :extension <Extension>    -  enable a GHC extension."
@@ -325,7 +367,7 @@ evalCommand _ (Directive GetHelp _) = do
           ]
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
-evalCommand _ (Directive GetInfo str) = wrapExecution $ do
+evalCommand _ (Directive GetInfo str) state = wrapExecution state $ do
   write $ "Info: " ++ str
   -- Get all the info for all the names we're given.
   names     <- parseName str
@@ -357,7 +399,7 @@ evalCommand _ (Directive GetInfo str) = wrapExecution $ do
   let strings = map (showSDocForUser flags unqual) outs
   return [plain $ intercalate "\n" strings]
 
-evalCommand output (Statement stmt) = wrapExecution $ do
+evalCommand output (Statement stmt) state = wrapExecution state $ do
   write $ "Statement:\n" ++ stmt
   let outputter str = output False [plain str]
   (printed, result) <- capturedStatement outputter stmt
@@ -370,11 +412,11 @@ evalCommand output (Statement stmt) = wrapExecution $ do
     RunException exception -> throw exception
     RunBreak{} -> error "Should not break."
 
-evalCommand output (Expression expr) = do
+evalCommand output (Expression expr) state = do
   write $ "Expression:\n" ++ expr
   -- Evaluate this expression as though it's just a statement.
   -- The output is bound to 'it', so we can then use it.
-  (success, out) <- evalCommand output (Statement expr)
+  evalOut <- evalCommand output (Statement expr) state
 
     -- Try to use `display` to convert our type into the output
   -- DisplayData. If typechecking fails and there is no appropriate
@@ -382,6 +424,7 @@ evalCommand output (Expression expr) = do
   -- return False, and we just resort to plaintext.
   let displayExpr = printf "(IHaskell.Display.display (%s))" expr
   canRunDisplay <- attempt $ exprType displayExpr
+  let out = evalResult evalOut
   write $ printf "%s: Attempting %s" (if canRunDisplay then "Success" else "Failure") displayExpr
   write $ "Show Error: " ++ show (isShowError out)
   write $ show out
@@ -389,12 +432,12 @@ evalCommand output (Expression expr) = do
   -- If evaluation failed, return the failure.  If it was successful, we
   -- may be able to use the IHaskellDisplay typeclass.
   if not canRunDisplay
-  then return (success, out)
-  else case success of
+  then return evalOut
+  else case evalStatus evalOut of
     Success -> useDisplay displayExpr
     Failure -> if isShowError out
               then useDisplay displayExpr
-              else return (success, out)
+              else return evalOut
 
   where
     -- Try to evaluate an action. Return True if it succeeds and False if
@@ -413,7 +456,7 @@ evalCommand output (Expression expr) = do
       Nothing -> False
       where isPlain (Display mime _) = mime == PlainText
 
-    useDisplay displayExpr = wrapExecution $ do
+    useDisplay displayExpr = wrapExecution state $ do
       -- If there are instance matches, convert the object into
       -- a [DisplayData]. We also serialize it into a bytestring. We get
       -- the bytestring as a dynamic and then convert back to
@@ -433,23 +476,27 @@ evalCommand output (Expression expr) = do
               return displayData
 
 
-evalCommand _ (Declaration decl) = wrapExecution $ do
+evalCommand _ (Declaration decl) state = wrapExecution state $ do
   write $ "Declaration:\n" ++ decl
   runDecls decl
 
   -- Do not display any output
   return []
 
-evalCommand _ (TypeSignature sig) = wrapExecution $
+evalCommand _ (TypeSignature sig) state = wrapExecution state $
   -- We purposefully treat this as a "success" because that way execution
   -- continues. Empty type signatures are likely due to a parse error later
   -- on, and we want that to be displayed.
   return $ displayError $ "The type signature " ++ sig ++
                           "\nlacks an accompanying binding."
 
-evalCommand _ (ParseError loc err) = do
+evalCommand _ (ParseError loc err) state = do
   write "Parse Error."
-  return (Failure, displayError $ formatParseError loc err)
+  return EvalOut {
+    evalStatus = Failure,
+    evalResult = displayError $ formatParseError loc err,
+    evalState = state
+  }
 
 capturedStatement :: (String -> IO ())         -- ^ Function used to publish intermediate output.
                   -> String                            -- ^ Statement to evaluate.

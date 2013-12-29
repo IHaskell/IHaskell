@@ -16,6 +16,7 @@ module IHaskell.Types (
   DisplayData(..),
   ExecuteReplyStatus(..),
   InitInfo(..),
+  KernelState(..),
   LintStatus(..),
   LintOption(..),
   ) where
@@ -67,6 +68,12 @@ instance ToJSON Profile where
                     "iopub_port"  .= iopubPort profile,
                     "key"         .= key profile
                    ]
+
+-- | All state stored in the kernel between executions.
+data KernelState = KernelState
+  { getExecutionCounter :: Int,
+    getLintStatus :: LintStatus  -- Whether to use hlint, and what arguments to pass it. 
+  }
 
 -- | Initialization information for the kernel.
 data InitInfo = InitInfo {
