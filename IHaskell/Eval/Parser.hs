@@ -50,7 +50,7 @@ data CodeBlock
   deriving (Show, Eq)
 
 -- | Store locations along with a value.
-data Located a = Located LineNumber a deriving Show
+data Located a = Located LineNumber a deriving (Eq, Show)
 
 -- | Directive types. Each directive is associated with a string in the
 -- directive code block.

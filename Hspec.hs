@@ -372,4 +372,12 @@ parseStringTests = describe "Parser" $ do
         Nothing
         Just 100))
     |] `is` Expression
+  it "correctly locates parsed items" $ do
+    let go = doGhc . parseString
+    go [hereLit|
+        first
+
+        second
+       |] >>= (`shouldBe` [Located 1 (Expression "first"),
+                          Located 2 (Expression "second")])
     
