@@ -18,7 +18,6 @@ module IHaskell.Types (
   InitInfo(..),
   KernelState(..),
   LintStatus(..),
-  LintOption(..),
   ) where
 
 import ClassyPrelude
@@ -84,13 +83,8 @@ data InitInfo = InitInfo {
 
 -- | Current HLint status.
 data LintStatus
-     = LintOn [LintOption]
+     = LintOn
      | LintOff
-     deriving (Eq, Show)
-
--- | An option for HLint.
-data LintOption
-     = Ignore String    -- ^ Ignore a particular hint.
      deriving (Eq, Show)
 
 -- | A message header with some metadata.  

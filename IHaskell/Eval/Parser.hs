@@ -58,6 +58,7 @@ data DirectiveType
   = GetType         -- ^ Get the type of an expression via ':type' (or unique prefixes)
   | GetInfo         -- ^ Get info about the identifier via ':info' (or unique prefixes)
   | SetExtension    -- ^ Enable or disable an extension via ':extension' (or prefixes)
+  | SetLint         -- ^ Enable or disable a hlint via ':hlint on' or ':hlint off'
   | HelpForSet      -- ^ Provide useful info if people try ':set'.
   | GetHelp         -- ^ General help via ':?' or ':help'.
   deriving (Show, Eq)
@@ -233,6 +234,7 @@ parseDirective (':':directive) line = case find rightDirective directives of
       [(GetType,      "type")
       ,(GetInfo,      "info")
       ,(SetExtension, "extension")
+      ,(SetLint,      "hlint")
       ,(HelpForSet,   "set")
       ,(GetHelp,      "?")
       ,(GetHelp,      "help")

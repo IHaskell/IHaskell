@@ -19,19 +19,22 @@ import Test.Hspec.HUnit
 
 doGhc = runGhc (Just libdir)
 
-parses = doGhc . parseString
+parses str = do
+  res <- doGhc $ parseString str
+  return $ map unloc res
 
 like parser desired = parser >>= (`shouldBe` desired)
 
 is string blockType = do
   result <- doGhc $ parseString string
-  result `shouldBe` [blockType $ strip string]
+  map unloc result `shouldBe` [blockType $ strip string]
 
 eval string = do
   outputAccum <- newIORef []
   let publish _ displayDatas = modifyIORef outputAccum (displayDatas :)
   getTemporaryDirectory >>= setCurrentDirectory
-  interpret $ Eval.evaluate 1 string publish
+  let state = KernelState 1 LintOff
+  interpret $ Eval.evaluate state string publish
   out <- readIORef outputAccum
   return $ reverse out
 
@@ -88,7 +91,6 @@ initCompleter = do
 main :: IO ()
 main = hspec $ do
   parserTests
-  ipythonTests
   evalTests
   completionTests
 
@@ -191,15 +193,6 @@ evalTests = do
     it "evaluates directives" $ do
       ":typ 3" `becomes` ["forall a. Num a => a"]
       ":in String" `becomes` ["type String = [Char] \t-- Defined in `GHC.Base'"]
-
-ipythonTests = do
-  describe "Parse IPython Version" $ do
-    it "parses 2.0.0-dev" $
-      parseVersion "2.0.0-dev" `shouldBe` [2, 0, 0]
-    it "parses 2.0.0-alpha" $
-      parseVersion "2.0.0-dev" `shouldBe` [2, 0, 0]
-    it "parses 12.5.10" $
-      parseVersion "12.5.10" `shouldBe` [12, 5, 10]
 
 parserTests = do
   layoutChunkerTests

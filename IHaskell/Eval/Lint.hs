@@ -53,7 +53,7 @@ lint blocks = do
     joinBlocks nextLine (Located desiredLine str:strs) =
       -- Place padding to shift the line number appropriately.
       replicate (desiredLine - nextLine) '\n' ++
-      str ++
+      str ++ "\n" ++
       joinBlocks (desiredLine + nlines str) strs
     joinBlocks _ [] = ""
 

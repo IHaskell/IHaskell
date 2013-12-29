@@ -326,6 +326,17 @@ evalCommand _ (Directive SetExtension exts) state = wrapExecution state $ do
     -- In that case, we disable the extension.
     flagMatchesNo ext (name, _, _) = ext == "No"  ++ name
 
+evalCommand _ (Directive SetLint status) state = do
+  let isOn = "on" == strip status
+  let isOff = "off" == strip status
+  return $ if isOn
+           then EvalOut Success [] (state { getLintStatus = LintOn })
+           else if isOff
+             then EvalOut Success [] (state { getLintStatus = LintOff })
+             else EvalOut Failure err state
+  where
+    err = displayError $ "Unknown hlint command: " ++ status
+
 evalCommand _ (Directive GetType expr) state = wrapExecution state $ do
   write $ "Type: " ++ expr
   result <- exprType expr
