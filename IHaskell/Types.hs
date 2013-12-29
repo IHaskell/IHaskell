@@ -15,6 +15,7 @@ module IHaskell.Types (
   MimeType(..),
   DisplayData(..),
   ExecuteReplyStatus(..),
+  InitInfo(..),
   ) where
 
 import ClassyPrelude
@@ -64,6 +65,13 @@ instance ToJSON Profile where
                     "iopub_port"  .= iopubPort profile,
                     "key"         .= key profile
                    ]
+
+-- | Initialization information for the kernel.
+data InitInfo = InitInfo {
+  extensions :: [String],   -- ^ Extensions to enable at start.
+  initCells :: [String]     -- ^ Code blocks to run before start.
+  }
+  deriving (Show, Read)
 
 -- | A message header with some metadata.  
 data MessageHeader = MessageHeader {

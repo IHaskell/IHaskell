@@ -5,12 +5,14 @@
 --                 Chans to communicate with the ZeroMQ sockets. 
 module Main where
 import ClassyPrelude hiding (liftIO)
+import Prelude (last)
 import Control.Concurrent.Chan
 import Control.Concurrent (threadDelay)
 import Data.Aeson
 import Text.Printf
 import System.Exit (exitSuccess)
 import System.Directory
+import System.Console.CmdArgs.Explicit hiding (complete)
 
 import qualified Data.Map as Map
 
@@ -23,51 +25,160 @@ import IHaskell.Eval.Info
 import qualified Data.ByteString.Char8 as Chars
 import IHaskell.IPython
 
-import GHC
+import GHC hiding (extensions)
 import Outputable (showSDoc, ppr)
 
+-- All state stored in the kernel between executions.
 data KernelState = KernelState
   { getExecutionCounter :: Int
   }
 
+-- Command line arguments to IHaskell.  A set of aruments is annotated with
+-- the mode being invoked.
+data Args = Args IHaskellMode [Argument]
+
+data Argument
+  = ServeFrom String    -- ^ Which directory to serve notebooks from.
+  | Extension String    -- ^ An extension to load at startup.
+  | ConfFile String     -- ^ A file with commands to load at startup.
+  | Help                -- ^ Display help text.
+  deriving (Eq, Show)
+
+-- Which mode IHaskell is being invoked in.
+-- `None` means no mode was specified.
+data IHaskellMode
+  = None
+  | Notebook
+  | Console
+  | UpdateIPython
+  | Kernel (Maybe String)
+  deriving (Eq, Show)
+
 main ::  IO ()
 main = do
-  args <- map unpack <$> getArgs
-  ihaskell args
+  stringArgs <- map unpack <$> getArgs
+  writeFile "/users/silver/bloop" $ show stringArgs
+  case process ihaskellArgs stringArgs of
+    Left errmsg -> putStrLn $ pack errmsg
+    Right args ->
+      ihaskell args
 
-ihaskell args = do
+universalFlags :: [Flag Args]
+universalFlags = [
+  flagReq ["extension","e", "X"] (store Extension) "<ghc-extension>" "Extension to enable at start.",
+  flagReq ["conf","c"] (store ConfFile) "<file.hs>" "File with commands to execute at start.",
+  flagHelpSimple (add Help)
+  ]
+  where 
+    add flag (Args mode flags) = Args mode $ flag : flags
+
+store :: (String -> Argument) -> String -> Args -> Either String Args
+store constructor str (Args mode prev) = Right $ Args mode $ constructor str : prev
+
+notebook :: Mode Args
+notebook = mode "notebook" (Args Notebook []) "Browser-based notebook interface." noArgs $
+  flagReq ["serve","s"] (store ServeFrom) "<dir>" "Directory to serve notebooks from.":
+  universalFlags
+
+console :: Mode Args
+console = mode "console" (Args Console []) "Console-based interactive repl." noArgs universalFlags
+
+kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg []
+  where
+    kernelArg = flagArg update "<json-kernel-file>"
+    update filename (Args _ flags) = Right $ Args (Kernel $ Just filename) flags
+
+update :: Mode Args
+update = mode "update" (Args UpdateIPython []) "Update IPython frontends." noArgs []
+
+ihaskellArgs :: Mode Args
+ihaskellArgs = (modeEmpty $ Args None []) { modeGroupModes = toGroup [console, notebook, update, kernel] }
+
+noArgs = flagArg unexpected ""
+  where
+    unexpected a = error $ "Unexpected argument: " ++ a
+
+ihaskell :: Args -> IO ()
+-- If no mode is specified, print help text.
+ihaskell (Args None _) = 
+  print $ helpText [] HelpFormatAll ihaskellArgs
+
+-- Update IPython: remove then reinstall.
+-- This is in case cabal updates IHaskell but the corresponding IPython
+-- isn't updated. This is hard to detect since versions of IPython might
+-- not change!
+ihaskell (Args UpdateIPython _) = do
+  removeIPython
+  installIPython
+  putStrLn "IPython updated."
+    
+ihaskell (Args Console flags) = showingHelp Console flags $ do
   installed <- ipythonInstalled
   unless installed installIPython
 
-  case args of
-    -- Create the "haskell" profile.
-    ["setup"] -> setupIPythonProfile "haskell"
+  flags <- addDefaultConfFile flags
+  info <- initInfo flags
+  runConsole info
 
-    -- Run the ipython <cmd> --profile haskell <args> command.
-    "notebook":ipythonArgs -> runIHaskell "haskell" "notebook" ipythonArgs
-    "console":ipythonArgs -> runIHaskell "haskell" "console" ipythonArgs
+ihaskell (Args Notebook flags) = showingHelp Notebook flags $ do
+  installed <- ipythonInstalled
+  unless installed installIPython
 
-    -- Read the profile JSON file from the argument list.
-    ["kernel", profileSrc] -> kernel profileSrc
+  let server = case mapMaybe serveDir flags of
+                 [] -> Nothing
+                 xs -> Just $ last xs
 
-    -- Bad arguments.
-    [] -> do
-      mapM_ putStrLn [
-        "Available Commands:",
-        "    `IHaskell console`         - run command-line console.",
-        "    `IHaskell setup`           - repeat setup.",
-        "    `IHaskell notebook`        - run browser-based notebook.",
-        "    `IHaskell kernel <file>`   - just run the kernel.",
-        "Defaulting to `IHaskell notebook.`"]
-      threadDelay $ 2 * 1000 * 1000
-      ihaskell ["notebook"]
-    cmd:_ -> putStrLn $ "Unknown command: " ++ pack cmd
+  flags <- addDefaultConfFile flags
+  info <- initInfo flags
+  runNotebook info server
+  where
+    serveDir (ServeFrom dir) = Just dir
+    serveDir _ = Nothing
 
+ihaskell (Args (Kernel (Just filename)) _) = do
+  initInfo <- readInitInfo
+  runKernel filename initInfo
+
+-- | Add a conf file to the arguments if none exists.
+addDefaultConfFile :: [Argument] -> IO [Argument]
+addDefaultConfFile flags = do
+  def <- defaultConfFile
+  case (find isConfFile flags, def) of
+    (Nothing, Just file) -> return $ ConfFile file : flags
+    _ -> return flags
+  where
+    isConfFile (ConfFile _) = True
+    isConfFile _ = False
+
+showingHelp :: IHaskellMode -> [Argument] -> IO () -> IO ()
+showingHelp mode flags act =
+  case find (==Help) flags of
+    Just _ ->
+      print $ helpText [] HelpFormatAll $ chooseMode mode
+    Nothing ->
+      act
+  where
+    chooseMode Console = console
+    chooseMode Notebook = notebook
+    chooseMode (Kernel _) = kernel
+    chooseMode UpdateIPython = update
+ 
+-- | Parse initialization information from the flags.
+initInfo :: [Argument] -> IO InitInfo
+initInfo [] = return InitInfo { extensions = [], initCells = []}
+initInfo (flag:flags) = do
+  info <- initInfo flags
+  case flag of
+    Extension ext -> return info { extensions = ext:extensions info }
+    ConfFile filename -> do
+      cell <- readFile (fpFromText $ pack filename)
+      return info { initCells = cell:initCells info }
 
 -- | Run the IHaskell language kernel.
-kernel :: String -- ^ Filename of profile JSON file.
-       -> IO ()
-kernel profileSrc = do
+runKernel :: String    -- ^ Filename of profile JSON file.
+          -> InitInfo  -- ^ Initialization information from the invocation.
+          -> IO ()
+runKernel profileSrc initInfo = do
   -- Switch to a temporary directory so that any files we create aren't
   -- visible. On Unix, this is usually /tmp.  If there is no temporary
   -- directory available, just stay in the current one and ignore the
@@ -83,20 +194,31 @@ kernel profileSrc = do
   state <- initialKernelState
 
   -- Receive and reply to all messages on the shell socket.
-  interpret $ forever $ do
-    -- Read the request from the request channel.
-    request <- liftIO $ readChan $ shellRequestChannel interface
+  interpret $ do
+    -- Initialize the context by evaluating everything we got from the  
+    -- command line flags. This includes enabling some extensions and also
+    -- running some code.
+    let extLines = map (":extension " ++) $ extensions initInfo
+        noPublish _ _ = return ()       
+        zero = 0   -- To please hlint
+        evaluator line = evaluate zero line noPublish
+    mapM_ evaluator extLines
+    mapM_ evaluator $ initCells initInfo
 
-    -- Create a header for the reply.
-    replyHeader <- createReplyHeader (header request)
+    forever $ do
+      -- Read the request from the request channel.
+      request <- liftIO $ readChan $ shellRequestChannel interface
 
-    -- Create the reply, possibly modifying kernel state.
-    oldState <- liftIO $ takeMVar state
-    (newState, reply) <- replyTo interface request replyHeader oldState 
-    liftIO $ putMVar state newState
+      -- Create a header for the reply.
+      replyHeader <- createReplyHeader (header request)
 
-    -- Write the reply to the reply channel.
-    liftIO $ writeChan (shellReplyChannel interface) reply
+      -- Create the reply, possibly modifying kernel state.
+      oldState <- liftIO $ takeMVar state
+      (newState, reply) <- replyTo interface request replyHeader oldState 
+      liftIO $ putMVar state newState
+
+      -- Write the reply to the reply channel.
+      liftIO $ writeChan (shellReplyChannel interface) reply
 
 -- Initial kernel state.
 initialKernelState :: IO (MVar KernelState)

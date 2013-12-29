@@ -3,12 +3,13 @@
 -- | Description : Shell scripting wrapper using @Shelly@ for the @notebook@, @setup@, and
 --                 @console@ commands.
 module IHaskell.IPython (
-  runIHaskell,
-  setupIPythonProfile,
-  ipythonVersion,
-  parseVersion,
   ipythonInstalled,
-  installIPython
+  installIPython,
+  removeIPython,
+  runConsole,
+  runNotebook,
+  readInitInfo,
+  defaultConfFile,
 ) where
 
 import ClassyPrelude
@@ -25,9 +26,15 @@ import qualified System.IO.Strict as StrictIO
 import qualified Paths_ihaskell as Paths
 import qualified Codec.Archive.Tar as Tar
 
+import IHaskell.Types
+
 -- | Which commit of IPython we are on.
 ipythonCommit :: Text
 ipythonCommit = "1faf2f6e77fa31f4533e3edbe101c38ddf8943d8"
+
+-- | The IPython profile name.
+ipythonProfile :: String
+ipythonProfile = "haskell"
 
 -- | Run IPython with any arguments.
 ipython :: Bool         -- ^ Whether to suppress output.
@@ -67,6 +74,22 @@ ihaskellDirs = do
   mkdir_p $ fromText notebookDir
 
   return (ihaskellDir, ipythonDir, notebookDir)
+
+defaultConfFile :: IO (Maybe String)
+defaultConfFile = shellyNoDir $ do
+  (ihaskellDir, _, _) <- ihaskellDirs
+  let filename = ihaskellDir ++ "/rc.hs"
+  exists <- test_f $ fromText filename
+  return $ if exists
+           then Just $ unpack filename
+           else Nothing
+
+-- | Remove IPython so it can be reinstalled.
+removeIPython :: IO ()
+removeIPython = void . shellyNoDir $ do
+  (ihaskellDir, _, _) <- ihaskellDirs
+  cd $ fromText ihaskellDir
+  rm_rf "ipython-src"
 
 -- | Install IPython from source.
 installIPython :: IO ()
@@ -132,12 +155,8 @@ parseVersion versionStr = map read' $ split "." versionStr
 runIHaskell :: String   -- ^ IHaskell profile name. 
            -> String    -- ^ IPython app name.
            -> [String]  -- ^ Arguments to IPython.
-           -> IO ()
-runIHaskell profile app args = void . shellyNoDir $ do
-  -- Switch to our directory.
-  (_, _, notebookDir) <- ihaskellDirs
-  cd $ fromText notebookDir
-
+           -> Sh ()
+runIHaskell profile app args = void $ do
   -- Try to locate the profile. Do not die if it doesn't exist.
   errExit False $ ipython True ["locate", "profile", pack profile]
 
@@ -149,6 +168,33 @@ runIHaskell profile app args = void . shellyNoDir $ do
 
   -- Run the IHaskell command.
   ipython False $ map pack $ [app, "--profile", profile] ++ args
+
+runConsole :: InitInfo -> IO ()
+runConsole initInfo = void . shellyNoDir $ do
+  writeInitInfo initInfo
+  runIHaskell ipythonProfile "console" []
+
+runNotebook :: InitInfo -> Maybe String -> IO ()
+runNotebook initInfo maybeServeDir = void . shellyNoDir $ do
+  (_, _, notebookDir) <- ihaskellDirs
+  let args = case maybeServeDir of 
+               Nothing -> ["--notebook-dir", unpack notebookDir]
+               Just dir -> ["--notebook-dir", dir]
+
+  writeInitInfo initInfo
+  runIHaskell ipythonProfile "notebook" args
+
+writeInitInfo :: InitInfo -> Sh ()
+writeInitInfo info = do
+  (ihaskellDir, _, _) <- ihaskellDirs
+  let filename = fromText $ ihaskellDir ++ "/last-arguments"
+  liftIO $ writeFile filename $ show info
+
+readInitInfo :: IO InitInfo
+readInitInfo = shellyNoDir $ do
+  (ihaskellDir, _, _) <- ihaskellDirs
+  let filename = fromText $ ihaskellDir ++ "/last-arguments"
+  read <$> liftIO (readFile filename)
 
 -- | Create the IPython profile.
 setupIPythonProfile :: String -- ^ IHaskell profile name.
