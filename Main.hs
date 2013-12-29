@@ -57,7 +57,6 @@ data IHaskellMode
 main ::  IO ()
 main = do
   stringArgs <- map unpack <$> getArgs
-  writeFile "/users/silver/bloop" $ show stringArgs
   case process ihaskellArgs stringArgs of
     Left errmsg -> putStrLn $ pack errmsg
     Right args ->
