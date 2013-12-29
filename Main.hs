@@ -30,7 +30,8 @@ import Outputable (showSDoc, ppr)
 
 -- All state stored in the kernel between executions.
 data KernelState = KernelState
-  { getExecutionCounter :: Int
+  { getExecutionCounter :: Int,
+    getLintStatus :: LintStatus  -- Whether to use hlint, and what arguments to pass it. 
   }
 
 -- Command line arguments to IHaskell.  A set of aruments is annotated with
@@ -91,7 +92,13 @@ update :: Mode Args
 update = mode "update" (Args UpdateIPython []) "Update IPython frontends." noArgs []
 
 ihaskellArgs :: Mode Args
-ihaskellArgs = (modeEmpty $ Args None []) { modeGroupModes = toGroup [console, notebook, update, kernel] }
+ihaskellArgs =
+  let descr = "IHaskell: Haskell for Interactive Computing." 
+      onlyHelp = [flagHelpSimple (add Help)]
+      noMode = mode "IHaskell" (Args None []) descr noArgs onlyHelp in
+    noMode { modeGroupModes = toGroup [console, notebook, update, kernel] }
+  where 
+    add flag (Args mode flags) = Args mode $ flag : flags
 
 noArgs = flagArg unexpected ""
   where
@@ -172,6 +179,7 @@ initInfo (flag:flags) = do
     ConfFile filename -> do
       cell <- readFile (fpFromText $ pack filename)
       return info { initCells = cell:initCells info }
+    _ -> return info
 
 -- | Run the IHaskell language kernel.
 runKernel :: String    -- ^ Filename of profile JSON file.
@@ -223,7 +231,8 @@ runKernel profileSrc initInfo = do
 initialKernelState :: IO (MVar KernelState)
 initialKernelState =
   newMVar KernelState {
-    getExecutionCounter = 1
+    getExecutionCounter = 1,
+    getLintStatus = LintOn []
   }
 
 -- | Duplicate a message header, giving it a new UUID and message type.

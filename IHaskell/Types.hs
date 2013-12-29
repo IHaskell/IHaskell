@@ -16,6 +16,8 @@ module IHaskell.Types (
   DisplayData(..),
   ExecuteReplyStatus(..),
   InitInfo(..),
+  LintStatus(..),
+  LintOption(..),
   ) where
 
 import ClassyPrelude
@@ -72,6 +74,17 @@ data InitInfo = InitInfo {
   initCells :: [String]     -- ^ Code blocks to run before start.
   }
   deriving (Show, Read)
+
+-- | Current HLint status.
+data LintStatus
+     = LintOn [LintOption]
+     | LintOff
+     deriving (Eq, Show)
+
+-- | An option for HLint.
+data LintOption
+     = Ignore String    -- ^ Ignore a particular hint.
+     deriving (Eq, Show)
 
 -- | A message header with some metadata.  
 data MessageHeader = MessageHeader {
