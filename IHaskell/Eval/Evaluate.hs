@@ -440,9 +440,16 @@ evalCommand _ (Declaration decl) = wrapExecution $ do
   -- Do not display any output
   return []
 
-evalCommand _ (ParseError loc err) = wrapExecution $ do
-  write $ "Parse Error."
-  return $ displayError $ formatParseError loc err
+evalCommand _ (TypeSignature sig) = wrapExecution $
+  -- We purposefully treat this as a "success" because that way execution
+  -- continues. Empty type signatures are likely due to a parse error later
+  -- on, and we want that to be displayed.
+  return $ displayError $ "The type signature " ++ sig ++
+                          "\nlacks an accompanying binding."
+
+evalCommand _ (ParseError loc err) = do
+  write "Parse Error."
+  return (Failure, displayError $ formatParseError loc err)
 
 capturedStatement :: (String -> IO ())         -- ^ Function used to publish intermediate output.
                   -> String                            -- ^ Statement to evaluate.

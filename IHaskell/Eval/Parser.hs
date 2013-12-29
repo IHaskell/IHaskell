@@ -124,7 +124,7 @@ parseCodeChunk code startLine = do
     failures (_:rest) = failures rest
 
     bestError :: [(ErrMsg, LineNumber, ColumnNumber)] -> CodeBlock
-    bestError errors = ParseError (Loc line col) msg
+    bestError errors = ParseError (Loc (line + startLine - 1) col) msg
       where
         (msg, line, col) = maximumBy compareLoc errors
         compareLoc (_, line1, col1) (_, line2, col2) = compare line1 line2 <> compare col1 col2
