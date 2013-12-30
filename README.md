@@ -17,25 +17,26 @@ Installation
 
 ZeroMQ
 ---
-IHaskell uses a library known as ZeroMQ for asynchronous communication. Make sure that ZeroMQ 3 is installed. Eventually IHaskell will be ported to ZeroMQ 4, but for now it is on version 3.
-Note that there are different instructions for different platforms:
+IHaskell uses a library known as ZeroMQ for asynchronous communication. Make sure that ZeroMQ 4 is installed - it is a relatively recent library and thus you may have older versions installed.
+
+For Macs, you can easily install it with [Homebrew](http://brew.sh/):
 ```bash
-# For Ubuntu (Saucy):
-sudo apt-get install libzmq3-dev
-
 # For Macs with Homebrew:
-# Make sure you're not in a git repository while doing this!
-brew unlink zeromq # If you happen to have ZeroMQ already installed...
-git checkout c356bf7 `brew --prefix`/Library/Formula/zeromq.rb
+brew update
 brew install zeromq
+```
 
+On other platforms, you can easily install from source:
+```bash
 # Compiling from source:
-git clone git@github.com:zeromq/zeromq3-x.git libzmq
+git clone git@github.com:zeromq/zeromq4-x.git libzmq
 cd libzmq
 ./autogen.sh && ./configure && make
 sudo make install
 sudo ldconfig
 ```
+
+If your own platform has a package and I haven't included instructions for it, feel free to send me an email or a PR on this README.
 
 Haskell and Cabal
 ---
@@ -89,7 +90,7 @@ IHaskell notebook # Should open a browser window!
 IHaskell console
 ```
 
-There is a test notebook in the `IHaskell` directory.
+There is a test notebook in the `IHaskell` directory. To try it, run IHaskell with `IHaskell notebook --serve=IHaskell`.
 
 **Note**: You may have some trouble due to browser caches with the notebook interface if you also use IPython's notebook interface or have used it in the past. If something doesn't work or IPython says it can't connect to the notebook server, make sure to clear the browser cache in whatever browser you're using, or try another browser.
 
