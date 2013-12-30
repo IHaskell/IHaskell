@@ -44,7 +44,11 @@ lint blocks = do
 
   writeFile (fromString filename) fileContents
   suggestions <- catMaybes <$> map parseSuggestion <$> hlint [filename, "--quiet"]
-  return [plain $ concatMap plainSuggestion suggestions, html $ htmlSuggestions suggestions]
+  return $
+    if null suggestions
+    then []
+    else
+      [plain $ concatMap plainSuggestion suggestions, html $ htmlSuggestions suggestions]
   where
     -- Join together multiple valid file blocks into a single file.
     -- However, join them with padding so that the line numbers are

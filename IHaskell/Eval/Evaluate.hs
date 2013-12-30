@@ -161,7 +161,8 @@ evaluate kernelState code output = do
 
   when (getLintStatus kernelState /= LintOff) $ liftIO $ do
     lintSuggestions <- lint cmds
-    output True lintSuggestions
+    unless (null lintSuggestions) $
+      output True lintSuggestions
 
   updated <- runUntilFailure kernelState (map unloc cmds ++ [storeItCommand execCount])
   return updated {
@@ -670,4 +671,4 @@ formatGetType :: String -> String
 formatGetType = printf "<span style='font-weight: bold; color: green;'>%s</span>"
 
 displayError :: ErrMsg -> [DisplayData]
-displayError msg = [plain msg, html $ formatError msg] 
+displayError msg = [plain . typeCleaner $ msg, html $ formatError msg] 
