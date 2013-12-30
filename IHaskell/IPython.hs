@@ -125,6 +125,19 @@ installIPython = void . shellyNoDir $ do
   run_ pythonPath ["setup.py", "install", "--prefix=" ++ ipythonDir]
   cd ".."
 
+  -- Patch the IPython executable so that it doesn't use system IPython.
+  -- Using PYTHONPATH is not enough due to bugs in how `easy_install` sets
+  -- things up, at least on Mac OS X.
+  let patchLines =
+        [ "#!/usr/bin/python"
+        , "import sys"
+        , "sys.path = [\"" ++ ipythonDir ++
+         "/lib/python2.7/site-packages\"] + sys.path"]
+      ipythonPath = ipythonDir ++ "/bin/ipython"
+  contents <- readFile $ fromText ipythonPath
+  writeFile (fromText ipythonPath) $ unlines patchLines ++ "\n" ++ contents
+      
+
 -- | Check whether IPython is properly installed.
 ipythonInstalled :: IO Bool
 ipythonInstalled = shellyNoDir $ do
