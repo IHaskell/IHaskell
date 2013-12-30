@@ -11,7 +11,7 @@ module IHaskell.ZeroMQ (
 
 import ClassyPrelude hiding (stdin)
 import Control.Concurrent
-import System.ZMQ3 hiding (stdin)
+import System.ZMQ4 hiding (stdin)
 import Data.Aeson (encode)
 
 import qualified Data.ByteString.Lazy as ByteString
