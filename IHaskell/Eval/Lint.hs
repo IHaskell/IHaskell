@@ -80,10 +80,11 @@ htmlSuggestions suggests = table (concatMap toHtml suggests)
       ++
       row ( 
         el (style severityClass "Found:" ++
-            style "code" (found suggest))
+            -- Things that look like this get highlighted.
+            styleId "highlight-code" "haskell" (found suggest))
         ++
         el (style severityClass "Why Not:" ++
-            style "code" (whyNot suggest)))
+            styleId "highlight-code" "haskell" (whyNot suggest)))
       where
         severityClass = case severity suggest of
           LintWarning -> "warning"
@@ -91,6 +92,9 @@ htmlSuggestions suggests = table (concatMap toHtml suggests)
 
     style :: String -> String -> String
     style cls thing  = [i| <div class="suggestion-${cls}">${thing}</div> |]
+
+    styleId :: String -> String -> String -> String
+    styleId cls id thing  = [i| <div class="${cls}" id="${id}">${thing}</div> |]
     
     table :: String -> String
     table thing      = [i| <table class="suggestion-table">${thing}</table> |]

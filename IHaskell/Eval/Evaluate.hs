@@ -69,7 +69,7 @@ typeCleaner = useStringType . foldl' (.) id (map (`replace` "") fullPrefixes)
     useStringType = replace "[Char]" "String"
 
 write :: GhcMonad m => String -> m ()
-write x = when debug $ liftIO $ hPutStrLn stderr x
+write x = when debug $ liftIO $ hPutStrLn stderr $ "DEBUG: " ++ x
 
 type Interpreter = Ghc
 
@@ -466,8 +466,10 @@ evalCommand output (Expression expr) state = do
     -- implement the Show typeclass.
     isShowError errs = case find isPlain errs of
       Just (Display PlainText msg) -> 
-        startswith "No instance for (GHC.Show.Show" msg &&
-        isInfixOf " arising from a use of `System.IO.print'" msg
+        -- Note that we rely on this error message being 'type cleaned', so
+        -- that `Show` is not displayed as GHC.Show.Show.
+        startswith "No instance for (Show" msg &&
+        isInfixOf " arising from a use of `print'" msg
       Nothing -> False
       where isPlain (Display mime _) = mime == PlainText
 
@@ -479,7 +481,9 @@ evalCommand output (Expression expr) state = do
       -- attempting to do this without the serialization to binary and
       -- back gives very strange errors - all the types match but it
       -- refuses to decode back into a [DisplayData].
-      runStmt displayExpr RunToCompletion
+      -- Suppress output, so as not to mess up console.
+      capturedStatement (const $ return ()) displayExpr
+
       displayedBytestring <- dynCompileExpr "IHaskell.Display.serializeDisplay it"
       case fromDynamic displayedBytestring of
         Nothing -> error "Expecting lazy Bytestring"
