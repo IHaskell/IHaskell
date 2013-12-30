@@ -217,7 +217,10 @@ evalCommand _ (Import importStr) state = wrapExecution state $ do
   setContext $ IIDecl importDecl : noImplicit
 
   flags <- getSessionDynFlags
-  return []
+  return $ if "Test.Hspec" `isInfixOf` importStr
+           then displayError $ "Warning: Hspec is unusable in IHaskell until the resolution of GHC bug #8639." ++
+                                "\nThe variable `it` is shadowed and cannot be accessed, even in qualified form."
+           else []
   where
     implicitImportOf :: ImportDecl RdrName -> InteractiveImport -> Bool
     implicitImportOf _ (IIModule _) = False
