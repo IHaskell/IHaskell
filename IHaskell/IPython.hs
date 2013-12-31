@@ -5,7 +5,7 @@
 module IHaskell.IPython (
   ipythonInstalled,
   installIPython,
-  removeIPython,
+  updateIPython,
   runConsole,
   runNotebook,
   readInitInfo,
@@ -15,7 +15,7 @@ module IHaskell.IPython (
 
 import ClassyPrelude
 import Prelude (read, reads, init)
-import Shelly hiding (find, trace, path)
+import Shelly hiding (find, trace, path, (</>))
 import System.Argv0
 import System.Directory
 import qualified Filesystem.Path.CurrentOS as FS
@@ -31,7 +31,7 @@ import IHaskell.Types
 
 -- | Which commit of IPython we are on.
 ipythonCommit :: Text
-ipythonCommit = "1faf2f6e77fa31f4533e3edbe101c38ddf8943d8"
+ipythonCommit = "0fc2a30eb582f431c96fb44e9e8691806b82234b"
 
 -- | The IPython profile name.
 ipythonProfile :: String
@@ -42,11 +42,8 @@ ipython :: Bool         -- ^ Whether to suppress output.
         -> [Text]       -- ^ IPython command line arguments.
         -> Sh String    -- ^ IPython output.
 ipython suppress args = do
-  (_, ipythonDir, _) <- ihaskellDirs
-  let ipythonPath = fromText $ ipythonDir ++ "/bin/ipython"
-  sub $ do
-    setenv "PYTHONPATH" $ ipythonDir ++ "/lib/python2.7/site-packages"
-    runHandles ipythonPath args handles doNothing
+  ipythonPath <- ipythonExePath
+  runHandles ipythonPath args handles doNothing
   where handles = [InHandle Inherit, outHandle suppress, errorHandle suppress]
         outHandle True = OutHandle CreatePipe
         outHandle False = OutHandle Inherit
@@ -62,88 +59,108 @@ quietRun path args = runHandles path args handles nothing
     handles =  [InHandle Inherit, OutHandle CreatePipe, ErrorHandle CreatePipe]
     nothing _ _ _ = return ()
 
--- | Return the data directory for IHaskell and the IPython subdirectory. 
-ihaskellDirs :: Sh (Text, Text, Text)
-ihaskellDirs = do
-  home <- maybe (error "$HOME not defined.") id <$> get_env "HOME" :: Sh Text
-  let ihaskellDir = home ++ "/.ihaskell"
-      ipythonDir = ihaskellDir ++ "/ipython"
-      notebookDir = ihaskellDir ++ "/notebooks"
+-- | Create the directory and return it.
+ensure :: Sh FilePath -> Sh FilePath
+ensure getDir = do
+  dir <- getDir
+  mkdir_p dir
+  return dir
 
-  -- Make sure the directories exist.
-  mkdir_p $ fromText ipythonDir
-  mkdir_p $ fromText notebookDir
+-- | Return the data directory for IHaskell.
+ihaskellDir :: Sh FilePath
+ihaskellDir = do
+  home <- maybe (error "$HOME not defined.") fromText <$> get_env "HOME"
+  ensure $ return (home </> ".ihaskell")
 
-  return (ihaskellDir, ipythonDir, notebookDir)
+ipythonDir :: Sh FilePath
+ipythonDir = ensure $ (</> "ipython") <$> ihaskellDir
+
+ipythonExePath :: Sh FilePath
+ipythonExePath = (</> ("bin" </> "ipython")) <$> ipythonDir
+
+notebookDir :: Sh FilePath
+notebookDir = ensure $ (</> "notebooks") <$> ihaskellDir
+
+ipythonSourceDir :: Sh FilePath
+ipythonSourceDir = ensure $ (</> "ipython-src") <$> ihaskellDir
 
 getIHaskellDir :: IO String
-getIHaskellDir = shellyNoDir $ do
-  (ihaskellDir, _, _) <- ihaskellDirs
-  return $ unpack ihaskellDir
+getIHaskellDir = shellyNoDir $ fpToString <$> ihaskellDir
 
 defaultConfFile :: IO (Maybe String)
 defaultConfFile = shellyNoDir $ do
-  (ihaskellDir, _, _) <- ihaskellDirs
-  let filename = ihaskellDir ++ "/rc.hs"
-  exists <- test_f $ fromText filename
+  filename <- (</> "rc.hs") <$> ihaskellDir
+  exists <- test_f filename
   return $ if exists
-           then Just $ unpack filename
+           then Just $ fpToString filename
            else Nothing
 
--- | Remove IPython so it can be reinstalled.
-removeIPython :: IO ()
-removeIPython = void . shellyNoDir $ do
-  (ihaskellDir, _, _) <- ihaskellDirs
-  cd $ fromText ihaskellDir
-  rm_rf "ipython-src"
+-- | Update the IPython source tree and rebuild.
+updateIPython :: IO ()
+updateIPython = void . shellyNoDir $ do
+  srcDir <- ipythonSourceDir
+  cd srcDir
+  gitPath <- path "git"
+  currentCommitHash <- silently $ pack <$> rstrip <$> unpack <$> run gitPath ["rev-parse", "HEAD"]
+  when (currentCommitHash /= ipythonCommit) $ do
+    putStrLn "Incorrect IPython repository commit hash."
+    putStrLn $ "Found hash:  " ++ currentCommitHash 
+    putStrLn $ "Wanted hash: " ++ ipythonCommit 
+    putStrLn "Updating..."
+    run_ gitPath ["checkout", ipythonCommit]
+    buildIPython
 
 -- | Install IPython from source.
 installIPython :: IO ()
 installIPython = void . shellyNoDir $ do
-  (ihaskellDir, ipythonDir, _) <- ihaskellDirs
 
   -- Install all Python dependencies.
   pipPath <- path "pip"
+  prefixOpt <-  ("--install-option=--prefix=" ++) <$>  fpToText <$> ipythonDir
   let pipDeps = ["pyzmq", "tornado", "jinja2"]
       installDep dep = do
         putStrLn $ "Installing dependency: " ++ dep 
-        let opt = "--install-option=--prefix=" ++ ipythonDir
-        run_ pipPath ["install", opt, dep]
+        run_ pipPath ["install", prefixOpt, dep]
   mapM_ installDep pipDeps
 
   -- Get the IPython source.
   gitPath <- path "git"
   putStrLn "Downloading IPython... (this may take a while)"
-  cd $ fromText ihaskellDir
-  run_ gitPath ["clone", "--recursive", "https://github.com/ipython/ipython.git", "ipython-src"]
-  cd "ipython-src"
+  ipythonSrcDir <- ipythonSourceDir
+  run_ gitPath ["clone", "--recursive", "https://github.com/ipython/ipython.git", fpToText ipythonSrcDir]
+  cd ipythonSrcDir
   run_ gitPath ["checkout", ipythonCommit]
 
+  buildIPython
+
+-- | Once things are checked out into the IPython source directory, build it and install it.
+buildIPython :: Sh ()
+buildIPython = do
   -- Install IPython locally.
   pythonPath <- path "python"
+  prefixOpt <- ("--prefix=" ++) <$> fpToText <$> ipythonDir
   putStrLn "Installing IPython."
-  run_ pythonPath ["setup.py", "install", "--prefix=" ++ ipythonDir]
-  cd ".."
+  run_ pythonPath ["setup.py", "install", prefixOpt]
 
   -- Patch the IPython executable so that it doesn't use system IPython.
   -- Using PYTHONPATH is not enough due to bugs in how `easy_install` sets
   -- things up, at least on Mac OS X.
+  ipyDir <- ipythonDir
   let patchLines =
         [ "#!/usr/bin/python"
         , "import sys"
-        , "sys.path = [\"" ++ ipythonDir ++
+        , "sys.path = [\"" ++ fpToText ipyDir ++
          "/lib/python2.7/site-packages\"] + sys.path"]
-      ipythonPath = ipythonDir ++ "/bin/ipython"
-  contents <- readFile $ fromText ipythonPath
-  writeFile (fromText ipythonPath) $ unlines patchLines ++ "\n" ++ contents
+  ipythonPath <- ipythonExePath
+  contents <- readFile ipythonPath
+  writeFile ipythonPath $ unlines patchLines ++ "\n" ++ contents
       
 
 -- | Check whether IPython is properly installed.
 ipythonInstalled :: IO Bool
 ipythonInstalled = shellyNoDir $ do
-  (_, ipythonDir, _) <- ihaskellDirs
-  let ipythonPath = ipythonDir ++ "/bin/ipython"
-  test_f $ fromText ipythonPath
+  ipythonPath <- ipythonExePath
+  test_f ipythonPath
 
 -- | Get the path to an executable. If it doensn't exist, fail with an
 -- error message complaining about it.
@@ -195,9 +212,9 @@ runConsole initInfo = void . shellyNoDir $ do
 
 runNotebook :: InitInfo -> Maybe String -> IO ()
 runNotebook initInfo maybeServeDir = void . shellyNoDir $ do
-  (_, _, notebookDir) <- ihaskellDirs
+  notebookDirStr <- fpToString <$> notebookDir
   let args = case maybeServeDir of 
-               Nothing -> ["--notebook-dir", unpack notebookDir]
+               Nothing -> ["--notebook-dir", unpack notebookDirStr]
                Just dir -> ["--notebook-dir", dir]
 
   writeInitInfo initInfo
@@ -205,14 +222,12 @@ runNotebook initInfo maybeServeDir = void . shellyNoDir $ do
 
 writeInitInfo :: InitInfo -> Sh ()
 writeInitInfo info = do
-  (ihaskellDir, _, _) <- ihaskellDirs
-  let filename = fromText $ ihaskellDir ++ "/last-arguments"
+  filename <- (</> ".last-arguments") <$> ihaskellDir
   liftIO $ writeFile filename $ show info
 
 readInitInfo :: IO InitInfo
 readInitInfo = shellyNoDir $ do
-  (ihaskellDir, _, _) <- ihaskellDirs
-  let filename = fromText $ ihaskellDir ++ "/last-arguments"
+  filename <- (</>  ".last-arguments") <$> ihaskellDir
   read <$> liftIO (readFile filename)
 
 -- | Create the IPython profile.

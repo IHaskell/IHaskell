@@ -108,13 +108,14 @@ ihaskell (Args None _) =
 -- isn't updated. This is hard to detect since versions of IPython might
 -- not change!
 ihaskell (Args UpdateIPython _) = do
-  removeIPython
-  installIPython
+  updateIPython
   putStrLn "IPython updated."
     
 ihaskell (Args Console flags) = showingHelp Console flags $ do
   installed <- ipythonInstalled
-  unless installed installIPython
+  if installed
+  then updateIPython
+  else installIPython
 
   flags <- addDefaultConfFile flags
   info <- initInfo flags
@@ -122,7 +123,9 @@ ihaskell (Args Console flags) = showingHelp Console flags $ do
 
 ihaskell (Args Notebook flags) = showingHelp Notebook flags $ do
   installed <- ipythonInstalled
-  unless installed installIPython
+  if installed
+  then updateIPython
+  else installIPython
 
   let server = case mapMaybe serveDir flags of
                  [] -> Nothing
