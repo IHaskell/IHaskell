@@ -6,11 +6,14 @@ module IHaskell.IPython (
   ipythonInstalled,
   installIPython,
   updateIPython,
+  setupIPython,
   runConsole,
   runNotebook,
   readInitInfo,
   defaultConfFile,
   getIHaskellDir,
+  nbconvert,
+  ViewFormat(..),
 ) where
 
 import ClassyPrelude
@@ -23,11 +26,42 @@ import Data.List.Utils (split)
 import Data.String.Utils (rstrip)
 import Text.Printf
 
+import Text.Read as Read hiding (pfail)
+import Text.ParserCombinators.ReadP
+
 import qualified System.IO.Strict as StrictIO
 import qualified Paths_ihaskell as Paths
 import qualified Codec.Archive.Tar as Tar
 
 import IHaskell.Types
+
+data ViewFormat
+     = Pdf
+     | Html
+     | Ipynb
+     | Markdown
+     | Latex
+     deriving Eq
+
+instance Show ViewFormat where
+  show Pdf         = "pdf"
+  show Html        = "html"
+  show Ipynb       = "ipynb"
+  show Markdown    = "markdown"
+  show Latex       = "latex"
+
+instance Read ViewFormat where
+  readPrec = Read.lift $ do
+    str <- munch (const True)
+    case str of
+      "pdf" -> return Pdf
+      "html" -> return Html
+      "ipynb" -> return Ipynb
+      "notebook" -> return Ipynb
+      "latex" -> return Latex
+      "markdown" -> return Markdown
+      "md" -> return Markdown
+      _ -> pfail
 
 -- | Which commit of IPython we are on.
 ipythonCommit :: Text
@@ -94,6 +128,41 @@ defaultConfFile = shellyNoDir $ do
   return $ if exists
            then Just $ fpToString filename
            else Nothing
+
+-- | Find a notebook and then convert it into the provided format.
+-- Notebooks are searched in the current directory as well as the IHaskell
+-- notebook directory (in that order).
+nbconvert :: ViewFormat -> String -> IO ()
+nbconvert fmt name = void . shellyNoDir $ do
+  curdir <- pwd
+  nbdir <- notebookDir
+  -- Find which of the options is available. 
+  let notebookOptions = [
+        curdir </> fpFromString name,
+        curdir </> fpFromString (name ++ ".ipynb"),
+        nbdir  </> fpFromString name,
+        nbdir  </> fpFromString (name ++ ".ipynb")
+        ]
+  maybeNb <- headMay <$> filterM test_f notebookOptions
+  case maybeNb of
+    Nothing -> do
+      putStrLn $ "Cannot find notebook: " ++ pack name
+      putStrLn "Tried:"
+      mapM_ (putStrLn . ("  " ++) . fpToText) notebookOptions 
+
+    Just notebook ->
+      let viewArgs = case fmt of
+            Pdf -> ["--to=latex", "--post=pdf"]
+            fmt -> ["--to=" ++ show fmt] in
+      void $ runIHaskell ipythonProfile "nbconvert" $ viewArgs ++ [fpToString notebook]
+
+-- | Set up IPython properly.
+setupIPython :: IO ()
+setupIPython = do
+  installed <- ipythonInstalled
+  if installed
+  then updateIPython
+  else installIPython
 
 -- | Update the IPython source tree and rebuild.
 updateIPython :: IO ()

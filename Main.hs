@@ -47,6 +47,7 @@ data IHaskellMode
   | Console
   | UpdateIPython
   | Kernel (Maybe String)
+  | View (Maybe ViewFormat) (Maybe String)
   deriving (Eq, Show)
 
 main ::  IO ()
@@ -85,12 +86,40 @@ kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." 
 update :: Mode Args
 update = mode "update" (Args UpdateIPython []) "Update IPython frontends." noArgs []
 
+view :: Mode Args
+view = (modeEmpty $ Args (View Nothing Nothing) []) {
+      modeNames = ["view"],
+      modeCheck  =
+        \a@(Args (View fmt file) _) ->
+          if not (isJust fmt && isJust file)
+          then Left "Syntax: IHaskell view <format> <name>[.ipynb]"
+          else Right a,
+      modeHelp = concat [
+        "Convert an IHaskell notebook to another format.\n",
+        "Notebooks are searched in the IHaskell directory and the current directory.\n",
+        "Available formats are " ++ intercalate ", " (map show 
+          ["pdf", "html", "ipynb", "markdown", "latex"]),
+        "."
+      ],
+      modeArgs = ([formatArg, filenameArg], Nothing)
+                                                    
+  }
+  where
+    formatArg = flagArg updateFmt "<format>"
+    filenameArg = flagArg updateFile "<name>[.ipynb]"
+    updateFmt fmtStr (Args (View _ s) flags) = 
+      case readMay fmtStr of
+        Just fmt -> Right $ Args (View (Just fmt) s) flags
+        Nothing -> Left $ "Invalid format '" ++ fmtStr ++ "'."
+    updateFile name (Args (View f _) flags) = Right $ Args (View f (Just name)) flags
+  
+
 ihaskellArgs :: Mode Args
 ihaskellArgs =
-  let descr = "IHaskell: Haskell for Interactive Computing." 
+  let descr = "Haskell for Interactive Computing." 
       onlyHelp = [flagHelpSimple (add Help)]
       noMode = mode "IHaskell" (Args None []) descr noArgs onlyHelp in
-    noMode { modeGroupModes = toGroup [console, notebook, update, kernel] }
+    noMode { modeGroupModes = toGroup [console, notebook, view, update, kernel] }
   where 
     add flag (Args mode flags) = Args mode $ flag : flags
 
@@ -108,24 +137,21 @@ ihaskell (Args None _) =
 -- isn't updated. This is hard to detect since versions of IPython might
 -- not change!
 ihaskell (Args UpdateIPython _) = do
-  updateIPython
+  setupIPython
   putStrLn "IPython updated."
     
 ihaskell (Args Console flags) = showingHelp Console flags $ do
-  installed <- ipythonInstalled
-  if installed
-  then updateIPython
-  else installIPython
+  setupIPython
 
   flags <- addDefaultConfFile flags
   info <- initInfo flags
   runConsole info
 
+ihaskell (Args (View (Just fmt) (Just name)) []) =
+  nbconvert fmt name
+
 ihaskell (Args Notebook flags) = showingHelp Notebook flags $ do
-  installed <- ipythonInstalled
-  if installed
-  then updateIPython
-  else installIPython
+  setupIPython
 
   let server = case mapMaybe serveDir flags of
                  [] -> Nothing
