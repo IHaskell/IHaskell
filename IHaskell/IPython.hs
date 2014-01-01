@@ -109,20 +109,13 @@ updateIPython = void . shellyNoDir $ do
     putStrLn "Updating..."
     run_ gitPath ["pull", "origin", "master"]
     run_ gitPath ["checkout", ipythonCommit]
+    installPipDependencies
     buildIPython
 
 -- | Install IPython from source.
 installIPython :: IO ()
 installIPython = void . shellyNoDir $ do
-
-  -- Install all Python dependencies.
-  pipPath <- path "pip"
-  prefixOpt <-  ("--install-option=--prefix=" ++) <$>  fpToText <$> ipythonDir
-  let pipDeps = ["pyzmq", "tornado", "jinja2"]
-      installDep dep = do
-        putStrLn $ "Installing dependency: " ++ dep 
-        run_ pipPath ["install", prefixOpt, dep]
-  mapM_ installDep pipDeps
+  installPipDependencies
 
   -- Get the IPython source.
   gitPath <- path "git"
@@ -133,6 +126,17 @@ installIPython = void . shellyNoDir $ do
   run_ gitPath ["checkout", ipythonCommit]
 
   buildIPython
+
+installPipDependencies :: Sh ()
+installPipDependencies = do
+  -- Install all Python dependencies.
+  pipPath <- path "pip"
+  prefixOpt <-  ("--install-option=--prefix=" ++) <$>  fpToText <$> ipythonDir
+  let pipDeps = ["pyzmq", "tornado", "jinja2"]
+      installDep dep = do
+        putStrLn $ "Installing dependency: " ++ dep 
+        run_ pipPath ["install", prefixOpt, dep]
+  mapM_ installDep pipDeps
 
 -- | Once things are checked out into the IPython source directory, build it and install it.
 buildIPython :: Sh ()
