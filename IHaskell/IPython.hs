@@ -107,6 +107,7 @@ updateIPython = void . shellyNoDir $ do
     putStrLn $ "Found hash:  " ++ currentCommitHash 
     putStrLn $ "Wanted hash: " ++ ipythonCommit 
     putStrLn "Updating..."
+    run_ gitPath ["pull", "origin", "master"]
     run_ gitPath ["checkout", ipythonCommit]
     buildIPython
 
