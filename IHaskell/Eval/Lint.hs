@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, QuasiQuotes #-}
+{-# LANGUAGE NoImplicitPrelude, QuasiQuotes, ViewPatterns #-}
 module IHaskell.Eval.Lint ( 
   lint
   ) where
@@ -11,6 +11,7 @@ import Control.Monad
 import Data.List (findIndex)
 import Text.Printf
 import Data.String.Here
+import Data.Char
 
 import IHaskell.Types
 import IHaskell.Display
@@ -22,6 +23,7 @@ data LintSeverity = LintWarning | LintError deriving (Eq, Show)
 data LintSuggestion
   = Suggest {
     line :: LineNumber,
+    chunkNumber :: Int,
     found :: String,
     whyNot :: String,
     severity :: LintSeverity,
@@ -38,7 +40,7 @@ lintIdent = "lintIdentAEjlkQeh"
 lint :: [Located CodeBlock] -> IO [DisplayData]
 lint blocks = do
   let validBlocks = map makeValid blocks
-      fileContents = joinBlocks 1 validBlocks
+      fileContents = joinBlocks validBlocks
   -- Get a temporarly location to store this file.
   ihaskellDir <- getIHaskellDir
   let filename = ihaskellDir ++ "/.hlintFile.hs"
@@ -54,15 +56,13 @@ lint blocks = do
     -- Join together multiple valid file blocks into a single file.
     -- However, join them with padding so that the line numbers are
     -- correct.
-    joinBlocks :: LineNumber -> [Located String] -> String
-    joinBlocks nextLine (Located desiredLine str:strs) =
-      -- Place padding to shift the line number appropriately.
-      replicate (desiredLine - nextLine) '\n' ++
-      str ++ "\n" ++
-      joinBlocks (desiredLine + nlines str) strs
-    joinBlocks _ [] = ""
+    joinBlocks :: [Located String] -> String
+    joinBlocks = unlines . zipWith addPragma [1 .. ]
 
-    nlines = length . lines
+    addPragma :: Int -> Located String -> String
+    addPragma i (Located desiredLine str) = linePragma desiredLine i ++ str
+
+    linePragma = printf "{-# LINE %d, \"%d\" -#}"
 
 plainSuggestion :: LintSuggestion -> String
 plainSuggestion suggest = 
@@ -121,25 +121,22 @@ parseSuggestion suggestion = do
         Warning -> LintWarning
         Error -> LintError
 
-  let suggestionLines = lines str
-  -- Expect a header line, a "Found" line, and a "Why not" line.
-  guard (length suggestionLines > 3)
+  headerLine:foundLine:rest <- Just (lines str)
 
   -- Expect the line after the header to have 'Found' in it.
-  let headerLine:foundLine:rest = suggestionLines
   guard ("Found:" `isInfixOf` foundLine)
 
   -- Expect something like:
   -- ".hlintFile.hs:1:19: Warning: Redundant bracket"
-  let headerPieces = split ":" headerLine
-  guard (length headerPieces == 5)
-  let [file, line, col, severity, name] = headerPieces
+  -- ==> 
+  -- [".hlintFile.hs","1","19"," Warning"," Redundant bracket"]
+  [readMay -> Just chunkN,
+   readMay -> Just lineNum, _col, severity, name] <- Just (split ":" headerLine)
 
-  whyIndex <- findIndex ("Why not:" `isInfixOf`) rest
-  let (before, _:after) = splitAt whyIndex rest
-  lineNum <- readMay line
+  (before, _:after) <- Just (break ("Why not:" `isInfixOf`) rest)
   return Suggest {
     line = lineNum,
+    chunkNumber = chunkN,
     found = unlines before,
     whyNot = unlines after,
     suggestion = name,
@@ -162,28 +159,27 @@ makeValid (Located line block) = Located line $
     -- Expressions need to be bound to some identifier.
     Expression expr -> lintIdent ++ "=" ++ expr
 
-    -- Statements need to go in a 'do' block bound to an identifier.
-    -- It must also end with a 'return'.
-    Statement stmt -> 
-      -- Let's must be handled specially, because we can't have layout
-      -- inside non-layout. For instance, this is illegal:
-      --   a = do { let x = 3; return 3 }
-      --   because it should be
-      --   a = do { let {x = 3}; return 3 }
-      -- Thus, we rely on template haskell and instead turn it into an
-      -- expression via let x = blah 'in blah'.
-      if startswith "let" $ strip stmt
-      then stmt ++ " in " ++ lintIdent
-      else 
-        -- We take advantage of the fact that naked expressions at toplevel
-        -- are allowed by Template Haskell, and output them to a file.
-        let prefix = lintIdent ++ " $ do "
-            first:rest = split "\n" stmt
-            indent = replicate (length prefix) ' '
-            fixedLines = first : map (indent ++) rest
-            extraReturnLine = [indent ++ lintIdent]
-            code = intercalate "\n" (fixedLines ++ extraReturnLine) in
-        prefix ++ code
+    -- Statements go in a 'do' block bound to an identifier.
+    --
+    -- a cell can contain:
+    -- > x <- readFile "foo"
+    -- so add a return () to avoid a Parse error: Last statement in
+    -- a do-block must be an expression
+    --
+    -- one place this goes wrong is when the chunk is:
+    --
+    -- > do
+    -- >  {- a comment that has to -} let x = 1
+    -- >   {- count as whitespace -}      y = 2
+    -- >                              return (x+y) 
+    Statement stmt ->
+        let expandTabs = replace "\t" "        " 
+            nLeading = maybe 1 ((+1) . length . takeWhile isSpace)
+                    $ listToMaybe
+                    $ filter (not . all isSpace)
+                            (lines (expandTabs stmt))
+            finalReturn = replicate nLeading ' ' ++ "return ()"
+        in intercalate ("\n ") ("do" : lines stmt ++ [finalReturn])
 
     -- Modules, declarations, and type signatures are fine as is.
     Module mod -> mod
