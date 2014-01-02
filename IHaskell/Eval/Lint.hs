@@ -73,38 +73,36 @@ plainSuggestion suggest =
     (whyNot suggest)
 
 htmlSuggestions :: [LintSuggestion] -> String
-htmlSuggestions suggests = table (concatMap toHtml suggests)
+htmlSuggestions = concatMap toHtml 
   where
     toHtml :: LintSuggestion -> String
-    toHtml suggest =
-      row (el $ style "name" $ suggestion suggest)
-      ++
-      row ( 
-        el (style severityClass "Found:" ++
-            -- Things that look like this get highlighted.
-            styleId "highlight-code" "haskell" (found suggest))
-        ++
-        el (style severityClass "Why Not:" ++
-            styleId "highlight-code" "haskell" (whyNot suggest)))
+    toHtml suggest = concat 
+      [
+      named $ suggestion suggest,
+      floating "left" $ style severityClass "Found:" ++
+             -- Things that look like this get highlighted.
+             styleId "highlight-code" "haskell" (found suggest),
+      floating "left" $ style severityClass "Why Not:" ++
+             -- Things that look like this get highlighted.
+             styleId "highlight-code" "haskell" (whyNot suggest)
+      ]
+
       where
         severityClass = case severity suggest of
           LintWarning -> "warning"
           LintError -> "error"
 
     style :: String -> String -> String
-    style cls thing  = [i| <div class="suggestion-${cls}">${thing}</div> |]
+    style cls thing = [i| <div class="suggestion-${cls}">${thing}</div> |]
+
+    named :: String -> String
+    named thing = [i| <div class="suggestion-name" style="clear:both;">${thing}</div> |]
 
     styleId :: String -> String -> String -> String
-    styleId cls id thing  = [i| <div class="${cls}" id="${id}">${thing}</div> |]
+    styleId cls id thing = [i| <div class="${cls}" id="${id}">${thing}</div> |]
     
-    table :: String -> String
-    table thing      = [i| <table class="suggestion-table">${thing}</table> |]
-
-    row :: String -> String
-    row thing        = [i| <tr class="suggestion-row">${thing}</tr> |]
-
-    el :: String -> String
-    el thing         = [i| <td class="suggestion-cell">${thing}</td> |]
+    floating :: String -> String -> String
+    floating dir thing = [i| <div class="suggestion-row" style="float: ${dir};">${thing}</div> |]
 
 -- | Parse a suggestion from Hlint. The suggestions look like this:
 --   .ihaskell/.hlintFile.hs:1:19: Warning: Redundant bracket

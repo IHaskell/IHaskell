@@ -32,7 +32,7 @@ is string blockType = do
 
 eval string = do
   outputAccum <- newIORef []
-  let publish _ displayDatas = modifyIORef outputAccum (displayDatas :)
+  let publish final displayDatas = when final $ modifyIORef outputAccum (displayDatas :)
   getTemporaryDirectory >>= setCurrentDirectory
   let state = mempty :: KernelState
   interpret $ Eval.evaluate state string publish
@@ -202,16 +202,31 @@ parserTests = do
 
 layoutChunkerTests = describe "Layout Chunk" $ do
   it "chunks 'a string'" $
-    layoutChunks "a string" `shouldBe` ["a string"]
+    map unloc (layoutChunks "a string") `shouldBe` ["a string"]
 
-  it "chunks 'a\\nstring'" $
-    layoutChunks "a\n string" `shouldBe` ["a\n string"]
+  it "chunks 'a\\n string'" $
+    map unloc (layoutChunks "a\n string") `shouldBe` ["a\n string"]
 
   it "chunks 'a\\n string\\nextra'" $
-    layoutChunks "a\n string\nextra" `shouldBe` ["a\n string","extra"]
+    map unloc (layoutChunks "a\n string\nextra") `shouldBe` ["a\n string","extra"]
 
   it "chunks strings with too many lines" $
-    layoutChunks "a\n\nstring" `shouldBe` ["a","string"]
+    map unloc (layoutChunks "a\n\nstring") `shouldBe` ["a","string"]
+
+  it "parses multiple exprs" $ do
+    let text = [hereLit|
+                 first
+
+                 second
+                 third
+
+                 fourth
+               |]
+    layoutChunks text `shouldBe`
+      [Located 2 "first",
+       Located 4 "second",
+       Located 5 "third",
+       Located 7 "fourth"]
 
 moduleNameTests = describe "Get Module Name" $ do
   it "parses simple module names" $
@@ -379,6 +394,6 @@ parseStringTests = describe "Parser" $ do
         first
 
         second
-       |] >>= (`shouldBe` [Located 1 (Expression "first"),
-                          Located 2 (Expression "second")])
+       |] >>= (`shouldBe` [Located 2 (Expression "first"),
+                          Located 4 (Expression "second")])
     
