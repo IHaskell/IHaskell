@@ -7,6 +7,7 @@ import Data.List
 import System.Directory
 import Data.String.Here
 import Data.String.Utils (strip, replace)
+import Data.Monoid
 
 import IHaskell.Eval.Parser
 import IHaskell.Types
@@ -33,7 +34,7 @@ eval string = do
   outputAccum <- newIORef []
   let publish _ displayDatas = modifyIORef outputAccum (displayDatas :)
   getTemporaryDirectory >>= setCurrentDirectory
-  let state = KernelState 1 LintOff
+  let state = mempty :: KernelState
   interpret $ Eval.evaluate state string publish
   out <- readIORef outputAccum
   return $ reverse out
