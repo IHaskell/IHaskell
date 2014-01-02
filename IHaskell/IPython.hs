@@ -65,7 +65,7 @@ instance Read ViewFormat where
 
 -- | Which commit of IPython we are on.
 ipythonCommit :: Text
-ipythonCommit = "0fc2a30eb582f431c96fb44e9e8691806b82234b"
+ipythonCommit = "9c922f54af799704f4000aeee94ec7c74cada194"
 
 -- | The IPython profile name.
 ipythonProfile :: String
@@ -163,6 +163,8 @@ setupIPython = do
   if installed
   then updateIPython
   else installIPython
+  
+  
 
 -- | Update the IPython source tree and rebuild.
 updateIPython :: IO ()
@@ -228,6 +230,11 @@ buildIPython = do
   ipythonPath <- ipythonExePath
   contents <- readFile ipythonPath
   writeFile ipythonPath $ unlines patchLines ++ "\n" ++ contents
+
+  -- Remove the old IPython profile so that we write a new one in its
+  -- place. Users are not expected to fiddle with the profile, so we give
+  -- no warning whatsoever. This may be changed eventually.
+  removeIPythonProfile ipythonProfile
       
 
 -- | Check whether IPython is properly installed.
@@ -271,6 +278,8 @@ runIHaskell profile app args = void $ do
   errExit False $ ipython True ["locate", "profile", pack profile]
 
   -- If the profile doesn't exist, create it.
+  -- We have an ugly hack that removes the profile whenever the IPython
+  -- version is updated. This means profiles get updated with IPython.
   exitCode <- lastExitCode
   when (exitCode /= 0) $ liftIO $ do
     putStrLn "Creating IPython profile."
@@ -318,6 +327,19 @@ setupIPythonProfile profile = shellyNoDir $ do
 
   liftIO $ copyProfile profileDir
   insertIHaskellPath profileDir
+
+removeIPythonProfile :: String -> Sh ()
+removeIPythonProfile profile = do
+  -- Try to locate the profile. Do not die if it doesn't exist.
+  errExit False $ ipython True ["locate", "profile", pack profile]
+
+  -- If the profile exists, delete it.
+  exitCode <- lastExitCode
+  dir <- pack <$> rstrip <$> ipython True ["locate"]
+  when (exitCode == 0 && dir /= "") $ do
+    putStrLn "Updating IPython profile."
+    let profileDir = dir ++ "/profile_" ++ pack profile ++ "/"
+    rm_rf $ fromText profileDir
 
 -- | Copy the profile files into the IPython profile. 
 copyProfile :: Text -> IO ()

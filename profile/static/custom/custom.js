@@ -62,7 +62,6 @@ $([IPython.events]).on('notebook_loaded.Notebook', function(){
     }
 });
 
-
 $([IPython.events]).on('app_initialized.NotebookApp', function(){
     // add here logic that shoudl be run once per **page load**
     // like adding specific UI, or changing the default value
