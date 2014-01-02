@@ -19,6 +19,8 @@ var concealExtension = (function() {
         "=>": "⇒",
         ">>=": ">>=",
         "forall": "∀",
+        "<=": "≤",
+        ">=": "≥",
     };
 
     // Concealable infix elements

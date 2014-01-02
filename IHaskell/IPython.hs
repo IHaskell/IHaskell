@@ -224,7 +224,7 @@ buildIPython = do
   -- things up, at least on Mac OS X.
   ipyDir <- ipythonDir
   let patchLines =
-        [ "#!/usr/bin/python"
+        [ "#!/usr/bin/env python"
         , "import sys"
         , "sys.path = [\"" ++ fpToText ipyDir ++
          "/lib/python2.7/site-packages\"] + sys.path"]
