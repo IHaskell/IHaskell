@@ -4,6 +4,7 @@ module IHaskell.Eval.Lint (
   ) where
 
 import Data.String.Utils (replace, startswith, strip, split)
+import Prelude (head, tail)
 import Language.Haskell.HLint as HLint
 import ClassyPrelude
 import Control.Monad
@@ -44,7 +45,11 @@ lint blocks = do
 
   writeFile (fromString filename) fileContents
   suggestions <- catMaybes <$> map parseSuggestion <$> hlint [filename, "--quiet"]
-  return [plain $ concatMap plainSuggestion suggestions, html $ htmlSuggestions suggestions]
+  return $
+    if null suggestions
+    then []
+    else
+      [plain $ concatMap plainSuggestion suggestions, html $ htmlSuggestions suggestions]
   where
     -- Join together multiple valid file blocks into a single file.
     -- However, join them with padding so that the line numbers are
@@ -76,10 +81,11 @@ htmlSuggestions suggests = table (concatMap toHtml suggests)
       ++
       row ( 
         el (style severityClass "Found:" ++
-            style "code" (found suggest))
+            -- Things that look like this get highlighted.
+            styleId "highlight-code" "haskell" (found suggest))
         ++
         el (style severityClass "Why Not:" ++
-            style "code" (whyNot suggest)))
+            styleId "highlight-code" "haskell" (whyNot suggest)))
       where
         severityClass = case severity suggest of
           LintWarning -> "warning"
@@ -87,6 +93,9 @@ htmlSuggestions suggests = table (concatMap toHtml suggests)
 
     style :: String -> String -> String
     style cls thing  = [i| <div class="suggestion-${cls}">${thing}</div> |]
+
+    styleId :: String -> String -> String -> String
+    styleId cls id thing  = [i| <div class="${cls}" id="${id}">${thing}</div> |]
     
     table :: String -> String
     table thing      = [i| <table class="suggestion-table">${thing}</table> |]
@@ -141,8 +150,8 @@ parseSuggestion suggestion = do
   where
     showSuggestion = 
       replace (lintIdent ++ "=") "" .
-      replace (lintIdent ++ "=do{") "" .
-      replace (lintIdent ++ "}") "" .
+      replace (lintIdent ++ "$do ") "" .
+      replace (replicate (length lintIdent + length " $ do ") ' ' ++ lintIdent) "" .
       replace (" in " ++ lintIdent) "" .
       show
 
@@ -167,7 +176,16 @@ makeValid (Located line block) = Located line $
       -- expression via let x = blah 'in blah'.
       if startswith "let" $ strip stmt
       then stmt ++ " in " ++ lintIdent
-      else lintIdent ++ "=do{" ++ stmt ++ ";" ++ lintIdent ++ "}"
+      else 
+        -- We take advantage of the fact that naked expressions at toplevel
+        -- are allowed by Template Haskell, and output them to a file.
+        let prefix = lintIdent ++ " $ do "
+            first:rest = split "\n" stmt
+            indent = replicate (length prefix) ' '
+            fixedLines = first : map (indent ++) rest
+            extraReturnLine = [indent ++ lintIdent]
+            code = intercalate "\n" (fixedLines ++ extraReturnLine) in
+        prefix ++ code
 
     -- Modules, declarations, and type signatures are fine as is.
     Module mod -> mod

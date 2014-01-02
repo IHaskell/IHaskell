@@ -47,6 +47,7 @@ data IHaskellMode
   | Console
   | UpdateIPython
   | Kernel (Maybe String)
+  | View (Maybe ViewFormat) (Maybe String)
   deriving (Eq, Show)
 
 main ::  IO ()
@@ -85,12 +86,40 @@ kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." 
 update :: Mode Args
 update = mode "update" (Args UpdateIPython []) "Update IPython frontends." noArgs []
 
+view :: Mode Args
+view = (modeEmpty $ Args (View Nothing Nothing) []) {
+      modeNames = ["view"],
+      modeCheck  =
+        \a@(Args (View fmt file) _) ->
+          if not (isJust fmt && isJust file)
+          then Left "Syntax: IHaskell view <format> <name>[.ipynb]"
+          else Right a,
+      modeHelp = concat [
+        "Convert an IHaskell notebook to another format.\n",
+        "Notebooks are searched in the IHaskell directory and the current directory.\n",
+        "Available formats are " ++ intercalate ", " (map show 
+          ["pdf", "html", "ipynb", "markdown", "latex"]),
+        "."
+      ],
+      modeArgs = ([formatArg, filenameArg], Nothing)
+                                                    
+  }
+  where
+    formatArg = flagArg updateFmt "<format>"
+    filenameArg = flagArg updateFile "<name>[.ipynb]"
+    updateFmt fmtStr (Args (View _ s) flags) = 
+      case readMay fmtStr of
+        Just fmt -> Right $ Args (View (Just fmt) s) flags
+        Nothing -> Left $ "Invalid format '" ++ fmtStr ++ "'."
+    updateFile name (Args (View f _) flags) = Right $ Args (View f (Just name)) flags
+  
+
 ihaskellArgs :: Mode Args
 ihaskellArgs =
-  let descr = "IHaskell: Haskell for Interactive Computing." 
+  let descr = "Haskell for Interactive Computing." 
       onlyHelp = [flagHelpSimple (add Help)]
       noMode = mode "IHaskell" (Args None []) descr noArgs onlyHelp in
-    noMode { modeGroupModes = toGroup [console, notebook, update, kernel] }
+    noMode { modeGroupModes = toGroup [console, notebook, view, update, kernel] }
   where 
     add flag (Args mode flags) = Args mode $ flag : flags
 
@@ -108,28 +137,32 @@ ihaskell (Args None _) =
 -- isn't updated. This is hard to detect since versions of IPython might
 -- not change!
 ihaskell (Args UpdateIPython _) = do
-  removeIPython
-  installIPython
+  setupIPython
   putStrLn "IPython updated."
     
 ihaskell (Args Console flags) = showingHelp Console flags $ do
-  installed <- ipythonInstalled
-  unless installed installIPython
+  setupIPython
 
   flags <- addDefaultConfFile flags
   info <- initInfo flags
   runConsole info
 
+ihaskell (Args (View (Just fmt) (Just name)) []) =
+  nbconvert fmt name
+
 ihaskell (Args Notebook flags) = showingHelp Notebook flags $ do
-  installed <- ipythonInstalled
-  unless installed installIPython
+  setupIPython
 
   let server = case mapMaybe serveDir flags of
                  [] -> Nothing
                  xs -> Just $ last xs
 
   flags <- addDefaultConfFile flags
-  info <- initInfo flags
+
+  undirInfo <- initInfo flags
+  curdir <- getCurrentDirectory
+  let info = undirInfo { initDir = curdir }
+
   runNotebook info server
   where
     serveDir (ServeFrom dir) = Just dir
@@ -165,7 +198,7 @@ showingHelp mode flags act =
  
 -- | Parse initialization information from the flags.
 initInfo :: [Argument] -> IO InitInfo
-initInfo [] = return InitInfo { extensions = [], initCells = []}
+initInfo [] = return InitInfo { extensions = [], initCells = [], initDir = "."}
 initInfo (flag:flags) = do
   info <- initInfo flags
   case flag of
@@ -180,11 +213,7 @@ runKernel :: String    -- ^ Filename of profile JSON file.
           -> InitInfo  -- ^ Initialization information from the invocation.
           -> IO ()
 runKernel profileSrc initInfo = do
-  -- Switch to a temporary directory so that any files we create aren't
-  -- visible. On Unix, this is usually /tmp.  If there is no temporary
-  -- directory available, just stay in the current one and ignore the
-  -- raised exception.
-  try (getTemporaryDirectory >>= setCurrentDirectory) :: IO (Either SomeException ())
+  setCurrentDirectory $ initDir initInfo
 
   -- Parse the profile file.
   Just profile <- liftM decode . readFile . fpFromText $ pack profileSrc
@@ -192,7 +221,10 @@ runKernel profileSrc initInfo = do
   -- Serve on all sockets and ports defined in the profile.
   interface <- serveProfile profile
 
+  -- Create initial state in the directory the kernel *should* be in.
   state <- initialKernelState
+  modifyMVar_ state $ \initState ->
+    return initState { getCwd = initDir initInfo }
 
   -- Receive and reply to all messages on the shell socket.
   interpret $ do
@@ -230,7 +262,8 @@ initialKernelState :: IO (MVar KernelState)
 initialKernelState =
   newMVar KernelState {
     getExecutionCounter = 1,
-    getLintStatus = LintOn
+    getLintStatus = LintOn,
+    getCwd = "."
   }
 
 -- | Duplicate a message header, giving it a new UUID and message type.

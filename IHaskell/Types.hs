@@ -71,13 +71,15 @@ instance ToJSON Profile where
 -- | All state stored in the kernel between executions.
 data KernelState = KernelState
   { getExecutionCounter :: Int,
-    getLintStatus :: LintStatus  -- Whether to use hlint, and what arguments to pass it. 
+    getLintStatus :: LintStatus,  -- Whether to use hlint, and what arguments to pass it. 
+    getCwd :: String
   }
 
 -- | Initialization information for the kernel.
 data InitInfo = InitInfo {
   extensions :: [String],   -- ^ Extensions to enable at start.
-  initCells :: [String]     -- ^ Code blocks to run before start.
+  initCells :: [String],    -- ^ Code blocks to run before start.
+  initDir :: String         -- ^ Which directory this kernel should pretend to operate in.
   }
   deriving (Show, Read)
 

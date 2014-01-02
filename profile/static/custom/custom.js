@@ -62,7 +62,6 @@ $([IPython.events]).on('notebook_loaded.Notebook', function(){
     }
 });
 
-
 $([IPython.events]).on('app_initialized.NotebookApp', function(){
     // add here logic that shoudl be run once per **page load**
     // like adding specific UI, or changing the default value
@@ -79,24 +78,28 @@ $([IPython.events]).on('app_initialized.NotebookApp', function(){
     })
 
     IPython.CodeCell.options_default['cm_config']['mode'] = 'haskell';
+    require(['/static/custom/conceal/conceal.js']);
 });
 
-var highlightHlint = function() {
+var highlightCodes = function() {
     // Add logic here that should be run once per reply.
-    $('.suggestion-code').each(function() {
+    $('.highlight-code').each(function() {
         var $this = $(this),
             $code = $this.html(),
             $unescaped = $('<div/>').html($code).text();
        
         $this.empty();
+
+        // Never highlight this block again.
+        this.className = "";
     
         CodeMirror(this, {
                 value: $unescaped,
-                mode: 'haskell',
+                mode: this.id,
                 lineNumbers: false,
                 readOnly: true
             });
     });
 };
 
-$([IPython.events]).on('shell_reply.Kernel', highlightHlint);
+$([IPython.events]).on('shell_reply.Kernel', highlightCodes);
