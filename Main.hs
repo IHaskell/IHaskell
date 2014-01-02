@@ -158,7 +158,11 @@ ihaskell (Args Notebook flags) = showingHelp Notebook flags $ do
                  xs -> Just $ last xs
 
   flags <- addDefaultConfFile flags
-  info <- initInfo flags
+
+  undirInfo <- initInfo flags
+  curdir <- getCurrentDirectory
+  let info = undirInfo { initDir = curdir }
+
   runNotebook info server
   where
     serveDir (ServeFrom dir) = Just dir
@@ -194,7 +198,7 @@ showingHelp mode flags act =
  
 -- | Parse initialization information from the flags.
 initInfo :: [Argument] -> IO InitInfo
-initInfo [] = return InitInfo { extensions = [], initCells = []}
+initInfo [] = return InitInfo { extensions = [], initCells = [], initDir = "."}
 initInfo (flag:flags) = do
   info <- initInfo flags
   case flag of
@@ -209,11 +213,7 @@ runKernel :: String    -- ^ Filename of profile JSON file.
           -> InitInfo  -- ^ Initialization information from the invocation.
           -> IO ()
 runKernel profileSrc initInfo = do
-  -- Switch to a temporary directory so that any files we create aren't
-  -- visible. On Unix, this is usually /tmp.  If there is no temporary
-  -- directory available, just stay in the current one and ignore the
-  -- raised exception.
-  try (getTemporaryDirectory >>= setCurrentDirectory) :: IO (Either SomeException ())
+  setCurrentDirectory $ initDir initInfo
 
   -- Parse the profile file.
   Just profile <- liftM decode . readFile . fpFromText $ pack profileSrc
@@ -221,7 +221,10 @@ runKernel profileSrc initInfo = do
   -- Serve on all sockets and ports defined in the profile.
   interface <- serveProfile profile
 
+  -- Create initial state in the directory the kernel *should* be in.
   state <- initialKernelState
+  modifyMVar_ state $ \initState ->
+    return initState { getCwd = initDir initInfo }
 
   -- Receive and reply to all messages on the shell socket.
   interpret $ do
@@ -259,7 +262,8 @@ initialKernelState :: IO (MVar KernelState)
 initialKernelState =
   newMVar KernelState {
     getExecutionCounter = 1,
-    getLintStatus = LintOn
+    getLintStatus = LintOn,
+    getCwd = "."
   }
 
 -- | Duplicate a message header, giving it a new UUID and message type.

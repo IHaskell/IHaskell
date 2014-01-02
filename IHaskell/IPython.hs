@@ -63,6 +63,7 @@ instance Read ViewFormat where
       "md" -> return Markdown
       _ -> pfail
 
+
 -- | Which commit of IPython we are on.
 ipythonCommit :: Text
 ipythonCommit = "9c922f54af799704f4000aeee94ec7c74cada194"

@@ -8,7 +8,7 @@ module IHaskell.Eval.Evaluate (
   interpret, evaluate, Interpreter, liftIO, typeCleaner, globalImports
   ) where
 
-import ClassyPrelude hiding (liftIO, hGetContents)
+import ClassyPrelude hiding (liftIO, hGetContents, try)
 import Control.Concurrent (forkIO, threadDelay)
 import Prelude (putChar, head, tail, last, init, (!!))
 import Data.List.Utils
@@ -19,7 +19,7 @@ import Data.Char as Char
 import Data.Dynamic
 import Data.Typeable
 import qualified Data.Serialize as Serialize
-import System.Directory (removeFile, createDirectoryIfMissing, removeDirectoryRecursive)
+import System.Directory
 import System.Posix.IO
 import System.IO (hGetChar, hFlush)
 import System.Random (getStdGen, randomRs)
@@ -228,6 +228,7 @@ evalCommand _ (Import importStr) state = wrapExecution state $ do
 
 evalCommand _ (Module contents) state = wrapExecution state $ do
   write $ "Module:\n" ++ contents
+
   -- Write the module contents to a temporary file in our work directory
   namePieces <- getModuleName contents
   let directory = "./" ++ intercalate "/" (init namePieces) ++ "/"
@@ -241,16 +242,10 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
   removeTarget $ TargetModule $ mkModuleName modName
   removeTarget $ TargetFile filename Nothing
 
-  -- Set to use object code for fast running times, as that is the only
-  -- reason you would want to use modules in IHaskell.
-  flags <- getSessionDynFlags
-  let objTarget = defaultObjectTarget
-  setSessionDynFlags flags{ hscTarget = objTarget }
-
   -- Remember which modules we've loaded before.
   importedModules <- getContext
 
-  let -- Get the dot-delimited pieces of hte module name.
+  let -- Get the dot-delimited pieces of the module name.
       moduleNameOf :: InteractiveImport -> [String]
       moduleNameOf (IIDecl decl) = split "." . moduleNameString . unLoc . ideclName $ decl
       moduleNameOf (IIModule imp) = split "." . moduleNameString $ imp
@@ -267,33 +262,13 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
   -- Otherwise, GHC tries to load the original *.hs fails and then fails.
   case find preventsLoading importedModules of
     -- If something prevents loading this module, return an error.
-    Just previous -> 
-      let prevLoaded = intercalate "." (moduleNameOf previous) in
-        return $ displayError $
-          printf "Can't load module %s because already loaded %s" modName prevLoaded
+    Just previous -> do
+      let prevLoaded = intercalate "." (moduleNameOf previous)
+      return $ displayError $
+        printf "Can't load module %s because already loaded %s" modName prevLoaded
 
     -- Since nothing prevents loading the module, compile and load it.
-    Nothing -> do
-      -- Create a new target
-      target <- guessTarget modName Nothing
-      addTarget target
-      result <- load LoadAllTargets
-
-      -- Reset the context, since loading things screws it up.
-      initializeItVariable
-
-      -- Add imports
-      importDecl <- parseImportDecl $ "import " ++ modName
-      let implicitImport = importDecl { ideclImplicit = True }
-      setContext $ IIDecl implicitImport : importedModules
-
-      -- Switch back to interpreted mode.
-      flags <- getSessionDynFlags
-      setSessionDynFlags flags{ hscTarget = HscInterpreted }
-
-      case result of
-        Succeeded -> return []
-        Failed -> return $ displayError $ "Failed to load module " ++ modName
+    Nothing -> doLoadModule modName modName
 
 evalCommand _ (Directive SetExtension exts) state = wrapExecution state $ do
   write $ "Extension: " ++ exts
@@ -347,6 +322,21 @@ evalCommand _ (Directive GetType expr) state = wrapExecution state $ do
   flags <- getSessionDynFlags
   let typeStr = showSDocUnqual flags $ ppr result
   return [plain typeStr, html $ formatGetType typeStr]
+
+evalCommand _ (Directive LoadFile name) state = wrapExecution state $ do
+  write $ "Load: " ++ name
+
+  let filename = if endswith ".hs" name
+                 then name
+                 else name ++ ".hs"
+  let modName =  replace "/" "."  $
+                   if endswith ".hs" name
+                   then replace ".hs" "" name
+                   else name
+
+  doLoadModule filename modName
+
+
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
 evalCommand _ (Directive HelpForSet _) state = do
@@ -516,6 +506,46 @@ evalCommand _ (ParseError loc err) state = do
     evalResult = displayError $ formatParseError loc err,
     evalState = state
   }
+
+doLoadModule :: String -> String -> Ghc [DisplayData]
+doLoadModule name modName = flip gcatch unload $ do
+  -- Compile loaded modules. 
+  flags <- getSessionDynFlags
+  let objTarget = defaultObjectTarget
+  setSessionDynFlags flags{ hscTarget = objTarget }
+
+  -- Remember which modules we've loaded before.
+  importedModules <- getContext
+
+  -- Create a new target
+  target <- guessTarget name Nothing
+  addTarget target
+  result <- load LoadAllTargets
+
+  -- Reset the context, since loading things screws it up.
+  initializeItVariable
+
+  -- Add imports
+  importDecl <- parseImportDecl $ "import " ++ modName
+  let implicitImport = importDecl { ideclImplicit = True }
+  setContext $ IIDecl implicitImport : importedModules
+
+  -- Switch back to interpreted mode.
+  flags <- getSessionDynFlags
+  setSessionDynFlags flags{ hscTarget = HscInterpreted }
+
+  case result of
+    Succeeded -> return []
+    Failed -> return $ displayError $ "Failed to load module " ++ modName
+  where
+    unload :: SomeException -> Ghc [DisplayData]
+    unload exception = do
+      -- Explicitly clear targets
+      setTargets []
+      load LoadAllTargets
+
+      initializeItVariable
+      return $ displayError $ "Failed to load module " ++ modName ++ ": " ++ show exception
 
 capturedStatement :: (String -> IO ())         -- ^ Function used to publish intermediate output.
                   -> String                            -- ^ Statement to evaluate.
