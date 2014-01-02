@@ -4,6 +4,7 @@ module IHaskell.Eval.Lint (
   ) where
 
 import Data.String.Utils (replace, startswith, strip, split)
+import Prelude (head, tail)
 import Language.Haskell.HLint as HLint
 import ClassyPrelude
 import Control.Monad
@@ -149,8 +150,8 @@ parseSuggestion suggestion = do
   where
     showSuggestion = 
       replace (lintIdent ++ "=") "" .
-      replace (lintIdent ++ "=do{") "" .
-      replace (lintIdent ++ "}") "" .
+      replace (lintIdent ++ "$do ") "" .
+      replace (replicate (length lintIdent + length " $ do ") ' ' ++ lintIdent) "" .
       replace (" in " ++ lintIdent) "" .
       show
 
@@ -175,7 +176,16 @@ makeValid (Located line block) = Located line $
       -- expression via let x = blah 'in blah'.
       if startswith "let" $ strip stmt
       then stmt ++ " in " ++ lintIdent
-      else lintIdent ++ "=do{" ++ stmt ++ ";" ++ lintIdent ++ "}"
+      else 
+        -- We take advantage of the fact that naked expressions at toplevel
+        -- are allowed by Template Haskell, and output them to a file.
+        let prefix = lintIdent ++ " $ do "
+            first:rest = split "\n" stmt
+            indent = replicate (length prefix) ' '
+            fixedLines = first : map (indent ++) rest
+            extraReturnLine = [indent ++ lintIdent]
+            code = intercalate "\n" (fixedLines ++ extraReturnLine) in
+        prefix ++ code
 
     -- Modules, declarations, and type signatures are fine as is.
     Module mod -> mod
