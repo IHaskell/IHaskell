@@ -1,15 +1,9 @@
 /*
 Custom IHaskell CSS.
 */
-table.suggestion-table {
-    border: 0px;
-    text-align: center;
-}
-tr.suggestion-row {
-    border: 0px;
-}
-td.suggestion-cell {
-    border: 0px;
+.highlight-code {
+    white-space: pre;
+    font-family: monospace;
 }
 .suggestion-warning { 
     font-weight: bold;

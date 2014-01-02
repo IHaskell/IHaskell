@@ -51,6 +51,8 @@ data CodeBlock
 
 -- | Store locations along with a value.
 data Located a = Located LineNumber a deriving (Eq, Show)
+instance Functor Located where
+  fmap f (Located line a) = Located line $ f a
 
 -- | Directive types. Each directive is associated with a string in the
 -- directive code block.
@@ -83,7 +85,7 @@ parseString codeString = do
     Failure {} ->
       -- Split input into chunks based on indentation.
       let chunks = layoutChunks $ dropComments codeString in
-        joinFunctions <$> processChunks 1 [] chunks
+        joinFunctions <$> processChunks [] chunks
   where
     parseChunk :: GhcMonad m => String -> LineNumber -> m (Located CodeBlock)
     parseChunk chunk line = Located line <$>
@@ -91,16 +93,16 @@ parseString codeString = do
       then return $ parseDirective chunk line
       else parseCodeChunk chunk line
 
-    processChunks :: GhcMonad m => LineNumber -> [Located CodeBlock] -> [String] -> m [Located CodeBlock]
-    processChunks line accum remaining =
+    processChunks :: GhcMonad m => [Located CodeBlock] -> [Located String] -> m [Located CodeBlock]
+    processChunks accum remaining =
       case remaining of
         -- If we have no more remaining lines, return the accumulated results.
         [] -> return $ reverse accum
 
         -- If we have more remaining, parse the current chunk and recurse.
-        chunk:remaining ->  do
+        Located line chunk:remaining ->  do
           block <- parseChunk chunk line
-          processChunks (line + nlines chunk) (block : accum) remaining
+          processChunks (block : accum) remaining
 
     -- Test wither a given chunk is a directive.
     isDirective :: String -> Bool
@@ -248,25 +250,29 @@ parseDirective _ _ = error "Directive must start with colon!"
 -- A chunk is a line and all lines immediately following that are indented
 -- beyond the indentation of the first line. This parses Haskell layout
 -- rules properly, and allows using multiline expressions via indentation. 
-layoutChunks :: String -> [String]
-layoutChunks string = filter (not . null) $ map strip $ layoutLines $ lines string
+layoutChunks :: String -> [Located String]
+layoutChunks = go 1
   where
-    layoutLines :: [String] -> [String]
+    go :: LineNumber -> String -> [Located String]
+    go line = filter (not . null . unloc) . map (fmap strip) . layoutLines line . lines
+
+    layoutLines :: LineNumber -> [String] -> [Located String]
     -- Empty string case.  If there's no input, output is empty.
-    layoutLines [] = []
+    layoutLines _ [] = []
 
     -- Use the indent of the first line to find the end of the first block.
-    layoutLines (firstLine:rest) = 
+    layoutLines lineIdx all@(firstLine:rest) = 
       let firstIndent = indentLevel firstLine
           blockEnded line = indentLevel line <= firstIndent in
         case findIndex blockEnded rest of
           -- If the first block doesn't end, return the whole string, since
           -- that just means the block takes up the entire string. 
-          Nothing -> [string]
+          Nothing -> [Located lineIdx $ intercalate "\n" all]
 
           -- We found the end of the block. Split this bit out and recurse.
           Just idx -> 
-              joinLines (firstLine:take idx rest) : layoutChunks (joinLines $ drop idx rest)
+            let (before, after) = splitAt idx rest in
+              Located lineIdx (joinLines $ firstLine:before) : go (lineIdx + idx + 1) (joinLines after)
 
     -- Compute indent level of a string as number of leading spaces.
     indentLevel :: String -> Int
