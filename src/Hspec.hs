@@ -1,4 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
+module Main where
+import Prelude
 import GHC
 import GHC.Paths
 import Data.IORef
@@ -7,6 +9,7 @@ import Data.List
 import System.Directory
 import Data.String.Here
 import Data.String.Utils (strip, replace)
+import Data.Monoid
 
 import IHaskell.Eval.Parser
 import IHaskell.Types
@@ -33,7 +36,12 @@ eval string = do
   outputAccum <- newIORef []
   let publish final displayDatas = when final $ modifyIORef outputAccum (displayDatas :)
   getTemporaryDirectory >>= setCurrentDirectory
+<<<<<<< HEAD:Hspec.hs
   let state = KernelState 1 LintOff "."
+=======
+  let state :: KernelState
+      state = mempty { getLintStatus = LintOff }
+>>>>>>> 63ecc797eb66565e4bb6ed04d503b3884b37cb4e:src/Hspec.hs
   interpret $ Eval.evaluate state string publish
   out <- readIORef outputAccum
   return $ reverse out

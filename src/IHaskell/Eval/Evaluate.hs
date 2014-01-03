@@ -1,4 +1,4 @@
-{-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings #-}
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
 
@@ -24,6 +24,7 @@ import System.Posix.IO
 import System.IO (hGetChar, hFlush)
 import System.Random (getStdGen, randomRs)
 import Unsafe.Coerce
+import Control.Monad (guard)
 
 import NameSet
 import Name
@@ -51,6 +52,9 @@ import IHaskell.Types
 import IHaskell.Eval.Parser
 import IHaskell.Eval.Lint
 import IHaskell.Display
+
+import Paths_ihaskell (version)
+import Data.Version (versionBranch)
 
 data ErrorOccurred = Success | Failure deriving Show
 
@@ -101,15 +105,38 @@ interpret action = runGhc (Just libdir) $ do
 -- | Initialize our GHC session with imports and a value for 'it'.
 initializeImports :: Interpreter ()
 initializeImports = do
-  -- Load packages that start with ihaskell-* and aren't just IHaskell.
+  -- Load packages that start with ihaskell-*, aren't just IHaskell,
+  -- and depend directly on the right version of the ihaskell library
   dflags <- getSessionDynFlags
   displayPackages <- liftIO $ do
     (dflags, _) <- initPackages dflags
     let Just db = pkgDatabase dflags
         packageNames = map (packageIdString . packageConfigId) db
+
         initStr = "ihaskell-"
-        ihaskellPkgs = filter (startswith initStr) packageNames
-        displayPkgs = filter (isAlpha . (!! (length initStr + 1))) ihaskellPkgs
+        -- "ihaskell-1.2.3.4"
+        iHaskellPkgName = initStr ++ intercalate "." (map show (versionBranch version))
+
+        dependsOnRight pkg = not $ null $ do
+            pkg <- db
+            depId <- depends pkg
+            dep <- filter ((== depId) . installedPackageId) db
+            guard (iHaskellPkgName `isPrefixOf` packageIdString (packageConfigId dep))
+
+        -- ideally the Paths_ihaskell module could provide a way to get the
+        -- hash too (ihaskell-0.2.0.5-f2bce922fa881611f72dfc4a854353b9),
+        -- for now. Things will end badly if you also happen to have an
+        -- ihaskell-0.2.0.5-ce34eadc18cf2b28c8d338d0f3755502 installed.
+        iHaskellPkg = case filter (== iHaskellPkgName) packageNames of
+                [x] -> x
+                [] -> error ("cannot find required haskell library: "++iHaskellPkgName)
+                _ -> error ("multiple haskell packages "++iHaskellPkgName++" found")
+
+        displayPkgs = [ pkgName
+                  | pkgName <- packageNames,
+                    Just (x:_) <- [stripPrefix initStr pkgName],
+                    isAlpha x]
+
     return displayPkgs
 
   -- Generate import statements all Display modules.
@@ -423,9 +450,9 @@ evalCommand output (Expression expr) state = do
   -- The output is bound to 'it', so we can then use it.
   evalOut <- evalCommand output (Statement expr) state
 
-    -- Try to use `display` to convert our type into the output
+  -- Try to use `display` to convert our type into the output
   -- DisplayData. If typechecking fails and there is no appropriate
-  -- typeclass, this will throw an exception and thus `attempt` will
+  -- typeclass instance, this will throw an exception and thus `attempt` will
   -- return False, and we just resort to plaintext.
   let displayExpr = printf "(IHaskell.Display.display (%s))" expr
   canRunDisplay <- attempt $ exprType displayExpr

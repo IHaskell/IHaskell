@@ -75,6 +75,13 @@ data KernelState = KernelState
     getCwd :: String
   }
 
+
+-- | like 'First', except also add up the execution counter
+instance Monoid KernelState where
+   mempty = KernelState 1 LintOn "." 
+   KernelState na sa cwda `mappend` KernelState nb sb cwdb = 
+    KernelState (na+nb) sa cwda
+
 -- | Initialization information for the kernel.
 data InitInfo = InitInfo {
   extensions :: [String],   -- ^ Extensions to enable at start.

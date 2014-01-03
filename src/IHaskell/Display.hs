@@ -1,5 +1,4 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module IHaskell.Display (
   IHaskellDisplay(..),
   plain, html, png, jpg, svg, latex,
@@ -14,6 +13,12 @@ import Data.String.Utils (rstrip)
 import IHaskell.Types
 
 -- | A class for displayable Haskell types.
+--
+-- IHaskell's displaying of results behaves as if these two
+-- overlapping/undecidable instances also existed:
+-- 
+-- > instance (Show a) => IHaskellDisplay a
+-- > instance Show a where shows _ = id
 class IHaskellDisplay a where
   display :: a -> [DisplayData]
 

@@ -46,6 +46,7 @@ data-files:
   profile/profile.tar
 
 library
+  hs-source-dirs:      src
   build-depends:       base ==4.6.*,
                        hlint,
                        cmdargs >= 0.10,
@@ -73,8 +74,7 @@ library
                        system-filepath,
                        cereal ==0.3.*,
                        text >=0.11,
-                       mtl >= 2.1,
-                       template-haskell
+                       mtl >= 2.1
   exposed-modules: IHaskell.Display,
                    Paths_ihaskell,
                    IHaskell.Types,
@@ -82,6 +82,7 @@ library
 
 executable IHaskell
   -- .hs or .lhs file containing the Main module.
+  hs-source-dirs:      src
   main-is:             Main.hs
 
   build-tools:         happy, cpphs
@@ -132,8 +133,7 @@ executable IHaskell
                        system-filepath,
                        cereal ==0.3.*,
                        text >=0.11,
-                       mtl >= 2.1,
-                       template-haskell
+                       mtl >= 2.1
 
 Test-Suite hspec
   Type:     exitcode-stdio-1.0
@@ -166,8 +166,7 @@ Test-Suite hspec
                        system-filepath,
                        cereal ==0.3.*,
                        text >=0.11,
-                       mtl >= 2.1,
-                       template-haskell
+                       mtl >= 2.1
 
 source-repository head
   type:     git
