@@ -36,7 +36,8 @@ eval string = do
   outputAccum <- newIORef []
   let publish _ displayDatas = modifyIORef outputAccum (displayDatas :)
   getTemporaryDirectory >>= setCurrentDirectory
-  let state = mempty :: KernelState
+  let state :: KernelState
+      state = mempty { getLintStatus = LintOff }
   interpret $ Eval.evaluate state string publish
   out <- readIORef outputAccum
   return $ reverse out

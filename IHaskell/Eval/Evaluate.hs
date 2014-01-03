@@ -450,9 +450,9 @@ evalCommand output (Expression expr) state = do
   -- The output is bound to 'it', so we can then use it.
   evalOut <- evalCommand output (Statement expr) state
 
-    -- Try to use `display` to convert our type into the output
+  -- Try to use `display` to convert our type into the output
   -- DisplayData. If typechecking fails and there is no appropriate
-  -- typeclass, this will throw an exception and thus `attempt` will
+  -- typeclass instance, this will throw an exception and thus `attempt` will
   -- return False, and we just resort to plaintext.
   let displayExpr = printf "(IHaskell.Display.display (%s))" expr
   canRunDisplay <- attempt $ exprType displayExpr
