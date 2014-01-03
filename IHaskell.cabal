@@ -46,6 +46,7 @@ data-files:
   profile/profile.tar
 
 library
+  hs-source-dirs:      src
   build-depends:       base ==4.6.*,
                        hlint,
                        cmdargs >= 0.10,
@@ -81,6 +82,7 @@ library
 
 executable IHaskell
   -- .hs or .lhs file containing the Main module.
+  hs-source-dirs:      src
   main-is:             Main.hs
 
   build-tools:         happy, cpphs
