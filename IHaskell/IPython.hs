@@ -199,16 +199,33 @@ installIPython = void . shellyNoDir $ do
 
   buildIPython
 
+-- | Install all Python dependencies.
 installPipDependencies :: Sh ()
-installPipDependencies = do
-  -- Install all Python dependencies.
-  pipPath <- path "pip"
-  prefixOpt <-  ("--install-option=--prefix=" ++) <$>  fpToText <$> ipythonDir
-  let pipDeps = ["pyzmq", "tornado", "jinja2"]
-      installDep dep = do
-        putStrLn $ "Installing dependency: " ++ dep 
-        run_ pipPath ["install", prefixOpt, dep]
-  mapM_ installDep pipDeps
+installPipDependencies = mapM_ installDependency [("markupsafe", "0.18")
+                                                 ,("pyzmq", "14.0.1")
+                                                 ,("tornado","3.1.1")
+                                                 ,("jinja2","2.7.1")]
+  where
+    installDependency :: (Text, Text) -> Sh ()
+    installDependency (dep, version) = withTmpDir $ \tmpDir -> do
+      let versioned = dep ++ "-" ++ version
+      putStrLn $ "Installing dependency: " ++ versioned
+
+      pipPath <- path "pip"
+      tarPath <- path "tar"
+
+      -- Download the package.
+      let downloadOpt = "--download=" ++ fpToText tmpDir
+      run_ pipPath ["install", downloadOpt, dep ++ "==" ++ version]
+
+      -- Extract it.
+      run_ tarPath ["-xf", versioned ++ ".tar.gz"]
+
+      -- Install it.
+      cd $ fromText versioned
+      prefixOpt <-  ("--prefix=" ++) <$>  fpToText <$> ipythonDir
+      run_ pipPath ["install", prefixOpt]
+
 
 -- | Once things are checked out into the IPython source directory, build it and install it.
 buildIPython :: Sh ()
