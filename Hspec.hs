@@ -1,4 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
+module Main where
+import Prelude
 import GHC
 import GHC.Paths
 import Data.IORef
