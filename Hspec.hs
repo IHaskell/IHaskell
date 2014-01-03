@@ -34,7 +34,7 @@ is string blockType = do
 
 eval string = do
   outputAccum <- newIORef []
-  let publish _ displayDatas = modifyIORef outputAccum (displayDatas :)
+  let publish final displayDatas = when final $ modifyIORef outputAccum (displayDatas :)
   getTemporaryDirectory >>= setCurrentDirectory
   let state :: KernelState
       state = mempty { getLintStatus = LintOff }
