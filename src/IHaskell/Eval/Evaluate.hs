@@ -12,7 +12,7 @@ import ClassyPrelude hiding (liftIO, hGetContents, try)
 import Control.Concurrent (forkIO, threadDelay)
 import Prelude (putChar, head, tail, last, init, (!!))
 import Data.List.Utils
-import Data.List(findIndex)
+import Data.List(findIndex, and)
 import Data.String.Utils
 import Text.Printf
 import Data.Char as Char
@@ -719,20 +719,44 @@ capturedStatement output stmt = do
   return (printedOutput, result)
 
 formatError :: ErrMsg -> String
-formatError = printf "<span style='color: red; font-style: italic;'>%s</span>" .
+formatError = printf "<span class='err-msg'>%s</span>" .
             replace "\n" "<br/>" . 
+            fixLineWrapping .
             replace useDashV "" .
             rstrip . 
             typeCleaner
   where 
-        useDashV = "\nUse -v to see a list of the files searched for."
+    useDashV = "\nUse -v to see a list of the files searched for."
+    fixLineWrapping err
+      | isThreePartTypeError err =
+          let (before, exp:after) = break ("Expected type" `isInfixOf`)  $ lines err
+              (expected, act:actual) = break ("Actual type" `isInfixOf`) after in
+            unlines $ map unstripped [before, exp:expected, act:actual]
+      | isTwoPartTypeError err =
+          let (one, two) = break ("with actual type" `isInfixOf`)  $ lines err in
+            unlines $ map unstripped [one, two]
+      | otherwise = err
+      where 
+        unstripped (line:lines) = unwords $ line:map lstrip lines
+
+    isThreePartTypeError err = all (`isInfixOf` err) [
+      "Couldn't match type",
+      "with",
+      "Expected type:",
+      "Actual type:"
+      ]
+    isTwoPartTypeError err = all (`isInfixOf` err) [
+      "Couldn't match expected type",
+      "with actual type"
+      ]
+
 
 formatParseError :: StringLoc -> String -> ErrMsg
 formatParseError (Loc line col) = 
   printf "Parse error (line %d, column %d): %s" line col
 
 formatGetType :: String -> String
-formatGetType = printf "<span style='font-weight: bold; color: green;'>%s</span>"
+formatGetType = printf "<span class='get-type'>%s</span>"
 
 displayError :: ErrMsg -> [DisplayData]
 displayError msg = [plain . typeCleaner $ msg, html $ formatError msg] 
