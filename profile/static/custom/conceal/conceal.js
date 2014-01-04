@@ -53,7 +53,19 @@ var concealExtension = (function() {
 
     // Process a non-infix conceal token.
     function markNonInfixToken(editor, line, token) {
-        // First, check if this is a normal concealable element. (non-infix)
+        // We have a special case for the dot operator.
+        // This is because CodeMirror parses some bits of Haskell incorrectly.
+        // For instance: [1..100] gets parsed as a number "1." followed by a dot ".".
+        // This causes the "." to become marked, although it shouldn't be.
+        if (token.string == ".") {
+            var prev = prevToken(editor, token, line);
+            var prevStr = prev.string;
+            if(prevStr[prevStr.length - 1] == ".") {
+                return false;
+            }
+        }
+
+        // Check if this is a normal concealable element. (non-infix)
         for (var str in conceals) {
             if (conceals.hasOwnProperty(str)) {
                 if (token.string == str) {
