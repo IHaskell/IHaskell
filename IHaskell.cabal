@@ -101,7 +101,6 @@ executable IHaskell
              IHaskell.Types
              IHaskell.ZeroMQ
              IHaskell.Display
-             IHaskell.Config
 
   extensions: DoAndIfThenElse
   
