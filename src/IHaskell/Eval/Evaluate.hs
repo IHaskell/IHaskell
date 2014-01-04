@@ -499,7 +499,7 @@ evalCommand output (Expression expr) state = do
       -- back gives very strange errors - all the types match but it
       -- refuses to decode back into a [DisplayData].
       -- Suppress output, so as not to mess up console.
-      capturedStatement (const $ return ()) displayExpr
+      out <- capturedStatement (const $ return ()) displayExpr
 
       displayedBytestring <- dynCompileExpr "IHaskell.Display.serializeDisplay it"
       case fromDynamic displayedBytestring of

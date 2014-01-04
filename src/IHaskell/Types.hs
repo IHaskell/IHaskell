@@ -301,7 +301,13 @@ instance Show ExecuteReplyStatus where
 data ExecutionState = Busy | Idle | Starting deriving Show
 
 -- | Data for display: a string with associated MIME type.
-data DisplayData = Display MimeType String deriving (Show, Typeable, Generic)
+data DisplayData = Display MimeType String deriving (Typeable, Generic)
+
+-- We can't print the actual data, otherwise this will be printed every
+-- time it gets computed because of the way the evaluator is structured.
+-- See how `displayExpr` is computed.
+instance Show DisplayData where
+  show _ = "Display"
 
 -- Allow DisplayData serialization
 instance Serialize DisplayData
