@@ -203,8 +203,10 @@ installIPython = void . shellyNoDir $ do
 installPipDependencies :: Sh ()
 installPipDependencies = withTmpDir $ \tmpDir -> 
     mapM_ (installDependency tmpDir) 
-      [ ("pyzmq", "14.0.1")
-      , ("MarkupSafe", "0.18") -- This cannot go first in the dependenc list, because its setup.py is broken.
+      [
+        ("pyzmq", "14.0.1")
+      , ("setuptools", "2.0.2") -- This cannot go first in the dependenc list, because its setup.py is broken.
+      , ("MarkupSafe", "0.18")  -- Neither can this
       , ("tornado","3.1.1")
       , ("jinja2","2.7.1")
       ]
