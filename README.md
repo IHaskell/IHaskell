@@ -12,6 +12,8 @@ As well as the IPython browser-based notebook interface:
 
 ![IPython Notebook](https://raw.github.com/gibiansky/IHaskell/master/images/ihaskell-notebook.png)
 
+*More usage information on the [wiki](https://github.com/gibiansky/IHaskell/wiki).*
+
 Installation
 ===
 
