@@ -59,7 +59,7 @@ import Data.Version (versionBranch)
 data ErrorOccurred = Success | Failure deriving Show
 
 debug :: Bool
-debug = False
+debug = True
 
 ignoreTypePrefixes :: [String]
 ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",
@@ -337,7 +337,7 @@ evalCommand _ (Directive GetType expr) state = wrapExecution state $ do
   result <- exprType expr
   flags <- getSessionDynFlags
   let typeStr = showSDocUnqual flags $ ppr result
-  return [plain typeStr, html $ formatGetType typeStr]
+  return $ formatType typeStr
 
 evalCommand _ (Directive LoadFile name) state = wrapExecution state $ do
   write $ "Load: " ++ name
@@ -356,6 +356,7 @@ evalCommand _ (Directive LoadFile name) state = wrapExecution state $ do
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
 evalCommand _ (Directive SetOpt option) state = do
+  write $ "Setting option: " ++ option
   let opt = strip option
       newState = setOpt opt state
       out = case newState of
@@ -373,13 +374,23 @@ evalCommand _ (Directive SetOpt option) state = do
 
     setOpt "lint" state = Just $
       state { getLintStatus = LintOn }
-    setOpt "nolint" state = Just $
+    setOpt "no-lint" state = Just $
       state { getLintStatus = LintOff }
 
     setOpt "svg" state = Just $
       state { useSvg = True }
-    setOpt "nosvg" state = Just $
+    setOpt "no-svg" state = Just $
       state { useSvg = False }
+
+    setOpt "show-types" state = Just $
+      state { useShowTypes = True }
+    setOpt "no-show-types" state = Just $
+      state { useShowTypes = False }
+
+    setOpt "show-errors" state = Just $
+      state { useShowErrors = True }
+    setOpt "no-show-errors" state = Just $
+      state { useShowErrors = False }
 
     setOpt _ _ = Nothing
 
@@ -398,7 +409,7 @@ evalCommand _ (Directive GetHelp _) state = do
           ,"    :type <expression>        -  Print expression type."
           ,"    :info <name>              -  Print all info for a name."
           ,"    :set <opt>                -  Set an option."
-          ,"    :set no<opt>              -  Unset an option."
+          ,"    :set no-<opt>              -  Unset an option."
           ,"    :?, :help                 -  Show this help text."
           ,""
           ,"Any prefix of the commands will also suffice, e.g. use :ty for :type."
@@ -448,9 +459,38 @@ evalCommand output (Statement stmt) state = wrapExecution state $ do
   case result of
     RunOk names -> do
       dflags <- getSessionDynFlags
-      write $ "Names: " ++ show (map (showPpr dflags) names)  
-      let output = [plain printed | not . null $ strip printed]
-      return output
+
+      let allNames = map (showPpr dflags) names  
+          isItName name =
+            name == "it" ||
+            name == "it" ++ show (getExecutionCounter state)
+          nonItNames = filter (not . isItName) allNames
+          output = [plain printed | not . null $ strip printed]
+
+      write $ "Names: " ++ show allNames
+
+      -- Display the types of all bound names if the option is on.
+      -- This is similar to GHCi :set +t.
+      if not $ useShowTypes state
+      then return output
+      else do
+        -- Get all the type strings.
+        types <- forM nonItNames $ \name -> do
+          theType <- showSDocUnqual dflags . ppr <$> exprType name
+          return $ name ++ " :: " ++ theType
+
+        let joined = unlines types
+            htmled = formatGetType joined
+
+        return $ case output of
+          [] -> [html htmled]
+
+          -- Return plain and html versions.
+          -- Previously there was only a plain version.
+          [Display PlainText text] ->
+            [plain $ joined ++ "n" ++ text,
+             html  $ htmled ++ mono text]
+
     RunException exception -> throw exception
     RunBreak{} -> error "Should not break."
 
@@ -774,5 +814,11 @@ formatParseError (Loc line col) =
 formatGetType :: String -> String
 formatGetType = printf "<span class='get-type'>%s</span>"
 
+formatType :: String -> [DisplayData]
+formatType typeStr =  [plain typeStr, html $ formatGetType typeStr]
+
 displayError :: ErrMsg -> [DisplayData]
 displayError msg = [plain . typeCleaner $ msg, html $ formatError msg] 
+
+mono :: String -> String
+mono = printf "<span class='mono'>%s</span>"

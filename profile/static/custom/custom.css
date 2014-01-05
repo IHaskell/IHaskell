@@ -7,6 +7,12 @@ Custom IHaskell CSS.
     color: green;
     font-weight: bold;
     font-family: monospace;
+    display: block;
+}
+
+.mono {
+    font-family: monospace;
+    display: block;
 }
 
 .err-msg {
@@ -14,6 +20,7 @@ Custom IHaskell CSS.
     font-style: italic;
     font-family: monospace;
     white-space: pre;
+    display: block;
 }
 
 

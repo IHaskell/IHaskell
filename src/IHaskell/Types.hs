@@ -75,15 +75,20 @@ data KernelState = KernelState
   { getExecutionCounter :: Int,
     getLintStatus :: LintStatus,  -- Whether to use hlint, and what arguments to pass it. 
     getCwd :: String,
-    useSvg :: Bool
+    useSvg :: Bool,
+    useShowErrors :: Bool,
+    useShowTypes :: Bool
   }
+  deriving Show
 
 defaultKernelState :: KernelState
 defaultKernelState = KernelState
   { getExecutionCounter = 1,
     getLintStatus = LintOn,
     getCwd = ".",
-    useSvg = True
+    useSvg = True,
+    useShowErrors = False,
+    useShowTypes = False
   }
 
 -- | Initialization information for the kernel.
