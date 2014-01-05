@@ -507,17 +507,23 @@ evalCommand output (Expression expr) state = do
   let displayExpr = printf "(IHaskell.Display.display (%s))" expr
   canRunDisplay <- attempt $ exprType displayExpr
   let out = evalResult evalOut
+      showErr = isShowError out
   write $ printf "%s: Attempting %s" (if canRunDisplay then "Success" else "Failure") displayExpr
-  write $ "Show Error: " ++ show (isShowError out)
+  write $ "Show Error: " ++ show showErr
   write $ show out
 
   -- If evaluation failed, return the failure.  If it was successful, we
   -- may be able to use the IHaskellDisplay typeclass.
   if not canRunDisplay
-  then return evalOut
+  then return $ if not showErr
+                then evalOut
+                else postprocessShowError evalOut
   else case evalStatus evalOut of
     Success -> useDisplay displayExpr
-    Failure -> if isShowError out
+
+    -- If something other than the show failed, don't use display, just
+    -- show the error message.
+    Failure -> if showErr
               then useDisplay displayExpr
               else return evalOut
 
@@ -538,10 +544,9 @@ evalCommand output (Expression expr) state = do
         startswith "No instance for (Show" msg &&
         isInfixOf " arising from a use of `print'" msg
       Nothing -> False
-      where isPlain (Display mime _) = mime == PlainText
 
-    isSvg (Display MimeSvg _) = True
-    isSvg _ = False
+    isPlain (Display mime _) = mime == PlainText
+    isSvg (Display mime _) = mime == MimeSvg
 
     useDisplay displayExpr = wrapExecution state $ do
       -- If there are instance matches, convert the object into
@@ -566,6 +571,37 @@ evalCommand output (Expression expr) state = do
                 if useSvg state
                 then displayData
                 else filter (not . isSvg) displayData
+
+    postprocessShowError :: EvalOut -> EvalOut
+    postprocessShowError evalOut = evalOut { evalResult = map postprocess disps }
+      where
+        disps = evalResult evalOut
+        Just (Display PlainText text) = find isPlain disps
+
+        postprocess (Display MimeHtml _) = html $ printf fmt unshowableType (formatErrorWithClass "err-msg collapse" text) script
+          where 
+            fmt = "<div class='collapse-group'><span class='btn' href='#' id='unshowable'>Unshowable:<span class='show-type'>%s</span></span>%s</div><script>%s</script>"
+            script = unlines [
+                "$('#unshowable').on('click', function(e) {",
+                "    e.preventDefault();",
+                "    var $this = $(this);",
+                "    var $collapse = $this.closest('.collapse-group').find('.err-msg');",
+                "    $collapse.collapse('toggle');",
+                "});"
+              ]
+
+        postprocess other = other
+
+        unshowableType = fromMaybe "" $ do
+          let pieces = words text
+              before = takeWhile (/= "arising") pieces
+              after = init $ unwords $ tail $ dropWhile (/= "(Show") before
+
+          firstChar <- headMay after
+          return $ if firstChar == '('
+                   then init $ tail after
+                   else after
+
 
 
 evalCommand _ (Declaration decl) state = wrapExecution state $ do
@@ -775,12 +811,16 @@ capturedStatement output stmt = do
   return (printedOutput, result)
 
 formatError :: ErrMsg -> String
-formatError = printf "<span class='err-msg'>%s</span>" .
-            replace "\n" "<br/>" . 
-            fixLineWrapping .
-            replace useDashV "" .
-            rstrip . 
-            typeCleaner
+formatError = formatErrorWithClass "err-msg"
+
+formatErrorWithClass :: String -> ErrMsg -> String
+formatErrorWithClass cls =
+    printf "<span class='%s'>%s</span>" cls .
+    replace "\n" "<br/>" . 
+    fixLineWrapping .
+    replace useDashV "" .
+    rstrip . 
+    typeCleaner
   where 
     useDashV = "\nUse -v to see a list of the files searched for."
     fixLineWrapping err
@@ -791,6 +831,9 @@ formatError = printf "<span class='err-msg'>%s</span>" .
       | isTwoPartTypeError err =
           let (one, two) = break ("with actual type" `isInfixOf`)  $ lines err in
             unlines $ map unstripped [one, two]
+      | isShowError err =
+          let (one, arising:possibleFix:two) = break ("arising" `isInfixOf`)  $ lines err in
+            unlines $ map unstripped [one, [arising], [possibleFix], two]
       | otherwise = err
       where 
         unstripped (line:lines) = unwords $ line:map lstrip lines
@@ -805,6 +848,10 @@ formatError = printf "<span class='err-msg'>%s</span>" .
       "Couldn't match expected type",
       "with actual type"
       ]
+
+    isShowError err = 
+      startswith "No instance for (Show" err &&
+      isInfixOf " arising from a use of `print'" err
 
 
 formatParseError :: StringLoc -> String -> ErrMsg
