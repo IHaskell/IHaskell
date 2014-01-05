@@ -1,4 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
+module Main where
+import Prelude
 import GHC
 import GHC.Paths
 import Data.IORef
@@ -7,6 +9,7 @@ import Data.List
 import System.Directory
 import Data.String.Here
 import Data.String.Utils (strip, replace)
+import Data.Monoid
 
 import IHaskell.Eval.Parser
 import IHaskell.Types
@@ -33,7 +36,7 @@ eval string = do
   outputAccum <- newIORef []
   let publish final displayDatas = when final $ modifyIORef outputAccum (displayDatas :)
   getTemporaryDirectory >>= setCurrentDirectory
-  let state = KernelState 1 LintOff "."
+  let state = defaultKernelState { getLintStatus = LintOff }
   interpret $ Eval.evaluate state string publish
   out <- readIORef outputAccum
   return $ reverse out
@@ -283,7 +286,7 @@ parseStringTests = describe "Parser" $ do
 
   it "parses :set x" $
     parses ":set x" `like` [
-      Directive HelpForSet "x"
+      Directive SetOpt "x"
     ]
 
   it "parses :extension x" $

@@ -1,10 +1,29 @@
 /*
 Custom IHaskell CSS.
 */
+
+/* Styles used for basic displays */
+.get-type {
+    color: green;
+    font-weight: bold;
+    font-family: monospace;
+}
+
+.err-msg {
+    color: red;
+    font-style: italic;
+    font-family: monospace;
+    white-space: pre;
+}
+
+
+/* Code that will get highlighted before it is highlighted */
 .highlight-code {
     white-space: pre;
     font-family: monospace;
 }
+
+/* Hlint styles */
 .suggestion-warning { 
     font-weight: bold;
     color: rgb(200, 130, 0);

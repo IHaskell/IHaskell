@@ -61,8 +61,7 @@ data DirectiveType
   | GetInfo         -- ^ Get info about the identifier via ':info' (or unique prefixes)
   | SetExtension    -- ^ Enable or disable an extension via ':extension' (or prefixes)
   | LoadFile        -- ^ Load a Haskell module.
-  | SetLint         -- ^ Enable or disable a hlint via ':hlint on' or ':hlint off'
-  | HelpForSet      -- ^ Provide useful info if people try ':set'.
+  | SetOpt          -- ^ Set various options.
   | GetHelp         -- ^ General help via ':?' or ':help'.
   deriving (Show, Eq)
 
@@ -238,8 +237,7 @@ parseDirective (':':directive) line = case find rightDirective directives of
       ,(GetInfo,      "info")
       ,(SetExtension, "extension")
       ,(LoadFile,     "load")
-      ,(SetLint,      "hlint")
-      ,(HelpForSet,   "set")
+      ,(SetOpt,       "set")
       ,(GetHelp,      "?")
       ,(GetHelp,      "help")
       ]

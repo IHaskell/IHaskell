@@ -1,5 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE CPP, NoImplicitPrelude, OverloadedStrings #-}
 -- | Description : @ToJSON@ for Messages
 --
 -- This module contains the @ToJSON@ instance for @Message@.
@@ -11,19 +10,15 @@ import Prelude (read)
 import ClassyPrelude
 import Data.Aeson
 
-import Language.Haskell.TH
 import Shelly hiding (trace)
 
 import IHaskell.Types
 
--- | Compute the GHC API version number using Template Haskell.
+-- | Compute the GHC API version number using the dist/build/autogen/cabal_macros.h
 ghcVersionInts :: [Int]
-ghcVersionInts = ints . map read . words . map dotToSpace $ version
+ghcVersionInts = ints . map read . words . map dotToSpace $ VERSION_ghc
   where dotToSpace '.' = ' '
         dotToSpace x = x
-
-        version :: String
-        version = $(runIO (unpack <$> shelly (run "ghc" ["--numeric-version"])) >>= stringE)
 
 -- Convert message bodies into JSON.
 instance ToJSON Message where

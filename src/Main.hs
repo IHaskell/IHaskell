@@ -260,11 +260,7 @@ runKernel profileSrc initInfo = do
 -- Initial kernel state.
 initialKernelState :: IO (MVar KernelState)
 initialKernelState =
-  newMVar KernelState {
-    getExecutionCounter = 1,
-    getLintStatus = LintOn,
-    getCwd = "."
-  }
+  newMVar defaultKernelState
 
 -- | Duplicate a message header, giving it a new UUID and message type.
 dupHeader :: MessageHeader -> MessageType -> IO MessageHeader

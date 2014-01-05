@@ -69,8 +69,7 @@ Compilation Tools
 ---
 Install the `happy` parser generator tool and `cpphs` preprocessor:
 ```bash
-cabal install happy
-cabal install cpphs
+cabal install happy cpphs
 ```
 
 IHaskell Installation
@@ -148,10 +147,17 @@ The will hide all packages not listed in the
 
 **Using GHCi directly**
 
-If you don't want to use cabal repl, you can just call ghci with the appropriate options. You can find these in the IHaskell.cabal file. 
+If you don't want to use `cabal repl`, you can just call ghci which can read the `.ghci` file included in the repository for the options.
 
 ```bash
-ghci -XDoAndIfThenElse -XNoImplicitPrelude -XOverloadedStrings -package ghc -optP-include -optPdist/build/autogen/cabal_macros.h
+cd <path-to-IHaskell>
+chmod 600 .ghci # trust the .ghci file
+ghci
 ```
+Then in the ghci session  you can type things like:
 
-If you just call ghci, it will use the options present in the .ghci file that comes with the IHaskell repo. 
+```
+:load src/Hspec.hs
+hspec parserTests
+:browse IHaskell.Types
+```

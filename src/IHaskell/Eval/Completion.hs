@@ -1,18 +1,12 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
-{- | Description : generates tab-completion options
+{- |
+Description : Generates tab completion options.
 
-  context-insensitive completion for what is probably
-  the identifier under the cursor.
-  
-  [@Known issues@]
-
-  > import Data.Lef<tab>
-  > System.IO.h<tab>
-  > Just.he<tab>
-
-  The first should not complete to Left. The second should only
-  include things like System.IO.hPutStrLn, not head. Qualified
-  names should not be confused by the third option.
+This has a limited amount of context sensitivity. It distinguishes between four contexts at the moment:
+- import statements (completed using modules)
+- identifiers (completed using in scope values)
+- extensions via :ext (completed using GHC extensions)
+- qualified identifiers (completed using in-scope values)
 
 -}
 module IHaskell.Eval.Completion (complete, completionTarget, completionType, CompletionType(..)) where

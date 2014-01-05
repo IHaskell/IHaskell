@@ -201,30 +201,39 @@ installIPython = void . shellyNoDir $ do
 
 -- | Install all Python dependencies.
 installPipDependencies :: Sh ()
-installPipDependencies = mapM_ installDependency [("markupsafe", "0.18")
-                                                 ,("pyzmq", "14.0.1")
-                                                 ,("tornado","3.1.1")
-                                                 ,("jinja2","2.7.1")]
+installPipDependencies = withTmpDir $ \tmpDir -> 
+    mapM_ (installDependency tmpDir) 
+      [
+        ("pyzmq", "14.0.1")
+      , ("setuptools", "2.0.2") -- This cannot go first in the dependenc list, because its setup.py is broken.
+      , ("MarkupSafe", "0.18")  -- Neither can this
+      , ("tornado","3.1.1")
+      , ("jinja2","2.7.1")
+      ]
   where
-    installDependency :: (Text, Text) -> Sh ()
-    installDependency (dep, version) = withTmpDir $ \tmpDir -> do
+    installDependency :: FilePath -> (Text, Text) -> Sh ()
+    installDependency tmpDir (dep, version) = sub $ do
       let versioned = dep ++ "-" ++ version
       putStrLn $ "Installing dependency: " ++ versioned
 
       pipPath <- path "pip"
       tarPath <- path "tar"
+      pythonPath <- path "python"
 
       -- Download the package.
       let downloadOpt = "--download=" ++ fpToText tmpDir
       run_ pipPath ["install", downloadOpt, dep ++ "==" ++ version]
 
       -- Extract it.
+      cd tmpDir
       run_ tarPath ["-xf", versioned ++ ".tar.gz"]
 
       -- Install it.
       cd $ fromText versioned
-      prefixOpt <-  ("--prefix=" ++) <$>  fpToText <$> ipythonDir
-      run_ pipPath ["install", prefixOpt]
+      dir <- fpToText <$> ipythonDir
+      setenv "PYTHONPATH" $ dir ++ "/lib/python2.7/site-packages/"
+      let prefixOpt =  "--prefix=" ++ dir
+      run_ pythonPath ["setup.py", "install", prefixOpt]
 
 
 -- | Once things are checked out into the IPython source directory, build it and install it.

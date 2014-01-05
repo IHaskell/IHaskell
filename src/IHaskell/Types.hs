@@ -18,6 +18,8 @@ module IHaskell.Types (
   InitInfo(..),
   KernelState(..),
   LintStatus(..),
+  Width, Height,
+  defaultKernelState
   ) where
 
 import ClassyPrelude
@@ -72,7 +74,16 @@ instance ToJSON Profile where
 data KernelState = KernelState
   { getExecutionCounter :: Int,
     getLintStatus :: LintStatus,  -- Whether to use hlint, and what arguments to pass it. 
-    getCwd :: String
+    getCwd :: String,
+    useSvg :: Bool
+  }
+
+defaultKernelState :: KernelState
+defaultKernelState = KernelState
+  { getExecutionCounter = 1,
+    getLintStatus = LintOn,
+    getCwd = ".",
+    useSvg = True
   }
 
 -- | Initialization information for the kernel.
@@ -294,17 +305,25 @@ instance Show ExecuteReplyStatus where
 data ExecutionState = Busy | Idle | Starting deriving Show
 
 -- | Data for display: a string with associated MIME type.
-data DisplayData = Display MimeType String deriving (Show, Typeable, Generic)
+data DisplayData = Display MimeType String deriving (Typeable, Generic)
+
+-- We can't print the actual data, otherwise this will be printed every
+-- time it gets computed because of the way the evaluator is structured.
+-- See how `displayExpr` is computed.
+instance Show DisplayData where
+  show _ = "Display"
 
 -- Allow DisplayData serialization
 instance Serialize DisplayData
 instance Serialize MimeType
 
 -- | Possible MIME types for the display data.
+type Width = Int
+type Height = Int
 data MimeType = PlainText
               | MimeHtml
-              | MimePng
-              | MimeJpg
+              | MimePng Width Height
+              | MimeJpg Width Height
               | MimeSvg
               | MimeLatex
               deriving (Eq, Typeable, Generic)
@@ -313,8 +332,8 @@ data MimeType = PlainText
 instance Show MimeType where
   show PlainText = "text/plain"
   show MimeHtml  = "text/html"
-  show MimePng   = "image/png" 
-  show MimeJpg   = "image/jpeg"
+  show (MimePng _ _)   = "image/png" 
+  show (MimeJpg _ _)   = "image/jpeg"
   show MimeSvg   = "image/svg+xml"
   show MimeLatex = "text/latex"
 
