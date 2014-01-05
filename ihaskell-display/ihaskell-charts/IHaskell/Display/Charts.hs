@@ -14,10 +14,10 @@ import System.IO.Unsafe
 import IHaskell.Display
 
 width :: Width
-width = 600
+width = 450
 
 height :: Height
-height = 400
+height = 300
 
 instance IHaskellDisplay (Renderable a) where
   display renderable = do
