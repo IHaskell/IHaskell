@@ -1,12 +1,15 @@
 {-# LANGUAGE QuasiQuotes #-}
 module Main where
-import Prelude
+import Prelude 
 import GHC
 import GHC.Paths
 import Data.IORef
 import Control.Monad
+import Control.Monad.Trans ( MonadIO, liftIO )
 import Data.List
 import System.Directory
+import Shelly (Sh, shelly, cmd, (</>), toTextIgnore, cd, withTmpDir)
+import Filesystem.Path.CurrentOS (encodeString)
 import Data.String.Here
 import Data.String.Utils (strip, replace)
 import Data.Monoid
@@ -14,7 +17,7 @@ import Data.Monoid
 import IHaskell.Eval.Parser
 import IHaskell.Types
 import IHaskell.IPython
-import IHaskell.Eval.Evaluate as Eval
+import IHaskell.Eval.Evaluate as Eval hiding (liftIO)
 import IHaskell.Eval.Completion
 
 import Test.Hspec
@@ -72,7 +75,7 @@ completionHas string expected = do
     (matched, completions) <- doGhc $ do
       initCompleter
       complete newString cursorloc
-    let existsInCompletion =  (`elem` completions)
+    let existsInCompletion = (`elem` completions)
         unmatched = filter (not . existsInCompletion) expected
     unmatched `shouldBe` []
   where (newString, cursorloc) = case elemIndex '!' string of
@@ -91,13 +94,13 @@ initCompleter = do
                                   "import Data.Maybe as Maybe"]
   setContext $ map IIDecl imports
 
-withHsDirectory :: MonadIO m => m () 
-withHsDirectory f = withSystemTempDirectory "hsTestDirectory" $ \dirPath -> 
-      shelly $ do run "mkdir" ["dir"]
-                  run "mkdir" ["dir/dir1"] 
-                  run "touch" ["file1.hs", "dir/file2.hs", "file1.lhs", "dir/file2.lhs"]
-
-      f
+withHsDirectory :: Sh () -> IO ()
+withHsDirectory f = shelly $ withTmpDir $ \dirPath -> 
+      do cd dirPath 
+         cmd "mkdir"  $ "" </> "dir"
+         cmd "mkdir"  $ "dir" </> "dir1"
+         cmd "touch" "file1.hs"  "dir/file2.hs" "file1.lhs" "dir/file2.lhs"
+         f 
 
 main :: IO ()
 main = hspec $ do
@@ -131,6 +134,7 @@ completionTests = do
       completionType "A.x" ["A", "x"]                 `shouldBe` Qualified "A" "x"
       completionType "a.x" ["a", "x"]                 `shouldBe` Identifier "x"
       completionType "pri" ["pri"]                    `shouldBe` Identifier "pri"
+      completionType ":load A" [""]                   `shouldBe` HsFilePath "A"
 
     it "properly completes identifiers" $ do
        "pri!"           `completionHas` ["print"]
@@ -151,9 +155,15 @@ completionTests = do
       "import Data.M!" `completionHas` ["Data.Maybe"]
       "import Prel!"   `completionHas` ["Prelude"]
 
-    it "properly completes haskell file paths on :load directive" $ do 
-      ":load " ++ dirPath </> "dir" </> "file" `complationHas` [dirPath </> "dir" </> "file2.hs",
-                                                                dirPath </> "dir" </> "file2.lhs"] 
+    it "properly completes haskell file paths on :load directive" $ 
+       withHsDirectory 
+           $ let loading xs = ":load " ++ encodeString xs
+                 paths xs = map encodeString xs
+             in liftIO $ do 
+                loading ("dir" </> "file!") `completionHas` paths ["dir" </> "file2.hs",
+                                                                "dir" </> "file2.lhs"]
+                loading ("" </> "file1!") `completionHas` paths ["" </> "file1.hs",
+                                                          "" </> "file1.lhs"]
 
 evalTests = do
   describe "Code Evaluation" $ do
@@ -410,4 +420,4 @@ parseStringTests = describe "Parser" $ do
         second
        |] >>= (`shouldBe` [Located 2 (Expression "first"),
                           Located 4 (Expression "second")])
-    
+

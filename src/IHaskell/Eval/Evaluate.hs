@@ -20,6 +20,7 @@ import Data.Dynamic
 import Data.Typeable
 import qualified Data.Serialize as Serialize
 import System.Directory
+import Filesystem.Path.CurrentOS (encodeString)
 import System.Posix.IO
 import System.IO (hGetChar, hFlush)
 import System.Random (getStdGen, randomRs)
@@ -78,7 +79,7 @@ write x = when debug $ liftIO $ hPutStrLn stderr $ "DEBUG: " ++ x
 type Interpreter = Ghc
 
 globalImports :: [String]
-globalImports = 
+globalImports =
   [ "import IHaskell.Display"
   , "import Control.Applicative ((<$>))"
   , "import GHC.IO.Handle (hDuplicateTo, hDuplicate)"
@@ -86,6 +87,8 @@ globalImports =
   , "import System.Posix.Files"
   , "import System.IO"
   ]
+
+
 
 -- | Run an interpreting action. This is effectively runGhc with
 -- initialization and importing.
@@ -143,7 +146,7 @@ initializeImports = do
   let capitalize :: String -> String
       capitalize (first:rest) = Char.toUpper first : rest
 
-      importFmt = "import IHaskell.Display.%s" 
+      importFmt = "import IHaskell.Display.%s"
 
       toImportStmt :: String -> String
       toImportStmt = printf importFmt . capitalize . (!! 1) . split "-"
@@ -198,7 +201,7 @@ evaluate kernelState code output = do
   where
     runUntilFailure :: KernelState -> [CodeBlock] -> Interpreter KernelState
     runUntilFailure state [] = return state
-    runUntilFailure state (cmd:rest) = do 
+    runUntilFailure state (cmd:rest) = do
       evalOut <- evalCommand output cmd state
 
       -- Output things only if they are non-empty.
@@ -222,7 +225,7 @@ wrapExecution state exec = ghandle handler $ exec >>= \res ->
       evalResult = res,
       evalState = state
     }
-  where 
+  where
     handler :: SomeException -> Interpreter EvalOut
     handler exception =
       return EvalOut {
@@ -281,7 +284,7 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
       -- trying to load. If a module B exist, we cannot load A.B. All
       -- modules must have unique last names (where A.B has last name B).
       -- However, we *can* just reload a module.
-      preventsLoading mod = 
+      preventsLoading mod =
         let pieces = moduleNameOf mod in
             last namePieces == last pieces && namePieces /= pieces
 
@@ -315,7 +318,7 @@ evalCommand _ (Directive SetExtension exts) state = wrapExecution state $ do
               Just (_, flag, _) -> Just $ xopt_set flags flag
               -- If it doesn't match an extension name, try matching against
               -- disabling an extension.
-              Nothing -> 
+              Nothing ->
                 case find (flagMatchesNo ext) xFlags of
                   Just (_, flag, _) -> Just $ xopt_unset flags flag
                   Nothing -> Nothing
@@ -369,7 +372,7 @@ evalCommand _ (Directive SetOpt option) state = do
     evalState = fromMaybe state newState
   }
 
-  where 
+  where
     setOpt :: String -> KernelState -> Maybe KernelState
 
     setOpt "lint" state = Just $
@@ -437,7 +440,7 @@ evalCommand _ (Directive GetInfo str) state = wrapExecution state $ do
       filteredOutput = filter (not . hasParent) infos
 
   -- Convert to textual data.
-  let printInfo (thing, fixity, classInstances) = 
+  let printInfo (thing, fixity, classInstances) =
         pprTyThingInContextLoc False thing $$ showFixity fixity $$ vcat (map GHC.pprInstance classInstances)
         where
           showFixity fixity =
@@ -460,7 +463,7 @@ evalCommand output (Statement stmt) state = wrapExecution state $ do
     RunOk names -> do
       dflags <- getSessionDynFlags
 
-      let allNames = map (showPpr dflags) names  
+      let allNames = map (showPpr dflags) names
           isItName name =
             name == "it" ||
             name == "it" ++ show (getExecutionCounter state)
@@ -504,7 +507,7 @@ evalCommand output (Expression expr) state = do
   -- DisplayData. If typechecking fails and there is no appropriate
   -- typeclass instance, this will throw an exception and thus `attempt` will
   -- return False, and we just resort to plaintext.
-  let displayExpr = printf "(IHaskell.Display.display (%s))" expr
+  let displayExpr = printf "(IHaskell.Display.display (%s))" expr :: String
   canRunDisplay <- attempt $ exprType displayExpr
   let out = evalResult evalOut
       showErr = isShowError out
@@ -538,7 +541,7 @@ evalCommand output (Expression expr) state = do
     -- Check if the error is due to trying to print something that doesn't
     -- implement the Show typeclass.
     isShowError errs = case find isPlain errs of
-      Just (Display PlainText msg) -> 
+      Just (Display PlainText msg) ->
         -- Note that we rely on this error message being 'type cleaned', so
         -- that `Show` is not displayed as GHC.Show.Show.
         startswith "No instance for (Show" msg &&
@@ -579,7 +582,7 @@ evalCommand output (Expression expr) state = do
         Just (Display PlainText text) = find isPlain disps
 
         postprocess (Display MimeHtml _) = html $ printf fmt unshowableType (formatErrorWithClass "err-msg collapse" text) script
-          where 
+          where
             fmt = "<div class='collapse-group'><span class='btn' href='#' id='unshowable'>Unshowable:<span class='show-type'>%s</span></span>%s</div><script>%s</script>"
             script = unlines [
                 "$('#unshowable').on('click', function(e) {",
@@ -628,7 +631,7 @@ evalCommand _ (ParseError loc err) state = do
 
 doLoadModule :: String -> String -> Ghc [DisplayData]
 doLoadModule name modName = flip gcatch unload $ do
-  -- Compile loaded modules. 
+  -- Compile loaded modules.
   flags <- getSessionDynFlags
   let objTarget = defaultObjectTarget
   setSessionDynFlags flags{ hscTarget = objTarget }
@@ -677,7 +680,7 @@ capturedStatement output stmt = do
     -- Variable names generation.
     rand = take 20 $ randomRs ('0', '9') gen
     var name = name ++ rand
-    
+
     -- Variables for the pipe input and outputs.
     readVariable = var "file_read_var_"
     writeVariable = var "file_write_var_"
@@ -689,9 +692,9 @@ capturedStatement output stmt = do
     itVariable = var "it_var_"
 
     voidpf str = printf $ str ++ " >> return ()"
-    
+
     -- Statements run before the thing we're evaluating.
-    initStmts = 
+    initStmts =
       [ printf "let %s = it" itVariable
       , printf "(%s, %s) <- createPipe" readVariable writeVariable
       , printf "%s <- dup stdOutput" oldVariable
@@ -699,9 +702,9 @@ capturedStatement output stmt = do
       , voidpf "hSetBuffering stdout NoBuffering"
       , printf "let it = %s" itVariable
       ]
-    
+
     -- Statements run after evaluation.
-    postStmts = 
+    postStmts =
       [ printf "let %s = it" itVariable
       , voidpf "hFlush stdout"
       , voidpf "dupTo %s stdOutput" oldVariable
@@ -732,7 +735,7 @@ capturedStatement output stmt = do
 
   -- Read from a file handle until we hit a delimiter or until we've read
   -- as many characters as requested
-  let 
+  let
     readChars :: Handle -> String -> Int -> IO String
 
     -- If we're done reading, return nothing.
@@ -759,8 +762,8 @@ capturedStatement output stmt = do
   outputAccum <- liftIO $ newMVar ""
 
   -- Start a loop to publish intermediate results.
-  let 
-    -- Compute how long to wait between reading pieces of the output. 
+  let
+    -- Compute how long to wait between reading pieces of the output.
     -- `threadDelay` takes an argument of microseconds.
     ms = 1000
     delay = 100 * ms
@@ -806,7 +809,7 @@ capturedStatement output stmt = do
     -- Wait for reading to finish to that the output accumulator is
     -- completely filled.
     liftIO $ takeMVar finishedReading
-    
+
   printedOutput <- liftIO $ readMVar outputAccum
   return (printedOutput, result)
 
@@ -816,12 +819,12 @@ formatError = formatErrorWithClass "err-msg"
 formatErrorWithClass :: String -> ErrMsg -> String
 formatErrorWithClass cls =
     printf "<span class='%s'>%s</span>" cls .
-    replace "\n" "<br/>" . 
+    replace "\n" "<br/>" .
     fixLineWrapping .
     replace useDashV "" .
-    rstrip . 
+    rstrip .
     typeCleaner
-  where 
+  where
     useDashV = "\nUse -v to see a list of the files searched for."
     fixLineWrapping err
       | isThreePartTypeError err =
@@ -835,7 +838,7 @@ formatErrorWithClass cls =
           let (one, arising:possibleFix:two) = break ("arising" `isInfixOf`)  $ lines err in
             unlines $ map unstripped [one, [arising], [possibleFix], two]
       | otherwise = err
-      where 
+      where
         unstripped (line:lines) = unwords $ line:map lstrip lines
 
     isThreePartTypeError err = all (`isInfixOf` err) [
@@ -849,13 +852,13 @@ formatErrorWithClass cls =
       "with actual type"
       ]
 
-    isShowError err = 
+    isShowError err =
       startswith "No instance for (Show" err &&
       isInfixOf " arising from a use of `print'" err
 
 
 formatParseError :: StringLoc -> String -> ErrMsg
-formatParseError (Loc line col) = 
+formatParseError (Loc line col) =
   printf "Parse error (line %d, column %d): %s" line col
 
 formatGetType :: String -> String
@@ -865,7 +868,7 @@ formatType :: String -> [DisplayData]
 formatType typeStr =  [plain typeStr, html $ formatGetType typeStr]
 
 displayError :: ErrMsg -> [DisplayData]
-displayError msg = [plain . typeCleaner $ msg, html $ formatError msg] 
+displayError msg = [plain . typeCleaner $ msg, html $ formatError msg]
 
 mono :: String -> String
 mono = printf "<span class='mono'>%s</span>"

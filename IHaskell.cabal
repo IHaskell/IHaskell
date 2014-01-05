@@ -74,6 +74,7 @@ library
                        system-filepath,
                        filemanip,
                        filepath,
+                       exceptions,
                        cereal ==0.3.*,
                        text >=0.11,
                        mtl >= 2.1
@@ -139,6 +140,7 @@ executable IHaskell
                        mtl >= 2.1
 
 Test-Suite hspec
+  hs-source-dirs:      src
   Type:     exitcode-stdio-1.0
   Ghc-Options: -threaded
   Main-Is: Hspec.hs
@@ -167,9 +169,14 @@ Test-Suite hspec
                        directory,
                        here,
                        system-filepath,
+                       filemanip,
+                       filepath,
                        cereal ==0.3.*,
                        text >=0.11,
                        mtl >= 2.1
+  extensions: DoAndIfThenElse
+              OverloadedStrings
+              ExtendedDefaultRules
 
 source-repository head
   type:     git
