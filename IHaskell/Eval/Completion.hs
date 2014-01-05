@@ -24,7 +24,7 @@ import Data.List (find, isPrefixOf, nub, findIndex, intercalate, elemIndex)
 import Data.List.Split
 import Data.List.Split.Internals
 import Data.Maybe
-import Data.String.Utils (strip, startswith, replace)
+import Data.String.Utils (strip, startswith, endswith, replace)
 import Prelude
 
 import GHC
@@ -32,6 +32,14 @@ import DynFlags
 import GhcMonad
 import PackageConfig
 import Outputable (showPpr)
+
+import qualified System.FilePath.Find as Find (find)
+import System.FilePath.Find hiding (find)
+import System.Directory
+import System.FilePath.GlobPattern
+import System.FilePath
+import MonadUtils (MonadIO)
+import Control.Monad (filterM, mapM, liftM)
 
 import IHaskell.Types
 
@@ -42,6 +50,7 @@ data CompletionType
      | Extension String
      | Qualified String String
      | ModuleName String String
+     | HsFilePath String 
      deriving (Show, Eq)
 
 complete :: GHC.GhcMonad m => String -> Int -> m (String, [String])
@@ -86,6 +95,9 @@ complete line pos = do
                 nonames = map ("No" ++) names
             return $ filter (ext `isPrefixOf`) $ names ++ nonames
 
+          HsFilePath path -> do pwd <- liftIO getCurrentDirectory 
+                                completePath pwd (Just [".hs", ".lhs"]) path 
+
   return (matchedText, options)
 
 getTrueModuleName :: GhcMonad m => String -> m String
@@ -109,6 +121,8 @@ getTrueModuleName name = do
 completionType :: String -> [String] -> CompletionType
 completionType line [] = Empty
 completionType line target
+  | startswith ":l" stripped 
+    = HsFilePath  $ last $ splitOn " " stripped
   | startswith "import" stripped && isModName
     = ModuleName dotted candidate
   | isModName && (not . null . init) target
@@ -123,6 +137,7 @@ completionType line target
         dots = intercalate "." . init
         isModName = all isCapitalized (init target)
         isCapitalized = isUpper . head
+
 
 
 -- | Get the word under a given cursor location.
@@ -154,3 +169,35 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
 
     expandCompletionPiece Nothing = []
     expandCompletionPiece (Just str) = splitOn "." str 
+
+completePath :: MonadIO m => 
+                String -- ^ Current directory
+             -> Maybe [String] -- ^ list of file extensions 
+             -> String   -- ^ prefix to be completed
+             -> m [String] -- ^ completions, that is, if prefix is "Mai" one completion might be "Main.hs"
+completePath currDir exts prefix
+    = let absolutePrefix = combine currDir prefix
+          searchDir = dropFileName absolutePrefix
+          pattern = absolutePrefix ++ "*" 
+          completions = liftIO $ Find.find always (filePath ~~? pattern) searchDir 
+          allFileCompletions = completions >>= liftIO . filterM (liftM not . doesDirectoryExist)
+          fileCompletions = case exts of 
+                              Nothing -> allFileCompletions
+                              Just exts -> do xs <- allFileCompletions 
+                                              return $ filter (\s -> or [endswith ext s | ext <- exts])  xs
+          dirCompletions  = completions 
+                        >>= liftIO . filterM doesDirectoryExist 
+                        >>= \xs -> do return $ [x  ++ [pathSeparator] | x <- xs]
+          relativeCompletions = do validSearchDir <- liftIO $ doesDirectoryExist searchDir 
+                                   if validSearchDir then
+                                    do xs <- fileCompletions 
+                                       ys <- dirCompletions
+                                       return $ map (cut $ currDir ++ [pathSeparator]) $ xs ++ ys
+                                   else return []
+          cut :: String -> String -> String 
+          cut (x:xs) z@(y:ys) | x == y = cut xs ys
+                              | otherwise = z
+          cut _ z = z 
+      in relativeCompletions
+
+
