@@ -585,7 +585,7 @@ evalCommand output (Expression expr) state = do
   -- If evaluation failed, return the failure.  If it was successful, we
   -- may be able to use the IHaskellDisplay typeclass.
   if not canRunDisplay
-  then return $ if not showErr
+  then return $ if not showErr || useShowErrors state
                 then evalOut
                 else postprocessShowError evalOut
   else case evalStatus evalOut of
