@@ -10,6 +10,13 @@ Custom IHaskell CSS.
     display: block;
 }
 
+.show-type {
+    color: green;
+    font-weight: bold;
+    font-family: monospace;
+    margin-left: 1em;
+}
+
 .mono {
     font-family: monospace;
     display: block;
@@ -23,6 +30,14 @@ Custom IHaskell CSS.
     display: block;
 }
 
+#unshowable {
+    color: red;
+    font-weight: bold;
+}
+
+.err-msg.in.collapse {
+  padding-top: 0.7em;
+}
 
 /* Code that will get highlighted before it is highlighted */
 .highlight-code {
