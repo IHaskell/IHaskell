@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, TypeSynonymInstances, QuasiQuotes #-}
-module IHaskell.Display.Aeson where
+module IHaskell.Display.Aeson () where
 
 import ClassyPrelude
 import Data.Textual.Encoding

@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, TypeSynonymInstances, FlexibleInstances  #-}
-module IHaskell.Display.Diagrams where
+module IHaskell.Display.Diagrams (diagram) where
 
 import ClassyPrelude
 

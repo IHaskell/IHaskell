@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-module IHaskell.Display.Charts where
+module IHaskell.Display.Charts () where
 
 import ClassyPrelude
 

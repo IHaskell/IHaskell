@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
-module IHaskell.Display.Blaze where
+module IHaskell.Display.Blaze () where
 
 import IHaskell.Display
 

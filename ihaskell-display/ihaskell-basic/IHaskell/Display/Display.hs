@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
-module IHaskell.Display.Display where
+module IHaskell.Display.Display () where
 
 import IHaskell.Display
 
