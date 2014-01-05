@@ -36,12 +36,7 @@ eval string = do
   outputAccum <- newIORef []
   let publish final displayDatas = when final $ modifyIORef outputAccum (displayDatas :)
   getTemporaryDirectory >>= setCurrentDirectory
-<<<<<<< HEAD:Hspec.hs
-  let state = KernelState 1 LintOff "."
-=======
-  let state :: KernelState
-      state = mempty { getLintStatus = LintOff }
->>>>>>> 63ecc797eb66565e4bb6ed04d503b3884b37cb4e:src/Hspec.hs
+  let state = defaultKernelState { getLintStatus = LintOff }
   interpret $ Eval.evaluate state string publish
   out <- readIORef outputAccum
   return $ reverse out
@@ -279,7 +274,7 @@ parseStringTests = describe "Parser" $ do
 
   it "parses :set x" $
     parses ":set x" `like` [
-      Directive HelpForSet "x"
+      Directive SetOpt "x"
     ]
 
   it "parses :extension x" $

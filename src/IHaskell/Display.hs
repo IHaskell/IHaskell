@@ -2,7 +2,8 @@
 module IHaskell.Display (
   IHaskellDisplay(..),
   plain, html, png, jpg, svg, latex,
-  serializeDisplay
+  serializeDisplay,
+  Width, Height, Base64Data
   ) where
 
 import ClassyPrelude
@@ -12,6 +13,8 @@ import Data.String.Utils (rstrip)
 
 import IHaskell.Types
 
+type Base64Data = String
+
 -- | A class for displayable Haskell types.
 --
 -- IHaskell's displaying of results behaves as if these two
@@ -20,7 +23,7 @@ import IHaskell.Types
 -- > instance (Show a) => IHaskellDisplay a
 -- > instance Show a where shows _ = id
 class IHaskellDisplay a where
-  display :: a -> [DisplayData]
+  display :: a -> IO [DisplayData]
 
 -- | Generate a plain text display.
 plain :: String -> DisplayData
@@ -30,11 +33,11 @@ plain = Display PlainText . rstrip
 html :: String -> DisplayData
 html = Display MimeHtml
 
-png :: String -> DisplayData
-png = Display MimePng 
+png :: Width -> Height -> Base64Data -> DisplayData
+png width height = Display (MimePng width height)
 
-jpg :: String -> DisplayData
-jpg = Display MimeJpg
+jpg :: Width -> Height -> Base64Data -> DisplayData
+jpg width height = Display (MimeJpg width height)
 
 svg :: String -> DisplayData
 svg = Display MimeSvg

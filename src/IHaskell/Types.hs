@@ -18,6 +18,8 @@ module IHaskell.Types (
   InitInfo(..),
   KernelState(..),
   LintStatus(..),
+  Width, Height,
+  defaultKernelState
   ) where
 
 import ClassyPrelude
@@ -72,15 +74,17 @@ instance ToJSON Profile where
 data KernelState = KernelState
   { getExecutionCounter :: Int,
     getLintStatus :: LintStatus,  -- Whether to use hlint, and what arguments to pass it. 
-    getCwd :: String
+    getCwd :: String,
+    useSvg :: Bool
   }
 
-
--- | like 'First', except also add up the execution counter
-instance Monoid KernelState where
-   mempty = KernelState 1 LintOn "." 
-   KernelState na sa cwda `mappend` KernelState nb sb cwdb = 
-    KernelState (na+nb) sa cwda
+defaultKernelState :: KernelState
+defaultKernelState = KernelState
+  { getExecutionCounter = 1,
+    getLintStatus = LintOn,
+    getCwd = ".",
+    useSvg = True
+  }
 
 -- | Initialization information for the kernel.
 data InitInfo = InitInfo {
@@ -314,10 +318,12 @@ instance Serialize DisplayData
 instance Serialize MimeType
 
 -- | Possible MIME types for the display data.
+type Width = Int
+type Height = Int
 data MimeType = PlainText
               | MimeHtml
-              | MimePng
-              | MimeJpg
+              | MimePng Width Height
+              | MimeJpg Width Height
               | MimeSvg
               | MimeLatex
               deriving (Eq, Typeable, Generic)
@@ -326,8 +332,8 @@ data MimeType = PlainText
 instance Show MimeType where
   show PlainText = "text/plain"
   show MimeHtml  = "text/html"
-  show MimePng   = "image/png" 
-  show MimeJpg   = "image/jpeg"
+  show (MimePng _ _)   = "image/png" 
+  show (MimeJpg _ _)   = "image/jpeg"
   show MimeSvg   = "image/svg+xml"
   show MimeLatex = "text/latex"
 

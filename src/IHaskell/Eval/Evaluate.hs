@@ -332,17 +332,6 @@ evalCommand _ (Directive SetExtension exts) state = wrapExecution state $ do
     -- In that case, we disable the extension.
     flagMatchesNo ext (name, _, _) = ext == "No"  ++ name
 
-evalCommand _ (Directive SetLint status) state = do
-  let isOn = "on" == strip status
-  let isOff = "off" == strip status
-  return $ if isOn
-           then EvalOut Success [] (state { getLintStatus = LintOn })
-           else if isOff
-             then EvalOut Success [] (state { getLintStatus = LintOff })
-             else EvalOut Failure err state
-  where
-    err = displayError $ "Unknown hlint command: " ++ status
-
 evalCommand _ (Directive GetType expr) state = wrapExecution state $ do
   write $ "Type: " ++ expr
   result <- exprType expr
@@ -366,18 +355,33 @@ evalCommand _ (Directive LoadFile name) state = wrapExecution state $ do
 
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
-evalCommand _ (Directive HelpForSet _) state = do
-  write "Help for :set."
+evalCommand _ (Directive SetOpt option) state = do
+  let opt = strip option
+      newState = setOpt opt state
+      out = case newState of
+        Nothing -> displayError $ "Unknown option: " ++ opt
+        Just _ -> []
+
   return EvalOut {
-    evalStatus = Success,
-    evalResult = [out],
-    evalState = state
+    evalStatus = if isJust newState then Success else Failure,
+    evalResult = out,
+    evalState = fromMaybe state newState
   }
-  where out = plain $ intercalate "\n"
-          [":set is not implemented in IHaskell."
-          ,"  Use :extension <Extension> to enable a GHC extension."
-          ,"  Use :extension No<Extension> to disable a GHC extension."
-          ]
+
+  where 
+    setOpt :: String -> KernelState -> Maybe KernelState
+
+    setOpt "lint" state = Just $
+      state { getLintStatus = LintOn }
+    setOpt "nolint" state = Just $
+      state { getLintStatus = LintOff }
+
+    setOpt "svg" state = Just $
+      state { useSvg = True }
+    setOpt "nosvg" state = Just $
+      state { useSvg = False }
+
+    setOpt _ _ = Nothing
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
 evalCommand _ (Directive GetHelp _) state = do
@@ -393,9 +397,15 @@ evalCommand _ (Directive GetHelp _) state = do
           ,"    :extension No<Extension>  -  disable a GHC extension."
           ,"    :type <expression>        -  Print expression type."
           ,"    :info <name>              -  Print all info for a name."
+          ,"    :set <opt>                -  Set an option."
+          ,"    :set no<opt>              -  Unset an option."
           ,"    :?, :help                 -  Show this help text."
           ,""
           ,"Any prefix of the commands will also suffice, e.g. use :ty for :type."
+          ,""
+          ,"Options:"
+          ,"  lint       - enable or disable linting."
+          ,"  svg        - use svg output (cannot be resized)."
           ]
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
@@ -490,6 +500,9 @@ evalCommand output (Expression expr) state = do
       Nothing -> False
       where isPlain (Display mime _) = mime == PlainText
 
+    isSvg (Display MimeSvg _) = True
+    isSvg _ = False
+
     useDisplay displayExpr = wrapExecution state $ do
       -- If there are instance matches, convert the object into
       -- a [DisplayData]. We also serialize it into a bytestring. We get
@@ -509,7 +522,10 @@ evalCommand output (Expression expr) state = do
             Left err -> error err
             Right displayData -> do
               write $ show displayData
-              return displayData
+              return $
+                if useSvg state
+                then displayData
+                else filter (not . isSvg) displayData
 
 
 evalCommand _ (Declaration decl) state = wrapExecution state $ do
