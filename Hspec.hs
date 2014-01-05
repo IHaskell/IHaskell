@@ -88,6 +88,14 @@ initCompleter = do
                                   "import Data.Maybe as Maybe"]
   setContext $ map IIDecl imports
 
+withHsDirectory :: MonadIO m => m () 
+withHsDirectory f = withSystemTempDirectory "hsTestDirectory" $ \dirPath -> 
+      shelly $ do run "mkdir" ["dir"]
+                  run "mkdir" ["dir/dir1"] 
+                  run "touch" ["file1.hs", "dir/file2.hs", "file1.lhs", "dir/file2.lhs"]
+
+      f
+
 main :: IO ()
 main = hspec $ do
   parserTests
@@ -139,6 +147,10 @@ completionTests = do
       "import Data.!"  `completionHas` ["Data.Maybe", "Data.List"]
       "import Data.M!" `completionHas` ["Data.Maybe"]
       "import Prel!"   `completionHas` ["Prelude"]
+
+    it "properly completes haskell file paths on :load directive" $ do 
+      ":load " ++ dirPath </> "dir" </> "file" `complationHas` [dirPath </> "dir" </> "file2.hs",
+                                                                dirPath </> "dir" </> "file2.lhs"] 
 
 evalTests = do
   describe "Code Evaluation" $ do
