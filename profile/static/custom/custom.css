@@ -8,6 +8,7 @@ Custom IHaskell CSS.
     font-weight: bold;
     font-family: monospace;
     display: block;
+    white-space: pre;
 }
 
 .show-type {
