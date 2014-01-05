@@ -48,6 +48,7 @@ data-files:
 library
   hs-source-dirs:      src
   build-depends:       base ==4.6.*,
+                       process >= 1.1,
                        hlint,
                        cmdargs >= 0.10,
                        tar,
@@ -106,6 +107,7 @@ executable IHaskell
   
   -- Other library packages from which modules are imported.
   build-depends:       base ==4.6.*,
+                       process >= 1.1,
                        hlint,
                        cmdargs >= 0.10,
                        tar,
@@ -139,6 +141,7 @@ Test-Suite hspec
   Ghc-Options: -threaded
   Main-Is: Hspec.hs
   build-depends:       base ==4.6.*,
+                       process >= 1.1,
                        hlint,
                        cmdargs >= 0.10,
                        tar,

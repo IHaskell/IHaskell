@@ -74,7 +74,6 @@ instance ToJSON Profile where
 data KernelState = KernelState
   { getExecutionCounter :: Int,
     getLintStatus :: LintStatus,  -- Whether to use hlint, and what arguments to pass it. 
-    getCwd :: String,
     useSvg :: Bool,
     useShowErrors :: Bool,
     useShowTypes :: Bool
@@ -85,7 +84,6 @@ defaultKernelState :: KernelState
 defaultKernelState = KernelState
   { getExecutionCounter = 1,
     getLintStatus = LintOn,
-    getCwd = ".",
     useSvg = True,
     useShowErrors = False,
     useShowTypes = False

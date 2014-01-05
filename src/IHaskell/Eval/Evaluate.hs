@@ -25,6 +25,9 @@ import System.IO (hGetChar, hFlush)
 import System.Random (getStdGen, randomRs)
 import Unsafe.Coerce
 import Control.Monad (guard)
+import System.Process
+import System.Exit
+import Data.Maybe (fromJust)
 
 import NameSet
 import Name
@@ -394,6 +397,73 @@ evalCommand _ (Directive SetOpt option) state = do
 
     setOpt _ _ = Nothing
 
+evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $ liftIO $ 
+  case words cmd of 
+    "cd":dirs ->
+      let directory = unwords dirs in do
+        setCurrentDirectory directory
+        return []
+    cmd -> do
+      (readEnd, writeEnd) <- createPipe
+      handle <- fdToHandle writeEnd
+      pipe <- fdToHandle readEnd
+      let initProcSpec = shell $ unwords cmd
+          procSpec = initProcSpec {
+            std_in = Inherit,
+            std_out = UseHandle handle,
+            std_err = UseHandle handle
+          }
+      (_, _, _, process) <- createProcess procSpec
+          
+      -- Accumulate output from the process.
+      outputAccum <- liftIO $ newMVar ""
+
+      -- Start a loop to publish intermediate results.
+      let 
+        -- Compute how long to wait between reading pieces of the output. 
+        -- `threadDelay` takes an argument of microseconds.
+        ms = 1000
+        delay = 100 * ms
+
+        -- Maximum size of the output (after which we truncate).
+        maxSize = 100 * 1000
+        incSize = 200
+        output str = publish False [plain str]
+
+        loop = do
+          -- Wait and then check if the computation is done.
+          threadDelay delay
+
+          -- Read next chunk and append to accumulator.
+          nextChunk <- readChars pipe "\n" incSize
+          modifyMVar_ outputAccum (return . (++ nextChunk))
+
+          -- Check if we're done.
+          exitCode <- getProcessExitCode process
+          let computationDone = isJust exitCode
+
+          when computationDone $ do
+            nextChunk <- readChars pipe "" maxSize
+            modifyMVar_ outputAccum (return . (++ nextChunk))
+
+          if not computationDone
+          then do
+            -- Write to frontend and repeat.
+            readMVar outputAccum >>= output 
+            loop
+          else do
+            out <- readMVar outputAccum
+            case fromJust exitCode of
+              ExitSuccess -> return [plain out]
+              ExitFailure code -> do
+                let errMsg = "Process exited with error code " ++ show code
+                    htmlErr = printf "<span class='err-msg'>%s</span>" errMsg
+                return [plain $ out ++ "\n" ++ errMsg,
+                        html $ printf "<span class='mono'>%s</span>" out ++ htmlErr]
+
+      loop
+      
+
 -- This is taken largely from GHCi's info section in InteractiveUI.
 evalCommand _ (Directive GetHelp _) state = do
   write "Help via :help or :?."
@@ -626,6 +696,29 @@ evalCommand _ (ParseError loc err) state = do
     evalState = state
   }
 
+-- Read from a file handle until we hit a delimiter or until we've read
+-- as many characters as requested
+readChars :: Handle -> String -> Int -> IO String
+
+-- If we're done reading, return nothing.
+readChars handle delims 0 = return []
+
+readChars handle delims nchars = do
+  -- Try reading a single character. It will throw an exception if the
+  -- handle is already closed.
+  tryRead <- gtry $ hGetChar handle :: IO (Either SomeException Char)
+  case tryRead of
+    Right char ->
+      -- If this is a delimiter, stop reading.
+      if char `elem` delims
+      then return [char]
+      else do
+        next <- readChars handle delims (nchars - 1)
+        return $ char:next
+    -- An error occurs at the end of the stream, so just stop reading.
+    Left _ -> return []
+
+
 doLoadModule :: String -> String -> Ghc [DisplayData]
 doLoadModule name modName = flip gcatch unload $ do
   -- Compile loaded modules. 
@@ -729,29 +822,6 @@ capturedStatement output stmt = do
   pipe <- liftIO $ do
     fd <- head <$> unsafeCoerce hValues
     fdToHandle fd
-
-  -- Read from a file handle until we hit a delimiter or until we've read
-  -- as many characters as requested
-  let 
-    readChars :: Handle -> String -> Int -> IO String
-
-    -- If we're done reading, return nothing.
-    readChars handle delims 0 = return []
-
-    readChars handle delims nchars = do
-      -- Try reading a single character. It will throw an exception if the
-      -- handle is already closed.
-      tryRead <- gtry $ hGetChar handle :: IO (Either SomeException Char)
-      case tryRead of
-        Right char ->
-          -- If this is a delimiter, stop reading.
-          if char `elem` delims
-          then return [char]
-          else do
-            next <- readChars handle delims (nchars - 1)
-            return $ char:next
-        -- An error occurs at the end of the stream, so just stop reading.
-        Left _ -> return []
 
   -- Keep track of whether execution has completed.
   completed <- liftIO $ newMVar False

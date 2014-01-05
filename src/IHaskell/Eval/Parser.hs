@@ -62,6 +62,7 @@ data DirectiveType
   | SetExtension    -- ^ Enable or disable an extension via ':extension' (or prefixes)
   | LoadFile        -- ^ Load a Haskell module.
   | SetOpt          -- ^ Set various options.
+  | ShellCmd        -- ^ Execute a shell command.
   | GetHelp         -- ^ General help via ':?' or ':help'.
   deriving (Show, Eq)
 
@@ -219,6 +220,8 @@ joinFunctions [] = []
 parseDirective :: String       -- ^ Directive string.
                -> Int          -- ^ Line number at which the directive appears.
                -> CodeBlock    -- ^ Directive code block or a parse error.
+
+parseDirective (':':'!':directive) line = Directive ShellCmd $ '!':directive
 parseDirective (':':directive) line = case find rightDirective directives of
   Just (directiveType, _) -> Directive directiveType arg
     where arg = unwords restLine
@@ -292,6 +295,9 @@ joinLines = intercalate "\n"
 dropComments :: String -> String
 dropComments = removeOneLineComments . removeMultilineComments
   where
+    -- Don't remove comments after cmd directives
+    removeOneLineComments (':':'!':remaining) = ":!" ++ takeWhile (/= '\n') remaining ++ 
+      removeOneLineComments (dropWhile (/= '\n') remaining)
     removeOneLineComments ('-':'-':remaining) = removeOneLineComments (dropWhile (/= '\n') remaining)
     removeOneLineComments (x:xs) = x:removeOneLineComments xs
     removeOneLineComments x = x
