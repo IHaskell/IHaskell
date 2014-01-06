@@ -71,9 +71,9 @@ completes string expected = completionTarget newString cursorloc `shouldBe` expe
           Nothing -> error "Expected cursor written as '!'."
           Just idx -> (replace "!" "" string, idx)
 
-completionHas string expected = do
+completionHas_ action string expected = do
     (matched, completions) <- doGhc $ do
-      initCompleter
+      initCompleter action
       complete newString cursorloc
     let existsInCompletion = (`elem` completions)
         unmatched = filter (not . existsInCompletion) expected
@@ -82,25 +82,28 @@ completionHas string expected = do
           Nothing -> error "Expected cursor written as '!'."
           Just idx -> (replace "!" "" string, idx)
 
-initCompleter :: GhcMonad m => m ()
-initCompleter = do
+completionHas = completionHas_ (return ())
+
+initCompleter :: GhcMonad m => m a -> m a
+initCompleter action = do
   flags <- getSessionDynFlags
   setSessionDynFlags $ flags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
 
   -- Import modules.
   imports <- mapM parseImportDecl ["import Prelude",
-                                  "import qualified Control.Monad",
-                                  "import qualified Data.List as List",
-                                  "import Data.Maybe as Maybe"]
+                                   "import qualified Control.Monad",
+                                   "import qualified Data.List as List",
+                                   "import Data.Maybe as Maybe"]
   setContext $ map IIDecl imports
+  action
 
-withHsDirectory :: Sh () -> IO ()
+withHsDirectory :: (FilePath -> Sh ()) -> IO ()
 withHsDirectory f = shelly $ withTmpDir $ \dirPath -> 
       do cd dirPath 
          cmd "mkdir"  $ "" </> "dir"
          cmd "mkdir"  $ "dir" </> "dir1"
          cmd "touch" "file1.hs"  "dir/file2.hs" "file1.lhs" "dir/file2.lhs"
-         f 
+         f $ encodeString dirPath
 
 main :: IO ()
 main = hspec $ do
@@ -156,14 +159,17 @@ completionTests = do
       "import Prel!"   `completionHas` ["Prelude"]
 
     it "properly completes haskell file paths on :load directive" $ 
-       withHsDirectory 
-           $ let loading xs = ":load " ++ encodeString xs
-                 paths xs = map encodeString xs
-             in liftIO $ do 
-                loading ("dir" </> "file!") `completionHas` paths ["dir" </> "file2.hs",
-                                                                "dir" </> "file2.lhs"]
-                loading ("" </> "file1!") `completionHas` paths ["" </> "file1.hs",
-                                                          "" </> "file1.lhs"]
+       withHsDirectory $ \dirPath -> 
+         let loading xs = ":load " ++ encodeString xs
+             paths xs = map encodeString xs
+             completionHas' = completionHas_ $ Eval.evaluate defaultKernelState 
+                                                             (":! cd " ++ dirPath)
+                                                             (\b d -> return ())
+         in liftIO $ do 
+            loading ("dir" </> "file!") `completionHas'` paths ["dir" </> "file2.hs",
+                                                            "dir" </> "file2.lhs"]
+            loading ("" </> "file1!") `completionHas'` paths ["" </> "file1.hs",
+                                                      "" </> "file1.lhs"]
 
 evalTests = do
   describe "Code Evaluation" $ do
