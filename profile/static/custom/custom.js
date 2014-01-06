@@ -15,8 +15,22 @@ $([IPython.events]).on('app_initialized.NotebookApp', function(){
     // add here logic that shoudl be run once per **page load**
     // like adding specific UI, or changing the default value
     // of codecell highlight.
-
+    
     CodeMirror.requireMode('haskell', function(){
+        // Create a multiplexing mode that uses Haskell highlighting by default but
+        // doesn't highlight command-line directives.
+        CodeMirror.defineMode("ihaskell", function(config) {
+            return CodeMirror.multiplexingMode(
+                CodeMirror.getMode(config, "haskell"),
+                {
+                open: /:(?=!)/, // Matches : followed by !, but doesn't consume !
+                close: /^(?!!)/, // Matches start of line not followed by !, doesn't consume character
+                mode: CodeMirror.getMode(config, "text/plain"),
+                delimStyle: "delimit"
+                }
+                );
+        });
+
         cells = IPython.notebook.get_cells();
         for(var i in cells){
             c = cells[i];
@@ -24,7 +38,7 @@ $([IPython.events]).on('app_initialized.NotebookApp', function(){
                 // Force the mode to be Haskell
                 // This is necessary, otherwise sometimes highlighting just doesn't happen.
                 // This may be an IPython bug.
-                c.code_mirror.setOption('mode', 'haskell');
+                c.code_mirror.setOption('mode', 'ihaskell');
 
                 c.auto_highlight()
             }
