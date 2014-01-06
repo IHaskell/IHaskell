@@ -410,8 +410,13 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
   case words cmd of 
     "cd":dirs ->
       let directory = unwords dirs in do
-        setCurrentDirectory directory
-        return []
+        exists <- doesDirectoryExist directory
+        if exists
+        then do
+          setCurrentDirectory directory
+          return []
+        else
+          return $ displayError $ printf "No such directory: '%s'" directory
     cmd -> do
       (readEnd, writeEnd) <- createPipe
       handle <- fdToHandle writeEnd
