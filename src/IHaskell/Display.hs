@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, FlexibleInstances #-}
 module IHaskell.Display (
   IHaskellDisplay(..),
   plain, html, png, jpg, svg, latex,
@@ -28,6 +28,13 @@ type Base64 = ByteString
 -- > instance Show a where shows _ = id
 class IHaskellDisplay a where
   display :: a -> IO [DisplayData]
+
+-- | Display DisplayData values immediately.
+instance IHaskellDisplay DisplayData where
+  display disp = return [disp]
+
+instance IHaskellDisplay [DisplayData] where
+  display = return
 
 -- | Generate a plain text display.
 plain :: String -> DisplayData
