@@ -77,7 +77,7 @@ completes string expected = completionTarget newString cursorloc `shouldBe` expe
 
 completionHas_ wrap string expected = do
     (matched, completions) <- doGhc $ do
-      wrap $ do initCompleter 
+      wrap $ do initCompleter
                 complete newString cursorloc
     let existsInCompletion = (`elem` completions)
         unmatched = filter (not . existsInCompletion) expected
@@ -167,15 +167,15 @@ completionTests = do
        withHsDirectory $ \dirPath ->
          let loading xs = ":load " ++ encodeString xs
              paths xs = map encodeString xs
-             completionHas' = completionHas_ fun 
+             completionHas' = completionHas_ fun
              fun action = do pwd <- Eval.liftIO getCurrentDirectory
                              Eval.evaluate defaultKernelState
                                              (":! cd " ++ dirPath)
-                                             (\b d -> return ()) 
-                             out <- action 
+                                             (\b d -> return ())
+                             out <- action
                              Eval.evaluate defaultKernelState
                                              (":! cd " ++ pwd)
-                                             (\b d -> return ()) 
+                                             (\b d -> return ())
                              return out
          in liftIO $ do
             loading ("dir" </> "file!") `completionHas'` paths ["dir" </> "file2.hs",
