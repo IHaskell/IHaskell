@@ -1,6 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
 module Main where
-import Prelude 
+import Prelude
 import GHC
 import GHC.Paths
 import Data.IORef
@@ -52,7 +52,7 @@ becomes string expected = do
         minIndent = minimum (map indent stringLines)
         newString = unlines $ map (drop minIndent) stringLines
     eval newString >>= comparison
-  where 
+  where
     comparison results = do
       when (length results /= length expected) $
         expectationFailure $ "Expected result to have " ++ show (length expected)
@@ -98,8 +98,8 @@ initCompleter action = do
   action
 
 withHsDirectory :: (FilePath -> Sh ()) -> IO ()
-withHsDirectory f = shelly $ withTmpDir $ \dirPath -> 
-      do cd dirPath 
+withHsDirectory f = shelly $ withTmpDir $ \dirPath ->
+      do cd dirPath
          cmd "mkdir"  $ "" </> "dir"
          cmd "mkdir"  $ "dir" </> "dir1"
          cmd "touch" "file1.hs"  "dir/file2.hs" "file1.lhs" "dir/file2.lhs"
@@ -158,14 +158,14 @@ completionTests = do
       "import Data.M!" `completionHas` ["Data.Maybe"]
       "import Prel!"   `completionHas` ["Prelude"]
 
-    it "properly completes haskell file paths on :load directive" $ 
-       withHsDirectory $ \dirPath -> 
+    it "properly completes haskell file paths on :load directive" $
+       withHsDirectory $ \dirPath ->
          let loading xs = ":load " ++ encodeString xs
              paths xs = map encodeString xs
-             completionHas' = completionHas_ $ Eval.evaluate defaultKernelState 
+             completionHas' = completionHas_ $ Eval.evaluate defaultKernelState
                                                              (":! cd " ++ dirPath)
                                                              (\b d -> return ())
-         in liftIO $ do 
+         in liftIO $ do
             loading ("dir" </> "file!") `completionHas'` paths ["dir" </> "file2.hs",
                                                             "dir" </> "file2.lhs"]
             loading ("" </> "file1!") `completionHas'` paths ["" </> "file1.hs",
@@ -311,7 +311,7 @@ parseStringTests = describe "Parser" $ do
       Directive SetExtension "x"
     ]
 
-  it "fails to parse :nope" $ 
+  it "fails to parse :nope" $
     parses ":nope goodbye" `like` [
       ParseError (Loc 1 1) "Unknown directive: 'nope'."
     ]
@@ -393,13 +393,13 @@ parseStringTests = describe "Parser" $ do
   it "parses statements after imports" $ do
     parses "import X\nprint 3" `like` [
         Import "import X",
-        Expression "print 3" 
+        Expression "print 3"
       ]
     parses "import X\n\nprint 3" `like` [
         Import "import X",
-        Expression "print 3" 
+        Expression "print 3"
       ]
-  it "ignores blank lines properly" $ 
+  it "ignores blank lines properly" $
     [hereLit|
       test arg = hello
         where
@@ -426,4 +426,3 @@ parseStringTests = describe "Parser" $ do
         second
        |] >>= (`shouldBe` [Located 2 (Expression "first"),
                           Located 4 (Expression "second")])
-
