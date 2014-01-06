@@ -1,4 +1,5 @@
-{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings #-}
+{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances  #-}
+
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
 
@@ -29,6 +30,8 @@ import Control.Monad (guard)
 import System.Process
 import System.Exit
 import Data.Maybe (fromJust)
+import qualified Control.Monad.IO.Class as MonadIO (MonadIO, liftIO)
+import qualified MonadUtils as MonadUtils (MonadIO, liftIO)
 
 import NameSet
 import Name
@@ -80,6 +83,9 @@ write :: GhcMonad m => String -> m ()
 write x = when debug $ liftIO $ hPutStrLn stderr $ "DEBUG: " ++ x
 
 type Interpreter = Ghc
+
+instance MonadIO.MonadIO Interpreter where
+    liftIO = MonadUtils.liftIO
 
 globalImports :: [String]
 globalImports =
@@ -406,8 +412,8 @@ evalCommand _ (Directive SetOpt option) state = do
 
     setOpt _ _ = Nothing
 
-evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $ liftIO $ 
-  case words cmd of 
+evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $ liftIO $
+  case words cmd of
     "cd":dirs ->
       let directory = unwords dirs in do
         exists <- doesDirectoryExist directory
@@ -428,13 +434,13 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
             std_err = UseHandle handle
           }
       (_, _, _, process) <- createProcess procSpec
-          
+
       -- Accumulate output from the process.
       outputAccum <- liftIO $ newMVar ""
 
       -- Start a loop to publish intermediate results.
-      let 
-        -- Compute how long to wait between reading pieces of the output. 
+      let
+        -- Compute how long to wait between reading pieces of the output.
         -- `threadDelay` takes an argument of microseconds.
         ms = 1000
         delay = 100 * ms
@@ -463,7 +469,7 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
           if not computationDone
           then do
             -- Write to frontend and repeat.
-            readMVar outputAccum >>= output 
+            readMVar outputAccum >>= output
             loop
           else do
             out <- readMVar outputAccum
@@ -476,7 +482,7 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
                         html $ printf "<span class='mono'>%s</span>" out ++ htmlErr]
 
       loop
-      
+
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
 evalCommand _ (Directive GetHelp _) state = do
@@ -693,7 +699,7 @@ evalCommand _ (Declaration decl) state = wrapExecution state $ do
   names <- runDecls decl
 
   dflags <- getSessionDynFlags
-  let boundNames = map (replace ":Interactive." "" . showPpr dflags) names  
+  let boundNames = map (replace ":Interactive." "" . showPpr dflags) names
       nonDataNames = filter (not . isUpper . head) boundNames
 
   -- Display the types of all bound names if the option is on.
@@ -987,7 +993,7 @@ formatType :: String -> [DisplayData]
 formatType typeStr =  [plain typeStr, html $ formatGetType typeStr]
 
 displayError :: ErrMsg -> [DisplayData]
-displayError msg = [plain . fixStdinError . typeCleaner $ msg, html $ formatError msg] 
+displayError msg = [plain . fixStdinError . typeCleaner $ msg, html $ formatError msg]
 
 fixStdinError :: ErrMsg -> ErrMsg
 fixStdinError err =

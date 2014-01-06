@@ -73,11 +73,12 @@ library
                        directory,
                        here,
                        system-filepath,
-                       filemanip,
                        filepath,
                        cereal ==0.3.*,
                        text >=0.11,
                        mtl >= 2.1
+                       transformers,
+                       haskeline
   exposed-modules: IHaskell.Display
                    IHaskell.Eval.Completion
                    IHaskell.Eval.Evaluate
@@ -145,11 +146,12 @@ executable IHaskell
                        directory,
                        here,
                        system-filepath,
-                       filemanip,
                        filepath,
                        cereal ==0.3.*,
                        text >=0.11,
-                       mtl >= 2.1
+                       mtl >= 2.1,
+                       transformers,
+                       haskeline
 
 Test-Suite hspec
   hs-source-dirs:      src
@@ -185,7 +187,9 @@ Test-Suite hspec
                        filepath,
                        cereal ==0.3.*,
                        text >=0.11,
-                       mtl >= 2.1
+                       mtl >= 2.1,
+                       transformers,
+                       haskeline
   extensions: DoAndIfThenElse
               OverloadedStrings
               ExtendedDefaultRules

@@ -27,27 +27,30 @@ import GhcMonad
 import PackageConfig
 import Outputable (showPpr)
 
-import qualified System.FilePath.Find as Find (find)
-import System.FilePath.Find hiding (find)
+
 import System.Directory
-import System.FilePath.GlobPattern
 import System.FilePath
 import MonadUtils (MonadIO)
 import Control.Monad (filterM, mapM, liftM)
 
+import System.Console.Haskeline.Completion
+import qualified Control.Monad.IO.Class as MonadIO (MonadIO(), liftIO)
+
 import IHaskell.Types
+import IHaskell.Eval.Evaluate (Interpreter)
 
 
-data CompletionType 
-     = Empty 
+data CompletionType
+     = Empty
      | Identifier String
      | Extension String
      | Qualified String String
      | ModuleName String String
-     | HsFilePath String 
+     | HsFilePath String
+     | FilePath String
      deriving (Show, Eq)
 
-complete :: GHC.GhcMonad m => String -> Int -> m (String, [String])
+complete :: String -> Int -> Interpreter (String, [String])
 complete line pos = do
   flags <- getSessionDynFlags
   rdrNames <- map (showPpr flags) <$> getRdrNamesInScope
@@ -63,7 +66,7 @@ complete line pos = do
   let target = completionTarget line pos
       matchedText = intercalate "." target
 
-  options <- 
+  options <-
         case completionType line target of
           Empty -> return []
 
@@ -89,12 +92,13 @@ complete line pos = do
                 nonames = map ("No" ++) names
             return $ filter (ext `isPrefixOf`) $ names ++ nonames
 
-          HsFilePath path -> do pwd <- liftIO getCurrentDirectory 
-                                completePath pwd (Just [".hs", ".lhs"]) path 
+          HsFilePath path -> completePathWithExtensions [".hs", ".lhs"] path
+
+          FilePath path   -> completePath path
 
   return (matchedText, options)
 
-getTrueModuleName :: GhcMonad m => String -> m String
+getTrueModuleName :: String -> Interpreter String
 getTrueModuleName name = do
   -- Only use the things that were actually imported
   let onlyImportDecl (IIDecl decl) = Just decl
@@ -109,20 +113,22 @@ getTrueModuleName name = do
   let qualifiedImports = filter (isJust . ideclAs) imports
       hasName imp = name == (showPpr flags . fromJust . ideclAs) imp
   case find hasName qualifiedImports of
-    Nothing -> return name  
+    Nothing -> return name
     Just trueImp -> return $ showPpr flags $ unLoc $ ideclName trueImp
 
 completionType :: String -> [String] -> CompletionType
 completionType line [] = Empty
 completionType line target
-  | startswith ":l" stripped 
-    = HsFilePath  $ last $ splitOn " " stripped
+  | startswith ":! " stripped
+    = FilePath complete_target
+  | startswith ":l" stripped
+    = HsFilePath complete_target
   | startswith "import" stripped && isModName
     = ModuleName dotted candidate
   | isModName && (not . null . init) target
     = Qualified dotted candidate
   | startswith ":e" stripped
-    = Extension candidate 
+    = Extension candidate
   | otherwise
     = Identifier candidate
   where stripped = strip line
@@ -131,13 +137,14 @@ completionType line target
         dots = intercalate "." . init
         isModName = all isCapitalized (init target)
         isCapitalized = isUpper . head
+        complete_target = intercalate "." target
 
 
 
 -- | Get the word under a given cursor location.
 completionTarget :: String -> Int -> [String]
 completionTarget code cursor = expandCompletionPiece pieceToComplete
-  where 
+  where
     pieceToComplete = map fst <$> find (elem cursor . map snd) pieces
     pieces = splitAlongCursor $ split splitter $ zip code [1 .. ]
     splitter = defaultSplitter {
@@ -153,7 +160,7 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
 
     splitAlongCursor :: [[(Char, Int)]] -> [[(Char, Int)]]
     splitAlongCursor [] = []
-    splitAlongCursor (x:xs) = 
+    splitAlongCursor (x:xs) =
       case elemIndex cursor $  map snd x of
         Nothing -> x:splitAlongCursor xs
         Just idx -> take (idx + 1) x:drop (idx + 1) x:splitAlongCursor xs
@@ -162,34 +169,26 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
     neverIdent = " \n\t(),{}[]\\'\"`"
 
     expandCompletionPiece Nothing = []
-    expandCompletionPiece (Just str) = splitOn "." str 
+    expandCompletionPiece (Just str) = splitOn "." str
 
-completePath :: MonadIO m => 
-                String -- ^ Current directory
-             -> Maybe [String] -- ^ list of file extensions 
-             -> String   -- ^ prefix to be completed
-             -> m [String] -- ^ completions, that is, if prefix is "Mai" one completion might be "Main.hs"
-completePath currDir exts prefix
-    = let absolutePrefix = combine currDir prefix
-          searchDir = dropFileName absolutePrefix
-          pattern = absolutePrefix ++ "*" 
-          completions = liftIO $ Find.find always (filePath ~~? pattern) searchDir 
-          allFileCompletions = completions >>= liftIO . filterM (liftM not . doesDirectoryExist)
-          fileCompletions = case exts of 
-                              Nothing -> allFileCompletions
-                              Just exts -> do xs <- allFileCompletions 
-                                              return $ filter (\s -> or [endswith ext s | ext <- exts])  xs
-          dirCompletions  = completions 
-                        >>= liftIO . filterM doesDirectoryExist 
-                        >>= \xs -> do return $ [x  ++ [pathSeparator] | x <- xs]
-          relativeCompletions = do validSearchDir <- liftIO $ doesDirectoryExist searchDir 
-                                   if validSearchDir then
-                                    do xs <- fileCompletions 
-                                       ys <- dirCompletions
-                                       return $ map (cut $ currDir ++ [pathSeparator]) $ xs ++ ys
-                                   else return []
-          cut :: String -> String -> String 
-          cut (x:xs) z@(y:ys) | x == y = cut xs ys
-                              | otherwise = z
-          cut _ z = z 
-      in relativeCompletions
+completePathFilter :: (String -> Bool) -- ^ filter files
+                   -> (String -> Bool) -- ^ filter directories
+                   -> String           -- ^ line contents left of cursor
+                   -> String           -- ^ line contents right of cursor
+                   -> Interpreter [String]
+completePathFilter fileFilter dirFilter loc roc =
+    do (_, comps) <- MonadIO.liftIO $ (completeFilename (reverse loc, roc))
+       let completions = map replacement comps
+       dirs <- liftIO $ filterM doesDirectoryExist completions
+       files <- liftIO $ filterM (liftM not . doesDirectoryExist) completions
+       let dirs' = filter dirFilter files
+           files' = filter fileFilter dirs
+       return $ filter (\x -> elem x $ dirs' ++ files') completions
+
+completePath :: String -> Interpreter [String]
+completePath loc = completePathFilter (const True) (const True) loc ""
+
+completePathWithExtensions :: [String] -> String -> Interpreter [String]
+completePathWithExtensions extensions loc =
+  completePathFilter (\s -> any (\x -> endswith x s) extensions) (const True) loc ""
+
