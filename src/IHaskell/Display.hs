@@ -1,9 +1,10 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, FlexibleInstances #-}
 module IHaskell.Display (
   IHaskellDisplay(..),
   plain, html, png, jpg, svg, latex,
   serializeDisplay,
-  Width, Height, Base64Data
+  Width, Height, Base64Data,
+  DisplayData
   ) where
 
 import ClassyPrelude
@@ -24,6 +25,14 @@ type Base64Data = String
 -- > instance Show a where shows _ = id
 class IHaskellDisplay a where
   display :: a -> IO [DisplayData]
+
+-- | these instances cause the image, html etc. in the `[DisplayData]` to
+-- be rendered (if the frontend allows it) in the pretty form.
+instance IHaskellDisplay (IO [DisplayData]) where display = id
+instance IHaskellDisplay (IO DisplayData)   where display = fmap (:[])
+instance IHaskellDisplay [DisplayData]      where display = return
+instance IHaskellDisplay DisplayData        where display = return . (:[])
+
 
 -- | Generate a plain text display.
 plain :: String -> DisplayData
