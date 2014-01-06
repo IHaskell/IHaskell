@@ -5,8 +5,11 @@ import GHC
 import GHC.Paths
 import Data.IORef
 import Control.Monad
+import Control.Monad.Trans ( MonadIO, liftIO )
 import Data.List
 import System.Directory
+import Shelly (Sh, shelly, cmd, (</>), toTextIgnore, cd, withTmpDir)
+import Filesystem.Path.CurrentOS (encodeString)
 import Data.String.Here
 import Data.String.Utils (strip, replace)
 import Data.Monoid
@@ -14,8 +17,12 @@ import Data.Monoid
 import IHaskell.Eval.Parser
 import IHaskell.Types
 import IHaskell.IPython
-import IHaskell.Eval.Evaluate as Eval
+import IHaskell.Eval.Evaluate as Eval hiding (liftIO)
+import qualified IHaskell.Eval.Evaluate as Eval (liftIO)
+
 import IHaskell.Eval.Completion
+
+import Debug.Trace
 
 import Test.Hspec
 import Test.Hspec.HUnit
@@ -49,7 +56,7 @@ becomes string expected = do
         minIndent = minimum (map indent stringLines)
         newString = unlines $ map (drop minIndent) stringLines
     eval newString >>= comparison
-  where 
+  where
     comparison results = do
       when (length results /= length expected) $
         expectationFailure $ "Expected result to have " ++ show (length expected)
@@ -68,28 +75,39 @@ completes string expected = completionTarget newString cursorloc `shouldBe` expe
           Nothing -> error "Expected cursor written as '!'."
           Just idx -> (replace "!" "" string, idx)
 
-completionHas string expected = do
+completionHas_ action string expected = do
     (matched, completions) <- doGhc $ do
-      initCompleter
+      initCompleter action
       complete newString cursorloc
-    let existsInCompletion =  (`elem` completions)
+    let existsInCompletion = (`elem` completions)
         unmatched = filter (not . existsInCompletion) expected
     unmatched `shouldBe` []
   where (newString, cursorloc) = case elemIndex '!' string of
           Nothing -> error "Expected cursor written as '!'."
           Just idx -> (replace "!" "" string, idx)
 
-initCompleter :: GhcMonad m => m ()
-initCompleter = do
+completionHas = completionHas_ (return ())
+
+initCompleter :: GhcMonad m => m a -> m a
+initCompleter action = do
   flags <- getSessionDynFlags
   setSessionDynFlags $ flags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
 
   -- Import modules.
   imports <- mapM parseImportDecl ["import Prelude",
-                                  "import qualified Control.Monad",
-                                  "import qualified Data.List as List",
-                                  "import Data.Maybe as Maybe"]
+                                   "import qualified Control.Monad",
+                                   "import qualified Data.List as List",
+                                   "import Data.Maybe as Maybe"]
   setContext $ map IIDecl imports
+  action
+
+withHsDirectory :: (FilePath -> Sh ()) -> IO ()
+withHsDirectory f = shelly $ withTmpDir $ \dirPath ->
+      do cd dirPath
+         cmd "mkdir"  $ "" </> "dir"
+         cmd "mkdir"  $ "dir" </> "dir1"
+         cmd "touch" "file1.hs"  "dir/file2.hs" "file1.lhs" "dir/file2.lhs"
+         f $ encodeString dirPath
 
 main :: IO ()
 main = hspec $ do
@@ -123,6 +141,7 @@ completionTests = do
       completionType "A.x" ["A", "x"]                 `shouldBe` Qualified "A" "x"
       completionType "a.x" ["a", "x"]                 `shouldBe` Identifier "x"
       completionType "pri" ["pri"]                    `shouldBe` Identifier "pri"
+      completionType ":load A" [""]                   `shouldBe` HsFilePath "A"
 
     it "properly completes identifiers" $ do
        "pri!"           `completionHas` ["print"]
@@ -142,6 +161,21 @@ completionTests = do
       "import Data.!"  `completionHas` ["Data.Maybe", "Data.List"]
       "import Data.M!" `completionHas` ["Data.Maybe"]
       "import Prel!"   `completionHas` ["Prelude"]
+
+    it "properly completes haskell file paths on :load directive" $
+       withHsDirectory $ \dirPath ->
+         let loading xs = ":load " ++ encodeString xs
+             paths xs = map encodeString xs
+             completionHas' = completionHas_ $ 
+                                      do Eval.evaluate defaultKernelState
+                                     (":! cd " ++ dirPath)
+                                     (\b d -> return ())
+         in liftIO $ do
+            loading ("dir" </> "file!") `completionHas'` paths ["dir" </> "file2.hs",
+                                                            "dir" </> "file2.lhs"]
+            loading ("" </> "file1!") `completionHas'` paths ["" </> "file1.hs",
+                                                      "" </> "file1.lhs"]
+
 
 evalTests = do
   describe "Code Evaluation" $ do
@@ -283,7 +317,7 @@ parseStringTests = describe "Parser" $ do
       Directive SetExtension "x"
     ]
 
-  it "fails to parse :nope" $ 
+  it "fails to parse :nope" $
     parses ":nope goodbye" `like` [
       ParseError (Loc 1 1) "Unknown directive: 'nope'."
     ]
@@ -365,13 +399,13 @@ parseStringTests = describe "Parser" $ do
   it "parses statements after imports" $ do
     parses "import X\nprint 3" `like` [
         Import "import X",
-        Expression "print 3" 
+        Expression "print 3"
       ]
     parses "import X\n\nprint 3" `like` [
         Import "import X",
-        Expression "print 3" 
+        Expression "print 3"
       ]
-  it "ignores blank lines properly" $ 
+  it "ignores blank lines properly" $
     [hereLit|
       test arg = hello
         where
@@ -398,4 +432,3 @@ parseStringTests = describe "Parser" $ do
         second
        |] >>= (`shouldBe` [Located 2 (Expression "first"),
                           Located 4 (Expression "second")])
-    
