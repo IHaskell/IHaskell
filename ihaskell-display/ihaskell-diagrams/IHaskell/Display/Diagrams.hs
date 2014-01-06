@@ -4,7 +4,6 @@ module IHaskell.Display.Diagrams (diagram) where
 import ClassyPrelude
 
 import System.Directory
-import qualified Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Char8 as Char
 import System.IO.Unsafe
 
@@ -15,11 +14,11 @@ import IHaskell.Display
 
 instance IHaskellDisplay (Diagram Cairo R2) where
   display renderable = do
-    (width, height, imgData) <- diagramData renderable PNG
-    (_, _, svgData) <- diagramData renderable SVG
-    return [png (floor width) (floor height) imgData, svg svgData]
+    png <- diagramData renderable PNG
+    svg <- diagramData renderable SVG
+    return [png, svg]
 
-diagramData :: Diagram Cairo R2 -> OutputType -> IO (Double, Double, String)
+diagramData :: Diagram Cairo R2 -> OutputType -> IO DisplayData
 diagramData renderable format = do
   -- Switch to a temporary directory so that any files we create aren't
   -- visible. On Unix, this is usually /tmp.
@@ -38,11 +37,11 @@ diagramData renderable format = do
 
   -- Convert to base64.
   imgData <- readFile $ fpFromString filename
-  let value = Char.unpack $ case format of
-        PNG -> Base64.encode imgData
-        _ ->   imgData
+  let value = case format of
+        PNG -> png (floor imgWidth) (floor imgHeight) $ base64 imgData
+        SVG -> svg $ Char.unpack imgData
 
-  return (imgWidth, imgHeight, value)
+  return value
   where
     extension SVG = "svg"
     extension PNG = "png"

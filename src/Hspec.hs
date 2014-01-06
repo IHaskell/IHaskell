@@ -1,4 +1,4 @@
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE QuasiQuotes, OverloadedStrings, DoAndIfThenElse, ExtendedDefaultRules #-}
 module Main where
 import Prelude
 import GHC
@@ -44,7 +44,7 @@ eval string = do
   let publish final displayDatas = when final $ modifyIORef outputAccum (displayDatas :)
   getTemporaryDirectory >>= setCurrentDirectory
   let state = defaultKernelState { getLintStatus = LintOff }
-  interpret $ Eval.evaluate state string publish
+  interpret False $ Eval.evaluate state string publish
   out <- readIORef outputAccum
   return $ reverse out
 
@@ -62,13 +62,12 @@ becomes string expected = do
         expectationFailure $ "Expected result to have " ++ show (length expected)
                              ++ " results. Got " ++ show results
 
-      let isPlain (Display PlainText _) = True
-          isPlain _ = False
+      let isPlain (Display mime _) = mime == PlainText
 
       forM_ (zip results expected) $ \(result, expected) ->
-        case find isPlain result of
-          Just (Display PlainText str) -> str `shouldBe` expected
-          Nothing -> expectationFailure $ "No plain-text output in " ++ show result
+        case extractPlain result of
+          ""-> expectationFailure $ "No plain-text output in " ++ show result
+          str -> str `shouldBe` expected
 
 completes string expected = completionTarget newString cursorloc `shouldBe` expected
   where (newString, cursorloc) = case elemIndex '!' string of
@@ -76,7 +75,7 @@ completes string expected = completionTarget newString cursorloc `shouldBe` expe
           Just idx -> (replace "!" "" string, idx)
 
 completionHas_ wrap string expected = do
-    (matched, completions) <- doGhc $ do
+    (matched, completions) <- doGhc $
       wrap $ do initCompleter
                 complete newString cursorloc
     let existsInCompletion = (`elem` completions)
@@ -90,7 +89,7 @@ completionHas = completionHas_ id
 
 initCompleter :: GhcMonad m => m ()
 initCompleter  = do
-  pwd <- Eval.liftIO $ getCurrentDirectory
+  pwd <- Eval.liftIO getCurrentDirectory
   --Eval.liftIO $ traceIO $ pwd
   flags <- getSessionDynFlags
   setSessionDynFlags $ flags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }

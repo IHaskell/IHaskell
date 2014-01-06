@@ -19,7 +19,8 @@ module IHaskell.Types (
   KernelState(..),
   LintStatus(..),
   Width, Height,
-  defaultKernelState
+  defaultKernelState,
+  extractPlain
   ) where
 
 import ClassyPrelude
@@ -27,7 +28,7 @@ import Data.Aeson
 import IHaskell.Message.UUID
 import Data.Serialize
 import GHC.Generics (Generic)
-
+import qualified Data.ByteString.Char8 as Char
 
 
 -- | A TCP port.
@@ -325,7 +326,7 @@ instance Show ExecuteReplyStatus where
 data ExecutionState = Busy | Idle | Starting deriving Show
 
 -- | Data for display: a string with associated MIME type.
-data DisplayData = Display MimeType String deriving (Typeable, Generic)
+data DisplayData = Display MimeType ByteString deriving (Typeable, Generic)
 
 -- We can't print the actual data, otherwise this will be printed every
 -- time it gets computed because of the way the evaluator is structured.
@@ -347,6 +348,15 @@ data MimeType = PlainText
               | MimeSvg
               | MimeLatex
               deriving (Eq, Typeable, Generic)
+
+-- Extract the plain text from a list of displays.
+extractPlain :: [DisplayData] -> String
+extractPlain disps =
+  case find isPlain disps of
+    Nothing -> ""
+    Just (Display PlainText bytestr) -> Char.unpack bytestr
+  where
+    isPlain (Display mime _) = mime == PlainText
 
 
 instance Show MimeType where
