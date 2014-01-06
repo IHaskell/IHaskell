@@ -27,10 +27,8 @@ import GhcMonad
 import PackageConfig
 import Outputable (showPpr)
 
-import qualified System.FilePath.Find as Find (find)
-import System.FilePath.Find hiding (find)
+
 import System.Directory
-import System.FilePath.GlobPattern
 import System.FilePath
 import MonadUtils (MonadIO)
 import Control.Monad (filterM, mapM, liftM)
