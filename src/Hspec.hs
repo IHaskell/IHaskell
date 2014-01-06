@@ -184,6 +184,9 @@ completionTests = do
                                                               "" </> "file1.lhs"]
             loading ("" </> "file1!") `completionHas'` paths ["" </> "file1.hs",
                                                   "" </> "file1.lhs"]
+            loading ("" </> "./!") `completionHas'` paths ["./" </> "dir"
+                                                          , "./" </> "file1.hs"
+                                                          , "./" </> "file1.lhs"]
 
 evalTests = do
   describe "Code Evaluation" $ do

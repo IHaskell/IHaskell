@@ -76,9 +76,10 @@ library
                        filepath,
                        cereal ==0.3.*,
                        text >=0.11,
-                       mtl >= 2.1
+                       mtl >= 2.1,
                        transformers,
                        haskeline
+
   exposed-modules: IHaskell.Display
                    IHaskell.Eval.Completion
                    IHaskell.Eval.Evaluate
@@ -190,6 +191,7 @@ Test-Suite hspec
                        mtl >= 2.1,
                        transformers,
                        haskeline
+
   extensions: DoAndIfThenElse
               OverloadedStrings
               ExtendedDefaultRules
