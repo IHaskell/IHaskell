@@ -1,14 +1,14 @@
 #!/bin/sh
 cd profile
-rm profile.tar
+rm -f profile.tar
 tar -cvf profile.tar *
 cd ..
-cabal install --force-reinstalls || return 1
+cabal install --force-reinstalls || exit 1
 cd ihaskell-display
 for dir in `ls`
 do
     cd $dir
-    cabal install || return 1
+    cabal install || exit 1
     cd ..
 done
 
