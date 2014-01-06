@@ -223,8 +223,6 @@ runKernel profileSrc initInfo = do
 
   -- Create initial state in the directory the kernel *should* be in.
   state <- initialKernelState
-  modifyMVar_ state $ \initState ->
-    return initState { getCwd = initDir initInfo }
 
   -- Receive and reply to all messages on the shell socket.
   interpret $ do

@@ -1,0 +1,75 @@
+-- The name of the package.
+name:                ihaskell-diagrams
+
+-- The package version.  See the Haskell package versioning policy (PVP) 
+-- for standards guiding when and how versions should be incremented.
+-- http://www.haskell.org/haskellwiki/Package_versioning_policy
+-- PVP summary:      +-+------- breaking API changes
+--                   | | +----- non-breaking API additions
+--                   | | | +--- code changes with no API change
+version:             0.1.0.0
+
+-- A short (one-line) description of the package.
+synopsis:            IHaskell display instances for diagram types
+
+-- A longer description of the package.
+-- description:         
+
+-- URL for the project homepage or repository.
+homepage:            http://www.github.com/gibiansky/IHaskell-Display
+
+-- The license under which the package is released.
+-- license:             
+
+-- The file containing the license text.
+license-file:        LICENSE
+
+-- The package author(s).
+author:              Andrew Gibiansky
+
+-- An email address to which users can send suggestions, bug reports, and 
+-- patches.
+maintainer:          andrew.gibiansky@gmail.com
+
+-- A copyright notice.
+-- copyright:           
+
+category:            Development
+
+build-type:          Simple
+
+-- Extra files to be distributed with the package, such as examples or a 
+-- README.
+-- extra-source-files:  
+
+-- Constraint on the version of Cabal needed to build this package.
+cabal-version:       >=1.16
+
+
+library
+  -- Modules exported by the library.
+  exposed-modules:     IHaskell.Display.Diagrams
+  
+  -- Modules included in this library but not exported.
+  -- other-modules:       
+  
+  -- Language extensions.
+  default-extensions: DoAndIfThenElse
+              OverloadedStrings
+             
+  -- Other library packages from which modules are imported.
+  build-depends:       base ==4.6.*,
+                       classy-prelude >=0.6,
+                       base64-bytestring,
+                       bytestring,
+                       directory,
+                       diagrams,
+                       diagrams-lib, 
+                       diagrams-cairo,
+                       ihaskell
+  
+  -- Directories containing source files.
+  -- hs-source-dirs:      
+  
+  -- Base language which the package is written in.
+  default-language:    Haskell2010

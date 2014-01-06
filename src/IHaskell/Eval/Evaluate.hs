@@ -26,6 +26,9 @@ import System.IO (hGetChar, hFlush)
 import System.Random (getStdGen, randomRs)
 import Unsafe.Coerce
 import Control.Monad (guard)
+import System.Process
+import System.Exit
+import Data.Maybe (fromJust)
 
 import NameSet
 import Name
@@ -82,7 +85,7 @@ globalImports :: [String]
 globalImports =
   [ "import IHaskell.Display"
   , "import Control.Applicative ((<$>))"
-  , "import GHC.IO.Handle (hDuplicateTo, hDuplicate)"
+  , "import GHC.IO.Handle (hDuplicateTo, hDuplicate, hClose)"
   , "import System.Posix.IO"
   , "import System.Posix.Files"
   , "import System.IO"
@@ -100,6 +103,11 @@ interpret action = runGhc (Just libdir) $ do
   void $ setSessionDynFlags $ dflags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
 
   initializeImports
+
+  -- Close stdin so it can't be used.
+  -- Otherwise it'll block the kernel forever.
+  runStmt "System.IO.hClose System.IO.stdin" RunToCompletion
+
   initializeItVariable
 
   -- Run the rest of the interpreter
@@ -397,6 +405,73 @@ evalCommand _ (Directive SetOpt option) state = do
 
     setOpt _ _ = Nothing
 
+evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $ liftIO $ 
+  case words cmd of 
+    "cd":dirs ->
+      let directory = unwords dirs in do
+        setCurrentDirectory directory
+        return []
+    cmd -> do
+      (readEnd, writeEnd) <- createPipe
+      handle <- fdToHandle writeEnd
+      pipe <- fdToHandle readEnd
+      let initProcSpec = shell $ unwords cmd
+          procSpec = initProcSpec {
+            std_in = Inherit,
+            std_out = UseHandle handle,
+            std_err = UseHandle handle
+          }
+      (_, _, _, process) <- createProcess procSpec
+          
+      -- Accumulate output from the process.
+      outputAccum <- liftIO $ newMVar ""
+
+      -- Start a loop to publish intermediate results.
+      let 
+        -- Compute how long to wait between reading pieces of the output. 
+        -- `threadDelay` takes an argument of microseconds.
+        ms = 1000
+        delay = 100 * ms
+
+        -- Maximum size of the output (after which we truncate).
+        maxSize = 100 * 1000
+        incSize = 200
+        output str = publish False [plain str]
+
+        loop = do
+          -- Wait and then check if the computation is done.
+          threadDelay delay
+
+          -- Read next chunk and append to accumulator.
+          nextChunk <- readChars pipe "\n" incSize
+          modifyMVar_ outputAccum (return . (++ nextChunk))
+
+          -- Check if we're done.
+          exitCode <- getProcessExitCode process
+          let computationDone = isJust exitCode
+
+          when computationDone $ do
+            nextChunk <- readChars pipe "" maxSize
+            modifyMVar_ outputAccum (return . (++ nextChunk))
+
+          if not computationDone
+          then do
+            -- Write to frontend and repeat.
+            readMVar outputAccum >>= output 
+            loop
+          else do
+            out <- readMVar outputAccum
+            case fromJust exitCode of
+              ExitSuccess -> return [plain out]
+              ExitFailure code -> do
+                let errMsg = "Process exited with error code " ++ show code
+                    htmlErr = printf "<span class='err-msg'>%s</span>" errMsg
+                return [plain $ out ++ "\n" ++ errMsg,
+                        html $ printf "<span class='mono'>%s</span>" out ++ htmlErr]
+
+      loop
+      
+
 -- This is taken largely from GHCi's info section in InteractiveUI.
 evalCommand _ (Directive GetHelp _) state = do
   write "Help via :help or :?."
@@ -483,7 +558,7 @@ evalCommand output (Statement stmt) state = wrapExecution state $ do
           return $ name ++ " :: " ++ theType
 
         let joined = unlines types
-            htmled = formatGetType joined
+            htmled = unlines $ map formatGetType types
 
         return $ case output of
           [] -> [html htmled]
@@ -491,7 +566,7 @@ evalCommand output (Statement stmt) state = wrapExecution state $ do
           -- Return plain and html versions.
           -- Previously there was only a plain version.
           [Display PlainText text] ->
-            [plain $ joined ++ "n" ++ text,
+            [plain $ joined ++ "\n" ++ text,
              html  $ htmled ++ mono text]
 
     RunException exception -> throw exception
@@ -518,7 +593,7 @@ evalCommand output (Expression expr) state = do
   -- If evaluation failed, return the failure.  If it was successful, we
   -- may be able to use the IHaskellDisplay typeclass.
   if not canRunDisplay
-  then return $ if not showErr
+  then return $ if not showErr || useShowErrors state
                 then evalOut
                 else postprocessShowError evalOut
   else case evalStatus evalOut of
@@ -609,10 +684,23 @@ evalCommand output (Expression expr) state = do
 
 evalCommand _ (Declaration decl) state = wrapExecution state $ do
   write $ "Declaration:\n" ++ decl
-  runDecls decl
+  names <- runDecls decl
 
-  -- Do not display any output
-  return []
+  dflags <- getSessionDynFlags
+  let boundNames = map (replace ":Interactive." "" . showPpr dflags) names  
+      nonDataNames = filter (not . isUpper . head) boundNames
+
+  -- Display the types of all bound names if the option is on.
+  -- This is similar to GHCi :set +t.
+  if not $ useShowTypes state
+  then return []
+  else do
+    -- Get all the type strings.
+    types <- forM nonDataNames $ \name -> do
+      theType <- showSDocUnqual dflags . ppr <$> exprType name
+      return $ name ++ " :: " ++ theType
+
+    return [html $ unlines $ map formatGetType types]
 
 evalCommand _ (TypeSignature sig) state = wrapExecution state $
   -- We purposefully treat this as a "success" because that way execution
@@ -628,6 +716,29 @@ evalCommand _ (ParseError loc err) state = do
     evalResult = displayError $ formatParseError loc err,
     evalState = state
   }
+
+-- Read from a file handle until we hit a delimiter or until we've read
+-- as many characters as requested
+readChars :: Handle -> String -> Int -> IO String
+
+-- If we're done reading, return nothing.
+readChars handle delims 0 = return []
+
+readChars handle delims nchars = do
+  -- Try reading a single character. It will throw an exception if the
+  -- handle is already closed.
+  tryRead <- gtry $ hGetChar handle :: IO (Either SomeException Char)
+  case tryRead of
+    Right char ->
+      -- If this is a delimiter, stop reading.
+      if char `elem` delims
+      then return [char]
+      else do
+        next <- readChars handle delims (nchars - 1)
+        return $ char:next
+    -- An error occurs at the end of the stream, so just stop reading.
+    Left _ -> return []
+
 
 doLoadModule :: String -> String -> Ghc [DisplayData]
 doLoadModule name modName = flip gcatch unload $ do
@@ -756,6 +867,7 @@ capturedStatement output stmt = do
         -- An error occurs at the end of the stream, so just stop reading.
         Left _ -> return []
 
+
   -- Keep track of whether execution has completed.
   completed <- liftIO $ newMVar False
   finishedReading <- liftIO newEmptyMVar
@@ -821,6 +933,7 @@ formatErrorWithClass cls =
     printf "<span class='%s'>%s</span>" cls .
     replace "\n" "<br/>" .
     fixLineWrapping .
+    fixStdinError .
     replace useDashV "" .
     rstrip .
     typeCleaner
@@ -868,7 +981,16 @@ formatType :: String -> [DisplayData]
 formatType typeStr =  [plain typeStr, html $ formatGetType typeStr]
 
 displayError :: ErrMsg -> [DisplayData]
-displayError msg = [plain . typeCleaner $ msg, html $ formatError msg]
+displayError msg = [plain . fixStdinError . typeCleaner $ msg, html $ formatError msg] 
+
+fixStdinError :: ErrMsg -> ErrMsg
+fixStdinError err =
+  if isStdinErr err
+  then "<stdin> is not available in IHaskell. Use special `inputLine` instead of `getLine`."
+  else err
+  where
+    isStdinErr err = startswith "<stdin>" err
+      && "illegal operation (handle is closed)" `isInfixOf` err
 
 mono :: String -> String
 mono = printf "<span class='mono'>%s</span>"
