@@ -193,5 +193,3 @@ completePath currDir exts prefix
                               | otherwise = z
           cut _ z = z 
       in relativeCompletions
-
-

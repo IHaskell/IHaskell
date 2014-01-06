@@ -18,7 +18,11 @@ import IHaskell.Eval.Parser
 import IHaskell.Types
 import IHaskell.IPython
 import IHaskell.Eval.Evaluate as Eval hiding (liftIO)
+import qualified IHaskell.Eval.Evaluate as Eval (liftIO)
+
 import IHaskell.Eval.Completion
+
+import Debug.Trace
 
 import Test.Hspec
 import Test.Hspec.HUnit
@@ -162,14 +166,16 @@ completionTests = do
        withHsDirectory $ \dirPath ->
          let loading xs = ":load " ++ encodeString xs
              paths xs = map encodeString xs
-             completionHas' = completionHas_ $ Eval.evaluate defaultKernelState
-                                                             (":! cd " ++ dirPath)
-                                                             (\b d -> return ())
+             completionHas' = completionHas_ $ 
+                                      do Eval.evaluate defaultKernelState
+                                     (":! cd " ++ dirPath)
+                                     (\b d -> return ())
          in liftIO $ do
             loading ("dir" </> "file!") `completionHas'` paths ["dir" </> "file2.hs",
                                                             "dir" </> "file2.lhs"]
             loading ("" </> "file1!") `completionHas'` paths ["" </> "file1.hs",
                                                       "" </> "file1.lhs"]
+
 
 evalTests = do
   describe "Code Evaluation" $ do
