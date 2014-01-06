@@ -84,7 +84,7 @@ globalImports :: [String]
 globalImports = 
   [ "import IHaskell.Display"
   , "import Control.Applicative ((<$>))"
-  , "import GHC.IO.Handle (hDuplicateTo, hDuplicate)"
+  , "import GHC.IO.Handle (hDuplicateTo, hDuplicate, hClose)"
   , "import System.Posix.IO"
   , "import System.Posix.Files"
   , "import System.IO"
@@ -100,6 +100,11 @@ interpret action = runGhc (Just libdir) $ do
   void $ setSessionDynFlags $ dflags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
 
   initializeImports
+
+  -- Close stdin so it can't be used.
+  -- Otherwise it'll block the kernel forever.
+  runStmt "System.IO.hClose System.IO.stdin" RunToCompletion
+
   initializeItVariable
 
   -- Run the rest of the interpreter
@@ -550,7 +555,7 @@ evalCommand output (Statement stmt) state = wrapExecution state $ do
           return $ name ++ " :: " ++ theType
 
         let joined = unlines types
-            htmled = formatGetType joined
+            htmled = unlines $ map formatGetType types
 
         return $ case output of
           [] -> [html htmled]
@@ -558,7 +563,7 @@ evalCommand output (Statement stmt) state = wrapExecution state $ do
           -- Return plain and html versions.
           -- Previously there was only a plain version.
           [Display PlainText text] ->
-            [plain $ joined ++ "n" ++ text,
+            [plain $ joined ++ "\n" ++ text,
              html  $ htmled ++ mono text]
 
     RunException exception -> throw exception
@@ -676,10 +681,23 @@ evalCommand output (Expression expr) state = do
 
 evalCommand _ (Declaration decl) state = wrapExecution state $ do
   write $ "Declaration:\n" ++ decl
-  runDecls decl
+  names <- runDecls decl
 
-  -- Do not display any output
-  return []
+  dflags <- getSessionDynFlags
+  let boundNames = map (replace ":Interactive." "" . showPpr dflags) names  
+      nonDataNames = filter (not . isUpper . head) boundNames
+
+  -- Display the types of all bound names if the option is on.
+  -- This is similar to GHCi :set +t.
+  if not $ useShowTypes state
+  then return []
+  else do
+    -- Get all the type strings.
+    types <- forM nonDataNames $ \name -> do
+      theType <- showSDocUnqual dflags . ppr <$> exprType name
+      return $ name ++ " :: " ++ theType
+
+    return [html $ unlines $ map formatGetType types]
 
 evalCommand _ (TypeSignature sig) state = wrapExecution state $
   -- We purposefully treat this as a "success" because that way execution
@@ -888,6 +906,7 @@ formatErrorWithClass cls =
     printf "<span class='%s'>%s</span>" cls .
     replace "\n" "<br/>" . 
     fixLineWrapping .
+    fixStdinError .
     replace useDashV "" .
     rstrip . 
     typeCleaner
@@ -935,7 +954,16 @@ formatType :: String -> [DisplayData]
 formatType typeStr =  [plain typeStr, html $ formatGetType typeStr]
 
 displayError :: ErrMsg -> [DisplayData]
-displayError msg = [plain . typeCleaner $ msg, html $ formatError msg] 
+displayError msg = [plain . fixStdinError . typeCleaner $ msg, html $ formatError msg] 
+
+fixStdinError :: ErrMsg -> ErrMsg
+fixStdinError err =
+  if isStdinErr err
+  then "<stdin> is not available in IHaskell. Use special `inputLine` instead of `getLine`."
+  else err
+  where
+    isStdinErr err = startswith "<stdin>" err
+      && "illegal operation (handle is closed)" `isInfixOf` err
 
 mono :: String -> String
 mono = printf "<span class='mono'>%s</span>"

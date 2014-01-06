@@ -39,6 +39,9 @@ $([IPython.events]).on('app_initialized.NotebookApp', function(){
 
 $([IPython.events]).on('shell_reply.Kernel', function() {
     // Add logic here that should be run once per reply.
+
+    // Highlight things with a .highlight-code class
+    // The id is the mode with with to highlight
     $('.highlight-code').each(function() {
         var $this = $(this),
             $code = $this.html(),

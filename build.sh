@@ -11,3 +11,6 @@ do
     cabal install || return 1
     cd ..
 done
+
+# Remove my profile
+rm -rf ~/.ipython/profile_haskell
