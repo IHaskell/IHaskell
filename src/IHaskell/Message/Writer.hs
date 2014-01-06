@@ -28,10 +28,16 @@ instance ToJSON Message where
                              "language" .= string "haskell"
                            ]
 
-  toJSON ExecuteReply{ status = status, executionCounter = counter} = object [
+  toJSON ExecuteReply{ status = status, executionCounter = counter, pagerOutput = pager} = object [
                              "status" .= show status,
                              "execution_count" .= counter,
-                             "payload" .= emptyList,
+                             "payload" .= 
+                               if null pager
+                               then []
+                               else [object [
+                                    "source" .= string "page",
+                                    "text" .= pager
+                                ]],
                              "user_variables" .= emptyMap,
                              "user_expressions" .= emptyMap
                            ]
@@ -61,7 +67,7 @@ instance ToJSON Message where
                              "matches" .= m,
                              "matched_text" .= mt,
                              "text" .= t,
-                             "status" .= if s then "ok" :: String else "error"
+                             "status" .= if s then string "ok" else "error"
                            ]
   toJSON o@ObjectInfoReply{} = object [
                             "oname" .= objectName o,
