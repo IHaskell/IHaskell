@@ -75,10 +75,10 @@ completes string expected = completionTarget newString cursorloc `shouldBe` expe
           Nothing -> error "Expected cursor written as '!'."
           Just idx -> (replace "!" "" string, idx)
 
-completionHas_ action string expected = do
+completionHas_ wrap string expected = do
     (matched, completions) <- doGhc $ do
-      initCompleter action
-      complete newString cursorloc
+      wrap $ do initCompleter 
+                complete newString cursorloc
     let existsInCompletion = (`elem` completions)
         unmatched = filter (not . existsInCompletion) expected
     unmatched `shouldBe` []
@@ -86,10 +86,12 @@ completionHas_ action string expected = do
           Nothing -> error "Expected cursor written as '!'."
           Just idx -> (replace "!" "" string, idx)
 
-completionHas = completionHas_ (return ())
+completionHas = completionHas_ id
 
-initCompleter :: GhcMonad m => m a -> m a
-initCompleter action = do
+initCompleter :: GhcMonad m => m ()
+initCompleter  = do
+  pwd <- Eval.liftIO $ getCurrentDirectory
+  --Eval.liftIO $ traceIO $ pwd
   flags <- getSessionDynFlags
   setSessionDynFlags $ flags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
 
@@ -99,7 +101,6 @@ initCompleter action = do
                                    "import qualified Data.List as List",
                                    "import Data.Maybe as Maybe"]
   setContext $ map IIDecl imports
-  action
 
 withHsDirectory :: (FilePath -> Sh ()) -> IO ()
 withHsDirectory f = shelly $ withTmpDir $ \dirPath ->
@@ -141,7 +142,7 @@ completionTests = do
       completionType "A.x" ["A", "x"]                 `shouldBe` Qualified "A" "x"
       completionType "a.x" ["a", "x"]                 `shouldBe` Identifier "x"
       completionType "pri" ["pri"]                    `shouldBe` Identifier "pri"
-      completionType ":load A" [""]                   `shouldBe` HsFilePath "A"
+      completionType ":load A" ["A"]                   `shouldBe` HsFilePath "A"
 
     it "properly completes identifiers" $ do
        "pri!"           `completionHas` ["print"]
@@ -166,16 +167,23 @@ completionTests = do
        withHsDirectory $ \dirPath ->
          let loading xs = ":load " ++ encodeString xs
              paths xs = map encodeString xs
-             completionHas' = completionHas_ $ 
-                                      do Eval.evaluate defaultKernelState
-                                     (":! cd " ++ dirPath)
-                                     (\b d -> return ())
+             completionHas' = completionHas_ fun 
+             fun action = do pwd <- Eval.liftIO getCurrentDirectory
+                             Eval.evaluate defaultKernelState
+                                             (":! cd " ++ dirPath)
+                                             (\b d -> return ()) 
+                             out <- action 
+                             Eval.evaluate defaultKernelState
+                                             (":! cd " ++ pwd)
+                                             (\b d -> return ()) 
+                             return out
          in liftIO $ do
             loading ("dir" </> "file!") `completionHas'` paths ["dir" </> "file2.hs",
                                                             "dir" </> "file2.lhs"]
             loading ("" </> "file1!") `completionHas'` paths ["" </> "file1.hs",
-                                                      "" </> "file1.lhs"]
-
+                                                              "" </> "file1.lhs"]
+            loading ("" </> "file1!") `completionHas'` paths ["" </> "file1.hs",
+                                                  "" </> "file1.lhs"]
 
 evalTests = do
   describe "Code Evaluation" $ do
