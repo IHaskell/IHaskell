@@ -7,7 +7,7 @@ module IHaskell.Types (
   MessageHeader (..),
   MessageType(..),
   Username,
-  Metadata,
+  Metadata(..),
   Port,
   replyType,
   ExecutionState (..),
@@ -43,7 +43,7 @@ data Profile = Profile {
   shellPort :: Port,   -- ^ The shell command port.
   iopubPort :: Port,   -- ^ The Iopub port.
   key :: ByteString    -- ^ The HMAC encryption key.
-  } deriving Show
+  } deriving (Show, Read)
 
 -- Convert the kernel profile to and from JSON.
 instance FromJSON Profile where
@@ -112,7 +112,7 @@ data MessageHeader = MessageHeader {
   sessionId :: UUID,                   -- ^ A unique session UUID.
   username :: Username,                -- ^ The user who sent this message.
   msgType :: MessageType               -- ^ The message type.
-  } deriving Show
+  } deriving (Show, Read)
 
 -- Convert a message header into the JSON field for the header.
 -- This field does not actually have all the record fields.
@@ -121,7 +121,7 @@ instance ToJSON MessageHeader where
                     "msg_id"  .= messageId header,
                     "session" .= sessionId header,
                     "username" .= username header,
-                    "msg_type" .= show (msgType header)
+                    "msg_type" .= showMessageType (msgType header)
                   ]
 
 -- | A username for the source of a message.
@@ -147,24 +147,29 @@ data MessageType = KernelInfoReplyMessage
                  | ShutdownRequestMessage
                  | ShutdownReplyMessage
                  | ClearOutputMessage
+                 | InputRequestMessage
+                 | InputReplyMessage
+                 deriving (Show, Read)
 
-instance Show MessageType where
-  show KernelInfoReplyMessage     = "kernel_info_reply"
-  show KernelInfoRequestMessage   = "kernel_info_request"
-  show ExecuteReplyMessage        = "execute_reply"
-  show ExecuteRequestMessage      = "execute_request"
-  show StatusMessage              = "status"
-  show StreamMessage              = "stream"
-  show DisplayDataMessage         = "display_data"
-  show OutputMessage              = "pyout"
-  show InputMessage               = "pyin"
-  show CompleteRequestMessage     = "complete_request"
-  show CompleteReplyMessage       = "complete_reply"
-  show ObjectInfoRequestMessage   = "object_info_request"
-  show ObjectInfoReplyMessage     = "object_info_reply"
-  show ShutdownRequestMessage     = "shutdown_request"
-  show ShutdownReplyMessage       = "shutdown_reply"
-  show ClearOutputMessage         = "clear_output"
+showMessageType :: MessageType -> String
+showMessageType KernelInfoReplyMessage     = "kernel_info_reply"
+showMessageType KernelInfoRequestMessage   = "kernel_info_request"
+showMessageType ExecuteReplyMessage        = "execute_reply"
+showMessageType ExecuteRequestMessage      = "execute_request"
+showMessageType StatusMessage              = "status"
+showMessageType StreamMessage              = "stream"
+showMessageType DisplayDataMessage         = "display_data"
+showMessageType OutputMessage              = "pyout"
+showMessageType InputMessage               = "pyin"
+showMessageType CompleteRequestMessage     = "complete_request"
+showMessageType CompleteReplyMessage       = "complete_reply"
+showMessageType ObjectInfoRequestMessage   = "object_info_request"
+showMessageType ObjectInfoReplyMessage     = "object_info_reply"
+showMessageType ShutdownRequestMessage     = "shutdown_request"
+showMessageType ShutdownReplyMessage       = "shutdown_reply"
+showMessageType ClearOutputMessage         = "clear_output"
+showMessageType InputRequestMessage        = "input_request"
+showMessageType InputReplyMessage          = "input_reply"
 
 instance FromJSON MessageType where
   parseJSON (String s) = case s of
@@ -184,6 +189,8 @@ instance FromJSON MessageType where
     "shutdown_request"    -> return ShutdownRequestMessage
     "shutdown_reply"      -> return ShutdownReplyMessage
     "clear_output"        -> return ClearOutputMessage
+    "input_request"       -> return InputRequestMessage
+    "input_reply"         -> return InputReplyMessage
 
     _                     -> fail ("Unknown message type: " ++ show s)
   parseJSON _ = fail "Must be a string."
@@ -292,6 +299,16 @@ data Message
   | ClearOutput {
       header :: MessageHeader,
       wait :: Bool -- ^ Whether to wait to redraw until there is more output.
+  }
+
+  | RequestInput {
+      header :: MessageHeader,
+      inputPrompt :: String      
+  }
+
+  | InputReply {
+      header :: MessageHeader,
+      inputValue :: String      
   }
 
     deriving Show

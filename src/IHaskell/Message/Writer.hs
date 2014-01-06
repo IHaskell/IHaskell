@@ -80,6 +80,10 @@ instance ToJSON Message where
                             "wait" .= wait
                            ]
 
+  toJSON RequestInput{inputPrompt = prompt} = object [
+                            "prompt" .= prompt
+                           ]
+
 
   toJSON body = error $ "Do not know how to convert to JSON for message " ++ show body
 

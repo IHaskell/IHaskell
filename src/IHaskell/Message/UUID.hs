@@ -12,6 +12,10 @@ import Control.Monad (mzero)
 import Data.Aeson
 import Data.UUID.V4 (nextRandom)
 
+import Text.Read as Read hiding (pfail, String)
+import Text.ParserCombinators.ReadP
+
+
 -- We use an internal string representation because for the purposes of
 -- IPython, it matters whether the letters are uppercase or lowercase and
 -- whether the dashes are present in the correct locations. For the
@@ -20,10 +24,7 @@ import Data.UUID.V4 (nextRandom)
 -- them.
 
 -- | A UUID (universally unique identifier).
-data UUID = UUID String deriving Eq
-
-instance Show UUID where
-  show (UUID s) = s
+data UUID = UUID String deriving (Show, Read, Eq)
 
 -- | Generate a list of random UUIDs.
 randoms :: Int      -- ^ Number of UUIDs to generate.

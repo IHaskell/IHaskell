@@ -24,6 +24,7 @@ import IHaskell.Eval.Completion (complete)
 import IHaskell.Eval.Info
 import qualified Data.ByteString.Char8 as Chars
 import IHaskell.IPython
+import qualified IHaskell.Eval.Stdin as Stdin
 
 import GHC hiding (extensions)
 import Outputable (showSDoc, ppr)
@@ -218,6 +219,9 @@ runKernel profileSrc initInfo = do
   -- Parse the profile file.
   Just profile <- liftM decode . readFile . fpFromText $ pack profileSrc
 
+  -- Necessary for `getLine` and their ilk to work.
+  Stdin.recordKernelProfile profile
+
   -- Serve on all sockets and ports defined in the profile.
   interface <- serveProfile profile
 
@@ -289,7 +293,8 @@ replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> Interpr
 -- Reply to kernel info requests with a kernel info reply. No computation
 -- needs to be done, as a kernel info reply is a static object (all info is
 -- hard coded into the representation of that message type).
-replyTo _ KernelInfoRequest{} replyHeader state = return (state, KernelInfoReply { header = replyHeader })
+replyTo _ KernelInfoRequest{} replyHeader state =
+  return (state, KernelInfoReply { header = replyHeader })
 
 -- Reply to a shutdown request by exiting the main thread.
 -- Before shutdown, reply to the request to let the frontend know shutdown
@@ -301,9 +306,12 @@ replyTo interface ShutdownRequest{restartPending = restartPending} replyHeader _
 -- Reply to an execution request. The reply itself does not require
 -- computation, but this causes messages to be sent to the IOPub socket
 -- with the output of the code in the execution request.
-replyTo interface ExecuteRequest{ getCode = code } replyHeader state = do
+replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
  -- Convenience function to send a message to the IOPub socket.
   let send msg = liftIO $ writeChan (iopubChannel interface) msg
+
+  -- Log things so that we can use stdin.
+  liftIO $ Stdin.recordParentHeader $ header req
 
   -- Notify the frontend that the kernel is busy computing.
   -- All the headers are copies of the reply header with a different

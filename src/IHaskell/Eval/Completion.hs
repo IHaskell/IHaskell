@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, DoAndIfThenElse #-}
 {- |
 Description : Generates tab completion options.
 
@@ -191,6 +191,4 @@ completePath loc = completePathFilter (const True) (const True) loc ""
 completePathWithExtensions :: [String] -> String -> Interpreter [String]
 completePathWithExtensions extensions loc =
   completePathFilter (\s -> any (\x -> endswith x s) extensions) (const True) loc ""
-
-
 

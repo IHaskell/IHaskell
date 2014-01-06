@@ -77,6 +77,7 @@ parser ExecuteRequestMessage     = executeRequestParser
 parser CompleteRequestMessage    = completeRequestParser
 parser ObjectInfoRequestMessage  = objectInfoRequestParser
 parser ShutdownRequestMessage    = shutdownRequestParser
+parser InputReplyMessage         = inputReplyParser
 parser other = error $ "Unknown message type " ++ show other
 
 -- | Parse a kernel info request.
@@ -139,5 +140,14 @@ shutdownRequestParser content = parsed
   Success parsed = flip parse decoded $ \ obj -> do
         code     <- obj .: "restart"
         return $ ShutdownRequest noHeader code
+
+  Just decoded = decode content
+
+inputReplyParser :: LByteString -> Message
+inputReplyParser content = parsed
+  where
+  Success parsed = flip parse decoded $ \ obj -> do
+        value <- obj .: "value"
+        return $ InputReply noHeader value
 
   Just decoded = decode content

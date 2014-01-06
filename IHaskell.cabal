@@ -7,7 +7,7 @@ name:                ihaskell
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.2.0.5
+version:             0.2.0.6
 
 -- A short (one-line) description of the package.
 synopsis:            A Haskell backend kernel for the IPython project.
@@ -76,13 +76,23 @@ library
                        filepath,
                        cereal ==0.3.*,
                        text >=0.11,
-                       mtl >= 2.1,
+                       mtl >= 2.1
                        transformers,
                        haskeline
-  exposed-modules: IHaskell.Display,
-                   Paths_ihaskell,
-                   IHaskell.Types,
+  exposed-modules: IHaskell.Display
+                   IHaskell.Eval.Completion
+                   IHaskell.Eval.Evaluate
+                   IHaskell.Eval.Info
+                   IHaskell.Eval.Lint
+                   IHaskell.Eval.Parser
+                   IHaskell.Eval.Stdin
+                   IHaskell.IPython
+                   IHaskell.Message.Parser
                    IHaskell.Message.UUID
+                   IHaskell.Message.Writer
+                   IHaskell.Types
+                   IHaskell.ZeroMQ
+                   Paths_ihaskell
 
 executable IHaskell
   -- .hs or .lhs file containing the Main module.
@@ -98,6 +108,7 @@ executable IHaskell
              IHaskell.Eval.Info
              IHaskell.Eval.Evaluate
              IHaskell.Eval.Parser
+             IHaskell.Eval.Stdin
              IHaskell.IPython
              IHaskell.Message.Parser
              IHaskell.Message.UUID
