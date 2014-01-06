@@ -83,6 +83,7 @@ type Interpreter = Ghc
 globalImports :: [String]
 globalImports = 
   [ "import IHaskell.Display"
+  , "import qualified IHaskell.Eval.Stdin"
   , "import Control.Applicative ((<$>))"
   , "import GHC.IO.Handle (hDuplicateTo, hDuplicate, hClose)"
   , "import System.Posix.IO"
@@ -103,7 +104,7 @@ interpret action = runGhc (Just libdir) $ do
 
   -- Close stdin so it can't be used.
   -- Otherwise it'll block the kernel forever.
-  runStmt "System.IO.hClose System.IO.stdin" RunToCompletion
+  runStmt "IHaskell.Eval.Stdin.fixStdin" RunToCompletion
 
   initializeItVariable
 

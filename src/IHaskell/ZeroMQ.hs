@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, DoAndIfThenElse #-}
 -- | Description : Low-level ZeroMQ communication wrapper.
 --
 -- The "ZeroMQ" module abstracts away the low-level 0MQ based interface with IPython,
@@ -6,7 +6,9 @@
 -- takes a IPython profile specification and returns the channel interface to use.
 module IHaskell.ZeroMQ (
   ZeroMQInterface (..),
-  serveProfile
+  ZeroMQStdin(..),
+  serveProfile,
+  serveStdin,
   ) where
 
 import ClassyPrelude hiding (stdin)
@@ -20,6 +22,8 @@ import IHaskell.Types
 import IHaskell.Message.Parser
 import IHaskell.Message.Writer
 
+import System.IO.Unsafe
+
 -- | The channel interface to the ZeroMQ sockets. All communication is done via
 -- Messages, which are encoded and decoded into a lower level form before being
 -- transmitted to IPython. These channels should functionally serve as
@@ -32,6 +36,11 @@ data ZeroMQInterface = Channels {
   controlReplyChannel :: Chan Message,    -- ^ This channel is a duplicate of the shell reply channel,
                                          -- ^ though using a different backend socket.
   iopubChannel :: Chan Message           -- ^ Writing to this channel sends an iopub message to the frontend.
+  }
+
+data ZeroMQStdin = StdinChannel {
+  stdinRequestChannel :: Chan Message,
+  stdinReplyChannel :: Chan Message
   }
 
 -- | Start responding on all ZeroMQ channels used to communicate with IPython
@@ -55,7 +64,6 @@ serveProfile profile = do
     forkIO $ serveSocket context Rep    (hbPort profile)      $ heartbeat channels
     forkIO $ serveSocket context Router (controlPort profile) $ control   channels
     forkIO $ serveSocket context Router (shellPort profile)   $ shell     channels
-    forkIO $ serveSocket context Router (stdinPort profile)   $ stdin     channels
 
     -- The context is reference counted in this thread only. Thus, the last
     -- serveSocket cannot be asynchronous, because otherwise context would
@@ -64,6 +72,24 @@ serveProfile profile = do
     serveSocket context Pub    (iopubPort profile)   $ iopub     channels
 
   return channels
+
+serveStdin :: Profile -> IO ZeroMQStdin 
+serveStdin profile = do
+  reqChannel <- newChan
+  repChannel <- newChan
+  
+  -- Create the context in a separate thread that never finishes. If
+  -- withContext or withSocket complete, the context or socket become invalid.
+  forkIO $ withContext $ \context ->
+    -- Serve on all sockets.
+    serveSocket context Router (stdinPort profile) $ \socket -> do
+      -- Read the request from the interface channel and send it.
+      readChan reqChannel >>= sendMessage socket
+
+      -- Receive a response and write it to the interface channel.
+      receiveMessage socket >>= writeChan repChannel
+
+  return $ StdinChannel reqChannel repChannel
 
 -- | Serve on a given socket in a separate thread. Bind the socket in the
 -- | given context and then loop the provided action, which should listen
@@ -119,11 +145,6 @@ control channels socket = do
 iopub :: ZeroMQInterface -> Socket Pub -> IO ()
 iopub channels socket =
   readChan (iopubChannel channels) >>= sendMessage socket
-
-stdin :: ZeroMQInterface -> Socket Router -> IO ()
-stdin _ socket = do
-  void $ receive socket
-  return ()
 
 -- | Receive and parse a message from a socket.
 receiveMessage :: Receiver a => Socket a -> IO Message
