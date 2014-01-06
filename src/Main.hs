@@ -229,7 +229,7 @@ runKernel profileSrc initInfo = do
   state <- initialKernelState
 
   -- Receive and reply to all messages on the shell socket.
-  interpret $ do
+  interpret True $ do
     -- Initialize the context by evaluating everything we got from the  
     -- command line flags. This includes enabling some extensions and also
     -- running some code.

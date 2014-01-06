@@ -31,7 +31,7 @@ import System.Process
 import System.Exit
 import Data.Maybe (fromJust)
 import qualified Control.Monad.IO.Class as MonadIO (MonadIO, liftIO)
-import qualified MonadUtils as MonadUtils (MonadIO, liftIO)
+import qualified MonadUtils (MonadIO, liftIO)
 
 import NameSet
 import Name
@@ -101,9 +101,10 @@ globalImports =
 
 
 -- | Run an interpreting action. This is effectively runGhc with
--- initialization and importing.
-interpret :: Interpreter a -> IO a
-interpret action = runGhc (Just libdir) $ do
+-- initialization and importing. First argument indicates whether `stdin`
+-- is handled specially, which cannot be done in a testing environment.
+interpret :: Bool -> Interpreter a -> IO a
+interpret allowedStdin action = runGhc (Just libdir) $ do
   -- Set the dynamic session flags
   originalFlags <- getSessionDynFlags
   let dflags = xopt_set originalFlags Opt_ExtendedDefaultRules
@@ -113,7 +114,8 @@ interpret action = runGhc (Just libdir) $ do
 
   -- Close stdin so it can't be used.
   -- Otherwise it'll block the kernel forever.
-  runStmt "IHaskell.Eval.Stdin.fixStdin" RunToCompletion
+  when allowedStdin $ void $
+    runStmt "IHaskell.Eval.Stdin.fixStdin" RunToCompletion
 
   initializeItVariable
 
@@ -416,8 +418,13 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
   case words cmd of
     "cd":dirs ->
       let directory = unwords dirs in do
-        setCurrentDirectory directory
-        return []
+        exists <- doesDirectoryExist directory
+        if exists
+        then do
+          setCurrentDirectory directory
+          return []
+        else
+          return $ displayError $ printf "No such directory: '%s'" directory
     cmd -> do
       (readEnd, writeEnd) <- createPipe
       handle <- fdToHandle writeEnd
@@ -567,12 +574,12 @@ evalCommand output (Statement stmt) state = wrapExecution state $ do
         let joined = unlines types
             htmled = unlines $ map formatGetType types
 
-        return $ case output of
-          [] -> [html htmled]
+        return $ case extractPlain output of
+          "" -> [html htmled]
 
           -- Return plain and html versions.
           -- Previously there was only a plain version.
-          [Display PlainText text] ->
+          text ->
             [plain $ joined ++ "\n" ++ text,
              html  $ htmled ++ mono text]
 
@@ -622,13 +629,12 @@ evalCommand output (Expression expr) state = do
 
     -- Check if the error is due to trying to print something that doesn't
     -- implement the Show typeclass.
-    isShowError errs = case find isPlain errs of
-      Just (Display PlainText msg) ->
+    isShowError errs = 
         -- Note that we rely on this error message being 'type cleaned', so
         -- that `Show` is not displayed as GHC.Show.Show.
         startswith "No instance for (Show" msg &&
         isInfixOf " arising from a use of `print'" msg
-      Nothing -> False
+      where msg = extractPlain errs
 
     isPlain (Display mime _) = mime == PlainText
     isSvg (Display mime _) = mime == MimeSvg
@@ -661,7 +667,7 @@ evalCommand output (Expression expr) state = do
     postprocessShowError evalOut = evalOut { evalResult = map postprocess disps }
       where
         disps = evalResult evalOut
-        Just (Display PlainText text) = find isPlain disps
+        text = extractPlain disps
 
         postprocess (Display MimeHtml _) = html $ printf fmt unshowableType (formatErrorWithClass "err-msg collapse" text) script
           where

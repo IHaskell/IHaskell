@@ -7,7 +7,6 @@ import System.Directory
 import Data.Default.Class
 import Graphics.Rendering.Chart.Renderable
 import Graphics.Rendering.Chart.Backend.Cairo
-import qualified Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Char8 as Char
 import System.IO.Unsafe
 
@@ -21,15 +20,15 @@ height = 300
 
 instance IHaskellDisplay (Renderable a) where
   display renderable = do
-    imgData <- chartData renderable PNG
+    pngDisp <- chartData renderable PNG
 
     -- We can add `svg svgDisplay` to the output of `display`,
     -- but SVGs are not resizable in the IPython notebook.
-    svgDisplay <- chartData renderable SVG
+    svgDisp <- chartData renderable SVG
 
-    return [png width height imgData, svg svgDisplay]
+    return [pngDisp, svgDisp]
 
-chartData :: Renderable a -> FileFormat -> IO String
+chartData :: Renderable a -> FileFormat -> IO DisplayData
 chartData renderable format = do
   -- Switch to a temporary directory so that any files we create aren't
   -- visible. On Unix, this is usually /tmp.
@@ -42,6 +41,6 @@ chartData renderable format = do
 
   -- Convert to base64.
   imgData <- readFile $ fpFromString filename
-  return $ Char.unpack $ case format of
-    PNG -> Base64.encode imgData
-    _ -> imgData
+  return $ case format of
+    PNG -> png width height $ base64 imgData
+    SVG -> svg $ Char.unpack imgData
