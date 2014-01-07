@@ -11,15 +11,19 @@ This has a limited amount of context sensitivity. It distinguishes between four 
 -}
 module IHaskell.Eval.Completion (complete, completionTarget, completionType, CompletionType(..)) where
 
+import ClassyPrelude hiding (liftIO)
+--import Prelude
+
 import Control.Applicative ((<$>))
 import Data.ByteString.UTF8 hiding (drop, take)
 import Data.Char
-import Data.List (find, isPrefixOf, nub, findIndex, intercalate, elemIndex)
+import Data.List (nub, init, last, head, elemIndex)
 import Data.List.Split
 import Data.List.Split.Internals
 import Data.Maybe
 import Data.String.Utils (strip, startswith, endswith, replace)
-import Prelude
+import qualified Data.String.Utils as StringUtils
+import System.Environment (getEnv)
 
 import GHC
 import DynFlags
@@ -31,10 +35,8 @@ import Outputable (showPpr)
 import System.Directory
 import System.FilePath
 import MonadUtils (MonadIO)
-import Control.Monad (filterM, mapM, liftM)
 
 import System.Console.Haskeline.Completion
-import qualified Control.Monad.IO.Class as MonadIO (MonadIO(), liftIO)
 
 import IHaskell.Types
 import IHaskell.Eval.Evaluate (Interpreter)
@@ -67,7 +69,7 @@ complete line pos = do
       matchedText = intercalate "." target
 
   options <-
-        case completionType line target of
+        case completionType line pos target of
           Empty -> return []
 
           Identifier candidate ->
@@ -116,13 +118,22 @@ getTrueModuleName name = do
     Nothing -> return name
     Just trueImp -> return $ showPpr flags $ unLoc $ ideclName trueImp
 
-completionType :: String -> [String] -> CompletionType
-completionType line [] = Empty
-completionType line target
-  | startswith ":! " stripped
-    = FilePath complete_target
+-- | Get which type of completion this is from the surrounding context.
+completionType :: String            -- ^ The line on which the completion is being done.
+              -> Int                -- ^ Location of the cursor in the line.
+               -> [String]          -- ^ The identifier being completed (pieces separated by dots).
+               -> CompletionType
+completionType line loc target
+  -- File and directory completions are special
+  | startswith ":!" stripped
+    = FilePath lineUpToCursor
   | startswith ":l" stripped
-    = HsFilePath complete_target
+    = HsFilePath lineUpToCursor
+
+  -- Use target for other completions.
+  -- If it's empty, no completion.
+  | null target
+    = Empty
   | startswith "import" stripped && isModName
     = ModuleName dotted candidate
   | isModName && (not . null . init) target
@@ -137,9 +148,7 @@ completionType line target
         dots = intercalate "." . init
         isModName = all isCapitalized (init target)
         isCapitalized = isUpper . head
-        complete_target = intercalate "." target
-
-
+        lineUpToCursor = take loc line
 
 -- | Get the word under a given cursor location.
 completionTarget :: String -> Int -> [String]
@@ -156,6 +165,7 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
       delimPolicy = Drop
     }
 
+    isDelim :: Char -> Int -> Bool
     isDelim char idx = char `elem` neverIdent || isSymbol char
 
     splitAlongCursor :: [[(Char, Int)]] -> [[(Char, Int)]]
@@ -166,29 +176,66 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
         Just idx -> take (idx + 1) x:drop (idx + 1) x:splitAlongCursor xs
 
     -- These are never part of an identifier.
+    neverIdent :: String
     neverIdent = " \n\t(),{}[]\\'\"`"
 
     expandCompletionPiece Nothing = []
     expandCompletionPiece (Just str) = splitOn "." str
 
-completePathFilter :: (String -> Bool) -- ^ filter files
-                   -> (String -> Bool) -- ^ filter directories
-                   -> String           -- ^ line contents left of cursor
-                   -> String           -- ^ line contents right of cursor
-                   -> Interpreter [String]
-completePathFilter fileFilter dirFilter loc roc =
-    do (_, comps) <- MonadIO.liftIO $ (completeFilename (reverse loc, roc))
-       let completions = map replacement comps
-       dirs <- liftIO $ filterM doesDirectoryExist completions
-       files <- liftIO $ filterM (liftM not . doesDirectoryExist) completions
-       let dirs' = filter dirFilter files
-           files' = filter fileFilter dirs
-       return $ filter (\x -> elem x $ dirs' ++ files') completions
+getHome :: IO String
+getHome = do
+  homeEither <- try  $ getEnv "HOME" :: IO (Either SomeException String)
+  return $ case homeEither of
+    Left _ -> "~"
+    Right home -> home
+
+dirExpand :: String -> IO String
+dirExpand str = do
+  home <- getHome
+  return $ replace "~" home str
+
+unDirExpand :: String -> IO String
+unDirExpand str = do
+  home <- getHome
+  return $ replace home "~" str
 
 completePath :: String -> Interpreter [String]
-completePath loc = completePathFilter (const True) (const True) loc ""
+completePath line = completePathFilter acceptAll acceptAll line ""
+  where acceptAll = const True
 
 completePathWithExtensions :: [String] -> String -> Interpreter [String]
-completePathWithExtensions extensions loc =
-  completePathFilter (\s -> any (\x -> endswith x s) extensions) (const True) loc ""
+completePathWithExtensions extensions line =
+  completePathFilter (extensionIsOneOf extensions) acceptAll line ""
+  where
+    acceptAll = const True
+    extensionIsOneOf exts str = any (str `endswith`) exts
 
+completePathFilter :: (String -> Bool)      -- ^ File filter: test whether to include this file.
+                   -> (String -> Bool)      -- ^ Directory filter: test whether to include this directory.
+                   -> String               -- ^ Line contents to the left of the cursor.
+                   -> String               -- ^ Line contents to the right of the cursor.
+                   -> Interpreter [String]
+completePathFilter includeFile includeDirectory left right = liftIO $ do
+  -- Get the completions from Haskeline.  It has a bit of a strange API.
+  expanded <- dirExpand left
+  completions <- map replacement <$> snd <$> completeFilename (reverse expanded, right)
+
+  -- Split up into files and directories.
+  -- Filter out ones we don't want.
+  areDirs <- mapM doesDirectoryExist completions
+  let dirs  = filter includeDirectory $ map fst $ filter snd         $ zip completions areDirs
+      files = filter includeFile      $ map fst $ filter (not . snd) $ zip completions areDirs
+
+  -- Return directories before files. However, stick everything that starts
+  -- with a dot after everything else.  If we wanted to keep original
+  -- order, we could instead use
+  --   filter (`elem` (dirs ++ files)) completions
+  suggestions <- mapM unDirExpand $ dirs ++ files
+  let isHidden str = startswith "." . last . StringUtils.split "/" $
+        if endswith "/" str
+        then init str
+        else str
+      visible = filter (not . isHidden) suggestions
+      hidden  = filter isHidden suggestions
+  return $ visible ++ hidden
+  

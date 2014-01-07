@@ -32,6 +32,7 @@ import System.Exit
 import Data.Maybe (fromJust)
 import qualified Control.Monad.IO.Class as MonadIO (MonadIO, liftIO)
 import qualified MonadUtils (MonadIO, liftIO)
+import System.Environment (getEnv)
 
 import NameSet
 import Name
@@ -236,7 +237,7 @@ evaluate kernelState code output = do
     storeItCommand execCount = Statement $ printf "let it%d = it" execCount
 
 safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
-safely state exec = ghandle handler exec
+safely state = ghandle handler
   where
     handler :: SomeException -> Interpreter EvalOut
     handler exception =
@@ -424,15 +425,21 @@ evalCommand _ (Directive SetOpt option) state = do
 
 evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $ liftIO $
   case words cmd of
-    "cd":dirs ->
-      let directory = unwords dirs in do
-        exists <- doesDirectoryExist directory
-        if exists
-        then do
-          setCurrentDirectory directory
-          return []
-        else
-          return $ displayError $ printf "No such directory: '%s'" directory
+    "cd":dirs -> do
+      -- Get home so we can replace '~` with it.
+      homeEither <- try  $ getEnv "HOME" :: IO (Either SomeException String)
+      let home = case homeEither of
+                  Left _ -> "~"
+                  Right val -> val
+
+      let directory = replace "~" home $ unwords dirs
+      exists <- doesDirectoryExist directory
+      if exists
+      then do
+        setCurrentDirectory directory
+        return []
+      else
+        return $ displayError $ printf "No such directory: '%s'" directory
     cmd -> do
       (readEnd, writeEnd) <- createPipe
       handle <- fdToHandle writeEnd
