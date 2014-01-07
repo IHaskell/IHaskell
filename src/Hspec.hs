@@ -41,7 +41,7 @@ is string blockType = do
 
 eval string = do
   outputAccum <- newIORef []
-  let publish final displayDatas = when final $ modifyIORef outputAccum (displayDatas :)
+  let publish evalResult = modifyIORef outputAccum (outputs evalResult :)
   getTemporaryDirectory >>= setCurrentDirectory
   let state = defaultKernelState { getLintStatus = LintOff }
   interpret False $ Eval.evaluate state string publish
@@ -133,15 +133,15 @@ completionTests = do
        "Test.Thing.!nope"         `completes` ["Test", "Thing", ""]
 
     it "correctly gets the completion type" $ do
-      completionType "import Data." ["Data", ""]      `shouldBe` ModuleName "Data" ""
-      completionType "import Prel" ["Prel"]           `shouldBe` ModuleName "" "Prel"
-      completionType "import D.B.M" ["D", "B", "M"]   `shouldBe` ModuleName "D.B" "M"
-      completionType " import A." ["A", ""]           `shouldBe` ModuleName "A" ""
-      completionType "import a.x" ["a", "x"]          `shouldBe` Identifier "x"
-      completionType "A.x" ["A", "x"]                 `shouldBe` Qualified "A" "x"
-      completionType "a.x" ["a", "x"]                 `shouldBe` Identifier "x"
-      completionType "pri" ["pri"]                    `shouldBe` Identifier "pri"
-      completionType ":load A" ["A"]                   `shouldBe` HsFilePath "A"
+      completionType "import Data." 12 ["Data", ""]      `shouldBe` ModuleName "Data" ""
+      completionType "import Prel" 11 ["Prel"]           `shouldBe` ModuleName "" "Prel"
+      completionType "import D.B.M" 12 ["D", "B", "M"]   `shouldBe` ModuleName "D.B" "M"
+      completionType " import A." 10 ["A", ""]           `shouldBe` ModuleName "A" ""
+      completionType "import a.x" 10 ["a", "x"]          `shouldBe` Identifier "x"
+      completionType "A.x" 3 ["A", "x"]                 `shouldBe` Qualified "A" "x"
+      completionType "a.x" 3 ["a", "x"]                 `shouldBe` Identifier "x"
+      completionType "pri" 3 ["pri"]                    `shouldBe` Identifier "pri"
+      completionType ":load A" 7 ["A"]                   `shouldBe` HsFilePath ":load A"
 
     it "properly completes identifiers" $ do
        "pri!"           `completionHas` ["print"]
@@ -167,14 +167,15 @@ completionTests = do
          let loading xs = ":load " ++ encodeString xs
              paths xs = map encodeString xs
              completionHas' = completionHas_ fun
+             publishNothing = const $ return ()
              fun action = do pwd <- Eval.liftIO getCurrentDirectory
                              Eval.evaluate defaultKernelState
                                              (":! cd " ++ dirPath)
-                                             (\b d -> return ())
+                                             publishNothing
                              out <- action
                              Eval.evaluate defaultKernelState
                                              (":! cd " ++ pwd)
-                                             (\b d -> return ())
+                                             publishNothing
                              return out
          in liftIO $ do
             loading ("dir" </> "file!") `completionHas'` paths ["dir" </> "file2.hs",
