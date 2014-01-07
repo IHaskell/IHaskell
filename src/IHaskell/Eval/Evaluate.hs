@@ -32,6 +32,7 @@ import System.Exit
 import Data.Maybe (fromJust)
 import qualified Control.Monad.IO.Class as MonadIO (MonadIO, liftIO)
 import qualified MonadUtils (MonadIO, liftIO)
+import System.Environment (getEnv)
 
 import NameSet
 import Name
@@ -188,19 +189,20 @@ initializeItVariable =
 
 -- | Publisher for IHaskell outputs.  The first argument indicates whether
 -- this output is final (true) or intermediate (false).
-type Publisher = (Bool -> [DisplayData] -> IO ())
+type Publisher = (EvaluationResult -> IO ())
 
 -- | Output of a command evaluation.
 data EvalOut = EvalOut {
     evalStatus :: ErrorOccurred,
     evalResult :: [DisplayData],
-    evalState :: KernelState
+    evalState :: KernelState,
+    evalPager :: String
   }
 
 -- | Evaluate some IPython input code.
-evaluate :: KernelState      -- ^ The kernel state.
-         -> String           -- ^ Haskell code or other interpreter commands.
-         -> Publisher        -- ^ Function used to publish data outputs.
+evaluate :: KernelState                  -- ^ The kernel state.
+         -> String                       -- ^ Haskell code or other interpreter commands.
+         -> (EvaluationResult -> IO ())   -- ^ Function used to publish data outputs.
          -> Interpreter KernelState
 evaluate kernelState code output = do
   cmds <- parseString (strip code)
@@ -209,7 +211,7 @@ evaluate kernelState code output = do
   when (getLintStatus kernelState /= LintOff) $ liftIO $ do
     lintSuggestions <- lint cmds
     unless (null lintSuggestions) $
-      output True lintSuggestions
+      output $ FinalResult lintSuggestions ""
 
   updated <- runUntilFailure kernelState (map unloc cmds ++ [storeItCommand execCount])
   return updated {
@@ -223,8 +225,9 @@ evaluate kernelState code output = do
 
       -- Output things only if they are non-empty.
       let result = evalResult evalOut
-      unless (null result) $
-        liftIO $ output True result
+          helpStr = evalPager evalOut
+      unless (null result && null helpStr) $
+        liftIO $ output $ FinalResult result helpStr
 
       let newState = evalState evalOut
       case evalStatus evalOut of
@@ -233,23 +236,28 @@ evaluate kernelState code output = do
 
     storeItCommand execCount = Statement $ printf "let it%d = it" execCount
 
-wrapExecution :: KernelState
-              -> Interpreter [DisplayData]
-              -> Interpreter EvalOut
-wrapExecution state exec = ghandle handler $ exec >>= \res ->
-    return EvalOut {
-      evalStatus = Success,
-      evalResult = res,
-      evalState = state
-    }
+safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
+safely state = ghandle handler
   where
     handler :: SomeException -> Interpreter EvalOut
     handler exception =
       return EvalOut {
         evalStatus = Failure,
         evalResult = displayError $ show exception,
-        evalState = state
+        evalState = state,
+        evalPager = ""
       }
+
+wrapExecution :: KernelState
+              -> Interpreter [DisplayData]
+              -> Interpreter EvalOut
+wrapExecution state exec = safely state $ exec >>= \res ->
+    return EvalOut {
+      evalStatus = Success,
+      evalResult = res,
+      evalState = state,
+      evalPager = ""
+    }
 
 -- | Return the display data for this command, as well as whether it
 -- resulted in an error.
@@ -386,7 +394,8 @@ evalCommand _ (Directive SetOpt option) state = do
   return EvalOut {
     evalStatus = if isJust newState then Success else Failure,
     evalResult = out,
-    evalState = fromMaybe state newState
+    evalState = fromMaybe state newState,
+    evalPager = ""
   }
 
   where
@@ -416,15 +425,21 @@ evalCommand _ (Directive SetOpt option) state = do
 
 evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $ liftIO $
   case words cmd of
-    "cd":dirs ->
-      let directory = unwords dirs in do
-        exists <- doesDirectoryExist directory
-        if exists
-        then do
-          setCurrentDirectory directory
-          return []
-        else
-          return $ displayError $ printf "No such directory: '%s'" directory
+    "cd":dirs -> do
+      -- Get home so we can replace '~` with it.
+      homeEither <- try  $ getEnv "HOME" :: IO (Either SomeException String)
+      let home = case homeEither of
+                  Left _ -> "~"
+                  Right val -> val
+
+      let directory = replace "~" home $ unwords dirs
+      exists <- doesDirectoryExist directory
+      if exists
+      then do
+        setCurrentDirectory directory
+        return []
+      else
+        return $ displayError $ printf "No such directory: '%s'" directory
     cmd -> do
       (readEnd, writeEnd) <- createPipe
       handle <- fdToHandle writeEnd
@@ -450,7 +465,7 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
         -- Maximum size of the output (after which we truncate).
         maxSize = 100 * 1000
         incSize = 200
-        output str = publish False [plain str]
+        output str = publish $ IntermediateResult [plain str]
 
         loop = do
           -- Wait and then check if the computation is done.
@@ -492,7 +507,8 @@ evalCommand _ (Directive GetHelp _) state = do
   return EvalOut {
     evalStatus = Success,
     evalResult = [out],
-    evalState = state
+    evalState = state,
+    evalPager = ""
   }
   where out = plain $ intercalate "\n"
           ["The following commands are available:"
@@ -512,7 +528,7 @@ evalCommand _ (Directive GetHelp _) state = do
           ]
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
-evalCommand _ (Directive GetInfo str) state = wrapExecution state $ do
+evalCommand _ (Directive GetInfo str) state = safely state $ do
   write $ "Info: " ++ str
   -- Get all the info for all the names we're given.
   names     <- parseName str
@@ -542,11 +558,17 @@ evalCommand _ (Directive GetInfo str) state = wrapExecution state $ do
   unqual <- getPrintUnqual
   flags <- getSessionDynFlags
   let strings = map (showSDocForUser flags unqual) outs
-  return [plain $ intercalate "\n" strings]
+
+  return EvalOut {
+    evalStatus = Success,
+    evalResult = [],
+    evalState = state,
+    evalPager = unlines strings
+  }
 
 evalCommand output (Statement stmt) state = wrapExecution state $ do
   write $ "Statement:\n" ++ stmt
-  let outputter str = output False [plain str]
+  let outputter str = output $ IntermediateResult [plain str]
   (printed, result) <- capturedStatement outputter stmt
   case result of
     RunOk names -> do
@@ -727,7 +749,8 @@ evalCommand _ (ParseError loc err) state = do
   return EvalOut {
     evalStatus = Failure,
     evalResult = displayError $ formatParseError loc err,
-    evalState = state
+    evalState = state,
+    evalPager = ""
   }
 
 -- Read from a file handle until we hit a delimiter or until we've read
