@@ -170,7 +170,9 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
 
     isDelim :: Char -> Int -> Bool
     isDelim char idx = char `elem` neverIdent || isSymbol char
-
+      where isSymbol' char = isSymbol char && not (char =='~')  -- we don't want to
+                                                                -- delimit on on ~
+                                                                 -- because of paths
     splitAlongCursor :: [[(Char, Int)]] -> [[(Char, Int)]]
     splitAlongCursor [] = []
     splitAlongCursor (x:xs) =
