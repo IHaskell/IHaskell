@@ -29,7 +29,17 @@ type Base64 = ByteString
 class IHaskellDisplay a where
   display :: a -> IO [DisplayData]
 
--- | Display DisplayData values immediately.
+-- | these instances cause the image, html etc. which look like:
+--
+-- > DisplayData
+-- > [DisplayData]
+-- > IO [DisplayData]
+-- > IO (IO DisplayData)
+--
+-- be run the IO and get rendered (if the frontend allows it) in the pretty
+-- form.
+instance IHaskellDisplay a => IHaskellDisplay (IO a) where
+        display = (display =<<)
 instance IHaskellDisplay DisplayData where
   display disp = return [disp]
 
