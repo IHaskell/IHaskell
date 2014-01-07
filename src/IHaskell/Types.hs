@@ -14,6 +14,7 @@ module IHaskell.Types (
   StreamType(..),
   MimeType(..),
   DisplayData(..),
+  EvaluationResult(..),
   ExecuteReplyStatus(..),
   InitInfo(..),
   KernelState(..),
@@ -220,6 +221,7 @@ data Message
   | ExecuteReply {
       header :: MessageHeader,
       status :: ExecuteReplyStatus,         -- ^ The status of the output.
+      pagerOutput :: String,                -- ^ The help string to show in the pager.
       executionCounter :: Int               -- ^ The execution count, i.e. which output this is.
     }
 
@@ -358,7 +360,6 @@ extractPlain disps =
   where
     isPlain (Display mime _) = mime == PlainText
 
-
 instance Show MimeType where
   show PlainText = "text/plain"
   show MimeHtml  = "text/html"
@@ -366,6 +367,18 @@ instance Show MimeType where
   show (MimeJpg _ _)   = "image/jpeg"
   show MimeSvg   = "image/svg+xml"
   show MimeLatex = "text/latex"
+
+-- | Output of evaluation.
+data EvaluationResult =
+  -- | An intermediate result which communicates what has been printed thus
+  -- far.
+  IntermediateResult {
+    outputs :: [DisplayData]      -- ^ Display outputs.
+  }
+  | FinalResult {
+    outputs :: [DisplayData],     -- ^ Display outputs.
+    pagerOut :: String            -- ^ Text to display in the IPython pager.
+  }
 
 -- | Input and output streams.
 data StreamType = Stdin | Stdout deriving Show

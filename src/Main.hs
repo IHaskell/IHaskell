@@ -234,7 +234,7 @@ runKernel profileSrc initInfo = do
     -- command line flags. This includes enabling some extensions and also
     -- running some code.
     let extLines = map (":extension " ++) $ extensions initInfo
-        noPublish _ _ = return ()       
+        noPublish _ = return ()       
         evaluator line = do
           -- Create a new state each time.
           stateVar <- liftIO initialKernelState
@@ -325,8 +325,9 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
   -- output and the thing to display. Store the final outputs in a list so
   -- that when we receive an updated non-final output, we can clear the
   -- entire output and re-display with the updated output.
-  displayed <- liftIO $ newMVar []
+  displayed    <- liftIO $ newMVar []
   updateNeeded <- liftIO $ newMVar False
+  pagerOutput  <- liftIO $ newMVar ""
   let clearOutput = do
         header <- dupHeader replyHeader ClearOutputMessage
         send $ ClearOutput header True
@@ -335,8 +336,13 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
         header <- dupHeader replyHeader DisplayDataMessage
         send $ PublishDisplayData header "haskell" outs
 
-      publish :: Bool -> [DisplayData] -> IO ()
-      publish final outputs = do
+      publish :: EvaluationResult -> IO ()
+      publish result = do
+        let final = case result of
+                      IntermediateResult {} -> False
+                      FinalResult {} -> True
+            outs = outputs result
+
         -- If necessary, clear all previous output and redraw.
         clear <- readMVar updateNeeded
         when clear $ do
@@ -345,14 +351,19 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
           mapM_ sendOutput $ reverse disps
 
         -- Draw this message.
-        sendOutput outputs
+        sendOutput outs
 
         -- If this is the final message, add it to the list of completed
         -- messages. If it isn't, make sure we clear it later by marking
         -- update needed as true.
         modifyMVar_ updateNeeded (const $ return $ not final)
-        when final $
-          modifyMVar_ displayed (return . (outputs:))
+        when final $ do
+          modifyMVar_ displayed (return . (outs:))
+
+          -- If this has some pager output, store it for later.
+          let pager = pagerOut result
+          unless (null pager) $
+            modifyMVar_ pagerOutput (return . (++ pager ++ "\n"))
 
   -- Run code and publish to the frontend as we go.
   let execCount = getExecutionCounter state
@@ -362,8 +373,10 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
   idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
   send $ PublishStatus idleHeader Idle
 
+  pager <- liftIO $ readMVar pagerOutput
   return (updatedState, ExecuteReply {
     header = replyHeader,
+    pagerOutput = pager,
     executionCounter = execCount,
     status = Ok
   })
