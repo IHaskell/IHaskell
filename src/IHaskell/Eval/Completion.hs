@@ -68,8 +68,8 @@ complete line pos = do
   let target = completionTarget line pos
 
   let matchedText = case completionType line pos target of 
-        HsFilePath path -> path 
-        FilePath   path -> path 
+        HsFilePath lineUpToCursor -> last . words $ lineUpToCursor 
+        FilePath   lineUpToCursor -> last . words $ lineUpToCursor 
         otherwise       -> intercalate "." target
 
   options <-
@@ -98,9 +98,9 @@ complete line pos = do
                 nonames = map ("No" ++) names
             return $ filter (ext `isPrefixOf`) $ names ++ nonames
 
-          HsFilePath path -> completePathWithExtensions [".hs", ".lhs"] path
+          HsFilePath lineUpToCursor -> completePathWithExtensions [".hs", ".lhs"] lineUpToCursor
 
-          FilePath path   -> completePath path
+          FilePath lineUpToCursor   -> completePath lineUpToCursor
 
   return (matchedText, options)
 
@@ -169,7 +169,7 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
     }
 
     isDelim :: Char -> Int -> Bool
-    isDelim char idx = char `elem` neverIdent || isSymbol char
+    isDelim char idx = char `elem` neverIdent || isSymbol' char
       where isSymbol' char = isSymbol char && not (char =='~')  -- we don't want to
                                                                 -- delimit on on ~
                                                                  -- because of paths

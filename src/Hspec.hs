@@ -12,6 +12,7 @@ import Shelly (Sh, shelly, cmd, (</>), toTextIgnore, cd, withTmpDir, mkdir_p,
   touchfile)
 import qualified Shelly as Shelly
 import Filesystem.Path.CurrentOS (encodeString)
+import System.SetEnv (setEnv)
 import Data.String.Here
 import Data.String.Utils (strip, replace)
 import Data.Monoid
@@ -87,7 +88,7 @@ completionEvent string expected =  do
 
 completionEventInDirectory :: String -> [String] -> IO (String, [String])
 completionEventInDirectory string expected 
-  = withHsDirectory $ completionEvent string expected
+  = withHsDirectory $ const $ completionEvent string expected
                           
 
 shouldHaveCompletionsInDirectory :: String -> [String] -> IO ()
@@ -118,7 +119,7 @@ initCompleter  = do
 
 inDirectory :: [Shelly.FilePath] -- ^ directories relative to temporary directory
               -> [Shelly.FilePath] -- ^ files relative to temporary directory
-              -> Interpreter a
+              -> (Shelly.FilePath -> Interpreter a)
               -> IO a
 -- | Run an Interpreter action, but first make a temporary directory 
 --   with some files and folder and cd to it.
@@ -126,7 +127,7 @@ inDirectory dirs files action = shelly $ withTmpDir $ \dirPath ->
       do cd dirPath
          mapM_ mkdir_p   dirs
          mapM_ touchfile files
-         liftIO $ doGhc $ wrap (encodeString dirPath) action 
+         liftIO $ doGhc $ wrap (encodeString dirPath) (action dirPath)
       where noPublish = const $ return ()
             cdEvent path = Eval.evaluate defaultKernelState (":! cd " ++ path) noPublish
             wrap :: FilePath -> Interpreter a -> Interpreter a
@@ -138,7 +139,7 @@ inDirectory dirs files action = shelly $ withTmpDir $ \dirPath ->
                  cdEvent pwd    -- change back to the original directory
                  return out
 
-withHsDirectory :: Interpreter a  -> IO a
+withHsDirectory :: (Shelly.FilePath -> Interpreter a)  -> IO a
 withHsDirectory = inDirectory ["" </> "dir", "dir" </> "dir1"]
                     [""</> "file1.hs", "dir" </> "file2.hs",  
                      "" </> "file1.lhs", "dir" </> "file2.lhs"]
@@ -219,6 +220,23 @@ completionTests = do
       ":! cd *" `shouldHaveCompletionsInDirectory` (map encodeString ["" </> "dir/"
                                                                       , "" </> "file1.hs"
                                                                       , "" </> "file1.lhs"])
+
+
+    it "correctly interprets ~ as the environment HOME variable" $ 
+        let shouldHaveCompletions :: String -> [String] -> IO ()
+            shouldHaveCompletions string expected = do 
+              (matched, completions) 
+                    <- withHsDirectory $ \dirPath -> 
+                           do setHomeEvent dirPath
+                              completionEvent string expected
+              let existsInCompletion = (`elem` completions)
+                  unmatched = filter (not . existsInCompletion) expected     
+              expected `shouldBeAmong` completions
+
+            setHomeEvent path = liftIO $ setEnv "HOME" (encodeString path)
+        in do 
+          ":! cd ~/*" `shouldHaveCompletions` ["~/dir/"]
+
 evalTests = do
   describe "Code Evaluation" $ do
     it "evaluates expressions" $  do

@@ -194,7 +194,8 @@ Test-Suite hspec
                        mtl >= 2.1,
                        transformers,
                        haskeline,
-                       HUnit
+                       HUnit,
+                       setenv
 
   extensions: DoAndIfThenElse
               OverloadedStrings
