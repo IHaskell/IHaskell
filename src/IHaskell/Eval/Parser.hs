@@ -60,9 +60,10 @@ instance Functor Located where
 data DirectiveType
   = GetType         -- ^ Get the type of an expression via ':type' (or unique prefixes)
   | GetInfo         -- ^ Get info about the identifier via ':info' (or unique prefixes)
-  | SetExtension    -- ^ Enable or disable an extension via ':extension' (or prefixes)
+  | SetDynFlag      -- ^ Enable or disable an extensions, packages etc. via `:set`. Emulates GHCi's `:set`
   | LoadFile        -- ^ Load a Haskell module.
-  | SetOpt          -- ^ Set various options.
+  | SetOption       -- ^ Set IHaskell kernel option `:option`.
+  | SetExtension    -- ^ `:extension Foo` is a shortcut for `:set -XFoo`
   | ShellCmd        -- ^ Execute a shell command.
   | GetHelp         -- ^ General help via ':?' or ':help'.
   | SearchHoogle    -- ^ Search for something via Hoogle.
@@ -254,9 +255,10 @@ parseDirective (':':directive) line = case find rightDirective directives of
       ,(GetInfo,      "info")
       ,(SearchHoogle, "hoogle")
       ,(GetDoc,       "documentation")
-      ,(SetExtension, "extension")
+      ,(SetDynFlag,   "set")
       ,(LoadFile,     "load")
-      ,(SetOpt,       "set")
+      ,(SetOption,    "option")
+      ,(SetExtension, "extension")
       ,(GetHelp,      "?")
       ,(GetHelp,      "help")
       ]

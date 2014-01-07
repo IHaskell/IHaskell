@@ -1,4 +1,4 @@
-{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances  #-}
+{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances, PatternGuards  #-}
 
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
@@ -43,6 +43,7 @@ import Type
 import Exception (gtry)
 import HscTypes
 import HscMain
+import qualified Linker
 import TcType
 import Unify
 import InstEnv
@@ -71,7 +72,7 @@ import IHaskell.Eval.Util
 import Paths_ihaskell (version)
 import Data.Version (versionBranch)
 
-data ErrorOccurred = Success | Failure deriving Show
+data ErrorOccurred = Success | Failure deriving (Show, Eq, Ord)
 
 debug :: Bool
 debug = False
@@ -317,6 +318,23 @@ wrapExecution state exec = safely state $ exec >>= \res ->
       evalPager = ""
     }
 
+-- | Set dynamic flags.
+--
+-- adapted from GHC's InteractiveUI.hs (newDynFlags)
+setDynFlags :: [String] -> Interpreter [ErrMsg]
+setDynFlags ext = do
+    flags <- getSessionDynFlags
+    (flags', unrecognized, warnings) <- parseDynamicFlags flags (map noLoc ext)
+    let restorePkg x = x { packageFlags = packageFlags flags }
+    -- First, try to check if this flag matches any extension name.
+    new_pkgs <- GHC.setProgramDynFlags (restorePkg flags')
+    GHC.setInteractiveDynFlags (restorePkg flags')
+    return $ map (("Could not parse: " ++) . unLoc) unrecognized ++
+             map ("Warning: " ++)
+                  (map unLoc warnings ++
+                    [ "-package not supported yet"
+                        | packageFlags flags /= packageFlags flags' ])
+
 -- | Return the display data for this command, as well as whether it
 -- resulted in an error.
 evalCommand :: Publisher -> CodeBlock -> KernelState -> Interpreter EvalOut
@@ -344,6 +362,7 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
 
   -- Write the module contents to a temporary file in our work directory
   namePieces <- getModuleName contents
+  liftIO (print namePieces)
   let directory = "./" ++ intercalate "/" (init namePieces) ++ "/"
       filename = last namePieces ++ ".hs"
   liftIO $ do
@@ -383,12 +402,51 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
     -- Since nothing prevents loading the module, compile and load it.
     Nothing -> doLoadModule modName modName
 
-evalCommand _ (Directive SetExtension exts) state = wrapExecution state $ do
-  write $ "Extension: " ++ exts
-  results <- mapM setExtension (words exts)
-  case catMaybes results of
-    [] -> return $ Display []
-    errors -> return $ displayError $ intercalate "\n" errors
+evalCommand a (Directive SetDynFlag flags) state
+    | let f o = case filter (elem o . getSetName) kernelOpts of
+                [] -> Right o
+                [z] | s:_ <- getOptionName z -> Left s
+                    | otherwise -> error ("evalCommand Directive SetDynFlag impossible")
+                ds -> error ("kernelOpts has duplicate:"++ show (map getSetName ds)),
+      (optionFlags,oo) <- partitionEithers $ map f (words flags),
+      not (null optionFlags) = do
+          eo1 <- evalCommand a (Directive SetOption (unwords optionFlags)) state
+          eo2 <- evalCommand a (Directive SetDynFlag (unwords oo)) (evalState eo1)
+          return $ EvalOut {
+                evalStatus = max (evalStatus eo1) (evalStatus eo2),
+                evalResult = evalResult eo1 ++ evalResult eo2,
+                evalState = evalState eo2,
+                evalPager = evalPager eo1 ++ evalPager eo2
+          }
+        
+evalCommand _ (Directive SetDynFlag flags) state = wrapExecution state $ do
+  write $ "DynFlag: " ++ flags
+  errs <- setDynFlags (words flags)
+  return $ case errs of
+      [] -> []
+      _ -> displayError $ intercalate "\n" errs
+
+evalCommand a (Directive SetExtension opts) state = do
+  write $ "Extension: " ++ opts
+  evalCommand a (Directive SetDynFlag (concatMap (" -X"++) (words opts))) state
+
+evalCommand a (Directive SetOption opts) state = do
+  write $ "Option: " ++ opts
+  let (lost, found) = partitionEithers
+        [ case filter (any (w==) . getOptionName) kernelOpts of
+                [x] -> Right (getUpdateKernelState x)
+                [] -> Left w
+                ds -> error ("kernelOpts has duplicate:" ++ show (map getOptionName ds))
+          | w <- words opts ]
+      warn
+        | null lost = []
+        | otherwise = displayError ("Could not recognize options: " ++ intercalate "," lost)
+  return EvalOut {
+    evalStatus = if null lost then Success else Failure,
+    evalResult = warn,
+    evalState = foldl' (flip ($)) state found,
+    evalPager = ""
+  }
 
 evalCommand _ (Directive GetType expr) state = wrapExecution state $ do
   write $ "Type: " ++ expr
@@ -409,49 +467,6 @@ evalCommand _ (Directive LoadFile name) state = wrapExecution state $ do
                    else name
 
   doLoadModule filename modName
-
-
-
--- This is taken largely from GHCi's info section in InteractiveUI.
-evalCommand _ (Directive SetOpt option) state = do
-  write $ "Setting option: " ++ option
-  let opt = strip option
-      newState = setOpt opt state
-      out = case newState of
-        Nothing -> displayError $ "Unknown option: " ++ opt
-        Just _ -> Display []
-
-  return EvalOut {
-    evalStatus = if isJust newState then Success else Failure,
-    evalResult = out,
-    evalState = fromMaybe state newState,
-    evalPager = ""
-  }
-
-  where
-    setOpt :: String -> KernelState -> Maybe KernelState
-
-    setOpt "lint" state = Just $
-      state { getLintStatus = LintOn }
-    setOpt "no-lint" state = Just $
-      state { getLintStatus = LintOff }
-
-    setOpt "svg" state = Just $
-      state { useSvg = True }
-    setOpt "no-svg" state = Just $
-      state { useSvg = False }
-
-    setOpt "show-types" state = Just $
-      state { useShowTypes = True }
-    setOpt "no-show-types" state = Just $
-      state { useShowTypes = False }
-
-    setOpt "show-errors" state = Just $
-      state { useShowErrors = True }
-    setOpt "no-show-errors" state = Just $
-      state { useShowErrors = False }
-
-    setOpt _ _ = Nothing
 
 evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $ liftIO $
   case words cmd of
@@ -548,8 +563,9 @@ evalCommand _ (Directive GetHelp _) state = do
           ,"    :info <name>              -  Print all info for a name."
           ,"    :hoogle <query>           -  Search for a query on Hoogle."
           ,"    :doc <ident>              -  Get documentation for an identifier via Hogole."
-          ,"    :set <opt>                -  Set an option."
-          ,"    :set no-<opt>             -  Unset an option."
+          ,"    :set -XFlag -Wall         -  Set an option (like ghci)."
+          ,"    :option <opt>             -  Set an option."
+          ,"    :option no-<opt>          -  Unset an option."
           ,"    :?, :help                 -  Show this help text."
           ,""
           ,"Any prefix of the commands will also suffice, e.g. use :ty for :type."
