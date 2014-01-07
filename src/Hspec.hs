@@ -219,7 +219,6 @@ completionTests = do
       ":! cd *" `shouldHaveCompletionsInDirectory` (map encodeString ["" </> "dir/"
                                                                       , "" </> "file1.hs"
                                                                       , "" </> "file1.lhs"])
-
 evalTests = do
   describe "Code Evaluation" $ do
     it "evaluates expressions" $  do

@@ -66,7 +66,11 @@ complete line pos = do
       moduleNames = nub $ concatMap getNames db
 
   let target = completionTarget line pos
-      matchedText = intercalate "." target
+
+  let matchedText = case completionType line pos target of 
+        HsFilePath path -> path 
+        FilePath   path -> path 
+        otherwise       -> intercalate "." target
 
   options <-
         case completionType line pos target of
