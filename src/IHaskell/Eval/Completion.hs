@@ -129,7 +129,6 @@ completionType line loc target
     = FilePath lineUpToCursor
   | startswith ":l" stripped
     = HsFilePath lineUpToCursor
-
   -- Use target for other completions.
   -- If it's empty, no completion.
   | null target
@@ -208,7 +207,7 @@ completePathWithExtensions extensions line =
   completePathFilter (extensionIsOneOf extensions) acceptAll line ""
   where
     acceptAll = const True
-    extensionIsOneOf exts str = any (str `endswith`) exts
+    extensionIsOneOf exts str = any (\ext -> endswith ext str) exts
 
 completePathFilter :: (String -> Bool)      -- ^ File filter: test whether to include this file.
                    -> (String -> Bool)      -- ^ Directory filter: test whether to include this directory.
