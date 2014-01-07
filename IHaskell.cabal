@@ -80,6 +80,7 @@ library
                        mtl >= 2.1,
                        transformers,
                        haskeline
+
   exposed-modules: IHaskell.Display
                    IHaskell.Eval.Completion
                    IHaskell.Eval.Evaluate
@@ -192,7 +193,9 @@ Test-Suite hspec
                        text >=0.11,
                        mtl >= 2.1,
                        transformers,
-                       haskeline
+                       haskeline,
+                       HUnit
+
   extensions: DoAndIfThenElse
               OverloadedStrings
               ExtendedDefaultRules
