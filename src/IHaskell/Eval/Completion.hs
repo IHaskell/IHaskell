@@ -40,6 +40,7 @@ import System.Console.Haskeline.Completion
 
 import IHaskell.Types
 import IHaskell.Eval.Evaluate (Interpreter)
+import IHaskell.Eval.ParseShell (parseShell)
 
 
 data CompletionType
@@ -48,8 +49,8 @@ data CompletionType
      | Extension String
      | Qualified String String
      | ModuleName String String
-     | HsFilePath String
-     | FilePath String
+     | HsFilePath String String
+     | FilePath   String String 
      deriving (Show, Eq)
 
 complete :: String -> Int -> Interpreter (String, [String])
@@ -68,8 +69,8 @@ complete line pos = do
   let target = completionTarget line pos
 
   let matchedText = case completionType line pos target of 
-        HsFilePath lineUpToCursor -> last . words $ lineUpToCursor 
-        FilePath   lineUpToCursor -> last . words $ lineUpToCursor 
+        HsFilePath _ match ->  match
+        FilePath   _ match ->  match
         otherwise       -> intercalate "." target
 
   options <-
@@ -98,9 +99,9 @@ complete line pos = do
                 nonames = map ("No" ++) names
             return $ filter (ext `isPrefixOf`) $ names ++ nonames
 
-          HsFilePath lineUpToCursor -> completePathWithExtensions [".hs", ".lhs"] lineUpToCursor
+          HsFilePath lineUpToCursor match -> completePathWithExtensions [".hs", ".lhs"] lineUpToCursor
 
-          FilePath lineUpToCursor   -> completePath lineUpToCursor
+          FilePath   lineUpToCursor match  -> completePath lineUpToCursor
 
   return (matchedText, options)
 
@@ -130,9 +131,13 @@ completionType :: String            -- ^ The line on which the completion is bei
 completionType line loc target
   -- File and directory completions are special
   | startswith ":!" stripped
-    = FilePath lineUpToCursor
+    = case parseShell lineUpToCursor of 
+          Right xs -> FilePath lineUpToCursor $ if endswith (last xs) lineUpToCursor then (last xs) else []
+          Left  _  -> Empty
   | startswith ":l" stripped
-    = HsFilePath lineUpToCursor
+    = case parseShell lineUpToCursor of 
+          Right xs -> HsFilePath lineUpToCursor $ if endswith (last xs) lineUpToCursor then (last xs) else []
+          Left  _  -> Empty
   -- Use target for other completions.
   -- If it's empty, no completion.
   | null target
@@ -153,6 +158,7 @@ completionType line loc target
         isCapitalized = isUpper . head
         lineUpToCursor = take loc line
 
+
 -- | Get the word under a given cursor location.
 completionTarget :: String -> Int -> [String]
 completionTarget code cursor = expandCompletionPiece pieceToComplete
@@ -169,10 +175,8 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
     }
 
     isDelim :: Char -> Int -> Bool
-    isDelim char idx = char `elem` neverIdent || isSymbol' char
-      where isSymbol' char = isSymbol char && not (char =='~')  -- we don't want to
-                                                                -- delimit on on ~
-                                                                 -- because of paths
+    isDelim char idx = char `elem` neverIdent 
+
     splitAlongCursor :: [[(Char, Int)]] -> [[(Char, Int)]]
     splitAlongCursor [] = []
     splitAlongCursor (x:xs) =

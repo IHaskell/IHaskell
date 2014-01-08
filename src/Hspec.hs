@@ -24,12 +24,13 @@ import IHaskell.Eval.Evaluate as Eval hiding (liftIO)
 import qualified IHaskell.Eval.Evaluate as Eval (liftIO)
 
 import IHaskell.Eval.Completion
+import IHaskell.Eval.ParseShell
 
 import Debug.Trace
 
 import Test.Hspec
 import Test.Hspec.HUnit
-import Test.HUnit (assertBool)
+import Test.HUnit (assertBool, assertFailure)
 
 doGhc = runGhc (Just libdir)
 
@@ -74,33 +75,38 @@ becomes string expected = do
           Just (Display PlainText str) -> str `shouldBe` expected
           Nothing -> expectationFailure $ "No plain-text output in " ++ show result
 
-completes string expected = completionTarget newString cursorloc `shouldBe` expected
-  where (newString, cursorloc) = case elemIndex '*' string of
+readCompletePrompt :: String -> (String, Int)
+-- | @readCompletePrompt "xs*ys"@ return @(xs, i)@ where i is the location of
+-- @'*'@ in the input string. 
+readCompletePrompt string = case elemIndex '*' string of
           Nothing -> error "Expected cursor written as '*'."
           Just idx -> (replace "*" "" string, idx)
 
-completionEvent :: String -> [String] -> Interpreter (String, [String])
-completionEvent string expected =  do
+completes string expected = completionTarget newString cursorloc `shouldBe` expected
+  where (newString, cursorloc) = readCompletePrompt string
+
+completionEvent :: String -> Interpreter (String, [String])
+completionEvent string  =  do
       complete newString cursorloc
   where (newString, cursorloc) = case elemIndex '*' string of
           Nothing -> error "Expected cursor written as '*'."
           Just idx -> (replace "*" "" string, idx)      
 
-completionEventInDirectory :: String -> [String] -> IO (String, [String])
-completionEventInDirectory string expected 
-  = withHsDirectory $ const $ completionEvent string expected
+completionEventInDirectory :: String -> IO (String, [String])
+completionEventInDirectory string  
+  = withHsDirectory $ const $ completionEvent string 
                           
 
 shouldHaveCompletionsInDirectory :: String -> [String] -> IO ()
 shouldHaveCompletionsInDirectory string expected 
-  = do (matched, completions) <- completionEventInDirectory string expected 
+  = do (matched, completions) <- completionEventInDirectory string  
        let existsInCompletion = (`elem` completions)
            unmatched = filter (not . existsInCompletion) expected
        expected `shouldBeAmong` completions
 
 completionHas string expected 
   = do (matched, completions) <- doGhc $ do initCompleter 
-                                            completionEvent string expected 
+                                            completionEvent string  
        let existsInCompletion = (`elem` completions)
            unmatched = filter (not . existsInCompletion) expected
        expected `shouldBeAmong` completions
@@ -151,6 +157,7 @@ main = hspec $ do
   completionTests
 
 completionTests = do
+  parseShellTests
   describe "Completion" $ do
     it "correctly gets the completion identifier without dots" $ do
        "hello*"              `completes` ["hello"]
@@ -177,7 +184,9 @@ completionTests = do
       completionType "a.x" 3 ["a", "x"]                 `shouldBe` Identifier "x"
       completionType "pri" 3 ["pri"]                    `shouldBe` Identifier "pri"
       completionType ":load A" 7 ["A"]                   `shouldBe` HsFilePath ":load A"
-      completionType ":! cd " 6 [""]                     `shouldBe` FilePath   ":! cd "
+                                                                               "A"
+      completionType ":! cd " 6 [""]                     `shouldBe` FilePath   ":! cd " ""
+
 
 
     it "properly completes identifiers" $ do
@@ -228,7 +237,7 @@ completionTests = do
               (matched, completions) 
                     <- withHsDirectory $ \dirPath -> 
                            do setHomeEvent dirPath
-                              completionEvent string expected
+                              completionEvent string 
               let existsInCompletion = (`elem` completions)
                   unmatched = filter (not . existsInCompletion) expected     
               expected `shouldBeAmong` completions
@@ -236,6 +245,29 @@ completionTests = do
             setHomeEvent path = liftIO $ setEnv "HOME" (encodeString path)
         in do 
           ":! cd ~/*" `shouldHaveCompletions` ["~/dir/"]
+          ":! ~/*" `shouldHaveCompletions` ["~/dir/"]
+          ":load ~/*" `shouldHaveCompletions` ["~/dir/"]
+          ":l ~/*" `shouldHaveCompletions` ["~/dir/"]
+
+    let shouldHaveMatchingText :: String -> String -> IO ()
+        shouldHaveMatchingText string expected = do 
+          matchText 
+                <- withHsDirectory $ \dirPath -> 
+                       do setHomeEvent dirPath
+                          (matchText, _) <- uncurry complete (readCompletePrompt string)
+                          return matchText
+          matchText `shouldBe` expected
+
+        setHomeEvent path = liftIO $ setEnv "HOME" (encodeString path)
+
+    it "generates the correct matchingText on `:! cd ~/*` " $ 
+      do ":! cd ~/*" `shouldHaveMatchingText` ("~/" :: String)
+
+    it "generates the correct matchingText on `:load ~/*` " $ 
+      do ":load ~/*" `shouldHaveMatchingText` ("~/" :: String)
+
+    it "generates the correct matchingText on `:l ~/*` " $ 
+      do ":l ~/*" `shouldHaveMatchingText` ("~/" :: String)
 
 evalTests = do
   describe "Code Evaluation" $ do
@@ -492,6 +524,27 @@ parseStringTests = describe "Parser" $ do
         second
        |] >>= (`shouldBe` [Located 2 (Expression "first"),
                           Located 4 (Expression "second")])
+
+
+
+testParseShell string expected 
+        = do describe "parseShell" $ do
+              it ("parses " ++ string ++ " correctly: \n\t" ++ show expected)  $ do
+                    string `shouldParseTo` expected
+    where shouldParseTo :: String -> [String] -> Expectation
+          shouldParseTo xs ys = fun ys (parseShell xs)
+                where fun ys (Right xs')  = xs' `shouldBe` ys
+                      fun ys (Left e)     = assertFailure $ "parseShell returned error: \n" ++ show e
+
+parseShellTests = do 
+           testParseShell "A" ["A"]
+           testParseShell ":load A" [":load", "A"]
+           testParseShell ":!l ~/Downloads/MyFile\\ Has\\ Spaces.txt" 
+                         [":!l", "~/Downloads/MyFile\\ Has\\ Spaces.txt"]
+           testParseShell ":!l \"~/Downloads/MyFile Has Spaces.txt\" /Another/File\\ WithSpaces.doc" 
+                         [":!l", "~/Downloads/MyFile Has Spaces.txt", "/Another/File\\ WithSpaces.doc" ]
+
+
 
 
 -- Useful HSpec expectations ----
