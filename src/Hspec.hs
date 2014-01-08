@@ -1,4 +1,5 @@
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE QuasiQuotes, OverloadedStrings, ExtendedDefaultRules #-}
+-- Keep all the language pragmas here so it can be compiled separately.
 module Main where
 import Prelude
 import GHC
@@ -10,7 +11,7 @@ import Data.List
 import System.Directory
 import Shelly (Sh, shelly, cmd, (</>), toTextIgnore, cd, withTmpDir, mkdir_p,
   touchfile)
-import qualified Shelly as Shelly
+import qualified Shelly
 import Filesystem.Path.CurrentOS (encodeString)
 import System.SetEnv (setEnv)
 import Data.String.Here
@@ -46,14 +47,21 @@ is string blockType = do
 
 eval string = do
   outputAccum <- newIORef []
-  let publish evalResult = modifyIORef outputAccum (outputs evalResult :)
+  pagerAccum <- newIORef []
+  let publish evalResult = case evalResult of
+        IntermediateResult {} -> return ()
+        FinalResult outs page -> do
+          modifyIORef outputAccum (outs :)
+          modifyIORef pagerAccum (page :)
+
   getTemporaryDirectory >>= setCurrentDirectory
   let state = defaultKernelState { getLintStatus = LintOff }
   interpret False $ Eval.evaluate state string publish
   out <- readIORef outputAccum
-  return $ reverse out
+  pagerOut <- readIORef pagerAccum
+  return (reverse out, unlines $ reverse pagerOut)
 
-becomes string expected = do
+evaluationComparing comparison string = do
     let indent (' ':x) = 1 + indent x
         indent _ = 0
         empty = null . strip
@@ -61,8 +69,10 @@ becomes string expected = do
         minIndent = minimum (map indent stringLines)
         newString = unlines $ map (drop minIndent) stringLines
     eval newString >>= comparison
+
+becomes string expected = evaluationComparing comparison string
   where
-    comparison results = do
+    comparison (results, pageOut) = do
       when (length results /= length expected) $
         expectationFailure $ "Expected result to have " ++ show (length expected)
                              ++ " results. Got " ++ show results
@@ -71,9 +81,14 @@ becomes string expected = do
           isPlain _ = False
 
       forM_ (zip results expected) $ \(result, expected) ->
-        case find isPlain result of
-          Just (Display PlainText str) -> str `shouldBe` expected
-          Nothing -> expectationFailure $ "No plain-text output in " ++ show result
+        case extractPlain result  of
+          "" -> expectationFailure $ "No plain-text output in " ++ show result ++ "\nExpected: " ++ expected
+          str -> str `shouldBe` expected
+
+pages string expected = evaluationComparing comparison string
+  where
+    comparison (results, pageOut) =
+      strip pageOut `shouldBe` strip (unlines expected)
 
 readCompletePrompt :: String -> (String, Int)
 -- | @readCompletePrompt "xs*ys"@ return @(xs, i)@ where i is the location of
@@ -321,7 +336,7 @@ evalTests = do
 
     it "evaluates directives" $ do
       ":typ 3" `becomes` ["forall a. Num a => a"]
-      ":in String" `becomes` ["type String = [Char] \t-- Defined in `GHC.Base'"]
+      ":in String" `pages` ["type String = [Char] \t-- Defined in `GHC.Base'"]
 
 parserTests = do
   layoutChunkerTests
