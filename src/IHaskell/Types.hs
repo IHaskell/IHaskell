@@ -21,6 +21,7 @@ module IHaskell.Types (
   LintStatus(..),
   Width, Height,
   FrontendType(..),
+  ViewFormat(..),
   defaultKernelState,
   extractPlain
   ) where
@@ -31,6 +32,37 @@ import IHaskell.Message.UUID
 import Data.Serialize
 import GHC.Generics (Generic)
 import qualified Data.ByteString.Char8 as Char
+
+import Text.Read as Read hiding (pfail, String)
+import Text.ParserCombinators.ReadP
+
+data ViewFormat
+     = Pdf
+     | Html
+     | Ipynb
+     | Markdown
+     | Latex
+     deriving Eq
+
+instance Show ViewFormat where
+  show Pdf         = "pdf"
+  show Html        = "html"
+  show Ipynb       = "ipynb"
+  show Markdown    = "markdown"
+  show Latex       = "latex"
+
+instance Read ViewFormat where
+  readPrec = Read.lift $ do
+    str <- munch (const True)
+    case str of
+      "pdf" -> return Pdf
+      "html" -> return Html
+      "ipynb" -> return Ipynb
+      "notebook" -> return Ipynb
+      "latex" -> return Latex
+      "markdown" -> return Markdown
+      "md" -> return Markdown
+      _ -> pfail
 
 
 -- | A TCP port.

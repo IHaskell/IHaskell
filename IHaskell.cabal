@@ -95,6 +95,7 @@ library
                    IHaskell.Eval.ParseShell
                    IHaskell.Eval.Util
                    IHaskell.IPython
+                   IHaskell.Flags
                    IHaskell.Message.Parser
                    IHaskell.Message.UUID
                    IHaskell.Message.Writer
@@ -121,6 +122,7 @@ executable IHaskell
              IHaskell.Eval.ParseShell
              IHaskell.Eval.Util
              IHaskell.IPython
+             IHaskell.Flags
              IHaskell.Message.Parser
              IHaskell.Message.UUID
              IHaskell.Message.Writer
