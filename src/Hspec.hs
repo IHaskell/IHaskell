@@ -1,4 +1,5 @@
-{-# LANGUAGE QuasiQuotes, OverloadedStrings, DoAndIfThenElse, ExtendedDefaultRules #-}
+{-# LANGUAGE QuasiQuotes, OverloadedStrings, ExtendedDefaultRules #-}
+-- Keep all the language pragmas here so it can be compiled separately.
 module Main where
 import Prelude
 import GHC
@@ -8,7 +9,9 @@ import Control.Monad
 import Control.Monad.Trans ( MonadIO, liftIO )
 import Data.List
 import System.Directory
-import Shelly (Sh, shelly, cmd, (</>), toTextIgnore, cd, withTmpDir)
+import Shelly (Sh, shelly, cmd, (</>), toTextIgnore, cd, withTmpDir, mkdir_p,
+  touchfile)
+import qualified Shelly
 import Filesystem.Path.CurrentOS (encodeString)
 import Data.String.Here
 import Data.String.Utils (strip, replace)
@@ -26,6 +29,7 @@ import Debug.Trace
 
 import Test.Hspec
 import Test.Hspec.HUnit
+import Test.HUnit (assertBool)
 
 doGhc = runGhc (Just libdir)
 
@@ -41,14 +45,21 @@ is string blockType = do
 
 eval string = do
   outputAccum <- newIORef []
-  let publish final displayDatas = when final $ modifyIORef outputAccum (displayDatas :)
+  pagerAccum <- newIORef []
+  let publish evalResult = case evalResult of
+        IntermediateResult {} -> return ()
+        FinalResult outs page -> do
+          modifyIORef outputAccum (outs :)
+          modifyIORef pagerAccum (page :)
+
   getTemporaryDirectory >>= setCurrentDirectory
   let state = defaultKernelState { getLintStatus = LintOff }
   interpret False $ Eval.evaluate state string publish
   out <- readIORef outputAccum
-  return $ reverse out
+  pagerOut <- readIORef pagerAccum
+  return (reverse out, unlines $ reverse pagerOut)
 
-becomes string expected = do
+evaluationComparing comparison string = do
     let indent (' ':x) = 1 + indent x
         indent _ = 0
         empty = null . strip
@@ -56,41 +67,60 @@ becomes string expected = do
         minIndent = minimum (map indent stringLines)
         newString = unlines $ map (drop minIndent) stringLines
     eval newString >>= comparison
+
+becomes string expected = evaluationComparing comparison string
   where
-    comparison results = do
+    comparison (results, pageOut) = do
       when (length results /= length expected) $
         expectationFailure $ "Expected result to have " ++ show (length expected)
                              ++ " results. Got " ++ show results
 
-      let isPlain (Display mime _) = mime == PlainText
+      let isPlain (Display PlainText _) = True
+          isPlain _ = False
 
       forM_ (zip results expected) $ \(result, expected) ->
-        case extractPlain result of
-          ""-> expectationFailure $ "No plain-text output in " ++ show result
+        case extractPlain result  of
+          "" -> expectationFailure $ "No plain-text output in " ++ show result ++ "\nExpected: " ++ expected
           str -> str `shouldBe` expected
 
+pages string expected = evaluationComparing comparison string
+  where
+    comparison (results, pageOut) =
+      strip pageOut `shouldBe` strip (unlines expected)
+
 completes string expected = completionTarget newString cursorloc `shouldBe` expected
-  where (newString, cursorloc) = case elemIndex '!' string of
-          Nothing -> error "Expected cursor written as '!'."
-          Just idx -> (replace "!" "" string, idx)
+  where (newString, cursorloc) = case elemIndex '*' string of
+          Nothing -> error "Expected cursor written as '*'."
+          Just idx -> (replace "*" "" string, idx)
 
-completionHas_ wrap string expected = do
-    (matched, completions) <- doGhc $
-      wrap $ do initCompleter
-                complete newString cursorloc
-    let existsInCompletion = (`elem` completions)
-        unmatched = filter (not . existsInCompletion) expected
-    unmatched `shouldBe` []
-  where (newString, cursorloc) = case elemIndex '!' string of
-          Nothing -> error "Expected cursor written as '!'."
-          Just idx -> (replace "!" "" string, idx)
+completionEvent :: String -> [String] -> Interpreter (String, [String])
+completionEvent string expected =
+      complete newString cursorloc
+  where (newString, cursorloc) = case elemIndex '*' string of
+          Nothing -> error "Expected cursor written as '*'."
+          Just idx -> (replace "*" "" string, idx)      
 
-completionHas = completionHas_ id
+completionEventInDirectory :: String -> [String] -> IO (String, [String])
+completionEventInDirectory string expected 
+  = withHsDirectory $ completionEvent string expected
+                          
 
-initCompleter :: GhcMonad m => m ()
+shouldHaveCompletionsInDirectory :: String -> [String] -> IO ()
+shouldHaveCompletionsInDirectory string expected 
+  = do (matched, completions) <- completionEventInDirectory string expected 
+       let existsInCompletion = (`elem` completions)
+           unmatched = filter (not . existsInCompletion) expected
+       expected `shouldBeAmong` completions
+
+completionHas string expected 
+  = do (matched, completions) <- doGhc $ do initCompleter 
+                                            completionEvent string expected 
+       let existsInCompletion = (`elem` completions)
+           unmatched = filter (not . existsInCompletion) expected
+       expected `shouldBeAmong` completions
+
+initCompleter :: Interpreter ()
 initCompleter  = do
-  pwd <- Eval.liftIO getCurrentDirectory
-  --Eval.liftIO $ traceIO $ pwd
   flags <- getSessionDynFlags
   setSessionDynFlags $ flags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
 
@@ -101,13 +131,32 @@ initCompleter  = do
                                    "import Data.Maybe as Maybe"]
   setContext $ map IIDecl imports
 
-withHsDirectory :: (FilePath -> Sh ()) -> IO ()
-withHsDirectory f = shelly $ withTmpDir $ \dirPath ->
+inDirectory :: [Shelly.FilePath] -- ^ directories relative to temporary directory
+              -> [Shelly.FilePath] -- ^ files relative to temporary directory
+              -> Interpreter a
+              -> IO a
+-- | Run an Interpreter action, but first make a temporary directory 
+--   with some files and folder and cd to it.
+inDirectory dirs files action = shelly $ withTmpDir $ \dirPath ->
       do cd dirPath
-         cmd "mkdir"  $ "" </> "dir"
-         cmd "mkdir"  $ "dir" </> "dir1"
-         cmd "touch" "file1.hs"  "dir/file2.hs" "file1.lhs" "dir/file2.lhs"
-         f $ encodeString dirPath
+         mapM_ mkdir_p   dirs
+         mapM_ touchfile files
+         liftIO $ doGhc $ wrap (encodeString dirPath) action 
+      where noPublish = const $ return ()
+            cdEvent path = Eval.evaluate defaultKernelState (":! cd " ++ path) noPublish
+            wrap :: FilePath -> Interpreter a -> Interpreter a
+            wrap path action = 
+              do initCompleter
+                 pwd <- Eval.liftIO getCurrentDirectory
+                 cdEvent path   -- change to the temporary directory
+                 out <- action  -- run action
+                 cdEvent pwd    -- change back to the original directory
+                 return out
+
+withHsDirectory :: Interpreter a  -> IO a
+withHsDirectory = inDirectory ["" </> "dir", "dir" </> "dir1"]
+                    [""</> "file1.hs", "dir" </> "file2.hs",  
+                     "" </> "file1.lhs", "dir" </> "file2.lhs"]
 
 main :: IO ()
 main = hspec $ do
@@ -118,71 +167,73 @@ main = hspec $ do
 completionTests = do
   describe "Completion" $ do
     it "correctly gets the completion identifier without dots" $ do
-       "hello!"              `completes` ["hello"]
-       "hello aa!bb goodbye" `completes` ["aa"]
-       "hello aabb! goodbye" `completes` ["aabb"]
-       "aacc! goodbye"       `completes` ["aacc"]
-       "hello !aabb goodbye" `completes` []
-       "!aabb goodbye"       `completes` []
+       "hello*"              `completes` ["hello"]
+       "hello aa*bb goodbye" `completes` ["aa"]
+       "hello aabb* goodbye" `completes` ["aabb"]
+       "aacc* goodbye"       `completes` ["aacc"]
+       "hello *aabb goodbye" `completes` []
+       "*aabb goodbye"       `completes` []
 
     it "correctly gets the completion identifier with dots" $ do
-       "hello test.aa!bb goodbye" `completes` ["test", "aa"]
-       "Test.!"                   `completes` ["Test", ""]
-       "Test.Thing!"              `completes` ["Test", "Thing"]
-       "Test.Thing.!"             `completes` ["Test", "Thing", ""]
-       "Test.Thing.!nope"         `completes` ["Test", "Thing", ""]
+       "hello test.aa*bb goodbye" `completes` ["test", "aa"]
+       "Test.*"                   `completes` ["Test", ""]
+       "Test.Thing*"              `completes` ["Test", "Thing"]
+       "Test.Thing.*"             `completes` ["Test", "Thing", ""]
+       "Test.Thing.*nope"         `completes` ["Test", "Thing", ""]
 
     it "correctly gets the completion type" $ do
-      completionType "import Data." ["Data", ""]      `shouldBe` ModuleName "Data" ""
-      completionType "import Prel" ["Prel"]           `shouldBe` ModuleName "" "Prel"
-      completionType "import D.B.M" ["D", "B", "M"]   `shouldBe` ModuleName "D.B" "M"
-      completionType " import A." ["A", ""]           `shouldBe` ModuleName "A" ""
-      completionType "import a.x" ["a", "x"]          `shouldBe` Identifier "x"
-      completionType "A.x" ["A", "x"]                 `shouldBe` Qualified "A" "x"
-      completionType "a.x" ["a", "x"]                 `shouldBe` Identifier "x"
-      completionType "pri" ["pri"]                    `shouldBe` Identifier "pri"
-      completionType ":load A" ["A"]                   `shouldBe` HsFilePath "A"
+      completionType "import Data." 12 ["Data", ""]      `shouldBe` ModuleName "Data" ""
+      completionType "import Prel" 11 ["Prel"]           `shouldBe` ModuleName "" "Prel"
+      completionType "import D.B.M" 12 ["D", "B", "M"]   `shouldBe` ModuleName "D.B" "M"
+      completionType " import A." 10 ["A", ""]           `shouldBe` ModuleName "A" ""
+      completionType "import a.x" 10 ["a", "x"]          `shouldBe` Identifier "x"
+      completionType "A.x" 3 ["A", "x"]                 `shouldBe` Qualified "A" "x"
+      completionType "a.x" 3 ["a", "x"]                 `shouldBe` Identifier "x"
+      completionType "pri" 3 ["pri"]                    `shouldBe` Identifier "pri"
+      completionType ":load A" 7 ["A"]                   `shouldBe` HsFilePath ":load A"
+      completionType ":! cd " 6 [""]                     `shouldBe` FilePath   ":! cd "
+
 
     it "properly completes identifiers" $ do
-       "pri!"           `completionHas` ["print"]
-       "ma!"            `completionHas` ["map"]
-       "hello ma!"      `completionHas` ["map"]
-       "print $ catMa!" `completionHas` ["catMaybes"]
+       "pri*"           `completionHas` ["print"]
+       "ma*"            `completionHas` ["map"]
+       "hello ma*"      `completionHas` ["map"]
+       "print $ catMa*" `completionHas` ["catMaybes"]
 
     it "properly completes qualified identifiers" $ do
-       "Control.Monad.liftM!"    `completionHas` [ "Control.Monad.liftM"
+       "Control.Monad.liftM*"    `completionHas` [ "Control.Monad.liftM"
                                                  , "Control.Monad.liftM2"
                                                  , "Control.Monad.liftM5"]
-       "print $ List.intercal!"  `completionHas` ["List.intercalate"]
-       "print $ Data.Maybe.cat!" `completionHas` ["Data.Maybe.catMaybes"]
-       "print $ Maybe.catM!"     `completionHas` ["Maybe.catMaybes"]
+       "print $ List.intercal*"  `completionHas` ["List.intercalate"]
+       "print $ Data.Maybe.cat*" `completionHas` ["Data.Maybe.catMaybes"]
+       "print $ Maybe.catM*"     `completionHas` ["Maybe.catMaybes"]
 
     it "properly completes imports" $ do
-      "import Data.!"  `completionHas` ["Data.Maybe", "Data.List"]
-      "import Data.M!" `completionHas` ["Data.Maybe"]
-      "import Prel!"   `completionHas` ["Prelude"]
+      "import Data.*"  `completionHas` ["Data.Maybe", "Data.List"]
+      "import Data.M*" `completionHas` ["Data.Maybe"]
+      "import Prel*"   `completionHas` ["Prelude"]
 
     it "properly completes haskell file paths on :load directive" $
-       withHsDirectory $ \dirPath ->
          let loading xs = ":load " ++ encodeString xs
              paths xs = map encodeString xs
-             completionHas' = completionHas_ fun
-             fun action = do pwd <- Eval.liftIO getCurrentDirectory
-                             Eval.evaluate defaultKernelState
-                                             (":! cd " ++ dirPath)
-                                             (\b d -> return ())
-                             out <- action
-                             Eval.evaluate defaultKernelState
-                                             (":! cd " ++ pwd)
-                                             (\b d -> return ())
-                             return out
-         in liftIO $ do
-            loading ("dir" </> "file!") `completionHas'` paths ["dir" </> "file2.hs",
-                                                            "dir" </> "file2.lhs"]
-            loading ("" </> "file1!") `completionHas'` paths ["" </> "file1.hs",
-                                                              "" </> "file1.lhs"]
-            loading ("" </> "file1!") `completionHas'` paths ["" </> "file1.hs",
-                                                  "" </> "file1.lhs"]
+         in do 
+            loading ("dir" </> "file*") `shouldHaveCompletionsInDirectory` paths ["dir" </> "file2.hs",
+                                                                                  "dir" </> "file2.lhs"]
+            loading ("" </> "file1*") `shouldHaveCompletionsInDirectory` paths ["" </> "file1.hs",
+                                                                                            "" </> "file1.lhs"]
+            loading ("" </> "file1*") `shouldHaveCompletionsInDirectory` paths ["" </> "file1.hs",
+                                                                                "" </> "file1.lhs"]
+            loading ("" </> "./*") `shouldHaveCompletionsInDirectory` paths ["./" </> "dir/"
+                                                                                       , "./" </> "file1.hs"
+                                                                                       , "./" </> "file1.lhs"]
+            loading ("" </> "./*") `shouldHaveCompletionsInDirectory` paths ["./" </> "dir/"
+                                                                           , "./" </> "file1.hs"
+                                                                           , "./" </> "file1.lhs"]
+
+    it "provides path completions on empty shell cmds " $ do 
+      ":! cd *" `shouldHaveCompletionsInDirectory` (map encodeString ["" </> "dir/"
+                                                                      , "" </> "file1.hs"
+                                                                      , "" </> "file1.lhs"])
 
 evalTests = do
   describe "Code Evaluation" $ do
@@ -236,7 +287,7 @@ evalTests = do
 
     it "evaluates directives" $ do
       ":typ 3" `becomes` ["forall a. Num a => a"]
-      ":in String" `becomes` ["type String = [Char] \t-- Defined in `GHC.Base'"]
+      ":in String" `pages` ["type String = [Char] \t-- Defined in `GHC.Base'"]
 
 parserTests = do
   layoutChunkerTests
@@ -439,3 +490,16 @@ parseStringTests = describe "Parser" $ do
         second
        |] >>= (`shouldBe` [Located 2 (Expression "first"),
                           Located 4 (Expression "second")])
+
+
+-- Useful HSpec expectations ----
+---------------------------------
+
+shouldBeAmong :: (Show a, Eq a) => [a] -> [a] -> Expectation
+-- |
+-- @sublist \`shouldbeAmong\` list@ sets the expectation that @sublist@ elements are 
+-- among those in @list@.
+sublist `shouldBeAmong` list = assertBool errorMsg 
+              $ and [x `elem` list | x <- sublist]
+  where
+    errorMsg = show list ++ " doesn't contain " ++ show sublist
