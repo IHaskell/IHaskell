@@ -53,14 +53,15 @@ var concealExtension = (function() {
 
     // Process a non-infix conceal token.
     function markNonInfixToken(editor, line, token) {
-        // We have a special case for the dot operator.
-        // This is because CodeMirror parses some bits of Haskell incorrectly.
-        // For instance: [1..100] gets parsed as a number "1." followed by a dot ".".
-        // This causes the "." to become marked, although it shouldn't be.
+        // We have a special case for the dot operator.  We only want to
+        // convert it to a fancy composition if there is a space before it.
+        // This preserves things like [1..1000] which CodeMirror parses
+        // incorrectly and also lets you write with lenses as record^.a.b.c,
+        // which looks better.
         if (token.string == ".") {
-            var prev = prevToken(editor, token, line);
-            var prevStr = prev.string;
-            if(prevStr[prevStr.length - 1] == ".") {
+            var handle = editor.getLineHandle(line);
+            var ch = token.start;
+            if (handle.text[ch - 1] != ' ') {
                 return false;
             }
         }
