@@ -64,6 +64,7 @@ import IHaskell.Types
 import IHaskell.Eval.Parser
 import IHaskell.Eval.Lint
 import IHaskell.Display
+import qualified IHaskell.Eval.Hoogle as Hoogle
 
 import Paths_ihaskell (version)
 import Data.Version (versionBranch)
@@ -549,19 +550,23 @@ evalCommand _ (Directive GetHelp _) state = do
   }
   where out = plain $ intercalate "\n"
           ["The following commands are available:"
-          ,"    :extension <Extension>    -  enable a GHC extension."
-          ,"    :extension No<Extension>  -  disable a GHC extension."
+          ,"    :extension <Extension>    -  Enable a GHC extension."
+          ,"    :extension No<Extension>  -  Disable a GHC extension."
           ,"    :type <expression>        -  Print expression type."
           ,"    :info <name>              -  Print all info for a name."
+          ,"    :hoogle <query>           -  Search for a query on Hoogle."
+          ,"    :doc <ident>              -  Get documentation for an identifier via Hogole."
           ,"    :set <opt>                -  Set an option."
-          ,"    :set no-<opt>              -  Unset an option."
+          ,"    :set no-<opt>             -  Unset an option."
           ,"    :?, :help                 -  Show this help text."
           ,""
           ,"Any prefix of the commands will also suffice, e.g. use :ty for :type."
           ,""
           ,"Options:"
-          ,"  lint       - enable or disable linting."
-          ,"  svg        - use svg output (cannot be resized)."
+          ,"  lint          - enable or disable linting."
+          ,"  svg           - use svg output (cannot be resized)."
+          ,"  show-types    - show types of all bound names"
+          ,"  show-errors   - display Show instance missing errors normally."
           ]
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
@@ -601,6 +606,24 @@ evalCommand _ (Directive GetInfo str) state = safely state $ do
     evalResult = [],
     evalState = state,
     evalPager = unlines strings
+  }
+
+evalCommand _ (Directive SearchHoogle query) state = safely state $ do
+  results <- liftIO $ Hoogle.search query
+  let output = unlines $ map (Hoogle.render Hoogle.HTML) results
+  return EvalOut {
+    evalStatus = Success,
+    evalResult = [],
+    evalState = state,
+    evalPager = output
+  }
+
+evalCommand _ (Directive GetDoc query) state = safely state $
+  return EvalOut {
+    evalStatus = Success,
+    evalResult = [],
+    evalState = state,
+    evalPager = "Hoogle documentation queries not implemented yet."
   }
 
 evalCommand output (Statement stmt) state = wrapExecution state $ do
