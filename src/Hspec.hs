@@ -45,14 +45,21 @@ is string blockType = do
 
 eval string = do
   outputAccum <- newIORef []
-  let publish evalResult = modifyIORef outputAccum (outputs evalResult :)
+  pagerAccum <- newIORef []
+  let publish evalResult = case evalResult of
+        IntermediateResult {} -> return ()
+        FinalResult outs page -> do
+          modifyIORef outputAccum (outs :)
+          modifyIORef pagerAccum (page :)
+
   getTemporaryDirectory >>= setCurrentDirectory
   let state = defaultKernelState { getLintStatus = LintOff }
   interpret False $ Eval.evaluate state string publish
   out <- readIORef outputAccum
-  return $ reverse out
+  pagerOut <- readIORef pagerAccum
+  return (reverse out, unlines $ reverse pagerOut)
 
-becomes string expected = do
+evaluationComparing comparison string = do
     let indent (' ':x) = 1 + indent x
         indent _ = 0
         empty = null . strip
@@ -60,8 +67,10 @@ becomes string expected = do
         minIndent = minimum (map indent stringLines)
         newString = unlines $ map (drop minIndent) stringLines
     eval newString >>= comparison
+
+becomes string expected = evaluationComparing comparison string
   where
-    comparison results = do
+    comparison (results, pageOut) = do
       when (length results /= length expected) $
         expectationFailure $ "Expected result to have " ++ show (length expected)
                              ++ " results. Got " ++ show results
@@ -70,9 +79,14 @@ becomes string expected = do
           isPlain _ = False
 
       forM_ (zip results expected) $ \(result, expected) ->
-        case find isPlain result of
-          Just (Display PlainText str) -> str `shouldBe` expected
-          Nothing -> expectationFailure $ "No plain-text output in " ++ show result
+        case extractPlain result  of
+          "" -> expectationFailure $ "No plain-text output in " ++ show result ++ "\nExpected: " ++ expected
+          str -> str `shouldBe` expected
+
+pages string expected = evaluationComparing comparison string
+  where
+    comparison (results, pageOut) =
+      strip pageOut `shouldBe` strip (unlines expected)
 
 completes string expected = completionTarget newString cursorloc `shouldBe` expected
   where (newString, cursorloc) = case elemIndex '*' string of
@@ -80,7 +94,7 @@ completes string expected = completionTarget newString cursorloc `shouldBe` expe
           Just idx -> (replace "*" "" string, idx)
 
 completionEvent :: String -> [String] -> Interpreter (String, [String])
-completionEvent string expected =  do
+completionEvent string expected =
       complete newString cursorloc
   where (newString, cursorloc) = case elemIndex '*' string of
           Nothing -> error "Expected cursor written as '*'."
@@ -273,7 +287,7 @@ evalTests = do
 
     it "evaluates directives" $ do
       ":typ 3" `becomes` ["forall a. Num a => a"]
-      ":in String" `becomes` ["type String = [Char] \t-- Defined in `GHC.Base'"]
+      ":in String" `pages` ["type String = [Char] \t-- Defined in `GHC.Base'"]
 
 parserTests = do
   layoutChunkerTests
