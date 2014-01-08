@@ -174,8 +174,8 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
       delimPolicy = Drop
     }
 
-    isDelim :: Char -> Int -> Bool
-    isDelim char idx = char `elem` neverIdent 
+    isDelim :: Char -> Int -> Bool 
+    isDelim char idx = char `elem` neverIdent  || isSymbol char
 
     splitAlongCursor :: [[(Char, Int)]] -> [[(Char, Int)]]
     splitAlongCursor [] = []
