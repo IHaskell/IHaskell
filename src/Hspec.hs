@@ -541,25 +541,22 @@ parseStringTests = describe "Parser" $ do
                           Located 4 (Expression "second")])
 
 
+parseShellTests = 
+  describe "Parsing Shell Commands" $ do
+    test "A" ["A"]
+    test ":load A" [":load", "A"]
+    test ":!l ~/Downloads/MyFile\\ Has\\ Spaces.txt" 
+                  [":!l", "~/Downloads/MyFile\\ Has\\ Spaces.txt"]
+    test ":!l \"~/Downloads/MyFile Has Spaces.txt\" /Another/File\\ WithSpaces.doc" 
+                  [":!l", "~/Downloads/MyFile Has Spaces.txt", "/Another/File\\ WithSpaces.doc" ]
+  where
+    test string expected = 
+      it ("parses " ++ string ++ " correctly") $
+            string `shouldParseTo` expected
 
-testParseShell string expected 
-        = do describe "parseShell" $ do
-              it ("parses " ++ string ++ " correctly: \n\t" ++ show expected)  $ do
-                    string `shouldParseTo` expected
-    where shouldParseTo :: String -> [String] -> Expectation
-          shouldParseTo xs ys = fun ys (parseShell xs)
-                where fun ys (Right xs')  = xs' `shouldBe` ys
-                      fun ys (Left e)     = assertFailure $ "parseShell returned error: \n" ++ show e
-
-parseShellTests = do 
-           testParseShell "A" ["A"]
-           testParseShell ":load A" [":load", "A"]
-           testParseShell ":!l ~/Downloads/MyFile\\ Has\\ Spaces.txt" 
-                         [":!l", "~/Downloads/MyFile\\ Has\\ Spaces.txt"]
-           testParseShell ":!l \"~/Downloads/MyFile Has Spaces.txt\" /Another/File\\ WithSpaces.doc" 
-                         [":!l", "~/Downloads/MyFile Has Spaces.txt", "/Another/File\\ WithSpaces.doc" ]
-
-
+    shouldParseTo xs ys = fun ys (parseShell xs)
+      where fun ys (Right xs')  = xs' `shouldBe` ys
+            fun ys (Left e)     = assertFailure $ "parseShell returned error: \n" ++ show e
 
 
 -- Useful HSpec expectations ----
