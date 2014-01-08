@@ -79,7 +79,9 @@ library
                        text >=0.11,
                        mtl >= 2.1,
                        transformers,
-                       haskeline
+                       haskeline,
+                       HUnit,
+                       parsec
 
   exposed-modules: IHaskell.Display
                    IHaskell.Eval.Completion
@@ -88,6 +90,7 @@ library
                    IHaskell.Eval.Lint
                    IHaskell.Eval.Parser
                    IHaskell.Eval.Stdin
+                   IHaskell.Eval.ParseShell
                    IHaskell.IPython
                    IHaskell.Message.Parser
                    IHaskell.Message.UUID
@@ -111,6 +114,7 @@ executable IHaskell
              IHaskell.Eval.Evaluate
              IHaskell.Eval.Parser
              IHaskell.Eval.Stdin
+             IHaskell.Eval.ParseShell
              IHaskell.IPython
              IHaskell.Message.Parser
              IHaskell.Message.UUID
@@ -154,7 +158,9 @@ executable IHaskell
                        text >=0.11,
                        mtl >= 2.1,
                        transformers,
-                       haskeline
+                       haskeline,
+                       HUnit,
+                       parsec
 
 Test-Suite hspec
   hs-source-dirs:      src
@@ -194,7 +200,9 @@ Test-Suite hspec
                        mtl >= 2.1,
                        transformers,
                        haskeline,
-                       HUnit
+                       HUnit,
+                       setenv,
+                       parsec
 
   extensions: DoAndIfThenElse
               OverloadedStrings
