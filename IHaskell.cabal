@@ -93,6 +93,7 @@ library
                    IHaskell.Eval.Stdin
                    IHaskell.Eval.Hoogle
                    IHaskell.Eval.ParseShell
+                   IHaskell.Eval.Util
                    IHaskell.IPython
                    IHaskell.Message.Parser
                    IHaskell.Message.UUID
@@ -118,6 +119,7 @@ executable IHaskell
              IHaskell.Eval.Stdin
              IHaskell.Eval.Hoogle
              IHaskell.Eval.ParseShell
+             IHaskell.Eval.Util
              IHaskell.IPython
              IHaskell.Message.Parser
              IHaskell.Message.UUID
