@@ -3,14 +3,17 @@ module IHaskell.Eval.Hoogle (
   search,
   document,
   render,
-  OutputFormat(..)
+  OutputFormat(..),
+  HoogleResult
   ) where
 
-import ClassyPrelude
+import ClassyPrelude hiding (span, div)
 import Text.Printf
 import Network.HTTP
 import Data.Aeson
 import Data.String.Utils
+import Data.List (elemIndex, (!!), last)
+import Control.Monad (guard)
 import qualified Data.ByteString.Lazy.Char8 as Char
 
 
@@ -32,6 +35,7 @@ data HoogleResult
      = SearchResult HoogleResponse
      | DocResult HoogleResponse
      | NoResult String
+     deriving Show
 
 instance FromJSON [HoogleResponse] where
   parseJSON (Object obj) = do
@@ -73,7 +77,10 @@ search string = do
     Right json ->
       case eitherDecode $ Char.pack json of
         Left err -> [NoResult err]
-        Right results -> map SearchResult results
+        Right results ->
+          case map SearchResult results of
+            [] -> [NoResult "no matching identifiers found."]
+            res -> res
 
 -- | Look up an identifier on Hoogle.
 -- Return documentation for that identifier. If there are many
@@ -81,9 +88,17 @@ search string = do
 document :: String -> IO [HoogleResult]
 document string = do
   matchingResults <- filter matches <$> search string
-  return $ map toDocResult matchingResults
+  let results = map toDocResult matchingResults
+  return $ case results of
+    [] -> [NoResult "no matching identifiers found."]
+    res -> res
   where
-    matches (SearchResult resp) = startswith "string" $ self resp
+    matches (SearchResult resp) = 
+      case split " " $ self resp of
+        name:_ -> strip string == strip name
+        _ -> False
+    matches _ = False
+
     toDocResult (SearchResult resp) = DocResult resp
 
 -- | Render a Hoogle search result into an output format.
@@ -115,38 +130,97 @@ renderHtml (NoResult resp) =
   printf "<span class='err-msg'>No result: %s</span>" resp
 
 renderHtml (DocResult resp) = 
-  printf "%s<br/><a href='%s'>...more...</a><br/><div class='hoogle-doc'>%s</div>"
-  (renderSelf $ self resp)
-  (location resp)
-  (renderDocs $ docs resp)
+  renderSelf (self resp) (location resp) 
+  ++
+  renderDocs (docs resp)
 
-renderHtml (SearchResult resp) = 
-  printf "%s<br/><a href='%s'>...more...</a><br/><div class='hoogle-doc'>%s</div>"
-  (renderSelf $ self resp)
-  (location resp)
-  (renderDocs $ docs resp)
+renderHtml (SearchResult resp) =
+  renderSelf (self resp) (location resp) 
+  ++
+  renderDocs (docs resp)
 
-renderSelf :: String -> String
-renderSelf string
+renderSelf :: String -> String -> String
+renderSelf string loc
   | startswith "package" string
-    = printf "%s <span class='hoogle-package-name'>%s</span>" pkg $ replace "package" "" string
+    = pkg ++ " " ++ span "hoogle-package" (link loc $ extractPackage string)
+
+  | startswith "module" string
+    = let package = extractPackageName loc in
+        mod ++ " " ++
+        span "hoogle-module" (link loc $ extractModule string) ++
+        packageSub package
+
   | otherwise
-    = printf "<span class='hoogle-name'>%s</span>" $ strip string
+    = let [name, args] = split "::" string
+          package = extractPackageName loc
+          modname = extractModuleName loc in
+        span "hoogle-name" (unicodeReplace $ 
+          link loc (strip name) ++
+          " :: " ++
+          strip args)
+        ++ packageAndModuleSub package modname
+
   where 
-    pkg = "<span class='hoogle-package'>package</span>" :: String
+    extractPackage = strip . replace "package" ""
+    extractModule = strip . replace "module" ""
+    pkg = span "hoogle-head" "package"
+    mod = span "hoogle-head" "module"
+
+    unicodeReplace :: String -> String
+    unicodeReplace =
+     replace "forall" "&#x2200;" . 
+     replace "=>"     "&#x21D2;" . 
+     replace "->"     "&#x2192;" . 
+     replace "::"     "&#x2237;"
+
+    packageSub Nothing = ""
+    packageSub (Just package) =
+      span "hoogle-sub" $ 
+        "(" ++ pkg ++ " " ++ span "hoogle-package" package ++ ")"
+
+    packageAndModuleSub Nothing _ = ""
+    packageAndModuleSub (Just package) Nothing = packageSub (Just package)
+    packageAndModuleSub (Just package) (Just modname) =
+        span "hoogle-sub" $ 
+          "(" ++ pkg ++ " " ++ span "hoogle-package" package ++ 
+           ", " ++ mod ++ " " ++ span "hoogle-module" modname ++ ")"
 
 renderDocs :: String -> String
 renderDocs doc = 
   let groups = groupBy bothAreCode $ lines doc
+      nonull = filter (not . null . strip)
       bothAreCode s1 s2 = 
         startswith ">" (strip s1) &&
         startswith ">" (strip s2)
       isCode (s:_) = startswith ">" $ strip s
       makeBlock lines =
         if isCode lines
-        then printf "<div class='hoogle-code'>%s<div>" $ unlines lines
-        else printf "<div class='hoogle-text'>%s<div>" $ unlines lines
+        then div "hoogle-code" $ unlines $ nonull lines
+        else div "hoogle-text" $ unlines $ nonull lines
       in
-    unlines $ map makeBlock groups
+    div "hoogle-doc" $ unlines $ map makeBlock groups
 
+extractPackageName :: String ->  Maybe String
+extractPackageName link = do
+  let pieces = split "/" link
+  archiveLoc <- elemIndex "archive" pieces
+  latestLoc <- elemIndex "latest" pieces
+  guard $ latestLoc - archiveLoc == 2
+  return $ pieces !! (latestLoc - 1)
 
+extractModuleName :: String ->  Maybe String
+extractModuleName link = do
+  let pieces = split "/" link
+  guard $ not $ null pieces
+  let html = last pieces
+      mod = replace "-" "." $ takeWhile (/= '.') html
+  return mod
+
+div :: String -> String -> String
+div = printf "<div class='%s'>%s</div>"
+
+span :: String -> String -> String
+span = printf "<span class='%s'>%s</span>"
+
+link :: String -> String -> String
+link = printf "<a target='_blank' href='%s'>%s</a>"

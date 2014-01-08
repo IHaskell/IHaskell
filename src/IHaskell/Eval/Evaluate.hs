@@ -610,21 +610,11 @@ evalCommand _ (Directive GetInfo str) state = safely state $ do
 
 evalCommand _ (Directive SearchHoogle query) state = safely state $ do
   results <- liftIO $ Hoogle.search query
-  let output = unlines $ map (Hoogle.render Hoogle.HTML) results
-  return EvalOut {
-    evalStatus = Success,
-    evalResult = [],
-    evalState = state,
-    evalPager = output
-  }
+  return $ hoogleResults state results
 
-evalCommand _ (Directive GetDoc query) state = safely state $
-  return EvalOut {
-    evalStatus = Success,
-    evalResult = [],
-    evalState = state,
-    evalPager = "Hoogle documentation queries not implemented yet."
-  }
+evalCommand _ (Directive GetDoc query) state = safely state $ do
+  results <- liftIO $ Hoogle.document query
+  return $ hoogleResults state results
 
 evalCommand output (Statement stmt) state = wrapExecution state $ do
   write $ "Statement:\n" ++ stmt
@@ -812,6 +802,21 @@ evalCommand _ (ParseError loc err) state = do
     evalState = state,
     evalPager = ""
   }
+
+
+hoogleResults :: KernelState -> [Hoogle.HoogleResult] -> EvalOut
+hoogleResults state results = EvalOut {
+    evalStatus = Success,
+    evalResult = [],
+    evalState = state,
+    evalPager = output
+  }
+  where
+    fmt = 
+        case getFrontend state of
+          IPythonNotebook -> Hoogle.HTML
+          IPythonConsole -> Hoogle.Plain
+    output = unlines $ map (Hoogle.render fmt) results
 
 -- Read from a file handle until we hit a delimiter or until we've read
 -- as many characters as requested
