@@ -20,6 +20,7 @@ module IHaskell.Types (
   KernelState(..),
   LintStatus(..),
   Width, Height,
+  FrontendType(..),
   defaultKernelState,
   extractPlain
   ) where
@@ -76,6 +77,7 @@ instance ToJSON Profile where
 data KernelState = KernelState
   { getExecutionCounter :: Int,
     getLintStatus :: LintStatus,  -- Whether to use hlint, and what arguments to pass it. 
+    getFrontend :: FrontendType,
     useSvg :: Bool,
     useShowErrors :: Bool,
     useShowTypes :: Bool
@@ -86,16 +88,23 @@ defaultKernelState :: KernelState
 defaultKernelState = KernelState
   { getExecutionCounter = 1,
     getLintStatus = LintOn,
+    getFrontend = IPythonConsole,
     useSvg = True,
     useShowErrors = False,
     useShowTypes = False
   }
 
+data FrontendType
+     = IPythonConsole
+     | IPythonNotebook
+     deriving (Show, Eq, Read)
+
 -- | Initialization information for the kernel.
 data InitInfo = InitInfo {
   extensions :: [String],   -- ^ Extensions to enable at start.
   initCells :: [String],    -- ^ Code blocks to run before start.
-  initDir :: String         -- ^ Which directory this kernel should pretend to operate in.
+  initDir :: String,        -- ^ Which directory this kernel should pretend to operate in.
+  frontend :: FrontendType  -- ^ What frontend this serves.
   }
   deriving (Show, Read)
 

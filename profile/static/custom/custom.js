@@ -49,6 +49,11 @@ $([IPython.events]).on('app_initialized.NotebookApp', function(){
     });
 
     IPython.CodeCell.options_default['cm_config']['mode'] = 'haskell';
+
+    // Prevent the pager from surrounding everything with a <pre>
+    IPython.Pager.prototype.append_text = function (text) {
+        this.pager_element.find(".container").append($('<div/>').html(IPython.utils.autoLinkUrls(text)));
+    };
 });
 
 $([IPython.events]).on('shell_reply.Kernel', function() {

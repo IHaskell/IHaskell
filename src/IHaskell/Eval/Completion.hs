@@ -207,7 +207,8 @@ completePathWithExtensions extensions line =
   completePathFilter (extensionIsOneOf extensions) acceptAll line ""
   where
     acceptAll = const True
-    extensionIsOneOf exts str = any (\ext -> endswith ext str) exts
+    extensionIsOneOf exts str = any correctEnding exts
+      where correctEnding ext = endswith ext str
 
 completePathFilter :: (String -> Bool)      -- ^ File filter: test whether to include this file.
                    -> (String -> Bool)      -- ^ Directory filter: test whether to include this directory.

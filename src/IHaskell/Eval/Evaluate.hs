@@ -64,6 +64,7 @@ import IHaskell.Types
 import IHaskell.Eval.Parser
 import IHaskell.Eval.Lint
 import IHaskell.Display
+import qualified IHaskell.Eval.Hoogle as Hoogle
 
 import Paths_ihaskell (version)
 import Data.Version (versionBranch)
@@ -549,19 +550,23 @@ evalCommand _ (Directive GetHelp _) state = do
   }
   where out = plain $ intercalate "\n"
           ["The following commands are available:"
-          ,"    :extension <Extension>    -  enable a GHC extension."
-          ,"    :extension No<Extension>  -  disable a GHC extension."
+          ,"    :extension <Extension>    -  Enable a GHC extension."
+          ,"    :extension No<Extension>  -  Disable a GHC extension."
           ,"    :type <expression>        -  Print expression type."
           ,"    :info <name>              -  Print all info for a name."
+          ,"    :hoogle <query>           -  Search for a query on Hoogle."
+          ,"    :doc <ident>              -  Get documentation for an identifier via Hogole."
           ,"    :set <opt>                -  Set an option."
-          ,"    :set no-<opt>              -  Unset an option."
+          ,"    :set no-<opt>             -  Unset an option."
           ,"    :?, :help                 -  Show this help text."
           ,""
           ,"Any prefix of the commands will also suffice, e.g. use :ty for :type."
           ,""
           ,"Options:"
-          ,"  lint       - enable or disable linting."
-          ,"  svg        - use svg output (cannot be resized)."
+          ,"  lint          - enable or disable linting."
+          ,"  svg           - use svg output (cannot be resized)."
+          ,"  show-types    - show types of all bound names"
+          ,"  show-errors   - display Show instance missing errors normally."
           ]
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
@@ -602,6 +607,14 @@ evalCommand _ (Directive GetInfo str) state = safely state $ do
     evalState = state,
     evalPager = unlines strings
   }
+
+evalCommand _ (Directive SearchHoogle query) state = safely state $ do
+  results <- liftIO $ Hoogle.search query
+  return $ hoogleResults state results
+
+evalCommand _ (Directive GetDoc query) state = safely state $ do
+  results <- liftIO $ Hoogle.document query
+  return $ hoogleResults state results
 
 evalCommand output (Statement stmt) state = wrapExecution state $ do
   write $ "Statement:\n" ++ stmt
@@ -789,6 +802,21 @@ evalCommand _ (ParseError loc err) state = do
     evalState = state,
     evalPager = ""
   }
+
+
+hoogleResults :: KernelState -> [Hoogle.HoogleResult] -> EvalOut
+hoogleResults state results = EvalOut {
+    evalStatus = Success,
+    evalResult = [],
+    evalState = state,
+    evalPager = output
+  }
+  where
+    fmt = 
+        case getFrontend state of
+          IPythonNotebook -> Hoogle.HTML
+          IPythonConsole -> Hoogle.Plain
+    output = unlines $ map (Hoogle.render fmt) results
 
 -- Read from a file handle until we hit a delimiter or until we've read
 -- as many characters as requested

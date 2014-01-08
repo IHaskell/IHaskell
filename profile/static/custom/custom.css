@@ -2,6 +2,39 @@
 Custom IHaskell CSS.
 */
 
+/* Styles used for the Hoogle display in the pager */
+.hoogle-doc {
+    display: block;
+    padding-bottom: 1.3em;
+    padding-left: 0.4em;
+}
+.hoogle-code {
+    display: block;
+    font-family: monospace;
+    white-space: pre;
+}
+.hoogle-text {
+    display: block;
+}
+.hoogle-name {
+    color: green;
+    font-weight: bold;
+}
+.hoogle-head {
+    font-weight: bold;
+}
+.hoogle-sub {
+    display: block;
+    margin-left: 0.4em;
+}
+.hoogle-package {
+    font-weight: bold;
+    font-style: italic;
+}
+.hoogle-module {
+    font-weight: bold;
+}
+
 /* Styles used for basic displays */
 .get-type {
     color: green;

@@ -48,6 +48,7 @@ data-files:
 library
   hs-source-dirs:      src
   build-depends:       base ==4.6.*,
+                       HTTP,
                        base64-bytestring >= 1.0,
                        process >= 1.1,
                        hlint,
@@ -88,6 +89,7 @@ library
                    IHaskell.Eval.Lint
                    IHaskell.Eval.Parser
                    IHaskell.Eval.Stdin
+                   IHaskell.Eval.Hoogle
                    IHaskell.IPython
                    IHaskell.Message.Parser
                    IHaskell.Message.UUID
@@ -111,6 +113,7 @@ executable IHaskell
              IHaskell.Eval.Evaluate
              IHaskell.Eval.Parser
              IHaskell.Eval.Stdin
+             IHaskell.Eval.Hoogle
              IHaskell.IPython
              IHaskell.Message.Parser
              IHaskell.Message.UUID
@@ -123,6 +126,7 @@ executable IHaskell
   
   -- Other library packages from which modules are imported.
   build-depends:       base ==4.6.*,
+                       HTTP,
                        base64-bytestring >= 1.0,
                        process >= 1.1,
                        hlint,
@@ -162,6 +166,7 @@ Test-Suite hspec
   Ghc-Options: -threaded
   Main-Is: Hspec.hs
   build-depends:       base ==4.6.*,
+                       HTTP,
                        base64-bytestring >= 1.0,
                        process >= 1.1,
                        hlint,

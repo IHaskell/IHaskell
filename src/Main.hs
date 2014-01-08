@@ -145,7 +145,7 @@ ihaskell (Args Console flags) = showingHelp Console flags $ do
   setupIPython
 
   flags <- addDefaultConfFile flags
-  info <- initInfo flags
+  info <- initInfo IPythonConsole flags
   runConsole info
 
 ihaskell (Args (View (Just fmt) (Just name)) []) =
@@ -160,7 +160,7 @@ ihaskell (Args Notebook flags) = showingHelp Notebook flags $ do
 
   flags <- addDefaultConfFile flags
 
-  undirInfo <- initInfo flags
+  undirInfo <- initInfo IPythonNotebook flags
   curdir <- getCurrentDirectory
   let info = undirInfo { initDir = curdir }
 
@@ -198,10 +198,10 @@ showingHelp mode flags act =
     chooseMode UpdateIPython = update
  
 -- | Parse initialization information from the flags.
-initInfo :: [Argument] -> IO InitInfo
-initInfo [] = return InitInfo { extensions = [], initCells = [], initDir = "."}
-initInfo (flag:flags) = do
-  info <- initInfo flags
+initInfo :: FrontendType -> [Argument] -> IO InitInfo
+initInfo front [] = return InitInfo { extensions = [], initCells = [], initDir = ".", frontend = front }
+initInfo front (flag:flags) = do
+  info <- initInfo front flags
   case flag of
     Extension ext -> return info { extensions = ext:extensions info }
     ConfFile filename -> do
@@ -227,6 +227,8 @@ runKernel profileSrc initInfo = do
 
   -- Create initial state in the directory the kernel *should* be in.
   state <- initialKernelState
+  modifyMVar_ state $ \kernelState -> return $
+    kernelState { getFrontend = frontend initInfo }
 
   -- Receive and reply to all messages on the shell socket.
   interpret True $ do

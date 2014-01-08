@@ -64,6 +64,8 @@ data DirectiveType
   | SetOpt          -- ^ Set various options.
   | ShellCmd        -- ^ Execute a shell command.
   | GetHelp         -- ^ General help via ':?' or ':help'.
+  | SearchHoogle    -- ^ Search for something via Hoogle.
+  | GetDoc          -- ^ Get documentation for an identifier via Hoogle.
   deriving (Show, Eq)
 
 -- | Unlocate something - drop the position.
@@ -238,6 +240,8 @@ parseDirective (':':directive) line = case find rightDirective directives of
     directives =
       [(GetType,      "type")
       ,(GetInfo,      "info")
+      ,(SearchHoogle, "hoogle")
+      ,(GetDoc,       "documentation")
       ,(SetExtension, "extension")
       ,(LoadFile,     "load")
       ,(SetOpt,       "set")
