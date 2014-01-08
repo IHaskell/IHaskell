@@ -53,6 +53,10 @@ import Exception hiding (evaluate)
 import Outputable
 import Packages
 import Module
+import qualified Pretty
+import FastString
+import Bag
+import ErrUtils (errMsgShortDoc, errMsgExtraInfo)
 
 import qualified System.IO.Strict as StrictIO
 
@@ -109,7 +113,9 @@ interpret allowedStdin action = runGhc (Just libdir) $ do
   -- Set the dynamic session flags
   originalFlags <- getSessionDynFlags
   let dflags = xopt_set originalFlags Opt_ExtendedDefaultRules
-  void $ setSessionDynFlags $ dflags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
+  void $ setSessionDynFlags $ dflags { hscTarget = HscInterpreted,
+                                       ghcLink = LinkInMemory,
+                                       pprCols = 300 }
 
   initializeImports
 
@@ -237,7 +243,7 @@ evaluate kernelState code output = do
     storeItCommand execCount = Statement $ printf "let it%d = it" execCount
 
 safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
-safely state = ghandle handler
+safely state = ghandle handler . ghandle sourceErrorHandler
   where
     handler :: SomeException -> Interpreter EvalOut
     handler exception =
@@ -247,6 +253,37 @@ safely state = ghandle handler
         evalState = state,
         evalPager = ""
       }
+
+    sourceErrorHandler :: SourceError -> Interpreter EvalOut
+    sourceErrorHandler srcerr = do
+      let msgs = bagToList $ srcErrorMessages srcerr
+      errStrs <- forM msgs $ \msg -> do
+        shortStr <- doc $ errMsgShortDoc msg 
+        contextStr <- doc $ errMsgExtraInfo msg 
+        return $ unlines [shortStr, contextStr]
+
+      let fullErr = unlines errStrs
+      
+      return EvalOut {
+        evalStatus = Failure,
+        evalResult = displayError fullErr,
+        evalState = state,
+        evalPager = ""
+      }
+      
+    doc :: GhcMonad m => SDoc -> m String
+    doc sdoc = do
+      flags <- getSessionDynFlags
+      let cols = pprCols flags
+          d = runSDoc sdoc (initSDocContext flags defaultUserStyle)
+      return $ Pretty.fullRender Pretty.PageMode cols 1.5 string_txt "" d
+      where
+        string_txt :: Pretty.TextDetails -> String -> String
+        string_txt (Pretty.Chr c)   s  = c:s
+        string_txt (Pretty.Str s1)  s2 = s1 ++ s2
+        string_txt (Pretty.PStr s1) s2 = unpackFS s1 ++ s2
+        string_txt (Pretty.LStr s1 _) s2 = unpackLitString s1 ++ s2
+    
 
 wrapExecution :: KernelState
               -> Interpreter [DisplayData]
@@ -968,39 +1005,12 @@ formatErrorWithClass :: String -> ErrMsg -> String
 formatErrorWithClass cls =
     printf "<span class='%s'>%s</span>" cls .
     replace "\n" "<br/>" .
-    fixLineWrapping .
     fixStdinError .
     replace useDashV "" .
     rstrip .
     typeCleaner
   where
     useDashV = "\nUse -v to see a list of the files searched for."
-    fixLineWrapping err
-      | isThreePartTypeError err =
-          let (before, exp:after) = break ("Expected type" `isInfixOf`)  $ lines err
-              (expected, act:actual) = break ("Actual type" `isInfixOf`) after in
-            unlines $ map unstripped [before, exp:expected, act:actual]
-      | isTwoPartTypeError err =
-          let (one, two) = break ("with actual type" `isInfixOf`)  $ lines err in
-            unlines $ map unstripped [one, two]
-      | isShowError err =
-          let (one, arising:possibleFix:two) = break ("arising" `isInfixOf`)  $ lines err in
-            unlines $ map unstripped [one, [arising], [possibleFix], two]
-      | otherwise = err
-      where
-        unstripped (line:lines) = unwords $ line:map lstrip lines
-
-    isThreePartTypeError err = all (`isInfixOf` err) [
-      "Couldn't match type",
-      "with",
-      "Expected type:",
-      "Actual type:"
-      ]
-    isTwoPartTypeError err = all (`isInfixOf` err) [
-      "Couldn't match expected type",
-      "with actual type"
-      ]
-
     isShowError err =
       startswith "No instance for (Show" err &&
       isInfixOf " arising from a use of `print'" err

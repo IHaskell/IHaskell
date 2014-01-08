@@ -1,4 +1,5 @@
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE QuasiQuotes, OverloadedStrings, ExtendedDefaultRules #-}
+-- Keep all the language pragmas here so it can be compiled separately.
 module Main where
 import Prelude
 import GHC
@@ -10,7 +11,7 @@ import Data.List
 import System.Directory
 import Shelly (Sh, shelly, cmd, (</>), toTextIgnore, cd, withTmpDir, mkdir_p,
   touchfile)
-import qualified Shelly as Shelly
+import qualified Shelly
 import Filesystem.Path.CurrentOS (encodeString)
 import Data.String.Here
 import Data.String.Utils (strip, replace)
