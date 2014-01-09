@@ -101,7 +101,7 @@ instance ToJSON StreamType where
 
 -- | Convert a MIME type and value into a JSON dictionary pair.
 displayDataToJson :: DisplayData -> (Text, Value) 
-displayDataToJson (Display mimeType dataStr) = pack (show mimeType) .= dataStr
+displayDataToJson (DisplayData mimeType dataStr) = pack (show mimeType) .= dataStr
 
 ----- Constants -----
 

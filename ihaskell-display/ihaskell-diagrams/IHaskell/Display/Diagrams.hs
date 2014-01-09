@@ -16,7 +16,7 @@ instance IHaskellDisplay (Diagram Cairo R2) where
   display renderable = do
     png <- diagramData renderable PNG
     svg <- diagramData renderable SVG
-    return [png, svg]
+    return $ Display [png, svg]
 
 diagramData :: Diagram Cairo R2 -> OutputType -> IO DisplayData
 diagramData renderable format = do

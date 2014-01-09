@@ -38,7 +38,7 @@ lintIdent = "lintIdentAEjlkQeh"
 
 -- | Given parsed code chunks, perform linting and output a displayable
 -- report on linting warnings and errors.
-lint :: [Located CodeBlock] -> IO [DisplayData]
+lint :: [Located CodeBlock] -> IO Display
 lint blocks = do
   let validBlocks = map makeValid blocks
       fileContents = joinBlocks validBlocks
@@ -50,8 +50,8 @@ lint blocks = do
   suggestions <- catMaybes <$> map parseSuggestion <$> hlint [filename, "--quiet"]
   return $
     if null suggestions
-    then []
-    else
+    then Display []
+    else Display
       [plain $ concatMap plainSuggestion suggestions, html $ htmlSuggestions suggestions]
   where
     -- Join together multiple valid file blocks into a single file.

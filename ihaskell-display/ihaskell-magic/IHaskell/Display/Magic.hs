@@ -24,7 +24,7 @@ instance IHaskellDisplay B.ByteString where
         m <- magicOpen []
         magicLoadDefault m
         f <- B.unsafeUseAsCStringLen x (magicCString m)
-        return [withClass (parseMagic f) x]
+        return $ Display [withClass (parseMagic f) x]
 
 b64 :: B.ByteString -> String
 b64 = Char.unpack . Base64.encode

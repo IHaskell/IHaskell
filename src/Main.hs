@@ -252,7 +252,8 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
         header <- dupHeader replyHeader ClearOutputMessage
         send $ ClearOutput header True
 
-      sendOutput outs = do
+      sendOutput (ManyDisplay manyOuts) = mapM_ sendOutput manyOuts
+      sendOutput (Display outs) = do
         header <- dupHeader replyHeader DisplayDataMessage
         send $ PublishDisplayData header "haskell" outs
 

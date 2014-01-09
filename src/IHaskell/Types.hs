@@ -20,12 +20,15 @@ module IHaskell.Types (
   Width, Height,
   FrontendType(..),
   ViewFormat(..),
+  Display(..),
   defaultKernelState,
   extractPlain
   ) where
 
 import            ClassyPrelude
 import qualified  Data.ByteString.Char8           as Char
+import            Data.Serialize
+import            GHC.Generics
 
 import            Text.Read                       as Read hiding (pfail, String)
 import            Text.ParserCombinators.ReadP
@@ -60,6 +63,12 @@ instance Read ViewFormat where
       "md" -> return Markdown
       _ -> pfail
 
+-- | Wrapper for ipython-kernel's DisplayData which allows sending multiple
+-- results from the same expression.
+data Display = Display [DisplayData]
+             | ManyDisplay [Display]
+             deriving (Show, Typeable, Generic)
+instance Serialize Display
 
 -- | All state stored in the kernel between executions.
 data KernelState = KernelState
@@ -108,9 +117,9 @@ data EvaluationResult =
   -- | An intermediate result which communicates what has been printed thus
   -- far.
   IntermediateResult {
-    outputs :: [DisplayData]      -- ^ Display outputs.
+    outputs :: Display      -- ^ Display outputs.
   }
   | FinalResult {
-    outputs :: [DisplayData],     -- ^ Display outputs.
+    outputs :: Display,     -- ^ Display outputs.
     pagerOut :: String            -- ^ Text to display in the IPython pager.
   }
