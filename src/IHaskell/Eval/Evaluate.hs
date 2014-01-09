@@ -216,7 +216,7 @@ type Publisher = (EvaluationResult -> IO ())
 -- | Output of a command evaluation.
 data EvalOut = EvalOut {
     evalStatus :: ErrorOccurred,
-    evalResult :: [DisplayData],
+    evalResult :: Display,
     evalState :: KernelState,
     evalPager :: String
   }
@@ -232,7 +232,7 @@ evaluate kernelState code output = do
 
   when (getLintStatus kernelState /= LintOff) $ liftIO $ do
     lintSuggestions <- lint cmds
-    unless (null lintSuggestions) $
+    unless (noResults lintSuggestions) $
       output $ FinalResult lintSuggestions ""
 
   updated <- runUntilFailure kernelState (map unloc cmds ++ [storeItCommand execCount])
@@ -240,6 +240,9 @@ evaluate kernelState code output = do
     getExecutionCounter = execCount + 1
   }
   where
+    noResults (Display res) = null res
+    noResults (ManyDisplay res) = all noResults res
+
     runUntilFailure :: KernelState -> [CodeBlock] -> Interpreter KernelState
     runUntilFailure state [] = return state
     runUntilFailure state (cmd:rest) = do
@@ -248,7 +251,7 @@ evaluate kernelState code output = do
       -- Output things only if they are non-empty.
       let result = evalResult evalOut
           helpStr = evalPager evalOut
-      unless (null result && null helpStr) $
+      unless (noResults result && null helpStr) $
         liftIO $ output $ FinalResult result helpStr
 
       let newState = evalState evalOut
@@ -302,7 +305,7 @@ doc sdoc = do
     
 
 wrapExecution :: KernelState
-              -> Interpreter [DisplayData]
+              -> Interpreter Display
               -> Interpreter EvalOut
 wrapExecution state exec = safely state $ exec >>= \res ->
     return EvalOut {
@@ -328,7 +331,7 @@ evalCommand _ (Import importStr) state = wrapExecution state $ do
   return $ if "Test.Hspec" `isInfixOf` importStr
            then displayError $ "Warning: Hspec is unusable in IHaskell until the resolution of GHC bug #8639." ++
                                 "\nThe variable `it` is shadowed and cannot be accessed, even in qualified form."
-           else []
+           else Display []
   where
     implicitImportOf :: ImportDecl RdrName -> InteractiveImport -> Bool
     implicitImportOf _ (IIModule _) = False
@@ -382,7 +385,7 @@ evalCommand _ (Directive SetExtension exts) state = wrapExecution state $ do
   write $ "Extension: " ++ exts
   results <- mapM setExtension (words exts)
   case catMaybes results of
-    [] -> return []
+    [] -> return $ Display []
     errors -> return $ displayError $ intercalate "\n" errors
 
 evalCommand _ (Directive GetType expr) state = wrapExecution state $ do
@@ -414,7 +417,7 @@ evalCommand _ (Directive SetOpt option) state = do
       newState = setOpt opt state
       out = case newState of
         Nothing -> displayError $ "Unknown option: " ++ opt
-        Just _ -> []
+        Just _ -> Display []
 
   return EvalOut {
     evalStatus = if isJust newState then Success else Failure,
@@ -462,7 +465,7 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
       if exists
       then do
         setCurrentDirectory directory
-        return []
+        return $ Display []
       else
         return $ displayError $ printf "No such directory: '%s'" directory
     cmd -> do
@@ -490,7 +493,7 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
         -- Maximum size of the output (after which we truncate).
         maxSize = 100 * 1000
         incSize = 200
-        output str = publish $ IntermediateResult [plain str]
+        output str = publish $ IntermediateResult $ Display [plain str]
 
         loop = do
           -- Wait and then check if the computation is done.
@@ -516,12 +519,12 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
           else do
             out <- readMVar outputAccum
             case fromJust exitCode of
-              ExitSuccess -> return [plain out]
+              ExitSuccess -> return $ Display [plain out]
               ExitFailure code -> do
                 let errMsg = "Process exited with error code " ++ show code
                     htmlErr = printf "<span class='err-msg'>%s</span>" errMsg
-                return [plain $ out ++ "\n" ++ errMsg,
-                        html $ printf "<span class='mono'>%s</span>" out ++ htmlErr]
+                return $ Display [plain $ out ++ "\n" ++ errMsg,
+                                  html $ printf "<span class='mono'>%s</span>" out ++ htmlErr]
 
       loop
 
@@ -531,7 +534,7 @@ evalCommand _ (Directive GetHelp _) state = do
   write "Help via :help or :?."
   return EvalOut {
     evalStatus = Success,
-    evalResult = [out],
+    evalResult = Display [out],
     evalState = state,
     evalPager = ""
   }
@@ -595,7 +598,7 @@ evalCommand _ (Directive GetInfo str) state = safely state $ do
 
   return EvalOut {
     evalStatus = Success,
-    evalResult = [],
+    evalResult = Display [],
     evalState = state,
     evalPager = output
   }
@@ -610,7 +613,7 @@ evalCommand _ (Directive GetDoc query) state = safely state $ do
 
 evalCommand output (Statement stmt) state = wrapExecution state $ do
   write $ "Statement:\n" ++ stmt
-  let outputter str = output $ IntermediateResult [plain str]
+  let outputter str = output $ IntermediateResult $ Display [plain str]
   (printed, result) <- capturedStatement outputter stmt
   case result of
     RunOk names -> do
@@ -628,7 +631,7 @@ evalCommand output (Statement stmt) state = wrapExecution state $ do
       -- Display the types of all bound names if the option is on.
       -- This is similar to GHCi :set +t.
       if not $ useShowTypes state
-      then return output
+      then return $ Display output
       else do
         -- Get all the type strings.
         types <- forM nonItNames $ \name -> do
@@ -639,11 +642,11 @@ evalCommand output (Statement stmt) state = wrapExecution state $ do
             htmled = unlines $ map formatGetType types
 
         return $ case extractPlain output of
-          "" -> [html htmled]
+          "" -> Display [html htmled]
 
           -- Return plain and html versions.
           -- Previously there was only a plain version.
-          text ->
+          text -> Display 
             [plain $ joined ++ "\n" ++ text,
              html  $ htmled ++ mono text]
 
@@ -654,7 +657,7 @@ evalCommand output (Expression expr) state = do
   write $ "Expression:\n" ++ expr
 
   -- Try to use `display` to convert our type into the output
-  -- DisplayData. If typechecking fails and there is no appropriate
+  -- Dislay If typechecking fails and there is no appropriate
   -- typeclass instance, this will throw an exception and thus `attempt` will
   -- return False, and we just resort to plaintext.
   let displayExpr = printf "(IHaskell.Display.display (%s))" expr :: String
@@ -686,24 +689,27 @@ evalCommand output (Expression expr) state = do
 
     -- Check if the error is due to trying to print something that doesn't
     -- implement the Show typeclass.
-    isShowError errs = 
+    isShowError (ManyDisplay _) = False
+    isShowError (Display errs) = 
         -- Note that we rely on this error message being 'type cleaned', so
         -- that `Show` is not displayed as GHC.Show.Show.
         startswith "No instance for (Show" msg &&
         isInfixOf " arising from a use of `print'" msg
       where msg = extractPlain errs
 
-    isPlain (Display mime _) = mime == PlainText
-    isSvg (Display mime _) = mime == MimeSvg
+    isSvg (DisplayData mime _) = mime == MimeSvg
+
+    removeSvg (Display disps) = Display $ filter (not . isSvg) disps
+    removeSvg (ManyDisplay disps) = ManyDisplay $ map removeSvg disps
 
     useDisplay displayExpr = wrapExecution state $ do
       -- If there are instance matches, convert the object into
-      -- a [DisplayData]. We also serialize it into a bytestring. We get
+      -- a Display. We also serialize it into a bytestring. We get
       -- the bytestring as a dynamic and then convert back to
       -- a bytestring, which we promptly unserialize. Note that
       -- attempting to do this without the serialization to binary and
       -- back gives very strange errors - all the types match but it
-      -- refuses to decode back into a [DisplayData].
+      -- refuses to decode back into a Display.
       -- Suppress output, so as not to mess up console.
       out <- capturedStatement (const $ return ()) displayExpr
 
@@ -713,20 +719,19 @@ evalCommand output (Expression expr) state = do
         Just bytestring ->
           case Serialize.decode bytestring of
             Left err -> error err
-            Right displayData -> do
-              write $ show displayData
+            Right display -> do
               return $
                 if useSvg state
-                then displayData
-                else filter (not . isSvg) displayData
+                then display
+                else removeSvg display
 
     postprocessShowError :: EvalOut -> EvalOut
-    postprocessShowError evalOut = evalOut { evalResult = map postprocess disps }
+    postprocessShowError evalOut = evalOut { evalResult = Display $ map postprocess disps }
       where
-        disps = evalResult evalOut
+        Display disps = evalResult evalOut
         text = extractPlain disps
 
-        postprocess (Display MimeHtml _) = html $ printf fmt unshowableType (formatErrorWithClass "err-msg collapse" text) script
+        postprocess (DisplayData MimeHtml _) = html $ printf fmt unshowableType (formatErrorWithClass "err-msg collapse" text) script
           where
             fmt = "<div class='collapse-group'><span class='btn' href='#' id='unshowable'>Unshowable:<span class='show-type'>%s</span></span>%s</div><script>%s</script>"
             script = unlines [
@@ -763,14 +768,14 @@ evalCommand _ (Declaration decl) state = wrapExecution state $ do
   -- Display the types of all bound names if the option is on.
   -- This is similar to GHCi :set +t.
   if not $ useShowTypes state
-  then return []
+  then return $ Display []
   else do
     -- Get all the type strings.
     types <- forM nonDataNames $ \name -> do
       theType <- showSDocUnqual dflags . ppr <$> exprType name
       return $ name ++ " :: " ++ theType
 
-    return [html $ unlines $ map formatGetType types]
+    return $ Display [html $ unlines $ map formatGetType types]
 
 evalCommand _ (TypeSignature sig) state = wrapExecution state $
   -- We purposefully treat this as a "success" because that way execution
@@ -792,7 +797,7 @@ evalCommand _ (ParseError loc err) state = do
 hoogleResults :: KernelState -> [Hoogle.HoogleResult] -> EvalOut
 hoogleResults state results = EvalOut {
     evalStatus = Success,
-    evalResult = [],
+    evalResult = Display [],
     evalState = state,
     evalPager = output
   }
@@ -826,7 +831,7 @@ readChars handle delims nchars = do
     Left _ -> return []
 
 
-doLoadModule :: String -> String -> Ghc [DisplayData]
+doLoadModule :: String -> String -> Ghc Display
 doLoadModule name modName = flip gcatch unload $ do
   -- Compile loaded modules.
   flags <- getSessionDynFlags
@@ -854,10 +859,10 @@ doLoadModule name modName = flip gcatch unload $ do
   setSessionDynFlags flags{ hscTarget = HscInterpreted }
 
   case result of
-    Succeeded -> return []
+    Succeeded -> return $ Display []
     Failed -> return $ displayError $ "Failed to load module " ++ modName
   where
-    unload :: SomeException -> Ghc [DisplayData]
+    unload :: SomeException -> Ghc Display
     unload exception = do
       -- Explicitly clear targets
       setTargets []
@@ -1036,11 +1041,11 @@ formatParseError (Loc line col) =
 formatGetType :: String -> String
 formatGetType = printf "<span class='get-type'>%s</span>"
 
-formatType :: String -> [DisplayData]
-formatType typeStr =  [plain typeStr, html $ formatGetType typeStr]
+formatType :: String -> Display
+formatType typeStr =  Display [plain typeStr, html $ formatGetType typeStr]
 
-displayError :: ErrMsg -> [DisplayData]
-displayError msg = [plain . fixStdinError . typeCleaner $ msg, html $ formatError msg]
+displayError :: ErrMsg -> Display
+displayError msg = Display [plain . fixStdinError . typeCleaner $ msg, html $ formatError msg]
 
 fixStdinError :: ErrMsg -> ErrMsg
 fixStdinError err =

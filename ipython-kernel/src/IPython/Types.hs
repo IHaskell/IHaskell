@@ -341,13 +341,13 @@ replyType ShutdownRequestMessage    = Just ShutdownReplyMessage
 replyType _ = Nothing
 
 -- | Data for display: a string with associated MIME type.
-data DisplayData = Display MimeType ByteString deriving (Typeable, Generic)
+data DisplayData = DisplayData MimeType ByteString deriving (Typeable, Generic)
 
 -- We can't print the actual data, otherwise this will be printed every
 -- time it gets computed because of the way the evaluator is structured.
 -- See how `displayExpr` is computed.
 instance Show DisplayData where
-  show _ = "Display"
+  show _ = "DisplayData"
 
 -- Allow DisplayData serialization
 instance Serialize DisplayData
@@ -369,9 +369,9 @@ extractPlain :: [DisplayData] -> String
 extractPlain disps =
   case find isPlain disps of
     Nothing -> ""
-    Just (Display PlainText bytestr) -> Char.unpack bytestr
+    Just (DisplayData PlainText bytestr) -> Char.unpack bytestr
   where
-    isPlain (Display mime _) = mime == PlainText
+    isPlain (DisplayData mime _) = mime == PlainText
 
 instance Show MimeType where
   show PlainText = "text/plain"

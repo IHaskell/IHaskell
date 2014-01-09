@@ -10,7 +10,7 @@ import Data.String.Here
 import IHaskell.Display
 
 instance IHaskellDisplay Value where
-  display renderable = return [plain json, html dom]
+  display renderable = return $ Display [plain json, html dom]
     where 
       json = unpack $ decodeUtf8 $ encodePretty renderable
       dom = [i|<div class="highlight-code" id="javascript">${json}</div>|]

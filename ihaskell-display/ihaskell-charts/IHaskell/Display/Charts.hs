@@ -26,7 +26,7 @@ instance IHaskellDisplay (Renderable a) where
     -- but SVGs are not resizable in the IPython notebook.
     svgDisp <- chartData renderable SVG
 
-    return [pngDisp, svgDisp]
+    return $ Display [pngDisp, svgDisp]
 
 chartData :: Renderable a -> FileFormat -> IO DisplayData
 chartData renderable format = do
