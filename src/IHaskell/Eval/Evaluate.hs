@@ -61,6 +61,7 @@ import ErrUtils (errMsgShortDoc, errMsgExtraInfo)
 import qualified System.IO.Strict as StrictIO
 
 import IHaskell.Types
+import IHaskell.IPython
 import IHaskell.Eval.Parser
 import IHaskell.Eval.Lint
 import IHaskell.Display
@@ -97,7 +98,7 @@ instance MonadIO.MonadIO Interpreter where
 globalImports :: [String]
 globalImports =
   [ "import IHaskell.Display"
-  , "import qualified IHaskell.Eval.Stdin"
+  , "import qualified IPython.Stdin"
   , "import Control.Applicative ((<$>))"
   , "import GHC.IO.Handle (hDuplicateTo, hDuplicate, hClose)"
   , "import System.Posix.IO"
@@ -123,8 +124,10 @@ interpret allowedStdin action = runGhc (Just libdir) $ do
 
   -- Close stdin so it can't be used.
   -- Otherwise it'll block the kernel forever.
+  dir <- liftIO getIHaskellDir
+  let cmd = printf "IPython.Stdin.fixStdin \"%s\"" dir
   when allowedStdin $ void $
-    runStmt "IHaskell.Eval.Stdin.fixStdin" RunToCompletion
+    runStmt cmd RunToCompletion
 
   initializeItVariable
 
@@ -190,9 +193,10 @@ initializeImports = do
 
 -- | Give a value for the `it` variable.
 initializeItVariable :: Interpreter ()
-initializeItVariable =
+initializeItVariable = do
   -- This is required due to the way we handle `it` in the wrapper
   -- statements - if it doesn't exist, the first statement will fail.
+  write "Setting `it` to unit."
   void $ runStmt "let it = ()" RunToCompletion
 
 -- | Publisher for IHaskell outputs.  The first argument indicates whether

@@ -48,21 +48,21 @@ data-files:
 library
   hs-source-dirs:      src
   build-depends:       base ==4.6.*,
+                       cereal == 0.3.*,
                        HTTP,
                        base64-bytestring >= 1.0,
                        process >= 1.1,
                        hlint,
                        cmdargs >= 0.10,
                        tar,
+                       ipython-kernel,
                        ghc-parser,
                        unix >= 2.6,
                        hspec,
-                       zeromq4-haskell >= 0.1,
                        aeson >=0.6,
                        MissingH >=1.2,
                        classy-prelude >=0.7,
                        bytestring >=0.10,
-                       uuid >=1.2.6,
                        containers >=0.5,
                        ghc ==7.6.*,
                        ghc-paths ==0.1.*,
@@ -76,8 +76,6 @@ library
                        here,
                        system-filepath,
                        filepath,
-                       cereal ==0.3.*,
-                       text >=0.11,
                        mtl >= 2.1,
                        transformers,
                        haskeline,
@@ -90,17 +88,12 @@ library
                    IHaskell.Eval.Info
                    IHaskell.Eval.Lint
                    IHaskell.Eval.Parser
-                   IHaskell.Eval.Stdin
                    IHaskell.Eval.Hoogle
                    IHaskell.Eval.ParseShell
                    IHaskell.Eval.Util
                    IHaskell.IPython
                    IHaskell.Flags
-                   IHaskell.Message.Parser
-                   IHaskell.Message.UUID
-                   IHaskell.Message.Writer
                    IHaskell.Types
-                   IHaskell.ZeroMQ
                    Paths_ihaskell
 
 executable IHaskell
@@ -108,7 +101,7 @@ executable IHaskell
   hs-source-dirs:      src
   main-is:             Main.hs
 
-  build-tools:         happy, cpphs
+  build-tools:         happy
   
   -- Modules included in this executable, other than Main.
   other-modules:       
@@ -117,23 +110,19 @@ executable IHaskell
              IHaskell.Eval.Info
              IHaskell.Eval.Evaluate
              IHaskell.Eval.Parser
-             IHaskell.Eval.Stdin
              IHaskell.Eval.Hoogle
              IHaskell.Eval.ParseShell
              IHaskell.Eval.Util
              IHaskell.IPython
              IHaskell.Flags
-             IHaskell.Message.Parser
-             IHaskell.Message.UUID
-             IHaskell.Message.Writer
              IHaskell.Types
-             IHaskell.ZeroMQ
              IHaskell.Display
 
   extensions: DoAndIfThenElse
   
   -- Other library packages from which modules are imported.
   build-depends:       base ==4.6.*,
+                       cereal == 0.3.*,
                        HTTP,
                        base64-bytestring >= 1.0,
                        process >= 1.1,
@@ -141,14 +130,13 @@ executable IHaskell
                        cmdargs >= 0.10,
                        tar,
                        ghc-parser,
+                       ipython-kernel,
                        unix >= 2.6,
                        hspec,
-                       zeromq4-haskell >= 0.1,
                        aeson >=0.6,
                        MissingH >=1.2,
                        classy-prelude >=0.7,
                        bytestring >=0.10,
-                       uuid >=1.2.6,
                        containers >=0.5,
                        ghc ==7.6.*,
                        ghc-paths ==0.1.*,
@@ -162,8 +150,6 @@ executable IHaskell
                        here,
                        system-filepath,
                        filepath,
-                       cereal ==0.3.*,
-                       text >=0.11,
                        mtl >= 2.1,
                        transformers,
                        haskeline,
@@ -176,6 +162,7 @@ Test-Suite hspec
   Ghc-Options: -threaded
   Main-Is: Hspec.hs
   build-depends:       base ==4.6.*,
+                       cereal == 0.3.*,
                        HTTP,
                        base64-bytestring >= 1.0,
                        process >= 1.1,
@@ -183,14 +170,13 @@ Test-Suite hspec
                        cmdargs >= 0.10,
                        tar,
                        ghc-parser,
+                       ipython-kernel,
                        unix >= 2.6,
                        hspec,
-                       zeromq4-haskell >= 0.1,
                        aeson >=0.6,
                        MissingH >=1.2,
                        classy-prelude >=0.7,
                        bytestring >=0.10,
-                       uuid >=1.2.6,
                        containers >=0.5,
                        ghc ==7.6.*,
                        ghc-paths ==0.1.*,
@@ -204,8 +190,6 @@ Test-Suite hspec
                        here,
                        system-filepath,
                        filepath,
-                       cereal ==0.3.*,
-                       text >=0.11,
                        mtl >= 2.1,
                        transformers,
                        haskeline,

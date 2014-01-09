@@ -1,28 +1,27 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, DoAndIfThenElse #-}
+{-# LANGUAGE OverloadedStrings, DoAndIfThenElse #-}
 -- | Description : Low-level ZeroMQ communication wrapper.
 --
 -- The "ZeroMQ" module abstracts away the low-level 0MQ based interface with IPython,
 -- replacing it instead with a Haskell Channel based interface. The `serveProfile` function
 -- takes a IPython profile specification and returns the channel interface to use.
-module IHaskell.ZeroMQ (
+module IPython.ZeroMQ (
   ZeroMQInterface (..),
   ZeroMQStdin(..),
   serveProfile,
   serveStdin,
   ) where
 
-import ClassyPrelude hiding (stdin)
-import Control.Concurrent
-import System.ZMQ4 hiding (stdin)
-import Data.Aeson (encode)
+import qualified  Data.ByteString.Lazy  as ByteString
+import            Data.ByteString       (ByteString)
+import            Control.Concurrent
+import            Control.Monad 
+import            System.IO.Unsafe
+import            Data.Aeson            (encode)
+import            System.ZMQ4           hiding (stdin)
 
-import qualified Data.ByteString.Lazy as ByteString
-
-import IHaskell.Types
-import IHaskell.Message.Parser
-import IHaskell.Message.Writer
-
-import System.IO.Unsafe
+import IPython.Types
+import IPython.Message.Parser
+import IPython.Message.Writer
 
 -- | The channel interface to the ZeroMQ sockets. All communication is done via
 -- Messages, which are encoded and decoded into a lower level form before being
@@ -97,7 +96,7 @@ serveStdin profile = do
 serveSocket :: SocketType a => Context -> a -> Port -> (Socket a -> IO b) -> IO ()
 serveSocket context socketType port action = void $
   withSocket context socketType $ \socket -> do
-    bind socket $ unpack $ "tcp://127.0.0.1:" ++ show port
+    bind socket $ "tcp://127.0.0.1:" ++ show port
     forever $ action socket
 
 -- | Listener on the heartbeat port. Echoes back any data it was sent.

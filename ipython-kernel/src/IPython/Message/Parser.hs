@@ -1,19 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 -- | Description : Parsing messages received from IPython
 --
 -- This module is responsible for converting from low-level ByteStrings
 -- obtained from the 0MQ sockets into Messages. The only exposed function is
 -- `parseMessage`, which should only be used in the low-level 0MQ interface.
-module IHaskell.Message.Parser (parseMessage) where
+module IPython.Message.Parser (parseMessage) where
 
-import ClassyPrelude
-import Data.Aeson ((.:), decode, Result(..), Object)
-import Data.Aeson.Types (parse)
+import            Data.Aeson            ((.:), decode, Result(..), Object)
+import            Control.Applicative   ((<|>))
+import            Data.Aeson.Types      (parse)
+import            Data.ByteString
+import qualified  Data.ByteString.Lazy  as Lazy
+import            Data.Map              (Map)
 
-import qualified Data.ByteString.Lazy as Lazy
+import IPython.Types
 
-import IHaskell.Types
+type LByteString = Lazy.ByteString
 
 ----- External interface -----
 

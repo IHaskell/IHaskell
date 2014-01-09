@@ -1,31 +1,25 @@
-{-# LANGUAGE CPP, NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
 -- | Description : @ToJSON@ for Messages
 --
 -- This module contains the @ToJSON@ instance for @Message@.
-module IHaskell.Message.Writer (
+module IPython.Message.Writer (
   ToJSON(..)
 )  where
 
-import Prelude (read)
-import ClassyPrelude
 import Data.Aeson
+import Data.Map     (Map)
+import Data.Text    (Text, pack)
+import Data.Monoid  (mempty)
 
-import Shelly hiding (trace)
 
-import IHaskell.Types
-
--- | Compute the GHC API version number using the dist/build/autogen/cabal_macros.h
-ghcVersionInts :: [Int]
-ghcVersionInts = ints . map read . words . map dotToSpace $ VERSION_ghc
-  where dotToSpace '.' = ' '
-        dotToSpace x = x
+import IPython.Types
 
 -- Convert message bodies into JSON.
 instance ToJSON Message where
-  toJSON KernelInfoReply{} = object [
+  toJSON KernelInfoReply{ versionList = vers, language = language } = object [
                              "protocol_version" .= ints [4, 0], -- current protocol version, major and minor
-                             "language_version" .= ghcVersionInts,
-                             "language" .= string "haskell"
+                             "language_version" .= vers,
+                             "language" .= language
                            ]
 
   toJSON ExecuteReply{ status = status, executionCounter = counter, pagerOutput = pager} = object [
