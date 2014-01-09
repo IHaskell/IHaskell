@@ -116,9 +116,19 @@ interpret allowedStdin action = runGhc (Just libdir) $ do
   -- Set the dynamic session flags
   originalFlags <- getSessionDynFlags
   let dflags = xopt_set originalFlags Opt_ExtendedDefaultRules
+
+  -- If we're in a sandbox, add the relevant package database
+  sandboxPackages <- liftIO getSandboxPackageConf
+  let pkgConfs = case sandboxPackages of
+        Nothing -> extraPkgConfs dflags
+        Just path -> 
+          let pkg  = PkgConfFile path in
+            (pkg:) . extraPkgConfs dflags
+
   void $ setSessionDynFlags $ dflags { hscTarget = HscInterpreted,
                                        ghcLink = LinkInMemory,
-                                       pprCols = 300 }
+                                       pprCols = 300,
+                                       extraPkgConfs = pkgConfs }
 
   initializeImports
 

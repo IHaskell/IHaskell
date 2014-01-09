@@ -12,6 +12,7 @@ module IHaskell.IPython (
   readInitInfo,
   defaultConfFile,
   getIHaskellDir,
+  getSandboxPackageConf,
   nbconvert,
   ViewFormat(..),
 ) where
@@ -23,7 +24,7 @@ import System.Argv0
 import System.Directory
 import qualified Filesystem.Path.CurrentOS as FS
 import Data.List.Utils (split)
-import Data.String.Utils (rstrip)
+import Data.String.Utils (rstrip, endswith)
 import Text.Printf
 
 import qualified System.IO.Strict as StrictIO
@@ -391,3 +392,19 @@ getIHaskellPath = do
       -- If it's actually a relative path, make it absolute.
       cd <- liftIO getCurrentDirectory
       return $ FS.encodeString $ FS.decodeString cd FS.</> f
+
+getSandboxPackageConf :: IO (Maybe String)
+getSandboxPackageConf = shellyNoDir $ do
+  myPath <- getIHaskellPath
+  let sandboxName = ".cabal-sandbox"
+  if not $ sandboxName`isInfixOf` myPath
+  then return Nothing
+  else do
+    let pieces = split "/" myPath
+        sandboxDir = intercalate "/" $ (takeWhile (/= sandboxName) pieces)  ++ [sandboxName]
+    subdirs <- ls $ fpFromString sandboxDir
+    let confdirs = filter (endswith "packages.conf.d") $ map fpToString subdirs
+    case confdirs of
+      [] -> return Nothing
+      dir:_ -> 
+        return $ Just dir
