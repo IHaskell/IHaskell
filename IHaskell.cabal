@@ -101,7 +101,7 @@ executable IHaskell
   hs-source-dirs:      src
   main-is:             Main.hs
 
-  build-tools:         happy
+  build-tools:         happy, cpphs
   
   -- Modules included in this executable, other than Main.
   other-modules:       

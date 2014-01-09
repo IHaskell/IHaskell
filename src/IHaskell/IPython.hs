@@ -197,7 +197,7 @@ installPipDependencies = withTmpDir $ \tmpDir ->
 
       -- Extract it.
       cd tmpDir
-      run_ tarPath ["-xf", versioned ++ ".tar.gz"]
+      run_ tarPath ["-xzf", versioned ++ ".tar.gz"]
 
       -- Install it.
       cd $ fromText versioned
