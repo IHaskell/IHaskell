@@ -652,38 +652,29 @@ evalCommand output (Statement stmt) state = wrapExecution state $ do
 
 evalCommand output (Expression expr) state = do
   write $ "Expression:\n" ++ expr
-  -- Check if we can display this.
-  let displayExpr = printf "(IHaskell.Display.display (%s))" expr :: String
-  canRunDisplay <- attempt $ exprType displayExpr
-
-  -- Evaluate this expression as though it's just a statement.
-  -- The output is bound to 'it', so we can then use it.
-  evalOut <- evalCommand output (Statement expr) state
 
   -- Try to use `display` to convert our type into the output
   -- DisplayData. If typechecking fails and there is no appropriate
   -- typeclass instance, this will throw an exception and thus `attempt` will
   -- return False, and we just resort to plaintext.
-  let out = evalResult evalOut
-      showErr = isShowError out
-  write $ printf "%s: Attempting %s" (if canRunDisplay then "Success" else "Failure") displayExpr
-  write $ "Show Error: " ++ show showErr
-  write $ show out
+  let displayExpr = printf "(IHaskell.Display.display (%s))" expr :: String
+  canRunDisplay <- attempt $ exprType displayExpr
 
-  -- If evaluation failed, return the failure.  If it was successful, we
-  -- may be able to use the IHaskellDisplay typeclass.
-  if not canRunDisplay
-  then return $ if not showErr || useShowErrors state
-                then evalOut
-                else postprocessShowError evalOut
-  else case evalStatus evalOut of
-    Success -> useDisplay displayExpr
+  if canRunDisplay
+  then useDisplay displayExpr
+  else do
+    -- Evaluate this expression as though it's just a statement.
+    -- The output is bound to 'it', so we can then use it.
+    evalOut <- evalCommand output (Statement expr) state
 
-    -- If something other than the show failed, don't use display, just
-    -- show the error message.
-    Failure -> if showErr
-              then useDisplay displayExpr
-              else return evalOut
+    let out = evalResult evalOut
+        showErr = isShowError out
+
+    -- If evaluation failed, return the failure.  If it was successful, we
+    -- may be able to use the IHaskellDisplay typeclass.
+    return $ if not showErr || useShowErrors state
+            then evalOut
+            else postprocessShowError evalOut
 
   where
     -- Try to evaluate an action. Return True if it succeeds and False if
