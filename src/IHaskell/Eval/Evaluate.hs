@@ -61,10 +61,12 @@ import ErrUtils (errMsgShortDoc, errMsgExtraInfo)
 import qualified System.IO.Strict as StrictIO
 
 import IHaskell.Types
+import IHaskell.IPython
 import IHaskell.Eval.Parser
 import IHaskell.Eval.Lint
 import IHaskell.Display
 import qualified IHaskell.Eval.Hoogle as Hoogle
+import IHaskell.Eval.Util
 
 import Paths_ihaskell (version)
 import Data.Version (versionBranch)
@@ -96,7 +98,7 @@ instance MonadIO.MonadIO Interpreter where
 globalImports :: [String]
 globalImports =
   [ "import IHaskell.Display"
-  , "import qualified IHaskell.Eval.Stdin"
+  , "import qualified IPython.Stdin"
   , "import Control.Applicative ((<$>))"
   , "import GHC.IO.Handle (hDuplicateTo, hDuplicate, hClose)"
   , "import System.Posix.IO"
@@ -122,8 +124,10 @@ interpret allowedStdin action = runGhc (Just libdir) $ do
 
   -- Close stdin so it can't be used.
   -- Otherwise it'll block the kernel forever.
+  dir <- liftIO getIHaskellDir
+  let cmd = printf "IPython.Stdin.fixStdin \"%s\"" dir
   when allowedStdin $ void $
-    runStmt "IHaskell.Eval.Stdin.fixStdin" RunToCompletion
+    runStmt cmd RunToCompletion
 
   initializeItVariable
 
@@ -189,9 +193,10 @@ initializeImports = do
 
 -- | Give a value for the `it` variable.
 initializeItVariable :: Interpreter ()
-initializeItVariable =
+initializeItVariable = do
   -- This is required due to the way we handle `it` in the wrapper
   -- statements - if it doesn't exist, the first statement will fail.
+  write "Setting `it` to unit."
   void $ runStmt "let it = ()" RunToCompletion
 
 -- | Publisher for IHaskell outputs.  The first argument indicates whether
@@ -272,18 +277,18 @@ safely state = ghandle handler . ghandle sourceErrorHandler
         evalPager = ""
       }
       
-    doc :: GhcMonad m => SDoc -> m String
-    doc sdoc = do
-      flags <- getSessionDynFlags
-      let cols = pprCols flags
-          d = runSDoc sdoc (initSDocContext flags defaultUserStyle)
-      return $ Pretty.fullRender Pretty.PageMode cols 1.5 string_txt "" d
-      where
-        string_txt :: Pretty.TextDetails -> String -> String
-        string_txt (Pretty.Chr c)   s  = c:s
-        string_txt (Pretty.Str s1)  s2 = s1 ++ s2
-        string_txt (Pretty.PStr s1) s2 = unpackFS s1 ++ s2
-        string_txt (Pretty.LStr s1 _) s2 = unpackLitString s1 ++ s2
+doc :: GhcMonad m => SDoc -> m String
+doc sdoc = do
+  flags <- getSessionDynFlags
+  let cols = pprCols flags
+      d = runSDoc sdoc (initSDocContext flags defaultUserStyle)
+  return $ Pretty.fullRender Pretty.PageMode cols 1.5 string_txt "" d
+  where
+    string_txt :: Pretty.TextDetails -> String -> String
+    string_txt (Pretty.Chr c)   s  = c:s
+    string_txt (Pretty.Str s1)  s2 = s1 ++ s2
+    string_txt (Pretty.PStr s1) s2 = unpackFS s1 ++ s2
+    string_txt (Pretty.LStr s1 _) s2 = unpackLitString s1 ++ s2
     
 
 wrapExecution :: KernelState
@@ -369,34 +374,6 @@ evalCommand _ (Directive SetExtension exts) state = wrapExecution state $ do
   case catMaybes results of
     [] -> return []
     errors -> return $ displayError $ intercalate "\n" errors
-  where
-    -- Set an extension and update flags.
-    -- Return Nothing on success. On failure, return an error message.
-    setExtension :: String -> Interpreter (Maybe ErrMsg)
-    setExtension ext = do
-      flags <- getSessionDynFlags
-      -- First, try to check if this flag matches any extension name.
-      let newFlags =
-            case find (flagMatches ext) xFlags of
-              Just (_, flag, _) -> Just $ xopt_set flags flag
-              -- If it doesn't match an extension name, try matching against
-              -- disabling an extension.
-              Nothing ->
-                case find (flagMatchesNo ext) xFlags of
-                  Just (_, flag, _) -> Just $ xopt_unset flags flag
-                  Nothing -> Nothing
-
-      -- Set the flag if we need to.
-      case newFlags of
-        Just flags -> setSessionDynFlags flags >> return Nothing
-        Nothing -> return $ Just $ "Could not parse extension name: " ++ ext
-
-    -- Check if a FlagSpec matches an extension name.
-    flagMatches ext (name, _, _) = ext == name
-
-    -- Check if a FlagSpec matches "No<ExtensionName>".
-    -- In that case, we disable the extension.
-    flagMatchesNo ext (name, _, _) = ext == "No"  ++ name
 
 evalCommand _ (Directive GetType expr) state = wrapExecution state $ do
   write $ "Type: " ++ expr
@@ -594,18 +571,23 @@ evalCommand _ (Directive GetInfo str) state = safely state $ do
             if fixity == GHC.defaultFixity
             then empty
             else ppr fixity <+> pprInfixName (getName thing)
-      outs = map printInfo filteredOutput
 
   -- Print nicely.
-  unqual <- getPrintUnqual
-  flags <- getSessionDynFlags
-  let strings = map (showSDocForUser flags unqual) outs
+  strings <- mapM (doc . printInfo) filteredOutput
+  let output = case getFrontend state of
+        IPythonConsole -> unlines strings
+        IPythonNotebook -> unlines (map htmlify strings)
+      htmlify str =
+        printf "<div style='background: rgb(247, 247, 247);'><form><textarea id='code'>%s</textarea></form></div>" str
+        ++ script
+      script = 
+        "<script>CodeMirror.fromTextArea(document.getElementById('code'), {mode: 'haskell', readOnly: 'nocursor'});</script>"
 
   return EvalOut {
     evalStatus = Success,
     evalResult = [],
     evalState = state,
-    evalPager = unlines strings
+    evalPager = output
   }
 
 evalCommand _ (Directive SearchHoogle query) state = safely state $ do

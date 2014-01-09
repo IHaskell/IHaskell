@@ -1,14 +1,14 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 -- | Description : UUID generator and data structure
 --
 -- Generate, parse, and pretty print UUIDs for use with IPython.
-module IHaskell.Message.UUID (
+module IPython.Message.UUID (
   UUID,
   random, randoms,
   ) where
 
-import ClassyPrelude
-import Control.Monad (mzero)
+import Control.Monad (mzero, replicateM)
+import Control.Applicative ((<$>))
+import Data.Text (pack)
 import Data.Aeson
 import Data.UUID.V4 (nextRandom)
 

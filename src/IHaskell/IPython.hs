@@ -26,43 +26,11 @@ import Data.List.Utils (split)
 import Data.String.Utils (rstrip)
 import Text.Printf
 
-import Text.Read as Read hiding (pfail)
-import Text.ParserCombinators.ReadP
-
 import qualified System.IO.Strict as StrictIO
 import qualified Paths_ihaskell as Paths
 import qualified Codec.Archive.Tar as Tar
 
 import IHaskell.Types
-
-data ViewFormat
-     = Pdf
-     | Html
-     | Ipynb
-     | Markdown
-     | Latex
-     deriving Eq
-
-instance Show ViewFormat where
-  show Pdf         = "pdf"
-  show Html        = "html"
-  show Ipynb       = "ipynb"
-  show Markdown    = "markdown"
-  show Latex       = "latex"
-
-instance Read ViewFormat where
-  readPrec = Read.lift $ do
-    str <- munch (const True)
-    case str of
-      "pdf" -> return Pdf
-      "html" -> return Html
-      "ipynb" -> return Ipynb
-      "notebook" -> return Ipynb
-      "latex" -> return Latex
-      "markdown" -> return Markdown
-      "md" -> return Markdown
-      _ -> pfail
-
 
 -- | Which commit of IPython we are on.
 ipythonCommit :: Text
@@ -229,7 +197,7 @@ installPipDependencies = withTmpDir $ \tmpDir ->
 
       -- Extract it.
       cd tmpDir
-      run_ tarPath ["-xf", versioned ++ ".tar.gz"]
+      run_ tarPath ["-xzf", versioned ++ ".tar.gz"]
 
       -- Install it.
       cd $ fromText versioned

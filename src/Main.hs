@@ -1,137 +1,52 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE NoImplicitPrelude, CPP, OverloadedStrings, ScopedTypeVariables #-}
 -- | Description : Argument parsing and basic messaging loop, using Haskell
 --                 Chans to communicate with the ZeroMQ sockets. 
 module Main where
 import ClassyPrelude hiding (liftIO)
-import Prelude (last)
+import Prelude (last, read)
 import Control.Concurrent.Chan
 import Control.Concurrent (threadDelay)
 import Data.Aeson
 import Text.Printf
 import System.Exit (exitSuccess)
 import System.Directory
-import System.Console.CmdArgs.Explicit hiding (complete)
 
 import qualified Data.Map as Map
 
 import IHaskell.Types
-import IHaskell.ZeroMQ
-import qualified IHaskell.Message.UUID as UUID
+import IPython.ZeroMQ
+import qualified IPython.Message.UUID as UUID
 import IHaskell.Eval.Evaluate
 import IHaskell.Eval.Completion (complete)
 import IHaskell.Eval.Info
 import qualified Data.ByteString.Char8 as Chars
 import IHaskell.IPython
-import qualified IHaskell.Eval.Stdin as Stdin
+import qualified IPython.Stdin as Stdin
+import IHaskell.Flags
 
-import GHC hiding (extensions)
+import GHC hiding (extensions, language)
 import Outputable (showSDoc, ppr)
 
--- Command line arguments to IHaskell.  A set of aruments is annotated with
--- the mode being invoked.
-data Args = Args IHaskellMode [Argument]
+-- | Compute the GHC API version number using the dist/build/autogen/cabal_macros.h
+ghcVersionInts :: [Int]
+ghcVersionInts = map read . words . map dotToSpace $ VERSION_ghc
+  where dotToSpace '.' = ' '
+        dotToSpace x = x
 
-data Argument
-  = ServeFrom String    -- ^ Which directory to serve notebooks from.
-  | Extension String    -- ^ An extension to load at startup.
-  | ConfFile String     -- ^ A file with commands to load at startup.
-  | Help                -- ^ Display help text.
-  deriving (Eq, Show)
-
--- Which mode IHaskell is being invoked in.
--- `None` means no mode was specified.
-data IHaskellMode
-  = None
-  | Notebook
-  | Console
-  | UpdateIPython
-  | Kernel (Maybe String)
-  | View (Maybe ViewFormat) (Maybe String)
-  deriving (Eq, Show)
 
 main ::  IO ()
 main = do
-  stringArgs <- map unpack <$> getArgs
-  case process ihaskellArgs stringArgs of
-    Left errmsg -> putStrLn $ pack errmsg
+  args <- parseFlags <$> map unpack <$> getArgs
+  case args of
+    Left errorMessage -> 
+      hPutStrLn stderr errorMessage
     Right args ->
       ihaskell args
 
-universalFlags :: [Flag Args]
-universalFlags = [
-  flagReq ["extension","e", "X"] (store Extension) "<ghc-extension>" "Extension to enable at start.",
-  flagReq ["conf","c"] (store ConfFile) "<file.hs>" "File with commands to execute at start.",
-  flagHelpSimple (add Help)
-  ]
-  where 
-    add flag (Args mode flags) = Args mode $ flag : flags
-
-store :: (String -> Argument) -> String -> Args -> Either String Args
-store constructor str (Args mode prev) = Right $ Args mode $ constructor str : prev
-
-notebook :: Mode Args
-notebook = mode "notebook" (Args Notebook []) "Browser-based notebook interface." noArgs $
-  flagReq ["serve","s"] (store ServeFrom) "<dir>" "Directory to serve notebooks from.":
-  universalFlags
-
-console :: Mode Args
-console = mode "console" (Args Console []) "Console-based interactive repl." noArgs universalFlags
-
-kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg []
-  where
-    kernelArg = flagArg update "<json-kernel-file>"
-    update filename (Args _ flags) = Right $ Args (Kernel $ Just filename) flags
-
-update :: Mode Args
-update = mode "update" (Args UpdateIPython []) "Update IPython frontends." noArgs []
-
-view :: Mode Args
-view = (modeEmpty $ Args (View Nothing Nothing) []) {
-      modeNames = ["view"],
-      modeCheck  =
-        \a@(Args (View fmt file) _) ->
-          if not (isJust fmt && isJust file)
-          then Left "Syntax: IHaskell view <format> <name>[.ipynb]"
-          else Right a,
-      modeHelp = concat [
-        "Convert an IHaskell notebook to another format.\n",
-        "Notebooks are searched in the IHaskell directory and the current directory.\n",
-        "Available formats are " ++ intercalate ", " (map show 
-          ["pdf", "html", "ipynb", "markdown", "latex"]),
-        "."
-      ],
-      modeArgs = ([formatArg, filenameArg], Nothing)
-                                                    
-  }
-  where
-    formatArg = flagArg updateFmt "<format>"
-    filenameArg = flagArg updateFile "<name>[.ipynb]"
-    updateFmt fmtStr (Args (View _ s) flags) = 
-      case readMay fmtStr of
-        Just fmt -> Right $ Args (View (Just fmt) s) flags
-        Nothing -> Left $ "Invalid format '" ++ fmtStr ++ "'."
-    updateFile name (Args (View f _) flags) = Right $ Args (View f (Just name)) flags
-  
-
-ihaskellArgs :: Mode Args
-ihaskellArgs =
-  let descr = "Haskell for Interactive Computing." 
-      onlyHelp = [flagHelpSimple (add Help)]
-      noMode = mode "IHaskell" (Args None []) descr noArgs onlyHelp in
-    noMode { modeGroupModes = toGroup [console, notebook, view, update, kernel] }
-  where 
-    add flag (Args mode flags) = Args mode $ flag : flags
-
-noArgs = flagArg unexpected ""
-  where
-    unexpected a = error $ "Unexpected argument: " ++ a
-
 ihaskell :: Args -> IO ()
 -- If no mode is specified, print help text.
-ihaskell (Args None _) = 
-  print $ helpText [] HelpFormatAll ihaskellArgs
+ihaskell (Args (ShowHelp help) _) = 
+  putStrLn $ pack help
 
 -- Update IPython: remove then reinstall.
 -- This is in case cabal updates IHaskell but the corresponding IPython
@@ -188,14 +103,9 @@ showingHelp :: IHaskellMode -> [Argument] -> IO () -> IO ()
 showingHelp mode flags act =
   case find (==Help) flags of
     Just _ ->
-      print $ helpText [] HelpFormatAll $ chooseMode mode
+      putStrLn $ pack $ help mode
     Nothing ->
       act
-  where
-    chooseMode Console = console
-    chooseMode Notebook = notebook
-    chooseMode (Kernel _) = kernel
-    chooseMode UpdateIPython = update
  
 -- | Parse initialization information from the flags.
 initInfo :: FrontendType -> [Argument] -> IO InitInfo
@@ -220,7 +130,8 @@ runKernel profileSrc initInfo = do
   Just profile <- liftM decode . readFile . fpFromText $ pack profileSrc
 
   -- Necessary for `getLine` and their ilk to work.
-  Stdin.recordKernelProfile profile
+  dir <- getIHaskellDir
+  Stdin.recordKernelProfile dir profile
 
   -- Serve on all sockets and ports defined in the profile.
   interface <- serveProfile profile
@@ -278,6 +189,8 @@ createReplyHeader :: MessageHeader -> Interpreter MessageHeader
 createReplyHeader parent = do
   -- Generate a new message UUID.
   newMessageId <- liftIO UUID.random
+  let repType = fromMaybe err (replyType $ msgType parent)
+      err = error $ "No reply for message " ++ show (msgType parent)
 
   return MessageHeader {
     identifiers = identifiers parent,
@@ -286,7 +199,7 @@ createReplyHeader parent = do
     messageId = newMessageId,
     sessionId = sessionId parent,
     username = username parent,
-    msgType = replyType $ msgType parent
+    msgType = repType
   }
 
 -- | Compute a reply to a message. 
@@ -296,7 +209,11 @@ replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> Interpr
 -- needs to be done, as a kernel info reply is a static object (all info is
 -- hard coded into the representation of that message type).
 replyTo _ KernelInfoRequest{} replyHeader state =
-  return (state, KernelInfoReply { header = replyHeader })
+  return (state, KernelInfoReply {
+    header = replyHeader,
+    language = "haskell",
+    versionList = ghcVersionInts
+   })
 
 -- Reply to a shutdown request by exiting the main thread.
 -- Before shutdown, reply to the request to let the frontend know shutdown
@@ -313,7 +230,8 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
   let send msg = liftIO $ writeChan (iopubChannel interface) msg
 
   -- Log things so that we can use stdin.
-  liftIO $ Stdin.recordParentHeader $ header req
+  dir <- liftIO getIHaskellDir
+  liftIO $ Stdin.recordParentHeader dir $ header req
 
   -- Notify the frontend that the kernel is busy computing.
   -- All the headers are copies of the reply header with a different

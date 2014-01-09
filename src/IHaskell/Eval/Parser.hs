@@ -33,6 +33,7 @@ import SrcLoc hiding (Located)
 import StringBuffer
 
 import Language.Haskell.GHC.Parser
+import IHaskell.Eval.Util
 
 -- | A block of code to be evaluated.
 -- Each block contains a single element - one declaration, statement,
@@ -84,10 +85,16 @@ parseString codeString = do
   let output = runParser flags parserModule codeString
   case output of
     Parsed {} -> return [Located 1 $ Module codeString]
-    Failure {} ->
+    Failure {} -> do
       -- Split input into chunks based on indentation.
-      let chunks = layoutChunks $ dropComments codeString in
-        joinFunctions <$> processChunks [] chunks
+      let chunks = layoutChunks $ dropComments codeString
+      result <- joinFunctions <$> processChunks [] chunks
+
+      -- Return to previous flags. When parsing, flags can be set to make
+      -- sure parsing works properly. But we don't want those flags to be
+      -- set during evaluation until the right time.
+      setSessionDynFlags flags
+      return result
   where
     parseChunk :: GhcMonad m => String -> LineNumber -> m (Located CodeBlock)
     parseChunk chunk line = Located line <$>
@@ -104,6 +111,7 @@ parseString codeString = do
         -- If we have more remaining, parse the current chunk and recurse.
         Located line chunk:remaining ->  do
           block <- parseChunk chunk line
+          activateParsingExtensions $ unloc block
           processChunks (block : accum) remaining
 
     -- Test wither a given chunk is a directive.
@@ -113,6 +121,10 @@ parseString codeString = do
     -- Number of lines in this string.
     nlines :: String -> Int
     nlines = length . lines
+
+activateParsingExtensions :: GhcMonad m => CodeBlock -> m ()
+activateParsingExtensions (Directive SetExtension ext) = void $ setExtension ext
+activateParsingExtensions _ = return ()
 
 -- | Parse a single chunk of code, as indicated by the layout of the code.
 parseCodeChunk :: GhcMonad m => String -> LineNumber  -> m CodeBlock
