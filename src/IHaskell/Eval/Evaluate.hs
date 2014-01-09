@@ -277,18 +277,18 @@ safely state = ghandle handler . ghandle sourceErrorHandler
         evalPager = ""
       }
       
-    doc :: GhcMonad m => SDoc -> m String
-    doc sdoc = do
-      flags <- getSessionDynFlags
-      let cols = pprCols flags
-          d = runSDoc sdoc (initSDocContext flags defaultUserStyle)
-      return $ Pretty.fullRender Pretty.PageMode cols 1.5 string_txt "" d
-      where
-        string_txt :: Pretty.TextDetails -> String -> String
-        string_txt (Pretty.Chr c)   s  = c:s
-        string_txt (Pretty.Str s1)  s2 = s1 ++ s2
-        string_txt (Pretty.PStr s1) s2 = unpackFS s1 ++ s2
-        string_txt (Pretty.LStr s1 _) s2 = unpackLitString s1 ++ s2
+doc :: GhcMonad m => SDoc -> m String
+doc sdoc = do
+  flags <- getSessionDynFlags
+  let cols = pprCols flags
+      d = runSDoc sdoc (initSDocContext flags defaultUserStyle)
+  return $ Pretty.fullRender Pretty.PageMode cols 1.5 string_txt "" d
+  where
+    string_txt :: Pretty.TextDetails -> String -> String
+    string_txt (Pretty.Chr c)   s  = c:s
+    string_txt (Pretty.Str s1)  s2 = s1 ++ s2
+    string_txt (Pretty.PStr s1) s2 = unpackFS s1 ++ s2
+    string_txt (Pretty.LStr s1 _) s2 = unpackLitString s1 ++ s2
     
 
 wrapExecution :: KernelState
@@ -571,18 +571,23 @@ evalCommand _ (Directive GetInfo str) state = safely state $ do
             if fixity == GHC.defaultFixity
             then empty
             else ppr fixity <+> pprInfixName (getName thing)
-      outs = map printInfo filteredOutput
 
   -- Print nicely.
-  unqual <- getPrintUnqual
-  flags <- getSessionDynFlags
-  let strings = map (showSDocForUser flags unqual) outs
+  strings <- mapM (doc . printInfo) filteredOutput
+  let output = case getFrontend state of
+        IPythonConsole -> unlines strings
+        IPythonNotebook -> unlines (map htmlify strings)
+      htmlify str =
+        printf "<div style='background: rgb(247, 247, 247);'><form><textarea id='code'>%s</textarea></form></div>" str
+        ++ script
+      script = 
+        "<script>CodeMirror.fromTextArea(document.getElementById('code'), {mode: 'haskell', readOnly: 'nocursor'});</script>"
 
   return EvalOut {
     evalStatus = Success,
     evalResult = [],
     evalState = state,
-    evalPager = unlines strings
+    evalPager = output
   }
 
 evalCommand _ (Directive SearchHoogle query) state = safely state $ do

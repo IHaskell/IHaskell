@@ -126,9 +126,7 @@ var concealExtension = (function() {
     /**
      * Activate conceal in CodeMirror options, don't overwrite other settings
      */
-    function concealCell(cell) {
-        var editor = cell.code_mirror;
-
+    function concealCell(editor) {
         // Initialize all tokens. Just look at the token at every character.
         editor.eachLine(function (handle) {
             var l = editor.getLineNumber(handle);
@@ -152,7 +150,8 @@ var concealExtension = (function() {
     createCell = function (event,nbcell,nbindex) {
         var cell = nbcell.cell;
         if ((cell instanceof IPython.CodeCell)) {
-            concealCell(cell)            
+            var editor = cell.code_mirror;
+            concealCell(editor)            
         }
     };
     
@@ -164,12 +163,15 @@ var concealExtension = (function() {
         for(var i in cells){
             var cell = cells[i];
             if ((cell instanceof IPython.CodeCell)) {
-                concealCell(cell);
+                var editor = cell.code_mirror;
+                concealCell(editor);
             }
         }
 
         $([IPython.events]).on('create.Cell',createCell);
     }
+
+    IPython.concealCell = concealCell;
 
     require([], initExtension);
 })();
