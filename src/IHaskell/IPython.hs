@@ -122,8 +122,9 @@ nbconvert fmt name = void . shellyNoDir $ do
 
     Just notebook ->
       let viewArgs = case fmt of
-            Pdf -> ["--to=latex", "--post=pdf"]
-            fmt -> ["--to=" ++ show fmt] in
+            Pdf ->  ["--to=latex", "--post=pdf"]
+            Html -> ["--to=html", "--template=ihaskell"]
+            fmt ->  ["--to=" ++ show fmt] in
       void $ runIHaskell ipythonProfile "nbconvert" $ viewArgs ++ [fpToString notebook]
 
 -- | Set up IPython properly.
@@ -401,7 +402,7 @@ getSandboxPackageConf = shellyNoDir $ do
   then return Nothing
   else do
     let pieces = split "/" myPath
-        sandboxDir = intercalate "/" $ (takeWhile (/= sandboxName) pieces)  ++ [sandboxName]
+        sandboxDir = intercalate "/" $ takeWhile (/= sandboxName) pieces  ++ [sandboxName]
     subdirs <- ls $ fpFromString sandboxDir
     let confdirs = filter (endswith "packages.conf.d") $ map fpToString subdirs
     case confdirs of
