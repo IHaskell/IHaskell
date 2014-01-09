@@ -652,6 +652,10 @@ evalCommand output (Statement stmt) state = wrapExecution state $ do
 
 evalCommand output (Expression expr) state = do
   write $ "Expression:\n" ++ expr
+  -- Check if we can display this.
+  let displayExpr = printf "(IHaskell.Display.display (%s))" expr :: String
+  canRunDisplay <- attempt $ exprType displayExpr
+
   -- Evaluate this expression as though it's just a statement.
   -- The output is bound to 'it', so we can then use it.
   evalOut <- evalCommand output (Statement expr) state
@@ -660,8 +664,6 @@ evalCommand output (Expression expr) state = do
   -- DisplayData. If typechecking fails and there is no appropriate
   -- typeclass instance, this will throw an exception and thus `attempt` will
   -- return False, and we just resort to plaintext.
-  let displayExpr = printf "(IHaskell.Display.display (%s))" expr :: String
-  canRunDisplay <- attempt $ exprType displayExpr
   let out = evalResult evalOut
       showErr = isShowError out
   write $ printf "%s: Attempting %s" (if canRunDisplay then "Success" else "Failure") displayExpr
