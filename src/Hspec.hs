@@ -72,15 +72,13 @@ evaluationComparing comparison string = do
 
 becomes string expected = evaluationComparing comparison string
   where
+    comparison :: ([Display], String) -> IO ()
     comparison (results, pageOut) = do
       when (length results /= length expected) $
         expectationFailure $ "Expected result to have " ++ show (length expected)
                              ++ " results. Got " ++ show results
 
-      let isPlain (Display PlainText _) = True
-          isPlain _ = False
-
-      forM_ (zip results expected) $ \(result, expected) ->
+      forM_ (zip results expected) $ \(Display result, expected) ->
         case extractPlain result  of
           "" -> expectationFailure $ "No plain-text output in " ++ show result ++ "\nExpected: " ++ expected
           str -> str `shouldBe` expected

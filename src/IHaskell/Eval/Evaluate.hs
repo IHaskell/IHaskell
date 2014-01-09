@@ -293,8 +293,10 @@ safely state = ghandle handler . ghandle sourceErrorHandler
 doc :: GhcMonad m => SDoc -> m String
 doc sdoc = do
   flags <- getSessionDynFlags
+  unqual <- getPrintUnqual
+  let style = mkUserStyle unqual AllTheWay
   let cols = pprCols flags
-      d = runSDoc sdoc (initSDocContext flags defaultUserStyle)
+      d = runSDoc sdoc (initSDocContext flags style)
   return $ Pretty.fullRender Pretty.PageMode cols 1.5 string_txt "" d
   where
     string_txt :: Pretty.TextDetails -> String -> String
