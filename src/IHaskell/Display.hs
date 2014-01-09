@@ -45,6 +45,9 @@ instance IHaskellDisplay a => IHaskellDisplay (IO a) where
 instance IHaskellDisplay Display where
   display = return
 
+instance IHaskellDisplay DisplayData where
+  display disp = return $ Display [disp]
+
 instance IHaskellDisplay a => IHaskellDisplay [a] where
   display disps = do
     displays <- mapM display disps
