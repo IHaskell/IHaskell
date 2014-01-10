@@ -13,7 +13,6 @@ import Data.Aeson
 import Data.UUID.V4 (nextRandom)
 
 import Text.Read as Read hiding (pfail, String)
-import Text.ParserCombinators.ReadP
 
 
 -- We use an internal string representation because for the purposes of

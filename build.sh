@@ -1,9 +1,11 @@
-#!/bin/sh
+#!/bin/bash
+
+set -e
 
 # Recompile ipython-kernel
 cd ipython-kernel
 cabal clean
-cabal install --force-reinstalls || exit 1
+cabal install --force-reinstalls
 cd ..
 
 # Make the profile
@@ -14,7 +16,7 @@ cd ..
 
 # Make ihaskell itself
 cabal clean
-cabal install --force-reinstalls || exit 1
+cabal install --force-reinstalls
 
 # Remove my profile
 rm -rf ~/.ipython/profile_haskell
@@ -25,6 +27,6 @@ for dir in `ls`
 do
     cd $dir
     cabal clean
-    cabal install || exit 1
+    cabal install
     cd ..
 done
