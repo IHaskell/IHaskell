@@ -20,6 +20,8 @@ As well as the IPython browser-based notebook interface:
 Installation
 ===
 
+If you have any trouble with installation or have other questions about IHaskell, feel free to open an issue [on Github](https://github.com/gibiansky/IHaskell/issues?direction=desc&sort=updated&state=open) or join our IRC at #ihaskell on chat.freenode.net.
+
 ZeroMQ
 ---
 IHaskell uses a library known as ZeroMQ for asynchronous communication. Make sure that ZeroMQ 4 is installed - it is a relatively recent library and thus you may have older versions installed.
