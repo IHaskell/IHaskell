@@ -24,7 +24,7 @@ import System.Argv0
 import System.Directory
 import qualified Filesystem.Path.CurrentOS as FS
 import Data.List.Utils (split)
-import Data.String.Utils (rstrip, endswith, strip)
+import Data.String.Utils (rstrip, endswith, strip, replace)
 import Text.Printf
 
 import qualified System.IO.Strict as StrictIO
@@ -245,8 +245,11 @@ buildIPython = do
 pythonVersion :: Sh Text
 pythonVersion = do
   python <- path "python"
-  versions <- run python ["-c", "import sys; print sys.version_info.major, sys.version_info.minor"]
-  let [major, minor] = map read . split " " . strip $ unpack versions :: [Int]
+  versions <- run python ["-c", "import sys; print(sys.version_info.major, sys.version_info.minor)"]
+  let replacer = replace "(" "" .
+                 replace ")" "" .
+                 replace "," ""
+  let [major, minor] = map read . split " " . strip . replacer $ unpack versions :: [Int]
   return $ "python" ++ pack (show major) ++ "." ++ pack (show minor)
 
 -- | Check whether IPython is properly installed.
