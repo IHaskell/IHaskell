@@ -24,7 +24,7 @@ import System.Argv0
 import System.Directory
 import qualified Filesystem.Path.CurrentOS as FS
 import Data.List.Utils (split)
-import Data.String.Utils (rstrip, endswith, strip)
+import Data.String.Utils (rstrip, endswith, strip, replace)
 import Text.Printf
 
 import qualified System.IO.Strict as StrictIO
@@ -135,7 +135,6 @@ setupIPython = do
   then updateIPython
   else installIPython
   
-  
 
 -- | Update the IPython source tree and rebuild.
 updateIPython :: IO ()
@@ -151,13 +150,13 @@ updateIPython = void . shellyNoDir $ do
     putStrLn "Updating..."
     run_ gitPath ["pull", "origin", "master"]
     run_ gitPath ["checkout", ipythonCommit]
-    installPipDependencies
+    --installPipDependencies
     buildIPython
 
 -- | Install IPython from source.
 installIPython :: IO ()
 installIPython = void . shellyNoDir $ do
-  installPipDependencies
+  --installPipDependencies
 
   -- Get the IPython source.
   gitPath <- path "git"
@@ -168,50 +167,6 @@ installIPython = void . shellyNoDir $ do
   run_ gitPath ["checkout", ipythonCommit]
 
   buildIPython
-
--- | Install all Python dependencies.
-installPipDependencies :: Sh ()
-installPipDependencies = withTmpDir $ \tmpDir -> 
-    mapM_ (installDependency tmpDir) 
-      [
-        ("pyzmq", "14.0.1")
-      , ("tornado","3.1.1")
-      , ("jinja2","2.7.1")
-      -- The following cannot go first in the dependency list, because
-      -- their setup.py are broken and require the directory to exist
-      -- already.
-      , ("MarkupSafe", "0.18")
-      --, ("setuptools", "2.0.2")
-      ]
-  where
-    installDependency :: FilePath -> (Text, Text) -> Sh ()
-    installDependency tmpDir (dep, version) = sub $ do
-      let versioned = dep ++ "-" ++ version
-      putStrLn $ "Installing dependency: " ++ versioned
-
-      pipPath <- path "pip"
-      tarPath <- path "tar"
-      pythonPath <- path "python"
-
-      -- Download the package.
-      let downloadOpt = "--download=" ++ fpToText tmpDir
-      run_ pipPath ["install", downloadOpt, dep ++ "==" ++ version]
-
-      -- Extract it.
-      cd tmpDir
-      run_ tarPath ["-xzf", versioned ++ ".tar.gz"]
-
-      -- Add the site-packages directory to the PYTHONPATH.
-      -- Otherwise setup.py refuses to install there.
-      dir <- fpToText <$> ipythonDir
-      pyVer <- pythonVersion
-      setenv "PYTHONPATH" $ dir ++ "/lib/" ++ pyVer ++ "/site-packages/"
-
-      -- Install it.
-      cd $ fromText versioned
-      let prefixOpt =  "--prefix=" ++ dir
-      run_ pythonPath ["setup.py", "install", prefixOpt]
-
 
 -- | Once things are checked out into the IPython source directory, build it and install it.
 buildIPython :: Sh ()
@@ -245,8 +200,11 @@ buildIPython = do
 pythonVersion :: Sh Text
 pythonVersion = do
   python <- path "python"
-  versions <- run python ["-c", "import sys; print sys.version_info.major, sys.version_info.minor"]
-  let [major, minor] = map read . split " " . strip $ unpack versions :: [Int]
+  versions <- run python ["-c", "import sys; print(sys.version_info.major, sys.version_info.minor)"]
+  let replacer = replace "(" "" .
+                 replace ")" "" .
+                 replace "," ""
+  let [major, minor] = map read . split " " . strip . replacer $ unpack versions :: [Int]
   return $ "python" ++ pack (show major) ++ "." ++ pack (show minor)
 
 -- | Check whether IPython is properly installed.
