@@ -150,6 +150,9 @@ initializeImports :: Interpreter ()
 initializeImports = do
   -- Load packages that start with ihaskell-*, aren't just IHaskell,
   -- and depend directly on the right version of the ihaskell library
+  --
+  -- XXX this will try to load broken packages, provided they depend
+  -- on the right ihaskell version
   dflags <- getSessionDynFlags
   displayPackages <- liftIO $ do
     (dflags, _) <- initPackages dflags
