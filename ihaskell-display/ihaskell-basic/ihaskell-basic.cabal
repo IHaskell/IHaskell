@@ -22,7 +22,7 @@ synopsis:            IHaskell display instances for basic types
 homepage:            http://www.github.com/gibiansky/IHaskell
 
 -- The license under which the package is released.
--- license:             
+license:             MIT
 
 -- The file containing the license text.
 license-file:        LICENSE
@@ -63,7 +63,7 @@ library
   -- Other library packages from which modules are imported.
   build-depends:       base ==4.6.*,
                        classy-prelude >=0.6,
-                       ihaskell
+                       ihaskell >= 0.3
   
   -- Directories containing source files.
   -- hs-source-dirs:      

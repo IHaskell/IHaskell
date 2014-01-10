@@ -16,10 +16,10 @@ synopsis:            IHaskell display instances for charts types
 -- description:         
 
 -- URL for the project homepage or repository.
-homepage:            http://www.github.com/gibiansky/IHaskell-Display
+homepage:            http://www.github.com/gibiansky/ihaskell
 
 -- The license under which the package is released.
--- license:             
+license:             MIT
 
 -- The file containing the license text.
 license-file:        LICENSE
@@ -65,7 +65,7 @@ library
                        directory,
                        Chart,
                        Chart-cairo,
-                       ihaskell
+                       ihaskell >= 0.3
   
   -- Directories containing source files.
   -- hs-source-dirs:      
