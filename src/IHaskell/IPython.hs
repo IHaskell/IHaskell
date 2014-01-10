@@ -176,11 +176,13 @@ installPipDependencies = withTmpDir $ \tmpDir ->
       [
         ("pyzmq", "14.0.1")
       , ("tornado","3.1.1")
-      , ("jinja2","2.7.1")
+      , ("Jinja2","2.7.1")
       -- The following cannot go first in the dependency list, because
       -- their setup.py are broken and require the directory to exist
       -- already.
-      , ("MarkupSafe", "0.18")
+      
+      -- Jinja downloads MarkupSafe, so downloading again causes an error when the tarball exists
+      --, ("MarkupSafe", "0.18")
       --, ("setuptools", "2.0.2")
       ]
   where
