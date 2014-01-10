@@ -22,7 +22,7 @@ synopsis:            IHaskell display instances for bytestrings
 homepage:            http://www.github.com/gibiansky/IHaskell
 
 -- The license under which the package is released.
--- license:             
+license:             MIT
 
 -- The file containing the license text.
 license-file:        LICENSE
@@ -68,7 +68,7 @@ library
                        bytestring,
                        utf8-string,
                        base64-bytestring,
-                       ihaskell
+                       ihaskell >= 0.3
   
   -- Directories containing source files.
   -- hs-source-dirs:      

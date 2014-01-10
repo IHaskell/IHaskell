@@ -19,10 +19,10 @@ synopsis:            IHaskell display instances for blaze-html types
 -- description:         
 
 -- URL for the project homepage or repository.
-homepage:            http://www.github.com/gibiansky/IHaskell-Display
+homepage:            http://www.github.com/gibiansky/ihaskell
 
 -- The license under which the package is released.
--- license:             
+license:             MIT
 
 -- The file containing the license text.
 license-file:        LICENSE
@@ -65,7 +65,7 @@ library
                        classy-prelude >=0.6,
                        blaze-html >= 0.6,
                        blaze-markup >= 0.5,
-                       ihaskell
+                       ihaskell >= 0.3
   
   -- Directories containing source files.
   -- hs-source-dirs:      
