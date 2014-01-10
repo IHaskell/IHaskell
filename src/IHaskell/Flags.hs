@@ -16,11 +16,13 @@ import IHaskell.Types
 -- Command line arguments to IHaskell.  A set of aruments is annotated with
 -- the mode being invoked.
 data Args = Args IHaskellMode [Argument]
+          deriving Show
 
 data Argument
   = ServeFrom String    -- ^ Which directory to serve notebooks from.
   | Extension String    -- ^ An extension to load at startup.
   | ConfFile String     -- ^ A file with commands to load at startup.
+  | IPythonFrom String  -- ^ Which executable to use for IPython.
   | Help                -- ^ Display help text.
   deriving (Eq, Show)
 
@@ -50,6 +52,10 @@ help mode =
     chooseMode (Kernel _) = kernel
     chooseMode UpdateIPython = update
 
+ipythonFlag :: Flag Args
+ipythonFlag = 
+  flagReq ["ipython", "i"] (store IPythonFrom) "<path>" "Executable for IPython."
+
 universalFlags :: [Flag Args]
 universalFlags = [
   flagReq ["extension","e", "X"] (store Extension) "<ghc-extension>" "Extension to enable at start.",
@@ -65,10 +71,11 @@ store constructor str (Args mode prev) = Right $ Args mode $ constructor str : p
 notebook :: Mode Args
 notebook = mode "notebook" (Args Notebook []) "Browser-based notebook interface." noArgs $
   flagReq ["serve","s"] (store ServeFrom) "<dir>" "Directory to serve notebooks from.":
+  ipythonFlag:
   universalFlags
 
 console :: Mode Args
-console = mode "console" (Args Console []) "Console-based interactive repl." noArgs universalFlags
+console = mode "console" (Args Console []) "Console-based interactive repl." noArgs $ ipythonFlag:universalFlags
 
 kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg []
   where
@@ -79,7 +86,9 @@ update :: Mode Args
 update = mode "update" (Args UpdateIPython []) "Update IPython frontends." noArgs []
 
 view :: Mode Args
-view = (modeEmpty $ Args (View Nothing Nothing) []) {
+view =
+  let empty = mode "view" (Args (View Nothing Nothing) []) "View IHaskell notebook." noArgs [ipythonFlag] in
+    empty {
       modeNames = ["view"],
       modeCheck  =
         \a@(Args (View fmt file) _) ->
@@ -93,7 +102,8 @@ view = (modeEmpty $ Args (View Nothing Nothing) []) {
           ["pdf", "html", "ipynb", "markdown", "latex"]),
         "."
       ],
-      modeArgs = ([formatArg, filenameArg], Nothing)
+      modeArgs = ([formatArg, filenameArg] ++ fst (modeArgs empty),
+                  snd $ modeArgs empty)
                                                     
   }
   where
@@ -105,7 +115,6 @@ view = (modeEmpty $ Args (View Nothing Nothing) []) {
         Nothing -> Left $ "Invalid format '" ++ fmtStr ++ "'."
     updateFile name (Args (View f _) flags) = Right $ Args (View f (Just name)) flags
   
-
 ihaskellArgs :: Mode Args
 ihaskellArgs =
   let descr = "Haskell for Interactive Computing." 

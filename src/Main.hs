@@ -43,6 +43,11 @@ main = do
     Right args ->
       ihaskell args
 
+chooseIPython [] = return DefaultIPython
+chooseIPython (IPythonFrom path:_) =
+  ExplicitIPython <$> subHome path
+chooseIPython (_:xs) = chooseIPython xs
+
 ihaskell :: Args -> IO ()
 -- If no mode is specified, print help text.
 ihaskell (Args (ShowHelp help) _) = 
@@ -53,21 +58,24 @@ ihaskell (Args (ShowHelp help) _) =
 -- isn't updated. This is hard to detect since versions of IPython might
 -- not change!
 ihaskell (Args UpdateIPython _) = do
-  setupIPython
+  setupIPython DefaultIPython
   putStrLn "IPython updated."
     
 ihaskell (Args Console flags) = showingHelp Console flags $ do
-  setupIPython
+  ipython <- chooseIPython flags
+  setupIPython ipython
 
   flags <- addDefaultConfFile flags
   info <- initInfo IPythonConsole flags
-  runConsole info
+  runConsole ipython info
 
-ihaskell (Args (View (Just fmt) (Just name)) []) =
-  nbconvert fmt name
+ihaskell (Args (View (Just fmt) (Just name)) args) = do
+  ipython <- chooseIPython args
+  nbconvert ipython fmt name
 
 ihaskell (Args Notebook flags) = showingHelp Notebook flags $ do
-  setupIPython
+  ipython <- chooseIPython flags
+  setupIPython ipython
 
   let server = case mapMaybe serveDir flags of
                  [] -> Nothing
@@ -79,7 +87,7 @@ ihaskell (Args Notebook flags) = showingHelp Notebook flags $ do
   curdir <- getCurrentDirectory
   let info = undirInfo { initDir = curdir }
 
-  runNotebook info server
+  runNotebook ipython info server
   where
     serveDir (ServeFrom dir) = Just dir
     serveDir _ = Nothing

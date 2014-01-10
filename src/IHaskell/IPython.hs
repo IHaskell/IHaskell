@@ -14,7 +14,9 @@ module IHaskell.IPython (
   getIHaskellDir,
   getSandboxPackageConf,
   nbconvert,
+  subHome,
   ViewFormat(..),
+  WhichIPython(..),
 ) where
 
 import ClassyPrelude
@@ -33,6 +35,11 @@ import qualified Codec.Archive.Tar as Tar
 
 import IHaskell.Types
 
+-- | Which IPython to use.
+data WhichIPython
+     = DefaultIPython           -- ^ Use the one that IHaskell tries to install.
+     | ExplicitIPython String   -- ^ Use the command-line flag provided one.
+
 -- | Which commit of IPython we are on.
 ipythonCommit :: Text
 ipythonCommit = "9c922f54af799704f4000aeee94ec7c74cada194"
@@ -42,11 +49,12 @@ ipythonProfile :: String
 ipythonProfile = "haskell"
 
 -- | Run IPython with any arguments.
-ipython :: Bool         -- ^ Whether to suppress output.
+ipython :: WhichIPython -- ^ Which IPython to use (user-provided or IHaskell-installed).
+        -> Bool         -- ^ Whether to suppress output.
         -> [Text]       -- ^ IPython command line arguments.
         -> Sh String    -- ^ IPython output.
-ipython suppress args = do
-  ipythonPath <- ipythonExePath
+ipython which suppress args = do
+  ipythonPath <- ipythonExePath which
   runHandles ipythonPath args handles doNothing
   where handles = [InHandle Inherit, outHandle suppress, errorHandle suppress]
         outHandle True = OutHandle CreatePipe
@@ -79,8 +87,11 @@ ihaskellDir = do
 ipythonDir :: Sh FilePath
 ipythonDir = ensure $ (</> "ipython") <$> ihaskellDir
 
-ipythonExePath :: Sh FilePath
-ipythonExePath = (</> ("bin" </> "ipython")) <$> ipythonDir
+ipythonExePath :: WhichIPython -> Sh FilePath
+ipythonExePath which = 
+  case which of
+    DefaultIPython -> (</> ("bin" </> "ipython")) <$> ipythonDir
+    ExplicitIPython path -> return $ fromString path
 
 notebookDir :: Sh FilePath
 notebookDir = ensure $ (</> "notebooks") <$> ihaskellDir
@@ -102,8 +113,8 @@ defaultConfFile = shellyNoDir $ do
 -- | Find a notebook and then convert it into the provided format.
 -- Notebooks are searched in the current directory as well as the IHaskell
 -- notebook directory (in that order).
-nbconvert :: ViewFormat -> String -> IO ()
-nbconvert fmt name = void . shellyNoDir $ do
+nbconvert :: WhichIPython -> ViewFormat -> String -> IO ()
+nbconvert which fmt name = void . shellyNoDir $ do
   curdir <- pwd
   nbdir <- notebookDir
   -- Find which of the options is available. 
@@ -125,18 +136,30 @@ nbconvert fmt name = void . shellyNoDir $ do
             Pdf ->  ["--to=latex", "--post=pdf"]
             Html -> ["--to=html", "--template=ihaskell"]
             fmt ->  ["--to=" ++ show fmt] in
-      void $ runIHaskell ipythonProfile "nbconvert" $ viewArgs ++ [fpToString notebook]
+      void $ runIHaskell which ipythonProfile "nbconvert" $ viewArgs ++ [fpToString notebook]
 
 -- | Set up IPython properly.
-setupIPython :: IO ()
-setupIPython = do
+setupIPython :: WhichIPython -> IO ()
+
+setupIPython (ExplicitIPython path) = do
+  exists <- shellyNoDir $
+    test_f $ fromString path
+  unless exists $
+    fail $ "Cannot find IPython at " ++ path
+
+setupIPython DefaultIPython = do
   installed <- ipythonInstalled
   if installed
   then updateIPython
   else installIPython
-  
-  
 
+-- | Replace "~" with $HOME if $HOME is defined.
+-- Otherwise, do nothing.
+subHome :: String -> IO String
+subHome path = shellyNoDir $ do
+  home <- unpack <$> fromMaybe "~" <$> get_env "HOME"
+  return $ replace "~" home path
+  
 -- | Update the IPython source tree and rebuild.
 updateIPython :: IO ()
 updateIPython = void . shellyNoDir $ do
@@ -176,12 +199,11 @@ installPipDependencies = withTmpDir $ \tmpDir ->
       [
         ("pyzmq", "14.0.1")
       , ("tornado","3.1.1")
-      , ("jinja2","2.7.1")
+      , ("Jinja2","2.7.1")
       -- The following cannot go first in the dependency list, because
       -- their setup.py are broken and require the directory to exist
       -- already.
       , ("MarkupSafe", "0.18")
-      --, ("setuptools", "2.0.2")
       ]
   where
     installDependency :: FilePath -> (Text, Text) -> Sh ()
@@ -195,6 +217,7 @@ installPipDependencies = withTmpDir $ \tmpDir ->
 
       -- Download the package.
       let downloadOpt = "--download=" ++ fpToText tmpDir
+      rm $ fpFromText $ versioned ++ ".tar.gz"
       run_ pipPath ["install", downloadOpt, dep ++ "==" ++ version]
 
       -- Extract it.
@@ -232,14 +255,14 @@ buildIPython = do
         , "import sys"
         , "sys.path = [\"" ++ fpToText ipyDir ++
          "/lib/" ++ pythonVer ++ "/site-packages\"] + sys.path"]
-  ipythonPath <- ipythonExePath
+  ipythonPath <- ipythonExePath DefaultIPython
   contents <- readFile ipythonPath
   writeFile ipythonPath $ unlines patchLines ++ "\n" ++ contents
 
   -- Remove the old IPython profile so that we write a new one in its
   -- place. Users are not expected to fiddle with the profile, so we give
   -- no warning whatsoever. This may be changed eventually.
-  removeIPythonProfile ipythonProfile
+  removeIPythonProfile DefaultIPython ipythonProfile
 
 -- | Attempt to guess the Python version.
 pythonVersion :: Sh Text
@@ -255,7 +278,7 @@ pythonVersion = do
 -- | Check whether IPython is properly installed.
 ipythonInstalled :: IO Bool
 ipythonInstalled = shellyNoDir $ do
-  ipythonPath <- ipythonExePath
+  ipythonPath <- ipythonExePath DefaultIPython
   test_f ipythonPath
 
 -- | Get the path to an executable. If it doensn't exist, fail with an
@@ -269,13 +292,6 @@ path exe = do
       fail $ "`" ++ unpack exe ++ "` not on $PATH."
     Just exePath -> return exePath
 
--- | Use the `ipython --version` command to figure out the version.
--- Return a tuple with (major, minor, patch).
-ipythonVersion :: IO (Int, Int, Int)
-ipythonVersion = shellyNoDir $ do
-  [major, minor, patch] <- parseVersion <$>  ipython True ["--version"]
-  return (major, minor, patch)
-
 -- | Parse an IPython version string into a list of integers.
 parseVersion :: String -> [Int]
 parseVersion versionStr = map read' $ split "." versionStr
@@ -284,13 +300,14 @@ parseVersion versionStr = map read' $ split "." versionStr
                         _ -> error $ "cannot parse version: "++ versionStr
 
 -- | Run an IHaskell application using the given profile.
-runIHaskell :: String   -- ^ IHaskell profile name. 
+runIHaskell :: WhichIPython
+           -> String   -- ^ IHaskell profile name. 
            -> String    -- ^ IPython app name.
            -> [String]  -- ^ Arguments to IPython.
            -> Sh ()
-runIHaskell profile app args = void $ do
+runIHaskell which profile app args = void $ do
   -- Try to locate the profile. Do not die if it doesn't exist.
-  errExit False $ ipython True ["locate", "profile", pack profile]
+  errExit False $ ipython which True ["locate", "profile", pack profile]
 
   -- If the profile doesn't exist, create it.
   -- We have an ugly hack that removes the profile whenever the IPython
@@ -298,25 +315,25 @@ runIHaskell profile app args = void $ do
   exitCode <- lastExitCode
   when (exitCode /= 0) $ liftIO $ do
     putStrLn "Creating IPython profile."
-    setupIPythonProfile profile
+    setupIPythonProfile which profile
 
   -- Run the IHaskell command.
-  ipython False $ map pack $ [app, "--profile", profile] ++ args
+  ipython which False $ map pack $ [app, "--profile", profile] ++ args
 
-runConsole :: InitInfo -> IO ()
-runConsole initInfo = void . shellyNoDir $ do
+runConsole :: WhichIPython -> InitInfo -> IO ()
+runConsole which initInfo = void . shellyNoDir $ do
   writeInitInfo initInfo
-  runIHaskell ipythonProfile "console" []
+  runIHaskell which ipythonProfile "console" []
 
-runNotebook :: InitInfo -> Maybe String -> IO ()
-runNotebook initInfo maybeServeDir = void . shellyNoDir $ do
+runNotebook :: WhichIPython -> InitInfo -> Maybe String -> IO ()
+runNotebook which initInfo maybeServeDir = void . shellyNoDir $ do
   notebookDirStr <- fpToString <$> notebookDir
   let args = case maybeServeDir of 
                Nothing -> ["--notebook-dir", unpack notebookDirStr]
                Just dir -> ["--notebook-dir", dir]
 
   writeInitInfo initInfo
-  runIHaskell ipythonProfile "notebook" args
+  runIHaskell which ipythonProfile "notebook" args
 
 writeInitInfo :: InitInfo -> Sh ()
 writeInitInfo info = do
@@ -329,28 +346,29 @@ readInitInfo = shellyNoDir $ do
   read <$> liftIO (readFile filename)
 
 -- | Create the IPython profile.
-setupIPythonProfile :: String -- ^ IHaskell profile name.
+setupIPythonProfile :: WhichIPython
+                    -> String -- ^ IHaskell profile name.
                     -> IO ()
-setupIPythonProfile profile = shellyNoDir $ do
+setupIPythonProfile which profile = shellyNoDir $ do
   -- Create the IPython profile.
-  void $ ipython True ["profile", "create", pack profile]
+  void $ ipython which True ["profile", "create", pack profile]
 
   -- Find the IPython profile directory. Make sure to get rid of trailing
   -- newlines from the output of the `ipython locate` call.
-  ipythonDir <- pack <$> rstrip <$> ipython True ["locate"]
+  ipythonDir <- pack <$> rstrip <$> ipython which True ["locate"]
   let profileDir = ipythonDir ++ "/profile_" ++ pack profile ++ "/"
 
   liftIO $ copyProfile profileDir
   insertIHaskellPath profileDir
 
-removeIPythonProfile :: String -> Sh ()
-removeIPythonProfile profile = do
+removeIPythonProfile :: WhichIPython -> String -> Sh ()
+removeIPythonProfile which profile = do
   -- Try to locate the profile. Do not die if it doesn't exist.
-  errExit False $ ipython True ["locate", "profile", pack profile]
+  errExit False $ ipython which True ["locate", "profile", pack profile]
 
   -- If the profile exists, delete it.
   exitCode <- lastExitCode
-  dir <- pack <$> rstrip <$> ipython True ["locate"]
+  dir <- pack <$> rstrip <$> ipython which True ["locate"]
   when (exitCode == 0 && dir /= "") $ do
     putStrLn "Updating IPython profile."
     let profileDir = dir ++ "/profile_" ++ pack profile ++ "/"
