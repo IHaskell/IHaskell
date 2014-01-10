@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 -- The name of the package.
-name:                ihaskell-display
+name:                ihaskell-basic
 
 -- The package version.  See the Haskell package versioning policy (PVP) 
 -- for standards guiding when and how versions should be incremented.
@@ -51,7 +51,7 @@ cabal-version:       >=1.16
 
 library
   -- Modules exported by the library.
-  exposed-modules:     IHaskell.Display.Display
+  exposed-modules:     IHaskell.Display.Basic
   
   -- Modules included in this library but not exported.
   -- other-modules:       

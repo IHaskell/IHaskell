@@ -20,6 +20,8 @@ As well as the IPython browser-based notebook interface:
 Installation
 ===
 
+If you have any trouble with installation or have other questions about IHaskell, feel free to open an issue [on Github](https://github.com/gibiansky/IHaskell/issues?direction=desc&sort=updated&state=open) or join our IRC at #ihaskell on chat.freenode.net.
+
 ZeroMQ
 ---
 IHaskell uses a library known as ZeroMQ for asynchronous communication. Make sure that ZeroMQ 4 is installed - it is a relatively recent library and thus you may have older versions installed.
@@ -113,25 +115,21 @@ and read the [complete messaging protocol specification](http://ipython.org/ipyt
 
 Skim the rather-lacking [Haddock documentation](http://gibiansky.github.io/IHaskell/IHaskell/).
 
-Module Quickstart: 
-- `Main`: Argument parsing and basic messaging loop, using Haskell Chans to communicate with the ZeroMQ sockets.
-- `IHaskell.Types`: All message type definitions.
-- `IHaskell.Eval.Evaluate`: Wrapper around GHC API, exposing a single `evaluate` interface that runs a statement, declaration, import, or directive.
-- `IHaskell.IPython`: Shell scripting wrapper using `Shelly` for the `notebook`, `setup`, and `console` commands.
-- `IHaskell.Message.Parser`: Parsing messages received from IPython.
-- `IHaskell.Message.UUID`: UUID generator and data structure.
-- `IHaskell.Message.Writer`: `ToJSON` for Messages.
-- `IHaskell.ZeroMQ`: Low-level ZeroMQ communication wrapper. `serveProfile` starts listening on all necessary sockets, and returns a `ZeroMQInterface` record. This record exposes reading and writing `Chan Message` messages for all the necessary sockets, so then the rest of the application can simply use that interface.
-
 First steps:
 
 - Fork the repository on Github and clone your fork for editing. 
-- Build IHaskell as follows:
 
+**option 1** 
 ```bash 
 cd /path/to/IHaskell
-cabal configure --enable-tests
-cabal build
+./build.sh
+```
+**option 2**
+```bash
+cd /path/to/IHaskell
+cabal sandbox init
+cabal add-source ipython-kernel ihaskell-display/* ghc-parser
+cabal install IHaskell $(ls --color=never ihaskell-display)
 ```
 
 **Loading IHaskell into GHCi for testing:**
@@ -162,6 +160,7 @@ ghci
 Then in the ghci session  you can type things like:
 
 ```
+:set -package setenv
 :load src/Hspec.hs
 hspec parserTests
 :browse IHaskell.Types

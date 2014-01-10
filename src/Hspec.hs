@@ -413,7 +413,7 @@ parseStringTests = describe "Parser" $ do
 
   it "parses :set x" $
     parses ":set x" `like` [
-      Directive SetOpt "x"
+      Directive SetDynFlag "x"
     ]
 
   it "parses :extension x" $
