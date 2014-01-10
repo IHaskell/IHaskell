@@ -24,7 +24,7 @@ import System.Argv0
 import System.Directory
 import qualified Filesystem.Path.CurrentOS as FS
 import Data.List.Utils (split)
-import Data.String.Utils (rstrip, endswith)
+import Data.String.Utils (rstrip, endswith, strip)
 import Text.Printf
 
 import qualified System.IO.Strict as StrictIO
@@ -201,10 +201,14 @@ installPipDependencies = withTmpDir $ \tmpDir ->
       cd tmpDir
       run_ tarPath ["-xzf", versioned ++ ".tar.gz"]
 
+      -- Add the site-packages directory to the PYTHONPATH.
+      -- Otherwise setup.py refuses to install there.
+      dir <- fpToText <$> ipythonDir
+      pyVer <- pythonVersion
+      setenv "PYTHONPATH" $ dir ++ "/lib/" ++ pyVer ++ "/site-packages/"
+
       -- Install it.
       cd $ fromText versioned
-      dir <- fpToText <$> ipythonDir
-      setenv "PYTHONPATH" $ dir ++ "/lib/python2.7/site-packages/"
       let prefixOpt =  "--prefix=" ++ dir
       run_ pythonPath ["setup.py", "install", prefixOpt]
 
@@ -222,11 +226,12 @@ buildIPython = do
   -- Using PYTHONPATH is not enough due to bugs in how `easy_install` sets
   -- things up, at least on Mac OS X.
   ipyDir <- ipythonDir
+  pythonVer <- pythonVersion
   let patchLines =
         [ "#!/usr/bin/env python"
         , "import sys"
         , "sys.path = [\"" ++ fpToText ipyDir ++
-         "/lib/python2.7/site-packages\"] + sys.path"]
+         "/lib/" ++ pythonVer ++ "/site-packages\"] + sys.path"]
   ipythonPath <- ipythonExePath
   contents <- readFile ipythonPath
   writeFile ipythonPath $ unlines patchLines ++ "\n" ++ contents
@@ -235,7 +240,14 @@ buildIPython = do
   -- place. Users are not expected to fiddle with the profile, so we give
   -- no warning whatsoever. This may be changed eventually.
   removeIPythonProfile ipythonProfile
-      
+
+-- | Attempt to guess the Python version.
+pythonVersion :: Sh Text
+pythonVersion = do
+  python <- path "python"
+  versions <- run python ["-c", "import sys; print sys.version_info.major, sys.version_info.minor"]
+  let [major, minor] = map read . split " " . strip $ unpack versions :: [Int]
+  return $ "python" ++ pack (show major) ++ "." ++ pack (show minor)
 
 -- | Check whether IPython is properly installed.
 ipythonInstalled :: IO Bool
