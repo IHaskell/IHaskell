@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, PatternGuards #-}
 {-# LANGUAGE DeriveDataTypeable, DeriveGeneric #-}
 -- | Description : All message type definitions.
 module IHaskell.Types (
@@ -22,7 +22,9 @@ module IHaskell.Types (
   ViewFormat(..),
   Display(..),
   defaultKernelState,
-  extractPlain
+  extractPlain,
+  kernelOpts,
+  KernelOpt(..),
   ) where
 
 import            ClassyPrelude
@@ -70,6 +72,13 @@ data Display = Display [DisplayData]
              deriving (Show, Typeable, Generic)
 instance Serialize Display
 
+instance Monoid Display where
+    mempty = Display []
+    ManyDisplay a `mappend` ManyDisplay b = ManyDisplay (a ++ b)
+    ManyDisplay a `mappend` b             = ManyDisplay (a ++ [b])
+    a             `mappend` ManyDisplay b = ManyDisplay (a : b)
+    a             `mappend` b             = ManyDisplay [a,b]
+
 -- | All state stored in the kernel between executions.
 data KernelState = KernelState
   { getExecutionCounter :: Int,
@@ -95,6 +104,23 @@ data FrontendType
      = IPythonConsole
      | IPythonNotebook
      deriving (Show, Eq, Read)
+
+-- | names the ways to update the IHaskell 'KernelState' by `:set`
+-- ('getSetName') and `:option` ('getOptionName') directives
+data KernelOpt = KernelOpt
+    { getOptionName, getSetName :: [String],
+      getUpdateKernelState :: KernelState -> KernelState }
+
+kernelOpts :: [KernelOpt]
+kernelOpts =
+    [KernelOpt ["lint"]    [] $ \state -> state { getLintStatus = LintOn },
+     KernelOpt ["no-lint"] [] $ \state -> state { getLintStatus = LintOff },
+     KernelOpt ["svg"]     [] $ \state -> state { useSvg = True },
+     KernelOpt ["no-svg"]  [] $ \state -> state { useSvg = False },
+     KernelOpt ["show-types"]    ["+t"] $ \state -> state { useShowTypes = True },
+     KernelOpt ["no-show-types"] ["-t"] $ \state -> state { useShowTypes = False },
+     KernelOpt ["show-errors"]    [] $ \state -> state { useShowErrors = True },
+     KernelOpt ["no-show-errors"] [] $ \state -> state { useShowErrors = False }]
 
 -- | Initialization information for the kernel.
 data InitInfo = InitInfo {

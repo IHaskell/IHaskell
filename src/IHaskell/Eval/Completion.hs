@@ -46,11 +46,12 @@ import IHaskell.Eval.ParseShell (parseShell)
 data CompletionType
      = Empty
      | Identifier String
-     | Extension String
+     | DynFlag String
      | Qualified String String
      | ModuleName String String
      | HsFilePath String String
      | FilePath   String String 
+     | KernelOption String
      deriving (Show, Eq)
 
 complete :: String -> Int -> Interpreter (String, [String])
@@ -93,15 +94,32 @@ complete line pos = do
                          else intercalate "." [previous, candidate]
             return $ filter (prefix `isPrefixOf`) moduleNames
 
-          Extension ext -> do
+          DynFlag ext -> do
             let extName (name, _, _) = name
-                names = map extName xFlags
-                nonames = map ("No" ++) names
-            return $ filter (ext `isPrefixOf`) $ names ++ nonames
+                otherNames = ["-package","-Wall","-w"] ++
+                            concatMap getSetName kernelOpts
+                fNames = map ("-f"++) (names ++ nonames)
+                    where
+                    -- possibly leave out the fLangFlags? The
+                    -- -XUndecidableInstances vs. obsolete
+                    -- -fallow-undecidable-instances
+                    names = map extName fFlags ++ 
+                            map extName fWarningFlags ++ 
+                            map extName fLangFlags
+                    nonames = map ("no"++) names
+
+                xNames = map ("-X"++) (names ++ nonames)
+                    where
+                    names = map extName xFlags
+                    nonames = map ("No" ++) names
+            return $ filter (ext `isPrefixOf`) $ fNames ++ xNames ++ otherNames
 
           HsFilePath lineUpToCursor match -> completePathWithExtensions [".hs", ".lhs"] lineUpToCursor
 
           FilePath   lineUpToCursor match  -> completePath lineUpToCursor
+
+          KernelOption str -> return $
+                    filter (str `isPrefixOf`) (concatMap getOptionName kernelOpts)
 
   return (matchedText, options)
 
@@ -138,6 +156,10 @@ completionType line loc target
     = case parseShell lineUpToCursor of 
           Right xs -> HsFilePath lineUpToCursor $ if endswith (last xs) lineUpToCursor then (last xs) else []
           Left  _  -> Empty
+  | startswith ":s" stripped
+    = DynFlag candidate
+  | startswith ":o" stripped
+    = KernelOption candidate
   -- Use target for other completions.
   -- If it's empty, no completion.
   | null target
@@ -146,13 +168,12 @@ completionType line loc target
     = ModuleName dotted candidate
   | isModName && (not . null . init) target
     = Qualified dotted candidate
-  | startswith ":e" stripped
-    = Extension candidate
   | otherwise
     = Identifier candidate
   where stripped = strip line
         dotted = dots target
-        candidate = last target
+        candidate | null target = ""
+                  | otherwise = last target
         dots = intercalate "." . init
         isModName = all isCapitalized (init target)
         isCapitalized = isUpper . head
