@@ -72,6 +72,13 @@ data Display = Display [DisplayData]
              deriving (Show, Typeable, Generic)
 instance Serialize Display
 
+instance Monoid Display where
+    mempty = Display []
+    ManyDisplay a `mappend` ManyDisplay b = ManyDisplay (a ++ b)
+    ManyDisplay a `mappend` b             = ManyDisplay (a ++ [b])
+    a             `mappend` ManyDisplay b = ManyDisplay (a : b)
+    a             `mappend` b             = ManyDisplay [a,b]
+
 -- | All state stored in the kernel between executions.
 data KernelState = KernelState
   { getExecutionCounter :: Int,

@@ -351,7 +351,7 @@ evalCommand _ (Import importStr) state = wrapExecution state $ do
   return $ if "Test.Hspec" `isInfixOf` importStr
            then displayError $ "Warning: Hspec is unusable in IHaskell until the resolution of GHC bug #8639." ++
                                 "\nThe variable `it` is shadowed and cannot be accessed, even in qualified form."
-           else Display []
+           else mempty
   where
     implicitImportOf :: ImportDecl RdrName -> InteractiveImport -> Bool
     implicitImportOf _ (IIModule _) = False
@@ -423,7 +423,7 @@ evalCommand _ (Directive SetDynFlag flags) state = wrapExecution state $ do
   write $ "DynFlag: " ++ flags
   errs <- setDynFlags (words flags)
   return $ case errs of
-      [] -> []
+      [] -> mempty
       _ -> displayError $ intercalate "\n" errs
 
 evalCommand a (Directive SetExtension opts) state = do
@@ -439,7 +439,7 @@ evalCommand a (Directive SetOption opts) state = do
                 ds -> error ("kernelOpts has duplicate:" ++ show (map getOptionName ds))
           | w <- words opts ]
       warn
-        | null lost = []
+        | null lost = mempty
         | otherwise = displayError ("Could not recognize options: " ++ intercalate "," lost)
   return EvalOut {
     evalStatus = if null lost then Success else Failure,
@@ -482,7 +482,7 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
       if exists
       then do
         setCurrentDirectory directory
-        return $ Display []
+        return $ mempty
       else
         return $ displayError $ printf "No such directory: '%s'" directory
     cmd -> do
@@ -616,7 +616,7 @@ evalCommand _ (Directive GetInfo str) state = safely state $ do
 
   return EvalOut {
     evalStatus = Success,
-    evalResult = Display [],
+    evalResult = mempty,
     evalState = state,
     evalPager = output
   }
@@ -786,7 +786,7 @@ evalCommand _ (Declaration decl) state = wrapExecution state $ do
   -- Display the types of all bound names if the option is on.
   -- This is similar to GHCi :set +t.
   if not $ useShowTypes state
-  then return $ Display []
+  then return mempty
   else do
     -- Get all the type strings.
     types <- forM nonDataNames $ \name -> do
@@ -815,7 +815,7 @@ evalCommand _ (ParseError loc err) state = do
 hoogleResults :: KernelState -> [Hoogle.HoogleResult] -> EvalOut
 hoogleResults state results = EvalOut {
     evalStatus = Success,
-    evalResult = Display [],
+    evalResult = mempty,
     evalState = state,
     evalPager = output
   }
@@ -877,7 +877,7 @@ doLoadModule name modName = flip gcatch unload $ do
   setSessionDynFlags flags{ hscTarget = HscInterpreted }
 
   case result of
-    Succeeded -> return $ Display []
+    Succeeded -> return mempty
     Failed -> return $ displayError $ "Failed to load module " ++ modName
   where
     unload :: SomeException -> Ghc Display
