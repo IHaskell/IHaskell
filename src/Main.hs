@@ -53,11 +53,11 @@ ihaskell (Args (ShowHelp help) _) =
 -- isn't updated. This is hard to detect since versions of IPython might
 -- not change!
 ihaskell (Args UpdateIPython _) = do
-  setupIPython
+  --updateIPython
   putStrLn "IPython updated."
     
 ihaskell (Args Console flags) = showingHelp Console flags $ do
-  setupIPython
+  --setupIPython
 
   flags <- addDefaultConfFile flags
   info <- initInfo IPythonConsole flags
@@ -67,7 +67,7 @@ ihaskell (Args (View (Just fmt) (Just name)) []) =
   nbconvert fmt name
 
 ihaskell (Args Notebook flags) = showingHelp Notebook flags $ do
-  setupIPython
+  --setupIPython
 
   let server = case mapMaybe serveDir flags of
                  [] -> Nothing

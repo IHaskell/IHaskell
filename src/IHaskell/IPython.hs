@@ -4,9 +4,6 @@
 --                 @console@ commands.
 module IHaskell.IPython (
   ipythonInstalled,
-  installIPython,
-  updateIPython,
-  setupIPython,
   runConsole,
   runNotebook,
   readInitInfo,
@@ -79,6 +76,12 @@ ihaskellDir = do
 ipythonDir :: Sh FilePath
 ipythonDir = ensure $ (</> "ipython") <$> ihaskellDir
 
+ipythonUpdatePath :: Sh FilePath
+ipythonUpdatePath = (</> "ipython_updater.sh") <$> ihaskellDir
+
+pythonUpdatePath :: Sh FilePath
+pythonUpdatePath = (</> "python_updater.sh") <$> ihaskellDir
+
 ipythonExePath :: Sh FilePath
 ipythonExePath = (</> ("bin" </> "ipython")) <$> ipythonDir
 
@@ -127,74 +130,16 @@ nbconvert fmt name = void . shellyNoDir $ do
             fmt ->  ["--to=" ++ show fmt] in
       void $ runIHaskell ipythonProfile "nbconvert" $ viewArgs ++ [fpToString notebook]
 
--- | Set up IPython properly.
-setupIPython :: IO ()
-setupIPython = do
-  installed <- ipythonInstalled
-  if installed
-  then updateIPython
-  else installIPython
-  
+-- Not sure what to do with this - is there going to be a haskell profile to start with,
+-- or every time we start the build process we want to start with a new profile?
+-- removeIPythonProfile ipythonProfile
 
--- | Update the IPython source tree and rebuild.
-updateIPython :: IO ()
-updateIPython = void . shellyNoDir $ do
-  srcDir <- ipythonSourceDir
-  cd srcDir
-  gitPath <- path "git"
-  currentCommitHash <- silently $ pack <$> rstrip <$> unpack <$> run gitPath ["rev-parse", "HEAD"]
-  when (currentCommitHash /= ipythonCommit) $ do
-    putStrLn "Incorrect IPython repository commit hash."
-    putStrLn $ "Found hash:  " ++ currentCommitHash 
-    putStrLn $ "Wanted hash: " ++ ipythonCommit 
-    putStrLn "Updating..."
-    run_ gitPath ["pull", "origin", "master"]
-    run_ gitPath ["checkout", ipythonCommit]
-    --installPipDependencies
-    buildIPython
-
--- | Install IPython from source.
-installIPython :: IO ()
-installIPython = void . shellyNoDir $ do
-  --installPipDependencies
-
-  -- Get the IPython source.
-  gitPath <- path "git"
-  putStrLn "Downloading IPython... (this may take a while)"
-  ipythonSrcDir <- ipythonSourceDir
-  run_ gitPath ["clone", "--recursive", "https://github.com/ipython/ipython.git", fpToText ipythonSrcDir]
-  cd ipythonSrcDir
-  run_ gitPath ["checkout", ipythonCommit]
-
-  buildIPython
-
--- | Once things are checked out into the IPython source directory, build it and install it.
-buildIPython :: Sh ()
-buildIPython = do
-  -- Install IPython locally.
-  pythonPath <- path "python"
-  prefixOpt <- ("--prefix=" ++) <$> fpToText <$> ipythonDir
-  putStrLn "Installing IPython."
-  run_ pythonPath ["setup.py", "install", prefixOpt]
-
-  -- Patch the IPython executable so that it doesn't use system IPython.
-  -- Using PYTHONPATH is not enough due to bugs in how `easy_install` sets
-  -- things up, at least on Mac OS X.
-  ipyDir <- ipythonDir
-  pythonVer <- pythonVersion
-  let patchLines =
-        [ "#!/usr/bin/env python"
-        , "import sys"
-        , "sys.path = [\"" ++ fpToText ipyDir ++
-         "/lib/" ++ pythonVer ++ "/site-packages\"] + sys.path"]
-  ipythonPath <- ipythonExePath
-  contents <- readFile ipythonPath
-  writeFile ipythonPath $ unlines patchLines ++ "\n" ++ contents
-
-  -- Remove the old IPython profile so that we write a new one in its
-  -- place. Users are not expected to fiddle with the profile, so we give
-  -- no warning whatsoever. This may be changed eventually.
-  removeIPythonProfile ipythonProfile
+-- It'd be a good idea to still include an updater that runs an external script,
+-- but haskell's hard and I can't figure out how to make this thing run.
+-- updateIPython :: IO ()
+-- updateIPython = void . shellyNoDir $ do
+--   ipythonUpdater <- fromText ipythonUpdatePath
+--   run_ ipythonUpdatePath []
 
 -- | Attempt to guess the Python version.
 pythonVersion :: Sh Text

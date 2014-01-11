@@ -1,3 +1,5 @@
+#! /bin/bash
+
 # Install python's dependencies in a virtualenv
 mkdir --parents ~/.ihaskell/ipython/
 virtualenv ~/.ihaskell/ipython

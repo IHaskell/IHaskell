@@ -34,5 +34,7 @@ done
 cd ..
 # Install python's dependencies
 bash ihaskell_python_updater.sh
-cp ihaskell_python_updater.sh ~/.ihaskell/
+bash ipython_updater.sh
+cp python_updater.sh ~/.ihaskell/
+cp ipython_updater.sh ~/.ihaskell/
 cp requirements.txt ~/.ihaskell/
