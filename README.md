@@ -72,6 +72,14 @@ export PATH=~/.cabal/bin:$PATH
 export PATH=~/Library/Haskell/bin:$PATH
 ```
 
+If you are using Mac OS X 10.9 (Mavericks) you will need to compile
+cairo with gcc, not clang. This can be done as follows:
+
+```bash
+brew install gcc48
+cabal install cairo --with-gcc=gcc-4.8
+```
+
 Compilation Tools
 ---
 Install the `happy` parser generator tool and `cpphs` preprocessor:
@@ -97,6 +105,18 @@ IHaskell console
 ```
 
 There is a test notebook in the `IHaskell` directory. To try it, run IHaskell with `IHaskell notebook --serve=IHaskell`.
+
+If you get a pip error while IHaskell is installing Python
+dependencies on the first run (it will look like
+`EOFError: EOF when reading a line`), then you can do the following
+after ensuring that pip >= 1.5 is installed:
+```bash
+env PIP_EXISTS_ACTION=w IHaskell notebook
+```
+
+If it *still* doesn't work and you are using Mac OS X then
+`brew upgrade python`. Some older versions of Homebrew's Python have a
+broken version of distutils. Homebrew's version of Python 2.7.6 *does* work.
 
 **Note**: You may have some trouble due to browser caches with the notebook interface if you also use IPython's notebook interface or have used it in the past. If something doesn't work or IPython says it can't connect to the notebook server, make sure to clear the browser cache in whatever browser you're using, or try another browser.
 
@@ -128,8 +148,8 @@ cd /path/to/IHaskell
 ```bash
 cd /path/to/IHaskell
 cabal sandbox init
-cabal add-source ipython-kernel ihaskell-display/* ghc-parser
-cabal install IHaskell $(ls --color=never ihaskell-display)
+cabal sandbox add-source ipython-kernel ihaskell-display/* ghc-parser
+cabal install IHaskell $(basename ihaskell-display/*)
 ```
 
 **Loading IHaskell into GHCi for testing:**
@@ -145,8 +165,7 @@ cd <path-to-IHaskell>
 cabal repl
 ```
 
-The will hide all packages not listed in the
-`IHaskell.cabal`
+This will hide all packages not listed in `IHaskell.cabal`
 
 **Using GHCi directly**
 
