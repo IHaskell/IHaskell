@@ -9,3 +9,5 @@ env
 Hspec
 todo
 profile/profile.tar
+.cabal-sandbox
+cabal.sandbox.config
