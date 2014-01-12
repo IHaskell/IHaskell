@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Which virtualenv to use.
 VIRTUALENV=$1

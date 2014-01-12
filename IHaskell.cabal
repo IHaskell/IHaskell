@@ -46,6 +46,7 @@ data-files:
     installation/ipython.sh
     installation/update.sh
     installation/virtualenv.sh
+    installation/run.sh
     profile/profile.tar
 
 library

@@ -52,8 +52,12 @@ ipython :: WhichIPython -- ^ Which IPython to use (user-provided or IHaskell-ins
         -> [Text]       -- ^ IPython command line arguments.
         -> Sh String    -- ^ IPython output.
 ipython which suppress args = do
-  ipythonPath <- ipythonExePath which
-  runHandles ipythonPath args handles doNothing
+  runCmd <- liftIO $ Paths.getDataFileName "installation/run.sh"
+  venv <- fpToText <$> ipythonDir
+  print venv
+  print runCmd
+  let cmdArgs = [pack runCmd, venv] ++ args
+  runHandles "bash" cmdArgs handles doNothing
   where handles = [InHandle Inherit, outHandle suppress, errorHandle suppress]
         outHandle True = OutHandle CreatePipe
         outHandle False = OutHandle Inherit
