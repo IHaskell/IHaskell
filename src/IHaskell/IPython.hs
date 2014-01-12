@@ -1,11 +1,8 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {-# LANGUAGE DoAndIfThenElse #-}
--- | Description : Shell scripting wrapper using @Shelly@ for the @notebook@, @setup@, and
+-- | Description : Shell scripting wrapper using @Shelly@ for the @notebook@, and
 --                 @console@ commands.
 module IHaskell.IPython (
-  ipythonInstalled,
-  installIPython,
-  updateIPython,
   setupIPython,
   runConsole,
   runNotebook,
@@ -19,15 +16,16 @@ module IHaskell.IPython (
   WhichIPython(..),
 ) where
 
-import ClassyPrelude
-import Prelude (read, reads, init)
-import Shelly hiding (find, trace, path, (</>))
-import System.Argv0
-import System.Directory
-import qualified Filesystem.Path.CurrentOS as FS
-import Data.List.Utils (split)
-import Data.String.Utils (rstrip, endswith, strip, replace)
-import Text.Printf
+import            ClassyPrelude
+import            Control.Concurrent (threadDelay)
+import            Prelude (read, reads, init)
+import            Shelly hiding (find, trace, path, (</>))
+import            System.Argv0
+import            System.Directory
+import qualified  Filesystem.Path.CurrentOS as FS
+import            Data.List.Utils (split)
+import            Data.String.Utils (rstrip, endswith, strip, replace)
+import            Text.Printf
 
 import qualified System.IO.Strict as StrictIO
 import qualified Paths_ihaskell as Paths
@@ -144,6 +142,7 @@ setupIPython :: WhichIPython -> IO ()
 setupIPython (ExplicitIPython path) = do
   exists <- shellyNoDir $
     test_f $ fromString path
+
   unless exists $
     fail $ "Cannot find IPython at " ++ path
 
@@ -159,127 +158,7 @@ subHome :: String -> IO String
 subHome path = shellyNoDir $ do
   home <- unpack <$> fromMaybe "~" <$> get_env "HOME"
   return $ replace "~" home path
-  
--- | Update the IPython source tree and rebuild.
-updateIPython :: IO ()
-updateIPython = void . shellyNoDir $ do
-  srcDir <- ipythonSourceDir
-  cd srcDir
-  gitPath <- path "git"
-  currentCommitHash <- silently $ pack <$> rstrip <$> unpack <$> run gitPath ["rev-parse", "HEAD"]
-  when (currentCommitHash /= ipythonCommit) $ do
-    putStrLn "Incorrect IPython repository commit hash."
-    putStrLn $ "Found hash:  " ++ currentCommitHash 
-    putStrLn $ "Wanted hash: " ++ ipythonCommit 
-    putStrLn "Updating..."
-    run_ gitPath ["pull", "origin", "master"]
-    run_ gitPath ["checkout", ipythonCommit]
-    installPipDependencies
-    buildIPython
 
--- | Install IPython from source.
-installIPython :: IO ()
-installIPython = void . shellyNoDir $ do
-  installPipDependencies
-
-  -- Get the IPython source.
-  gitPath <- path "git"
-  putStrLn "Downloading IPython... (this may take a while)"
-  ipythonSrcDir <- ipythonSourceDir
-  run_ gitPath ["clone", "--recursive", "https://github.com/ipython/ipython.git", fpToText ipythonSrcDir]
-  cd ipythonSrcDir
-  run_ gitPath ["checkout", ipythonCommit]
-
-  buildIPython
-
--- | Install all Python dependencies.
-installPipDependencies :: Sh ()
-installPipDependencies = withTmpDir $ \tmpDir -> 
-    mapM_ (installDependency tmpDir) 
-      [
-        ("pyzmq", "14.0.1")
-      , ("tornado","3.1.1")
-      , ("Jinja2","2.7.1")
-      -- The following cannot go first in the dependency list, because
-      -- their setup.py are broken and require the directory to exist
-      -- already.
-      , ("MarkupSafe", "0.18")
-      ]
-  where
-    installDependency :: FilePath -> (Text, Text) -> Sh ()
-    installDependency tmpDir (dep, version) = sub $ do
-      let versioned = dep ++ "-" ++ version
-      putStrLn $ "Installing dependency: " ++ versioned
-
-      pipPath <- path "pip"
-      tarPath <- path "tar"
-      pythonPath <- path "python"
-
-      -- Download the package.
-      let downloadOpt = "--download=" ++ fpToText tmpDir
-      rm_f $ fpFromText $ versioned ++ ".tar.gz"
-      run_ pipPath ["install", downloadOpt, dep ++ "==" ++ version]
-
-      -- Extract it.
-      cd tmpDir
-      run_ tarPath ["-xzf", versioned ++ ".tar.gz"]
-
-      -- Add the site-packages directory to the PYTHONPATH.
-      -- Otherwise setup.py refuses to install there.
-      dir <- fpToText <$> ipythonDir
-      pyVer <- pythonVersion
-      setenv "PYTHONPATH" $ dir ++ "/lib/" ++ pyVer ++ "/site-packages/"
-
-      -- Install it.
-      cd $ fromText versioned
-      let prefixOpt =  "--prefix=" ++ dir
-      run_ pythonPath ["setup.py", "install", prefixOpt]
-
-
--- | Once things are checked out into the IPython source directory, build it and install it.
-buildIPython :: Sh ()
-buildIPython = do
-  -- Install IPython locally.
-  pythonPath <- path "python"
-  prefixOpt <- ("--prefix=" ++) <$> fpToText <$> ipythonDir
-  putStrLn "Installing IPython."
-  run_ pythonPath ["setup.py", "install", prefixOpt]
-
-  -- Patch the IPython executable so that it doesn't use system IPython.
-  -- Using PYTHONPATH is not enough due to bugs in how `easy_install` sets
-  -- things up, at least on Mac OS X.
-  ipyDir <- ipythonDir
-  pythonVer <- pythonVersion
-  let patchLines =
-        [ "#!/usr/bin/env python"
-        , "import sys"
-        , "sys.path = [\"" ++ fpToText ipyDir ++
-         "/lib/" ++ pythonVer ++ "/site-packages\"] + sys.path"]
-  ipythonPath <- ipythonExePath DefaultIPython
-  contents <- readFile ipythonPath
-  writeFile ipythonPath $ unlines patchLines ++ "\n" ++ contents
-
-  -- Remove the old IPython profile so that we write a new one in its
-  -- place. Users are not expected to fiddle with the profile, so we give
-  -- no warning whatsoever. This may be changed eventually.
-  removeIPythonProfile DefaultIPython ipythonProfile
-
--- | Attempt to guess the Python version.
-pythonVersion :: Sh Text
-pythonVersion = do
-  python <- path "python"
-  versions <- run python ["-c", "import sys; print(sys.version_info.major, sys.version_info.minor)"]
-  let replacer = replace "(" "" .
-                 replace ")" "" .
-                 replace "," ""
-  let [major, minor] = map read . split " " . strip . replacer $ unpack versions :: [Int]
-  return $ "python" ++ pack (show major) ++ "." ++ pack (show minor)
-
--- | Check whether IPython is properly installed.
-ipythonInstalled :: IO Bool
-ipythonInstalled = shellyNoDir $ do
-  ipythonPath <- ipythonExePath DefaultIPython
-  test_f ipythonPath
 
 -- | Get the path to an executable. If it doensn't exist, fail with an
 -- error message complaining about it.
@@ -378,16 +257,6 @@ removeIPythonProfile which profile = do
 copyProfile :: Text -> IO ()
 copyProfile profileDir = do
   profileTar <- Paths.getDataFileName "profile/profile.tar"
-  {-
-  -- Load profile from Resources directory of Mac *.app.
-  ihaskellPath <- shellyNoDir getIHaskellPath
-  profileTar <- if "IHaskell.app/Contents/MacOS" `isInfixOf` ihaskellPath
-               then
-                let pieces = split "/" ihaskellPath
-                    pathPieces = init pieces ++ ["..", "Resources", "profile.tar"] in
-                  return $ intercalate "/" pathPieces
-               else Paths.getDataFileName "profile/profile.tar"
-  -}
   putStrLn $ pack $ "Loading profile from " ++ profileTar 
   Tar.extract (unpack profileDir) profileTar 
 
@@ -442,3 +311,40 @@ getSandboxPackageConf = shellyNoDir $ do
       [] -> return Nothing
       dir:_ -> 
         return $ Just dir
+
+-- | Check whether IPython is properly installed.
+ipythonInstalled :: IO Bool
+ipythonInstalled = shellyNoDir $ do
+  ipythonPath <- ipythonExePath DefaultIPython
+  test_f ipythonPath
+
+-- | Update the IPython source tree and rebuild.
+updateIPython :: IO ()
+updateIPython = do
+  updateScript <- Paths.getDataFileName "installation/update.sh"
+  venv <- fpToText <$> shellyNoDir ipythonDir
+  runTmp updateScript [venv, ipythonCommit]
+
+  -- Remove the old IPython profile.
+  -- A new one will be regenerated when it is needed.
+  shellyNoDir $ removeIPythonProfile DefaultIPython ipythonProfile
+
+-- | Install IPython from source.
+installIPython :: IO ()
+installIPython = do
+  -- Print a message and wait a little.
+  putStrLn "Installing IPython for IHaskell. This may take a while."
+  threadDelay $ 3 * 1000 * 100
+
+  -- Set up the virtualenv.
+  virtualenvScript <- Paths.getDataFileName "installation/virtualenv.sh"
+  venvDir <- fpToText <$> shellyNoDir ipythonDir
+  runTmp virtualenvScript [venvDir]
+
+  -- Set up Python depenencies.
+  installScript <- Paths.getDataFileName "installation/ipython.sh"
+  runTmp installScript [venvDir, ipythonCommit]
+
+runTmp script args = shellyNoDir $ withTmpDir $ \tmp -> do
+  cd tmp
+  run_ "sh" $ pack script: args

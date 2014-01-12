@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# Which virtualenv to use.
+VIRTUALENV=$1
+
+# Commit hash to install.
+COMMIT=$2
+
+# Activate the virtualenv.
+source $VIRTUALENV/bin/activate
+
+# Install all necessary dependencies with Pip.
+echo "Installing dependency (pyzmq)."
+pip install pyzmq==14.0.1
+
+echo "Installing dependency (markupsafe)."
+pip install markupsafe==0.18
+
+echo "Installing dependency (jinja2)."
+pip install jinja2==2.7.1
+
+echo "Installing dependency (tornado)."
+pip install tornado==3.1.1
+
+echo "Installing dependency (pygments)."
+pip install pygments==1.6
+
+# Install IPython itself.
+echo "Installing IPython (this may take a while)."
+pip install -e git+https://github.com/ipython/ipython.git@$COMMIT#egg=ipython-dev

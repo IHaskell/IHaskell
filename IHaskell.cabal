@@ -43,7 +43,10 @@ build-type:          Simple
 cabal-version:       >=1.16
 
 data-files: 
-  profile/profile.tar
+    installation/ipython.sh
+    installation/update.sh
+    installation/virtualenv.sh
+    profile/profile.tar
 
 library
   hs-source-dirs:      src

@@ -32,7 +32,6 @@ data IHaskellMode
   = ShowHelp String
   | Notebook
   | Console
-  | UpdateIPython
   | Kernel (Maybe String)
   | View (Maybe ViewFormat) (Maybe String)
   deriving (Eq, Show)
@@ -50,7 +49,6 @@ help mode =
     chooseMode Console = console
     chooseMode Notebook = notebook
     chooseMode (Kernel _) = kernel
-    chooseMode UpdateIPython = update
 
 ipythonFlag :: Flag Args
 ipythonFlag = 
@@ -81,9 +79,6 @@ kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." 
   where
     kernelArg = flagArg update "<json-kernel-file>"
     update filename (Args _ flags) = Right $ Args (Kernel $ Just filename) flags
-
-update :: Mode Args
-update = mode "update" (Args UpdateIPython []) "Update IPython frontends." noArgs []
 
 view :: Mode Args
 view =
@@ -121,7 +116,7 @@ ihaskellArgs =
       helpStr = showText (Wrap 100) $ helpText [] HelpFormatAll ihaskellArgs
       onlyHelp = [flagHelpSimple (add Help)]
       noMode = mode "IHaskell" (Args (ShowHelp helpStr) []) descr noArgs onlyHelp in
-    noMode { modeGroupModes = toGroup [console, notebook, view, update, kernel] }
+    noMode { modeGroupModes = toGroup [console, notebook, view, kernel] }
   where 
     add flag (Args mode flags) = Args mode $ flag : flags
 

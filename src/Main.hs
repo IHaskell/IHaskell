@@ -52,14 +52,6 @@ ihaskell :: Args -> IO ()
 -- If no mode is specified, print help text.
 ihaskell (Args (ShowHelp help) _) = 
   putStrLn $ pack help
-
--- Update IPython: remove then reinstall.
--- This is in case cabal updates IHaskell but the corresponding IPython
--- isn't updated. This is hard to detect since versions of IPython might
--- not change!
-ihaskell (Args UpdateIPython _) = do
-  setupIPython DefaultIPython
-  putStrLn "IPython updated."
     
 ihaskell (Args Console flags) = showingHelp Console flags $ do
   ipython <- chooseIPython flags
