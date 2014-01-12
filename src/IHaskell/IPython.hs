@@ -351,4 +351,4 @@ installIPython = do
 
 runTmp script args = shellyNoDir $ withTmpDir $ \tmp -> do
   cd tmp
-  run_ "sh" $ pack script: args
+  run_ "bash" $ pack script: args
