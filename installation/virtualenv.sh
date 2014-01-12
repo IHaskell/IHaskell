@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Which version of virtualenv to use.
 VIRTUALENV=virtualenv-1.9

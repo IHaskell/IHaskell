@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Which virtualenv to use.
 VIRTUALENV=$1
