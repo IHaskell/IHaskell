@@ -217,7 +217,7 @@ installPipDependencies = withTmpDir $ \tmpDir ->
 
       -- Download the package.
       let downloadOpt = "--download=" ++ fpToText tmpDir
-      rm $ fpFromText $ versioned ++ ".tar.gz"
+      rm_f $ fpFromText $ versioned ++ ".tar.gz"
       run_ pipPath ["install", downloadOpt, dep ++ "==" ++ version]
 
       -- Extract it.
