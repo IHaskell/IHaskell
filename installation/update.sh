@@ -9,7 +9,7 @@ COMMIT=$2
 # Find out current IPython commit hash.
 cd $VIRTUALENV/src/ipython
 CURRENT_COMMIT=`git rev-parse HEAD`
-if [ $CURRENT_COMMIT = $COMMIT ]; then
+if [ $CURRENT_COMMIT != $COMMIT ]; then
   # Activate the virtualenv.
   source $VIRTUALENV/bin/activate
 
