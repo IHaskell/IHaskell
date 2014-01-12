@@ -21,12 +21,16 @@ cabal install --force-reinstalls
 # Remove my profile
 rm -rf ~/.ipython/profile_haskell
 
-# Install all the display libraries
-cd ihaskell-display
-for dir in `ls`
-do
-    cd $dir
-    cabal clean
-    cabal install
-    cd ..
-done
+if [ $# -gt 0 ]; then
+  if [ $1 = "all" ]; then
+        # Install all the display libraries
+        cd ihaskell-display
+        for dir in `ls`
+        do
+            cd $dir
+            cabal clean
+            cabal install
+            cd ..
+        done
+    fi
+fi
