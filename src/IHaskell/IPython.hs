@@ -327,7 +327,7 @@ updateIPython = do
 
   -- Remove the old IPython profile.
   -- A new one will be regenerated when it is needed.
-  shellyNoDir $ removeIPythonProfile DefaultIPython ipythonProfile
+  -- shellyNoDir $ removeIPythonProfile DefaultIPython ipythonProfile
 
 -- | Install IPython from source.
 installIPython :: IO ()
