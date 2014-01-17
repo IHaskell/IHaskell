@@ -1,4 +1,4 @@
-{%- extends 'html_full.tpl' -%}
+{%- extends 'full.tpl' -%}
 
 
 {%- block header -%}

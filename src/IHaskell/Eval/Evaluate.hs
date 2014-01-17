@@ -1049,7 +1049,7 @@ formatErrorWithClass cls =
     rstrip .
     typeCleaner
   where
-    fixDollarSigns str = traceShowId  (replace "$" "<span>$</span>" str)
+    fixDollarSigns = replace "$" "<span>$</span>"
     useDashV = "\nUse -v to see a list of the files searched for."
     isShowError err =
       startswith "No instance for (Show" err &&
