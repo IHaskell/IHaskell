@@ -1044,11 +1044,12 @@ formatErrorWithClass :: String -> ErrMsg -> String
 formatErrorWithClass cls =
     printf "<span class='%s'>%s</span>" cls .
     replace "\n" "<br/>" .
-    fixStdinError .
     replace useDashV "" .
+    fixDollarSigns .
     rstrip .
     typeCleaner
   where
+    fixDollarSigns str = traceShowId  (replace "$" "<span>$</span>" str)
     useDashV = "\nUse -v to see a list of the files searched for."
     isShowError err =
       startswith "No instance for (Show" err &&
@@ -1066,16 +1067,7 @@ formatType :: String -> Display
 formatType typeStr =  Display [plain typeStr, html $ formatGetType typeStr]
 
 displayError :: ErrMsg -> Display
-displayError msg = Display [plain . fixStdinError . typeCleaner $ msg, html $ formatError msg]
-
-fixStdinError :: ErrMsg -> ErrMsg
-fixStdinError err =
-  if isStdinErr err
-  then "<stdin> is not available in IHaskell. Use special `inputLine` instead of `getLine`."
-  else err
-  where
-    isStdinErr err = startswith "<stdin>" err
-      && "illegal operation (handle is closed)" `isInfixOf` err
+displayError msg = Display [plain . typeCleaner $ msg, html $ formatError msg]
 
 mono :: String -> String
 mono = printf "<span class='mono'>%s</span>"

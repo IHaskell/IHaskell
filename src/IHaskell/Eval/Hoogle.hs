@@ -150,7 +150,7 @@ renderSelf string loc
         span "hoogle-module" (link loc $ extractModule string) ++
         packageSub package
 
-  | otherwise
+  | otherwise 
     = let [name, args] = split "::" string
           package = extractPackageName loc
           modname = extractModuleName loc in
