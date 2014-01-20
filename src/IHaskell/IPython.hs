@@ -40,7 +40,7 @@ data WhichIPython
 
 -- | Which commit of IPython we are on.
 ipythonCommit :: Text
-ipythonCommit = "12247a8f4feffe16fb0bbdc0a18e7a1f46cd2ba1"
+ipythonCommit = "dea60d42cf67e2713ad296f79f6962be0a4d7cd3"
 
 -- | The IPython profile name.
 ipythonProfile :: String
