@@ -32,4 +32,4 @@ pip install pygments==1.6
 
 # Install IPython itself.
 echo "Installing IPython (this may take a while)."
-pip install git+https://github.com/ipython/ipython.git@$COMMIT#egg=ipython-dev
+pip install -e git+https://github.com/ipython/ipython.git@$COMMIT#egg=ipython-dev
