@@ -11,7 +11,7 @@ COMMIT=$2
 source $VIRTUALENV/bin/activate
 
 # Upgrade pip.
-echo "Upgrading pip"
+echo "Upgrading pip."
 pip install --upgrade "pip>=1.4.1"
 
 # Install all necessary dependencies with Pip.
@@ -32,4 +32,4 @@ pip install pygments==1.6
 
 # Install IPython itself.
 echo "Installing IPython (this may take a while)."
-pip install -e git+https://github.com/ipython/ipython.git@$COMMIT#egg=ipython-dev
+pip install git+https://github.com/ipython/ipython.git@$COMMIT#egg=ipython-dev
