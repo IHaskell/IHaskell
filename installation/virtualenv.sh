@@ -2,7 +2,7 @@
 set -e
 
 # Which version of virtualenv to use.
-VIRTUALENV=virtualenv-1.9
+VIRTUALENV=virtualenv-1.10.1
 
 # Where to install the virtualenv.
 DESTINATION=$1
