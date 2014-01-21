@@ -10,6 +10,10 @@ COMMIT=$2
 # Activate the virtualenv.
 source $VIRTUALENV/bin/activate
 
+# Upgrade pip.
+echo "Upgrading pip"
+pip install --upgrade "pip>=1.4.1"
+
 # Install all necessary dependencies with Pip.
 echo "Installing dependency (pyzmq)."
 pip install pyzmq==14.0.1
