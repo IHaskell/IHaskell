@@ -48,11 +48,12 @@ lint blocks = do
 
   writeFile (fromString filename) fileContents
   suggestions <- catMaybes <$> map parseSuggestion <$> hlint [filename, "--quiet"]
-  return $
+  return $ Display $
     if null suggestions
-    then Display []
-    else Display
-      [plain $ concatMap plainSuggestion suggestions, html $ htmlSuggestions suggestions]
+    then []
+    else 
+      [plain $ concatMap plainSuggestion suggestions,
+       html $ htmlSuggestions suggestions]
   where
     -- Join together multiple valid file blocks into a single file.
     -- However, join them with padding so that the line numbers are
@@ -117,6 +118,7 @@ parseSuggestion :: Suggestion -> Maybe LintSuggestion
 parseSuggestion suggestion = do
   let str = showSuggestion (show suggestion)
       severity = suggestionSeverity suggestion
+
   guard (severity /= HLint.Ignore)
   let lintSeverity = case severity of
         Warning -> LintWarning
@@ -147,23 +149,37 @@ parseSuggestion suggestion = do
 
 showSuggestion :: String -> String
 showSuggestion = 
-    replace ("return " ++ lintIdent) "" .
-    replace (lintIdent ++ "=") "" .
-    dropDo
-    where
+  remove ("return " ++ lintIdent) .
+  remove (lintIdent ++ "=") .
+  dropDo
+  where
+    remove str = replace str ""
 
-    -- drop leading '  do ', and blank spaces following
+    -- Drop leading '  do ', and blank spaces following.
     dropDo :: String -> String
-    dropDo = unlines . f . lines
-        where
-        f :: [String] -> [String]
-        f ((stripPrefix "  do " -> Just a) : as) =
-                let as' = catMaybes
-                        $ takeWhile isJust
-                        $ map (stripPrefix "     ") as
-                in a : as' ++ f (drop (length as') as)
-        f (x:xs) = x : f xs
-        f [] = []
+    dropDo string = 
+      -- If this is not a statement, we don't need to drop the do statement.
+      if ("return " ++ lintIdent) `isInfixOf` string
+      then unlines . clean . lines $ string
+      else string
+
+    clean :: [String] -> [String]
+    -- If the first line starts with a `do`...
+    -- Note that hlint always indents by two spaces in its output.
+    clean ((stripPrefix "  do " -> Just a) : as) =
+        -- Take all indented lines and unindent them.
+        let unindented = catMaybes
+                $ takeWhile isJust
+                $ map (stripPrefix "     ") as
+            fullDo = a:unindented
+            afterDo = drop (length unindented) as
+        in 
+          -- 
+          fullDo ++ clean afterDo
+
+    -- Ignore other list elements - just proceed onwards.
+    clean (x:xs) = x : clean xs
+    clean [] = []
 
 -- | Convert a code chunk into something that could go into a file.
 -- The line number on the output is the same as on the input.
@@ -193,7 +209,7 @@ makeValid (Located line block) = Located line $
                     $ filter (not . all isSpace)
                             (lines (expandTabs stmt))
             finalReturn = replicate nLeading ' ' ++ "return " ++ lintIdent
-        in intercalate ("\n ") ((lintIdent ++ " $ do") : lines stmt ++ [finalReturn])
+        in intercalate "\n " ((lintIdent ++ " $ do") : lines stmt ++ [finalReturn])
 
     -- Modules, declarations, and type signatures are fine as is.
     Module mod -> mod
