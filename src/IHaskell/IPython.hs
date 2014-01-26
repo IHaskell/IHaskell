@@ -117,6 +117,7 @@ nbconvert :: WhichIPython -> ViewFormat -> String -> IO ()
 nbconvert which fmt name = void . shellyNoDir $ do
   curdir <- pwd
   nbdir <- notebookDir
+
   -- Find which of the options is available. 
   let notebookOptions = [
         curdir </> fpFromString name,

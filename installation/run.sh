@@ -9,4 +9,5 @@ shift
 source $VIRTUALENV/bin/activate
 
 # Run IPython.
-ipython $@
+# Quotes around $@ are necessary to deal properly with spaces.
+ipython "$@"
