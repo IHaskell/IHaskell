@@ -129,6 +129,7 @@ activateParsingExtensions (Directive SetDynFlag flags) =
   case stripPrefix "-X" flags of
     Just ext -> void $ setExtension ext
     Nothing -> return ()
+activateParsingExtensions _ = return ()
 
 -- | Parse a single chunk of code, as indicated by the layout of the code.
 parseCodeChunk :: GhcMonad m => String -> LineNumber  -> m CodeBlock

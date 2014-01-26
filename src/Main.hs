@@ -2,29 +2,35 @@
 -- | Description : Argument parsing and basic messaging loop, using Haskell
 --                 Chans to communicate with the ZeroMQ sockets. 
 module Main where
-import ClassyPrelude hiding (liftIO)
-import Prelude (last, read)
-import Control.Concurrent.Chan
-import Control.Concurrent (threadDelay)
-import Data.Aeson
-import Text.Printf
-import System.Exit (exitSuccess)
-import System.Directory
 
-import qualified Data.Map as Map
+-- Prelude imports.
+import ClassyPrelude  hiding (liftIO)
+import Prelude        (last, read)
 
-import IHaskell.Types
-import IPython.ZeroMQ
-import qualified IPython.Message.UUID as UUID
-import IHaskell.Eval.Evaluate
-import IHaskell.Eval.Completion (complete)
-import IHaskell.Eval.Info
-import qualified Data.ByteString.Char8 as Chars
-import IHaskell.IPython
-import qualified IPython.Stdin as Stdin
-import IHaskell.Flags
+-- Standard library imports.
+import            Control.Concurrent        (threadDelay)
+import            Control.Concurrent.Chan
+import            Data.Aeson
+import            Data.String.Utils         (strip)
+import            System.Directory
+import            System.Exit               (exitSuccess)
+import            Text.Printf
+import qualified  Data.Map                  as Map
 
-import GHC hiding (extensions, language)
+-- IHaskell imports.
+import            IHaskell.Eval.Completion  (complete)
+import            IHaskell.Eval.Evaluate
+import            IHaskell.Eval.Info
+import            IHaskell.Flags
+import            IHaskell.IPython
+import            IHaskell.Types
+import            IPython.ZeroMQ
+import qualified  Data.ByteString.Char8     as Chars
+import qualified  IPython.Message.UUID      as UUID
+import qualified  IPython.Stdin             as Stdin
+
+-- GHC API imports.
+import GHC        hiding (extensions, language)
 import Outputable (showSDoc, ppr)
 
 -- | Compute the GHC API version number using the dist/build/autogen/cabal_macros.h
@@ -304,23 +310,23 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
 
 
 replyTo _ req@CompleteRequest{} replyHeader state = do
-    (matchedText, completions) <- complete (Chars.unpack $ getCodeLine req) (getCursorPos req)
+  (matchedText, completions) <- complete (Chars.unpack $ getCodeLine req) (getCursorPos req)
 
-    let reply =  CompleteReply replyHeader (map Chars.pack completions) (Chars.pack matchedText) (getCodeLine req) True
-    return (state,  reply)
+  let reply =  CompleteReply replyHeader (map Chars.pack completions) (Chars.pack matchedText) (getCodeLine req) True
+  return (state,  reply)
 
 -- | Reply to the object_info_request message. Given an object name, return
 -- | the associated type calculated by GHC.
 replyTo _ ObjectInfoRequest{objectName=oname} replyHeader state = do
-         docs <- info $ Chars.unpack oname
-         let reply = ObjectInfoReply {
-                        header = replyHeader,
-                        objectName = oname, 
-                        objectFound = docs == "",
-                        objectTypeString = Chars.pack docs,
-                        objectDocString  = Chars.pack docs                    
-                      }
-         return (state, reply)
+  docs <- info $ Chars.unpack oname
+  let reply = ObjectInfoReply {
+                header = replyHeader,
+                objectName = oname, 
+                objectFound = strip docs /= "",
+                objectTypeString = Chars.pack docs,
+                objectDocString  = Chars.pack docs                    
+              }
+  return (state, reply)
 
 
  
