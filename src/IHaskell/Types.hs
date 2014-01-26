@@ -1,5 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, PatternGuards #-}
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, DeriveDataTypeable, DeriveGeneric #-}
 -- | Description : All message type definitions.
 module IHaskell.Types (
   Message (..),
@@ -105,22 +104,24 @@ data FrontendType
      | IPythonNotebook
      deriving (Show, Eq, Read)
 
--- | names the ways to update the IHaskell 'KernelState' by `:set`
--- ('getSetName') and `:option` ('getOptionName') directives
-data KernelOpt = KernelOpt
-    { getOptionName, getSetName :: [String],
-      getUpdateKernelState :: KernelState -> KernelState }
+-- | Kernel options to be set via `:set` and `:option`.
+data KernelOpt = KernelOpt {
+    getOptionName :: [String],                          -- ^ Ways to set this option via `:option`
+    getSetName :: [String],                             -- ^ Ways to set this option via `:set`
+    getUpdateKernelState :: KernelState -> KernelState   -- ^ Function to update the kernel state.
+  }
 
 kernelOpts :: [KernelOpt]
 kernelOpts =
-    [KernelOpt ["lint"]    [] $ \state -> state { getLintStatus = LintOn },
-     KernelOpt ["no-lint"] [] $ \state -> state { getLintStatus = LintOff },
-     KernelOpt ["svg"]     [] $ \state -> state { useSvg = True },
-     KernelOpt ["no-svg"]  [] $ \state -> state { useSvg = False },
-     KernelOpt ["show-types"]    ["+t"] $ \state -> state { useShowTypes = True },
-     KernelOpt ["no-show-types"] ["-t"] $ \state -> state { useShowTypes = False },
-     KernelOpt ["show-errors"]    [] $ \state -> state { useShowErrors = True },
-     KernelOpt ["no-show-errors"] [] $ \state -> state { useShowErrors = False }]
+  [ KernelOpt ["lint"]           []     $ \state -> state { getLintStatus = LintOn }
+  , KernelOpt ["no-lint"]        []     $ \state -> state { getLintStatus = LintOff }
+  , KernelOpt ["svg"]            []     $ \state -> state { useSvg        = True }
+  , KernelOpt ["no-svg"]         []     $ \state -> state { useSvg        = False }
+  , KernelOpt ["show-types"]     ["+t"] $ \state -> state { useShowTypes  = True }
+  , KernelOpt ["no-show-types"]  ["-t"] $ \state -> state { useShowTypes  = False }
+  , KernelOpt ["show-errors"]    []     $ \state -> state { useShowErrors = True }
+  , KernelOpt ["no-show-errors"] []     $ \state -> state { useShowErrors = False }
+  ]
 
 -- | Initialization information for the kernel.
 data InitInfo = InitInfo {

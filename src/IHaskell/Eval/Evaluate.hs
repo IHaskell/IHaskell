@@ -1,4 +1,4 @@
-{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances, PatternGuards  #-}
+{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances #-}
 
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
@@ -72,7 +72,7 @@ import IHaskell.Eval.Util
 import Paths_ihaskell (version)
 import Data.Version (versionBranch)
 
-data ErrorOccurred = Success | Failure deriving (Show, Eq, Ord)
+data ErrorOccurred = Success | Failure deriving (Show, Eq)
 
 debug :: Bool
 debug = False
@@ -323,20 +323,26 @@ wrapExecution state exec = safely state $ exec >>= \res ->
 
 -- | Set dynamic flags.
 --
--- adapted from GHC's InteractiveUI.hs (newDynFlags)
-setDynFlags :: [String] -> Interpreter [ErrMsg]
+-- This was adapted from GHC's InteractiveUI.hs (newDynFlags).
+setDynFlags :: [String]               -- ^ Flags to set.
+            -> Interpreter [ErrMsg]   -- ^ Errors from trying to set flags.
 setDynFlags ext = do
+    -- Try to parse flags.
     flags <- getSessionDynFlags
     (flags', unrecognized, warnings) <- parseDynamicFlags flags (map noLoc ext)
-    let restorePkg x = x { packageFlags = packageFlags flags }
+
     -- First, try to check if this flag matches any extension name.
-    new_pkgs <- GHC.setProgramDynFlags (restorePkg flags')
-    GHC.setInteractiveDynFlags (restorePkg flags')
-    return $ map (("Could not parse: " ++) . unLoc) unrecognized ++
-             map ("Warning: " ++)
-                  (map unLoc warnings ++
-                    [ "-package not supported yet"
-                        | packageFlags flags /= packageFlags flags' ])
+    let restorePkg x = x { packageFlags = packageFlags flags }
+    let restoredPkgs = flags' { packageFlags = packageFlags flags}
+    GHC.setProgramDynFlags restoredPkgs
+    GHC.setInteractiveDynFlags restoredPkgs
+
+    -- Create the parse errors.
+    let noParseErrs = map (("Could not parse: " ++) . unLoc) unrecognized
+        allWarns = map unLoc warnings ++ 
+                     ["-package not supported yet" | packageFlags flags /= packageFlags flags']
+        warnErrs    = map ("Warning: " ++) allWarns
+    return $ noParseErrs ++ warnErrs
 
 -- | Return the display data for this command, as well as whether it
 -- resulted in an error.
@@ -405,38 +411,59 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
     -- Since nothing prevents loading the module, compile and load it.
     Nothing -> doLoadModule modName modName
 
-evalCommand a (Directive SetDynFlag flags) state
-    | let f o = case filter (elem o . getSetName) kernelOpts of
-                [] -> Right o
-                [z] | s:_ <- getOptionName z -> Left s
-                    | otherwise -> error ("evalCommand Directive SetDynFlag impossible")
-                ds -> error ("kernelOpts has duplicate:"++ show (map getSetName ds)),
-      (optionFlags,oo) <- partitionEithers $ map f (words flags),
-      not (null optionFlags) = do
-          eo1 <- evalCommand a (Directive SetOption (unwords optionFlags)) state
-          eo2 <- evalCommand a (Directive SetDynFlag (unwords oo)) (evalState eo1)
-          return $ EvalOut {
-                evalStatus = max (evalStatus eo1) (evalStatus eo2),
-                evalResult = evalResult eo1 ++ evalResult eo2,
-                evalState = evalState eo2,
-                evalPager = evalPager eo1 ++ evalPager eo2
-          }
-        
-evalCommand _ (Directive SetDynFlag flags) state = wrapExecution state $ do
-  write $ "DynFlag: " ++ flags
-  errs <- setDynFlags (words flags)
-  return $ case errs of
-      [] -> mempty
-      _ -> displayError $ intercalate "\n" errs
+-- | Directives set via `:set`. 
+evalCommand output (Directive SetDynFlag flags) state = 
+  case words flags of
+    -- For a single flag.
+    [flag] -> do
+      write $ "DynFlags: " ++ flags
 
-evalCommand a (Directive SetExtension opts) state = do
+      -- Check if this is setting kernel options.
+      case find (elem flag . getSetName) kernelOpts of
+        -- If this is a kernel option, just set it.
+        Just (KernelOpt _ _ updater) ->
+            return EvalOut {
+              evalStatus = Success,
+              evalResult = mempty,
+              evalState = updater state,
+              evalPager = ""
+            }
+
+        -- If not a kernel option, must be a dyn flag.
+        Nothing -> do
+          errs <- setDynFlags [flag]
+          let display = case errs of
+                [] -> mempty
+                _ -> displayError $ intercalate "\n" errs
+          return EvalOut {
+            evalStatus = Success,
+            evalResult = display,
+            evalState = state,
+            evalPager = ""
+          }
+
+    -- Apply many flags.
+    flag:manyFlags -> do
+      firstEval <- evalCommand output (Directive SetDynFlag flags) state
+      case evalStatus firstEval of
+        Failure -> return firstEval
+        Success -> do
+          let newState = evalState firstEval
+              results  = evalResult firstEval
+          restEval <- evalCommand output (Directive SetDynFlag $ unwords manyFlags) newState
+          return restEval {
+            evalResult = results ++ evalResult restEval
+          }
+
+evalCommand output (Directive SetExtension opts) state = do
   write $ "Extension: " ++ opts
-  evalCommand a (Directive SetDynFlag (concatMap (" -X"++) (words opts))) state
+  let set = concatMap (" -X" ++) $ words opts
+  evalCommand output (Directive SetDynFlag set) state
 
 evalCommand a (Directive SetOption opts) state = do
   write $ "Option: " ++ opts
   let (lost, found) = partitionEithers
-        [ case filter (any (w==) . getOptionName) kernelOpts of
+        [ case filter (elem w . getOptionName) kernelOpts of
                 [x] -> Right (getUpdateKernelState x)
                 [] -> Left w
                 ds -> error ("kernelOpts has duplicate:" ++ show (map getOptionName ds))
@@ -485,7 +512,7 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
       if exists
       then do
         setCurrentDirectory directory
-        return $ mempty
+        return mempty
       else
         return $ displayError $ printf "No such directory: '%s'" directory
     cmd -> do
@@ -740,7 +767,7 @@ evalCommand output (Expression expr) state = do
         Just bytestring ->
           case Serialize.decode bytestring of
             Left err -> error err
-            Right display -> do
+            Right display ->
               return $
                 if useSvg state
                 then display
