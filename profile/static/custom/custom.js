@@ -16,6 +16,9 @@ $([IPython.events]).on('app_initialized.NotebookApp', function(){
     // like adding specific UI, or changing the default value
     // of codecell highlight.
     
+    // Set tooltips to be triggered after 800ms
+    IPython.tooltip.time_before_tooltip = 800;
+    
     CodeMirror.requireMode('haskell', function(){
         // Create a multiplexing mode that uses Haskell highlighting by default but
         // doesn't highlight command-line directives.
