@@ -98,13 +98,10 @@ instance MonadIO.MonadIO Interpreter where
 
 globalImports :: [String]
 globalImports =
-  [ "import IHaskell.Display"
+  [ "import IHaskell.Display()"
   , "import qualified IPython.Stdin"
-  , "import Control.Applicative ((<$>))"
-  , "import GHC.IO.Handle (hDuplicateTo, hDuplicate, hClose)"
-  , "import System.Posix.IO"
-  , "import System.Posix.Files"
-  , "import System.IO"
+  , "import qualified System.Posix.IO as IHaskellIO"
+  , "import qualified System.IO as IHaskellSysIO"
   ]
 
 
@@ -954,19 +951,19 @@ capturedStatement output stmt = do
     -- Statements run before the thing we're evaluating.
     initStmts =
       [ printf "let %s = it" itVariable
-      , printf "(%s, %s) <- createPipe" readVariable writeVariable
-      , printf "%s <- dup stdOutput" oldVariable
-      , voidpf "dupTo %s stdOutput" writeVariable
-      , voidpf "hSetBuffering stdout NoBuffering"
+      , printf "(%s, %s) <- IHaskellIO.createPipe" readVariable writeVariable
+      , printf "%s <- IHaskellIO.dup IHaskellIO.stdOutput" oldVariable
+      , voidpf "IHaskellIO.dupTo %s IHaskellIO.stdOutput" writeVariable
+      , voidpf "IHaskellSysIO.hSetBuffering IHaskellSysIO.stdout IHaskellSysIO.NoBuffering"
       , printf "let it = %s" itVariable
       ]
 
     -- Statements run after evaluation.
     postStmts =
       [ printf "let %s = it" itVariable
-      , voidpf "hFlush stdout"
-      , voidpf "dupTo %s stdOutput" oldVariable
-      , voidpf "closeFd %s" writeVariable
+      , voidpf "IHaskellSysIO.hFlush IHaskellSysIO.stdout"
+      , voidpf "IHaskellIO.dupTo %s IHaskellIO.stdOutput" oldVariable
+      , voidpf "IHaskellIO.closeFd %s" writeVariable
       , printf "let it = %s" itVariable
       ]
     pipeExpr = printf "let %s = %s" (var "pipe_var_") readVariable
