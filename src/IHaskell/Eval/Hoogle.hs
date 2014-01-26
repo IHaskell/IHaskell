@@ -150,6 +150,12 @@ renderSelf string loc
         span "hoogle-module" (link loc $ extractModule string) ++
         packageSub package
 
+  | startswith "class" string
+    = let package = extractPackageName loc in
+        cls ++ " " ++
+        span "hoogle-class" (link loc $ extractClass string) ++
+        packageSub package
+
   | otherwise 
     = let [name, args] = split "::" string
           package = extractPackageName loc
@@ -163,8 +169,10 @@ renderSelf string loc
   where 
     extractPackage = strip . replace "package" ""
     extractModule = strip . replace "module" ""
+    extractClass = strip . replace "class" ""
     pkg = span "hoogle-head" "package"
     mod = span "hoogle-head" "module"
+    cls = span "hoogle-head" "class"
 
     unicodeReplace :: String -> String
     unicodeReplace =

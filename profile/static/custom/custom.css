@@ -34,6 +34,9 @@ Custom IHaskell CSS.
 .hoogle-module {
     font-weight: bold;
 }
+.hoogle-class {
+    font-weight: bold;
+}
 
 /* Styles used for basic displays */
 .get-type {

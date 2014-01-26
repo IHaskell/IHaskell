@@ -327,6 +327,3 @@ replyTo _ ObjectInfoRequest{objectName=oname} replyHeader state = do
                 objectDocString  = Chars.pack docs                    
               }
   return (state, reply)
-
-
- 
