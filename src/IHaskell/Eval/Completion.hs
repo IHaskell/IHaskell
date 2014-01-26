@@ -52,6 +52,7 @@ data CompletionType
      | HsFilePath String String
      | FilePath   String String 
      | KernelOption String
+     | Extension String
      deriving (Show, Eq)
 
 complete :: String -> Int -> Interpreter (String, [String])
@@ -95,24 +96,33 @@ complete line pos = do
             return $ filter (prefix `isPrefixOf`) moduleNames
 
           DynFlag ext -> do
+            -- Possibly leave out the fLangFlags? The
+            -- -XUndecidableInstances vs. obsolete
+            -- -fallow-undecidable-instances.
             let extName (name, _, _) = name
-                otherNames = ["-package","-Wall","-w"] ++
-                            concatMap getSetName kernelOpts
-                fNames = map ("-f"++) (names ++ nonames)
-                    where
-                    -- possibly leave out the fLangFlags? The
-                    -- -XUndecidableInstances vs. obsolete
-                    -- -fallow-undecidable-instances
-                    names = map extName fFlags ++ 
-                            map extName fWarningFlags ++ 
-                            map extName fLangFlags
-                    nonames = map ("no"++) names
 
-                xNames = map ("-X"++) (names ++ nonames)
-                    where
-                    names = map extName xFlags
-                    nonames = map ("No" ++) names
-            return $ filter (ext `isPrefixOf`) $ fNames ++ xNames ++ otherNames
+                kernelOptNames = concatMap getSetName kernelOpts
+                otherNames = ["-package","-Wall","-w"]
+
+                fNames = map extName fFlags ++ 
+                         map extName fWarningFlags ++ 
+                         map extName fLangFlags
+                fNoNames = map ("no"++) fNames
+                fAllNames = map ("-f"++) (fNames ++ fNoNames)
+
+                xNames = map extName xFlags
+                xNoNames = map ("No" ++) xNames
+                xAllNames = map ("-X"++) (xNames ++ xNoNames)
+
+                allNames = xAllNames ++ otherNames ++ fAllNames
+
+            return $ filter (ext `isPrefixOf`) allNames
+
+          Extension ext -> do
+            let extName (name, _, _) = name
+                xNames = map extName xFlags
+                xNoNames = map ("No" ++) xNames
+            return $ filter (ext `isPrefixOf`) $ xNames ++ xNoNames
 
           HsFilePath lineUpToCursor match -> completePathWithExtensions [".hs", ".lhs"] lineUpToCursor
 
@@ -149,17 +159,18 @@ completionType :: String            -- ^ The line on which the completion is bei
 completionType line loc target
   -- File and directory completions are special
   | startswith ":!" stripped
-    = case parseShell lineUpToCursor of 
-          Right xs -> FilePath lineUpToCursor $ if endswith (last xs) lineUpToCursor then (last xs) else []
-          Left  _  -> Empty
+    = fileComplete FilePath
   | startswith ":l" stripped
-    = case parseShell lineUpToCursor of 
-          Right xs -> HsFilePath lineUpToCursor $ if endswith (last xs) lineUpToCursor then (last xs) else []
-          Left  _  -> Empty
+    = fileComplete HsFilePath
+
+  -- Complete :set, :opt, and :ext
   | startswith ":s" stripped
     = DynFlag candidate
   | startswith ":o" stripped
     = KernelOption candidate
+  | startswith ":e" stripped
+    = Extension candidate
+
   -- Use target for other completions.
   -- If it's empty, no completion.
   | null target
@@ -178,6 +189,12 @@ completionType line loc target
         isModName = all isCapitalized (init target)
         isCapitalized = isUpper . head
         lineUpToCursor = take loc line
+        fileComplete filePath = case parseShell lineUpToCursor of 
+          Right xs -> filePath lineUpToCursor $
+                       if endswith (last xs) lineUpToCursor
+                       then last xs
+                       else []
+          Left  _  -> Empty
 
 
 -- | Get the word under a given cursor location.
