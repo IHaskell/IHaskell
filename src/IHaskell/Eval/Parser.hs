@@ -125,7 +125,10 @@ parseString codeString = do
 
 activateParsingExtensions :: GhcMonad m => CodeBlock -> m ()
 activateParsingExtensions (Directive SetExtension ext) = void $ setExtension ext
-activateParsingExtensions _ = return ()
+activateParsingExtensions (Directive SetDynFlag flags) = 
+  case stripPrefix "-X" flags of
+    Just ext -> void $ setExtension ext
+    Nothing -> return ()
 
 -- | Parse a single chunk of code, as indicated by the layout of the code.
 parseCodeChunk :: GhcMonad m => String -> LineNumber  -> m CodeBlock
@@ -251,16 +254,16 @@ parseDirective (':':directive) line = case find rightDirective directives of
       [] -> False
       dir:_ -> dir `elem` tail (inits dirname)
     directives =
-      [(GetType,      "type")
-      ,(GetInfo,      "info")
-      ,(SearchHoogle, "hoogle")
-      ,(GetDoc,       "documentation")
-      ,(SetDynFlag,   "set")
-      ,(LoadFile,     "load")
-      ,(SetOption,    "option")
-      ,(SetExtension, "extension")
-      ,(GetHelp,      "?")
-      ,(GetHelp,      "help")
+      [ (GetType,      "type")
+      , (GetInfo,      "info")
+      , (SearchHoogle, "hoogle")
+      , (GetDoc,       "documentation")
+      , (SetDynFlag,   "set")
+      , (LoadFile,     "load")
+      , (SetOption,    "option")
+      , (SetExtension, "extension")
+      , (GetHelp,      "?")
+      , (GetHelp,      "help")
       ]
 parseDirective _ _ = error "Directive must start with colon!"
 

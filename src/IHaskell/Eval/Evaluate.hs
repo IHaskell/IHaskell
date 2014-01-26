@@ -462,21 +462,29 @@ evalCommand output (Directive SetExtension opts) state = do
 
 evalCommand a (Directive SetOption opts) state = do
   write $ "Option: " ++ opts
-  let (lost, found) = partitionEithers
-        [ case filter (elem w . getOptionName) kernelOpts of
-                [x] -> Right (getUpdateKernelState x)
-                [] -> Left w
-                ds -> error ("kernelOpts has duplicate:" ++ show (map getOptionName ds))
-          | w <- words opts ]
-      warn
-        | null lost = mempty
-        | otherwise = displayError ("Could not recognize options: " ++ intercalate "," lost)
-  return EvalOut {
-    evalStatus = if null lost then Success else Failure,
-    evalResult = warn,
-    evalState = foldl' (flip ($)) state found,
-    evalPager = ""
-  }
+  let (existing, nonExisting) = partition optionExists $ words opts
+  if not $ null nonExisting
+  then
+    let err = "No such options: " ++ intercalate ", " nonExisting in
+    return EvalOut {
+      evalStatus = Failure,
+      evalResult = displayError err,
+      evalState = state,
+      evalPager = ""
+    }
+  else
+    let options = mapMaybe findOption $ words opts
+        updater = foldl' (.) id $ map getUpdateKernelState options in
+      return EvalOut {
+        evalStatus = Success,
+        evalResult = mempty,
+        evalState = updater state,
+        evalPager = ""
+      }
+  where
+    optionExists = isJust . findOption
+    findOption opt =
+      find (elem opt . getOptionName) kernelOpts
 
 evalCommand _ (Directive GetType expr) state = wrapExecution state $ do
   write $ "Type: " ++ expr
