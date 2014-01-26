@@ -15,6 +15,7 @@ import            Data.String.Utils         (strip)
 import            System.Directory
 import            System.Exit               (exitSuccess)
 import            Text.Printf
+import            System.Posix.Signals
 import qualified  Data.Map                  as Map
 
 -- IHaskell imports.
@@ -149,6 +150,11 @@ runKernel profileSrc initInfo = do
 
   -- Receive and reply to all messages on the shell socket.
   interpret True $ do
+    -- Ignore Ctrl-C the first time.  This has to go inside the
+    -- `interpret`, because GHC API resets the signal handlers for some
+    -- reason (completely unknown to me).
+    liftIO ignoreCtrlC
+
     -- Initialize the context by evaluating everything we got from the  
     -- command line flags. This includes enabling some extensions and also
     -- running some code.
@@ -177,6 +183,9 @@ runKernel profileSrc initInfo = do
 
       -- Write the reply to the reply channel.
       liftIO $ writeChan (shellReplyChannel interface) reply
+  where
+    ignoreCtrlC =
+      installHandler keyboardSignal (CatchOnce $ putStrLn "Press Ctrl-C again to quit kernel.") Nothing
 
 -- Initial kernel state.
 initialKernelState :: IO (MVar KernelState)
