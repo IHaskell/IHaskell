@@ -441,7 +441,7 @@ evalCommand output (Directive SetDynFlag flags) state =
 
     -- Apply many flags.
     flag:manyFlags -> do
-      firstEval <- evalCommand output (Directive SetDynFlag flags) state
+      firstEval <- evalCommand output (Directive SetDynFlag flag) state
       case evalStatus firstEval of
         Failure -> return firstEval
         Success -> do
