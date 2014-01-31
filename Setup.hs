@@ -5,6 +5,8 @@ import Data.List (isInfixOf)
 import Codec.Archive.Tar (create)
 import System.Directory (getDirectoryContents)
 
+-- This is currently *not used*. build-type is Simple.
+-- This is because it breaks installing from Hackage.
 main = defaultMainWithHooks simpleUserHooks {
     preBuild = makeProfileTar
   }
