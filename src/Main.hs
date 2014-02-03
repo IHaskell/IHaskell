@@ -301,8 +301,11 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
           unless (null pager) $
             modifyMVar_ pagerOutput (return . (++ pager ++ "\n"))
 
-  -- Run code and publish to the frontend as we go.
   let execCount = getExecutionCounter state
+  -- Let all frontends know the execution count and code that's about to run
+  inputHeader <- liftIO $ dupHeader replyHeader InputMessage
+  send $ PublishInput inputHeader (Chars.unpack code) execCount
+  -- Run code and publish to the frontend as we go.
   updatedState <- evaluate state (Chars.unpack code) publish
 
   -- Notify the frontend that we're done computing.
