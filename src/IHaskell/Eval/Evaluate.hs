@@ -72,6 +72,8 @@ import IHaskell.Eval.Util
 import Paths_ihaskell (version)
 import Data.Version (versionBranch)
 
+import Language.Haskell.GHC.Interpret
+
 data ErrorOccurred = Success | Failure deriving (Show, Eq)
 
 debug :: Bool
@@ -109,11 +111,10 @@ globalImports =
 -- is handled specially, which cannot be done in a testing environment.
 interpret :: Bool -> Interpreter a -> IO a
 interpret allowedStdin action = runGhc (Just libdir) $ do
-  -- Set the dynamic session flags
-  originalFlags <- getSessionDynFlags
-  let dflags = xopt_set originalFlags Opt_ExtendedDefaultRules
+  initGhci
 
   -- If we're in a sandbox, add the relevant package database
+  dflags <- getSessionDynFlags
   sandboxPackages <- liftIO getSandboxPackageConf
   let pkgConfs = case sandboxPackages of
         Nothing -> extraPkgConfs dflags
@@ -121,10 +122,7 @@ interpret allowedStdin action = runGhc (Just libdir) $ do
           let pkg  = PkgConfFile path in
             (pkg:) . extraPkgConfs dflags
 
-  void $ setSessionDynFlags $ dflags { hscTarget = HscInterpreted,
-                                       ghcLink = LinkInMemory,
-                                       pprCols = 300,
-                                       extraPkgConfs = pkgConfs }
+  void $ setSessionDynFlags $ dflags { extraPkgConfs = pkgConfs }
 
   initializeImports
 
@@ -344,22 +342,13 @@ setDynFlags ext = do
 evalCommand :: Publisher -> CodeBlock -> KernelState -> Interpreter EvalOut
 evalCommand _ (Import importStr) state = wrapExecution state $ do
   write $ "Import: " ++ importStr
-  importDecl <- parseImportDecl importStr
-  context <- getContext
+  evalImport importStr
 
-  -- If we've imported this implicitly, remove the old import.
-  let noImplicit = filter (not . implicitImportOf importDecl) context
-  setContext $ IIDecl importDecl : noImplicit
-
-  flags <- getSessionDynFlags
+  -- Warn about `it` variable.
   return $ if "Test.Hspec" `isInfixOf` importStr
            then displayError $ "Warning: Hspec is unusable in IHaskell until the resolution of GHC bug #8639." ++
                                 "\nThe variable `it` is shadowed and cannot be accessed, even in qualified form."
            else mempty
-  where
-    implicitImportOf :: ImportDecl RdrName -> InteractiveImport -> Bool
-    implicitImportOf _ (IIModule _) = False
-    implicitImportOf imp (IIDecl decl) = ideclImplicit decl && ((==) `on` (unLoc . ideclName)) decl imp
 
 evalCommand _ (Module contents) state = wrapExecution state $ do
   write $ "Module:\n" ++ contents
