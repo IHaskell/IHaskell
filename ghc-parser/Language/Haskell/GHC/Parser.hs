@@ -198,15 +198,35 @@ removeComments = removeOneLineComments . removeMultilineComments 0
       case str of
         -- Don't remove comments after cmd directives
         ':':'!':remaining ->":!" ++ takeLine remaining ++ dropLine remaining
+
+        -- Handle strings.
+        '"':remaining -> 
+          let quoted = takeString remaining
+              len = length quoted in
+            '"':quoted ++ removeOneLineComments (drop len remaining)
+
         '-':'-':remaining -> dropLine remaining
         x:xs -> x:removeOneLineComments xs
         [] -> []
       where
         dropLine = removeOneLineComments . dropWhile (/= '\n')
-        takeLine = takeWhile (/= '\n')
 
     removeMultilineComments nesting str =
       case str of
+        -- Don't remove comments after cmd directives
+        ':':'!':remaining ->":!" ++ takeLine remaining ++
+          removeMultilineComments nesting (dropWhile (/= '\n') remaining)
+
+        -- Handle strings.
+        '"':remaining -> 
+          if nesting == 0
+          then 
+            let quoted = takeString remaining
+                len = length quoted in
+              '"':quoted ++ removeMultilineComments nesting (drop len remaining)
+          else
+            removeMultilineComments nesting remaining
+
         '{':'-':remaining -> removeMultilineComments (nesting + 1) remaining
         '-':'}':remaining -> 
           if nesting > 0
@@ -217,3 +237,12 @@ removeComments = removeOneLineComments . removeMultilineComments 0
           then removeMultilineComments nesting xs
           else x:removeMultilineComments nesting xs
         [] -> []
+
+    takeLine = takeWhile (/= '\n')
+
+    -- Take a part of a string that ends in an unescaped quote.
+    takeString str = case str of
+      escaped@('\\':'"':rest) -> escaped
+      '"':rest -> "\""
+      x:xs -> x:takeString xs
+      [] -> []

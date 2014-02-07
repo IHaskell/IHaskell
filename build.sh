@@ -14,6 +14,16 @@ rm -f profile.tar
 tar -cvf profile.tar *
 cd ..
 
+if [ $# -gt 0 ]; then
+  if [ $1 = "all" ]; then
+    cd ghc-parser;
+    cabal install --force-reinstalls;
+    cd ../ghci-lib;
+    cabal install --force-reinstalls;
+    cd ..;
+  fi
+fi
+
 # Make ihaskell itself
 cabal clean
 cabal install --force-reinstalls
