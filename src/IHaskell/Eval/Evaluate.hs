@@ -104,8 +104,6 @@ globalImports =
   , "import qualified System.IO as IHaskellSysIO"
   ]
 
-
-
 -- | Run an interpreting action. This is effectively runGhc with
 -- initialization and importing. First argument indicates whether `stdin`
 -- is handled specially, which cannot be done in a testing environment.
