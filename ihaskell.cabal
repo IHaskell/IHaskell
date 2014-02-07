@@ -64,7 +64,7 @@ library
                        directory            -any,
                        filepath             -any,
                        ghc                  ==7.6.*,
-                       ghc-parser           -any,
+                       ghc-parser           >=0.1.1,
                        ghc-paths            ==0.1.*,
                        haskeline            -any,
                        here                 -any,

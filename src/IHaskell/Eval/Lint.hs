@@ -17,7 +17,7 @@ import Data.Monoid
 import IHaskell.Types
 import IHaskell.Display
 import IHaskell.IPython
-import IHaskell.Eval.Parser
+import IHaskell.Eval.Parser hiding (line)
 
 data LintSeverity = LintWarning | LintError deriving (Eq, Show)
 

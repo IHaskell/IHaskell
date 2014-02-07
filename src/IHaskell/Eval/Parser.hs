@@ -50,11 +50,6 @@ data CodeBlock
   | ParseError StringLoc ErrMsg        -- ^ An error indicating that parsing the code block failed.
   deriving (Show, Eq)
 
--- | Store locations along with a value.
-data Located a = Located LineNumber a deriving (Eq, Show)
-instance Functor Located where
-  fmap f (Located line a) = Located line $ f a
-
 -- | Directive types. Each directive is associated with a string in the
 -- directive code block.
 data DirectiveType
@@ -70,14 +65,6 @@ data DirectiveType
   | GetDoc          -- ^ Get documentation for an identifier via Hoogle.
   deriving (Show, Eq)
 
--- | Unlocate something - drop the position.
-unloc :: Located a -> a
-unloc (Located _ a) = a
-
--- | Get the line number of a located element.
-line :: Located a -> LineNumber
-line (Located l _) = l
-
 -- | Parse a string into code blocks.
 parseString :: GhcMonad m => String -> m [Located CodeBlock]
 parseString codeString = do
@@ -88,7 +75,7 @@ parseString codeString = do
     Parsed {} -> return [Located 1 $ Module codeString]
     Failure {} -> do
       -- Split input into chunks based on indentation.
-      let chunks = layoutChunks $ dropComments codeString
+      let chunks = layoutChunks $ removeComments codeString
       result <- joinFunctions <$> processChunks [] chunks
 
       -- Return to previous flags. When parsing, flags can be set to make
@@ -268,69 +255,6 @@ parseDirective (':':directive) line = case find rightDirective directives of
       ]
 parseDirective _ _ = error "Directive must start with colon!"
 
-
--- | Split an input string into chunks based on indentation.
--- A chunk is a line and all lines immediately following that are indented
--- beyond the indentation of the first line. This parses Haskell layout
--- rules properly, and allows using multiline expressions via indentation. 
-layoutChunks :: String -> [Located String]
-layoutChunks = go 1
-  where
-    go :: LineNumber -> String -> [Located String]
-    go line = filter (not . null . unloc) . map (fmap strip) . layoutLines line . lines
-
-    layoutLines :: LineNumber -> [String] -> [Located String]
-    -- Empty string case.  If there's no input, output is empty.
-    layoutLines _ [] = []
-
-    -- Use the indent of the first line to find the end of the first block.
-    layoutLines lineIdx all@(firstLine:rest) = 
-      let firstIndent = indentLevel firstLine
-          blockEnded line = indentLevel line <= firstIndent in
-        case findIndex blockEnded rest of
-          -- If the first block doesn't end, return the whole string, since
-          -- that just means the block takes up the entire string. 
-          Nothing -> [Located lineIdx $ intercalate "\n" all]
-
-          -- We found the end of the block. Split this bit out and recurse.
-          Just idx -> 
-            let (before, after) = splitAt idx rest in
-              Located lineIdx (joinLines $ firstLine:before) : go (lineIdx + idx + 1) (joinLines after)
-
-    -- Compute indent level of a string as number of leading spaces.
-    indentLevel :: String -> Int
-    indentLevel (' ':str) = 1 + indentLevel str
-
-    -- Count a tab as two spaces.
-    indentLevel ('\t':str) = 2 + indentLevel str
-  
-    -- Count empty lines as a large indent level, so they're always with the previous expression.
-    indentLevel "" = 100000
-
-    indentLevel _ = 0
-
--- Not the same as 'unlines', due to trailing \n
-joinLines :: [String] -> String
-joinLines = intercalate "\n"
-
--- | Drop comments from Haskell source.
-dropComments :: String -> String
-dropComments = removeOneLineComments . removeMultilineComments
-  where
-    -- Don't remove comments after cmd directives
-    removeOneLineComments (':':'!':remaining) = ":!" ++ takeWhile (/= '\n') remaining ++ 
-      removeOneLineComments (dropWhile (/= '\n') remaining)
-    removeOneLineComments ('-':'-':remaining) = removeOneLineComments (dropWhile (/= '\n') remaining)
-    removeOneLineComments (x:xs) = x:removeOneLineComments xs
-    removeOneLineComments x = x
-
-    removeMultilineComments ('{':'-':remaining) = 
-      case subIndex "-}" remaining of
-        Nothing -> ""
-        Just idx -> removeMultilineComments $ drop (2 + idx) remaining
-    removeMultilineComments (x:xs) = x:removeMultilineComments xs
-    removeMultilineComments x = x
-
 -- | Parse a module and return the name declared in the 'module X where'
 -- line. That line is required, and if it does not exist, this will error.
 -- Names with periods in them are returned piece y piece.
@@ -344,3 +268,7 @@ getModuleName moduleSrc = do
       case unLoc <$> hsmodName (unLoc mod) of
         Nothing -> error "Module must have a name."
         Just name -> return $ split "." $ moduleNameString name
+
+-- Not the same as 'unlines', due to trailing \n
+joinLines :: [String] -> String
+joinLines = intercalate "\n"
