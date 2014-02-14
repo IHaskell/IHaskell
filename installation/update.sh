@@ -16,5 +16,5 @@ if [ $CURRENT_COMMIT != $COMMIT ]; then
 
   # Update IPython.
   echo "Updating IPython (this may take a while)."
-  pip install --upgrade -e git+https://github.com/ipython/ipython.git@$COMMIT#egg=ipython-dev
+  pip install --upgrade -e git+https://github.com/gibiansky/ipython.git@$COMMIT#egg=ipython-dev
 fi;
