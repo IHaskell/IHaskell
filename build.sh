@@ -32,7 +32,7 @@ cabal install --force-reinstalls
 rm -rf ~/.ipython/profile_haskell
 
 if [ $# -gt 0 ]; then
-  if [ $1 = "all" ]; then
+  if [ $1 = "display" ]; then
         # Install all the display libraries
         cd ihaskell-display
         for dir in `ls`
