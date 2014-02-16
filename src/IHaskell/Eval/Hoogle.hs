@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, FlexibleInstances, OverloadedStrings #-}
-module IHaskell.Eval.Hoogle ( 
+module IHaskell.Eval.Hoogle (
   search,
   document,
   render,
@@ -7,7 +7,7 @@ module IHaskell.Eval.Hoogle (
   HoogleResult
   ) where
 
-import ClassyPrelude hiding (span, div)
+import ClassyPrelude hiding (last, span, div)
 import Text.Printf
 import Network.HTTP
 import Data.Aeson
@@ -93,7 +93,7 @@ document string = do
     [] -> [NoResult "no matching identifiers found."]
     res -> res
   where
-    matches (SearchResult resp) = 
+    matches (SearchResult resp) =
       case split " " $ self resp of
         name:_ -> strip string == strip name
         _ -> False
@@ -109,33 +109,33 @@ render HTML  = renderHtml
 -- | Render a Hoogle result to plain text.
 renderPlain :: HoogleResult -> String
 
-renderPlain (NoResult res) = 
+renderPlain (NoResult res) =
   "No response available: " ++ res
 
-renderPlain (SearchResult resp) = 
-  printf "%s\nURL: %s\n%s" 
+renderPlain (SearchResult resp) =
+  printf "%s\nURL: %s\n%s"
   (self resp)
   (location resp)
   (docs resp)
 
-renderPlain (DocResult resp) = 
-  printf "%s\nURL: %s\n%s" 
+renderPlain (DocResult resp) =
+  printf "%s\nURL: %s\n%s"
   (self resp)
   (location resp)
   (docs resp)
 
 -- | Render a Hoogle result to HTML.
 renderHtml :: HoogleResult -> String
-renderHtml (NoResult resp) = 
+renderHtml (NoResult resp) =
   printf "<span class='err-msg'>No result: %s</span>" resp
 
-renderHtml (DocResult resp) = 
-  renderSelf (self resp) (location resp) 
+renderHtml (DocResult resp) =
+  renderSelf (self resp) (location resp)
   ++
   renderDocs (docs resp)
 
 renderHtml (SearchResult resp) =
-  renderSelf (self resp) (location resp) 
+  renderSelf (self resp) (location resp)
   ++
   renderDocs (docs resp)
 
@@ -156,17 +156,17 @@ renderSelf string loc
         span "hoogle-class" (link loc $ extractClass string) ++
         packageSub package
 
-  | otherwise 
+  | otherwise
     = let [name, args] = split "::" string
           package = extractPackageName loc
           modname = extractModuleName loc in
-        span "hoogle-name" (unicodeReplace $ 
+        span "hoogle-name" (unicodeReplace $
           link loc (strip name) ++
           " :: " ++
           strip args)
         ++ packageAndModuleSub package modname
 
-  where 
+  where
     extractPackage = strip . replace "package" ""
     extractModule = strip . replace "module" ""
     extractClass = strip . replace "class" ""
@@ -176,28 +176,28 @@ renderSelf string loc
 
     unicodeReplace :: String -> String
     unicodeReplace =
-     replace "forall" "&#x2200;" . 
-     replace "=>"     "&#x21D2;" . 
-     replace "->"     "&#x2192;" . 
+     replace "forall" "&#x2200;" .
+     replace "=>"     "&#x21D2;" .
+     replace "->"     "&#x2192;" .
      replace "::"     "&#x2237;"
 
     packageSub Nothing = ""
     packageSub (Just package) =
-      span "hoogle-sub" $ 
+      span "hoogle-sub" $
         "(" ++ pkg ++ " " ++ span "hoogle-package" package ++ ")"
 
     packageAndModuleSub Nothing _ = ""
     packageAndModuleSub (Just package) Nothing = packageSub (Just package)
     packageAndModuleSub (Just package) (Just modname) =
-        span "hoogle-sub" $ 
-          "(" ++ pkg ++ " " ++ span "hoogle-package" package ++ 
+        span "hoogle-sub" $
+          "(" ++ pkg ++ " " ++ span "hoogle-package" package ++
            ", " ++ mod ++ " " ++ span "hoogle-module" modname ++ ")"
 
 renderDocs :: String -> String
-renderDocs doc = 
+renderDocs doc =
   let groups = groupBy bothAreCode $ lines doc
       nonull = filter (not . null . strip)
-      bothAreCode s1 s2 = 
+      bothAreCode s1 s2 =
         startswith ">" (strip s1) &&
         startswith ">" (strip s2)
       isCode (s:_) = startswith ">" $ strip s

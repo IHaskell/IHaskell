@@ -15,7 +15,7 @@ module IHaskell.Eval.Parser (
     ) where
 
 -- Hide 'unlines' to use our own 'joinLines' instead.
-import ClassyPrelude hiding (liftIO, unlines)
+import ClassyPrelude hiding (head, tail, liftIO, unlines)
 
 import Data.List (findIndex, maximumBy, maximum, inits)
 import Data.String.Utils (startswith, strip, split)
@@ -112,7 +112,7 @@ parseString codeString = do
 
 activateParsingExtensions :: GhcMonad m => CodeBlock -> m ()
 activateParsingExtensions (Directive SetExtension ext) = void $ setExtension ext
-activateParsingExtensions (Directive SetDynFlag flags) = 
+activateParsingExtensions (Directive SetDynFlag flags) =
   case stripPrefix "-X" flags of
     Just ext -> void $ setExtension ext
     Nothing -> return ()
@@ -201,10 +201,10 @@ joinFunctions (Located line (Declaration decl) : rest) =
     -- Get all declarations with the same name as the first declaration.
     -- The name of a declaration is the first word, which we expect to be
     -- the name of the function.
-    havingSameName :: [Located CodeBlock] -> ([Located CodeBlock], [Located CodeBlock]) 
+    havingSameName :: [Located CodeBlock] -> ([Located CodeBlock], [Located CodeBlock])
     havingSameName blocks =
       let name = head $ words decl
-          sameName = takeWhile (isNamedDecl name) rest 
+          sameName = takeWhile (isNamedDecl name) rest
           others = drop (length sameName) rest in
         (Located line (Declaration decl) : sameName, others)
 
@@ -216,8 +216,8 @@ joinFunctions (Located line (Declaration decl) : rest) =
 -- declarations. Parse the declaration joining separately.
 joinFunctions (Located line (TypeSignature sig) : Located dl (Declaration decl) : rest) =
   Located line (Declaration $ sig ++ "\n" ++ joinedDecl):remaining
-  where Located _ (Declaration joinedDecl):remaining = joinFunctions $ Located dl (Declaration decl) : rest 
-        
+  where Located _ (Declaration joinedDecl):remaining = joinFunctions $ Located dl (Declaration decl) : rest
+
 joinFunctions (x:xs) = x : joinFunctions xs
 joinFunctions [] = []
 
@@ -232,7 +232,7 @@ parseDirective (':':directive) line = case find rightDirective directives of
   Just (directiveType, _) -> Directive directiveType arg
     where arg = unwords restLine
           _:restLine = words directive
-  Nothing -> 
+  Nothing ->
     let directiveStart = case words directive of
           [] -> ""
           first:_ -> first in
@@ -264,7 +264,7 @@ getModuleName moduleSrc = do
   let output = runParser flags parserModule moduleSrc
   case output of
     Failure {} -> error "Module parsing failed."
-    Parsed mod -> 
+    Parsed mod ->
       case unLoc <$> hsmodName (unLoc mod) of
         Nothing -> error "Module must have a name."
         Just name -> return $ split "." $ moduleNameString name

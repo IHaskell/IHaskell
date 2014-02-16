@@ -11,7 +11,7 @@ This has a limited amount of context sensitivity. It distinguishes between four 
 -}
 module IHaskell.Eval.Completion (complete, completionTarget, completionType, CompletionType(..)) where
 
-import ClassyPrelude hiding (liftIO)
+import ClassyPrelude hiding (init, last, head, liftIO)
 --import Prelude
 
 import Control.Applicative ((<$>))
@@ -50,7 +50,7 @@ data CompletionType
      | Qualified String String
      | ModuleName String String
      | HsFilePath String String
-     | FilePath   String String 
+     | FilePath   String String
      | KernelOption String
      | Extension String
      deriving (Show, Eq)
@@ -70,7 +70,7 @@ complete line pos = do
 
   let target = completionTarget line pos
 
-  let matchedText = case completionType line pos target of 
+  let matchedText = case completionType line pos target of
         HsFilePath _ match ->  match
         FilePath   _ match ->  match
         otherwise       -> intercalate "." target
@@ -104,8 +104,8 @@ complete line pos = do
                 kernelOptNames = concatMap getSetName kernelOpts
                 otherNames = ["-package","-Wall","-w"]
 
-                fNames = map extName fFlags ++ 
-                         map extName fWarningFlags ++ 
+                fNames = map extName fFlags ++
+                         map extName fWarningFlags ++
                          map extName fLangFlags
                 fNoNames = map ("no"++) fNames
                 fAllNames = map ("-f"++) (fNames ++ fNoNames)
@@ -189,7 +189,7 @@ completionType line loc target
         isModName = all isCapitalized (init target)
         isCapitalized = isUpper . head
         lineUpToCursor = take loc line
-        fileComplete filePath = case parseShell lineUpToCursor of 
+        fileComplete filePath = case parseShell lineUpToCursor of
           Right xs -> filePath lineUpToCursor $
                        if endswith (last xs) lineUpToCursor
                        then last xs
@@ -212,7 +212,7 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
       delimPolicy = Drop
     }
 
-    isDelim :: Char -> Int -> Bool 
+    isDelim :: Char -> Int -> Bool
     isDelim char idx = char `elem` neverIdent  || isSymbol char
 
     splitAlongCursor :: [[(Char, Int)]] -> [[(Char, Int)]]
@@ -286,4 +286,4 @@ completePathFilter includeFile includeDirectory left right = liftIO $ do
       visible = filter (not . isHidden) suggestions
       hidden  = filter isHidden suggestions
   return $ visible ++ hidden
-  
+
