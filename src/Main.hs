@@ -1,10 +1,10 @@
 {-# LANGUAGE NoImplicitPrelude, CPP, OverloadedStrings, ScopedTypeVariables #-}
 -- | Description : Argument parsing and basic messaging loop, using Haskell
---                 Chans to communicate with the ZeroMQ sockets. 
+--                 Chans to communicate with the ZeroMQ sockets.
 module Main where
 
 -- Prelude imports.
-import ClassyPrelude  hiding (liftIO)
+import ClassyPrelude  hiding (last, liftIO)
 import Prelude        (last, read)
 
 -- Standard library imports.
@@ -45,7 +45,7 @@ main ::  IO ()
 main = do
   args <- parseFlags <$> map unpack <$> getArgs
   case args of
-    Left errorMessage -> 
+    Left errorMessage ->
       hPutStrLn stderr errorMessage
     Right args ->
       ihaskell args
@@ -57,9 +57,9 @@ chooseIPython (_:xs) = chooseIPython xs
 
 ihaskell :: Args -> IO ()
 -- If no mode is specified, print help text.
-ihaskell (Args (ShowHelp help) _) = 
+ihaskell (Args (ShowHelp help) _) =
   putStrLn $ pack help
-    
+
 ihaskell (Args Console flags) = showingHelp Console flags $ do
   ipython <- chooseIPython flags
   setupIPython ipython
@@ -113,7 +113,7 @@ showingHelp mode flags act =
       putStrLn $ pack $ help mode
     Nothing ->
       act
- 
+
 -- | Parse initialization information from the flags.
 initInfo :: FrontendType -> [Argument] -> IO InitInfo
 initInfo front [] = return InitInfo { extensions = [], initCells = [], initDir = ".", frontend = front }
@@ -155,11 +155,11 @@ runKernel profileSrc initInfo = do
     -- reason (completely unknown to me).
     liftIO ignoreCtrlC
 
-    -- Initialize the context by evaluating everything we got from the  
+    -- Initialize the context by evaluating everything we got from the
     -- command line flags. This includes enabling some extensions and also
     -- running some code.
     let extLines = map (":extension " ++) $ extensions initInfo
-        noPublish _ = return ()       
+        noPublish _ = return ()
         evaluator line = do
           -- Create a new state each time.
           stateVar <- liftIO initialKernelState
@@ -178,7 +178,7 @@ runKernel profileSrc initInfo = do
 
       -- Create the reply, possibly modifying kernel state.
       oldState <- liftIO $ takeMVar state
-      (newState, reply) <- replyTo interface request replyHeader oldState 
+      (newState, reply) <- replyTo interface request replyHeader oldState
       liftIO $ putMVar state newState
 
       -- Write the reply to the reply channel.
@@ -217,7 +217,7 @@ createReplyHeader parent = do
     msgType = repType
   }
 
--- | Compute a reply to a message. 
+-- | Compute a reply to a message.
 replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> Interpreter (KernelState, Message)
 
 -- Reply to kernel info requests with a kernel info reply. No computation
@@ -333,9 +333,9 @@ replyTo _ ObjectInfoRequest{objectName=oname} replyHeader state = do
   docs <- info $ Chars.unpack oname
   let reply = ObjectInfoReply {
                 header = replyHeader,
-                objectName = oname, 
+                objectName = oname,
                 objectFound = strip docs /= "",
                 objectTypeString = Chars.pack docs,
-                objectDocString  = Chars.pack docs                    
+                objectDocString  = Chars.pack docs
               }
   return (state, reply)
