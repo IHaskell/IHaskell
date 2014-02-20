@@ -60,6 +60,7 @@ import Bag
 import ErrUtils (errMsgShortDoc, errMsgExtraInfo)
 
 import qualified System.IO.Strict as StrictIO
+import Control.Monad.Error (ErrorT(..),mplus,throwError)
 
 import IHaskell.Types
 import IHaskell.IPython
@@ -700,26 +701,27 @@ evalCommand output (Expression expr) state = do
   -- Dislay If typechecking fails and there is no appropriate
   -- typeclass instance, this will throw an exception and thus `attempt` will
   -- return False, and we just resort to plaintext.
-  let displayExpr = printf "(IHaskell.Display.display (%s))" expr :: String
-  canRunDisplay <- attempt $ exprType displayExpr
+  let displayExpr1  = printf "(IHaskell.Display.display (%s))" expr :: String
+  let displayExpr2 = printf "(IHaskell.Display.displayFromDyn (%s))" expr :: String
+  let displayExpr3 = printf "IHaskell.Display.displayFromChan" :: String
 
-  if canRunDisplay
-  then useDisplay displayExpr
-  else do
-    -- Evaluate this expression as though it's just a statement.
-    -- The output is bound to 'it', so we can then use it.
-    evalOut <- evalCommand output (Statement expr) state
-
-    let out = evalResult evalOut
-        showErr = isShowError out
-
-    -- If evaluation failed, return the failure.  If it was successful, we
-    -- may be able to use the IHaskellDisplay typeclass.
-    return $ if not showErr || useShowErrors state
-            then evalOut
-            else postprocessShowError evalOut
-
+  Right r <- runErrorT $ ud displayExpr1 `mplus` lift fallback
+  r' <- runErrorT (ud displayExpr3)
+  return (r{ evalResult = evalResult r `mappend` either mempty evalResult r'})
   where
+    fallback = do
+      -- Evaluate this expression as though it's just a statement.
+      -- The output is bound to 'it', so we can then use it.
+      evalOut <- evalCommand output (Statement expr) state
+
+      let out = evalResult evalOut
+          showErr = isShowError out
+
+      -- If evaluation failed, return the failure.  If it was successful, we
+      -- may be able to use the IHaskellDisplay typeclass.
+      return $ if not showErr || useShowErrors state
+              then evalOut
+              else postprocessShowError evalOut
     -- Try to evaluate an action. Return True if it succeeds and False if
     -- it throws an exception. The result of the action is discarded.
     attempt :: Interpreter a -> Interpreter Bool
@@ -742,28 +744,33 @@ evalCommand output (Expression expr) state = do
     removeSvg (Display disps) = Display $ filter (not . isSvg) disps
     removeSvg (ManyDisplay disps) = ManyDisplay $ map removeSvg disps
 
-    useDisplay displayExpr = wrapExecution state $ do
-      -- If there are instance matches, convert the object into
-      -- a Display. We also serialize it into a bytestring. We get
-      -- the bytestring as a dynamic and then convert back to
-      -- a bytestring, which we promptly unserialize. Note that
-      -- attempting to do this without the serialization to binary and
-      -- back gives very strange errors - all the types match but it
-      -- refuses to decode back into a Display.
-      -- Suppress output, so as not to mess up console.
-      out <- capturedStatement (const $ return ()) displayExpr
-
-      displayedBytestring <- dynCompileExpr "IHaskell.Display.serializeDisplay it"
-      case fromDynamic displayedBytestring of
-        Nothing -> error "Expecting lazy Bytestring"
-        Just bytestring ->
-          case Serialize.decode bytestring of
+    ud :: String -> ErrorT String Interpreter EvalOut
+    ud de = do
+      True <- lift (attempt (exprType de))
+      ErrorT $ ghandle (\ (e :: SomeException) -> return (Left (show e))) $ fmap Right $ do
+        -- If there are instance matches, convert the object into
+        -- a Display. We also serialize it into a bytestring. We get
+        -- the bytestring as a dynamic and then convert back to
+        -- a bytestring, which we promptly unserialize. Note that
+        -- attempting to do this without the serialization to binary and
+        -- back gives very strange errors - all the types match but it
+        -- refuses to decode back into a Display.
+        -- Suppress output, so as not to mess up console.
+        out <- capturedStatement (const $ return ()) de
+        displayedBytestring <- dynCompileExpr "IHaskell.Display.serializeDisplay it"
+        case Serialize.decode $ fromDyn displayedBytestring (error "Expecting lazy Bytestring") of
             Left err -> error err
             Right display ->
-              return $
+              return $ wrapE $
                 if useSvg state
                 then display
                 else removeSvg display
+
+    wrapE res = EvalOut {
+      evalStatus = Success,
+      evalResult = res,
+      evalState = state,
+      evalPager = "" }
 
     postprocessShowError :: EvalOut -> EvalOut
     postprocessShowError evalOut = evalOut { evalResult = Display $ map postprocess disps }

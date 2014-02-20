@@ -7,6 +7,10 @@ module IHaskell.Display (
   encode64, base64,
   Display(..),
   DisplayData(..),
+  displayDyn,
+  displayFromDyn,
+  displayChan,
+  displayFromChan,
   ) where
 
 import ClassyPrelude
@@ -16,7 +20,13 @@ import Data.String.Utils (rstrip)
 import qualified Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Char8 as Char
 
+import Data.Dynamic
+import Data.Monoid
+import System.IO.Unsafe (unsafePerformIO)
 import IHaskell.Types
+
+import Control.Concurrent.STM.TChan
+import Control.Monad.STM
 
 type Base64 = ByteString
 
@@ -52,6 +62,36 @@ instance IHaskellDisplay a => IHaskellDisplay [a] where
   display disps = do
     displays <- mapM display disps
     return $ ManyDisplay displays
+
+-- to be tried first: if it gives Nothing (or doesn't typecheck due to no
+-- Typeable instance), try IHaskellDisplay
+displayFromDyn x = do
+     fs <- readMVar displayDyn 
+     let go [] = return Nothing
+         go (f:fs) = do
+            fx <- f (toDyn x)
+            case fx of
+                First Nothing -> go fs
+                First (Just y) -> return (Just y)
+     Just x <- go fs
+     display x
+
+{-# NOINLINE displayDyn #-}
+displayDyn :: MVar [Dynamic -> IO (First Display)]
+displayDyn = unsafePerformIO (newMVar [])
+
+{-# NOINLINE displayChan #-}
+displayChan :: TChan Display
+displayChan = unsafePerformIO newTChanIO
+
+
+displayFromChan :: IO Display
+displayFromChan = do
+    many <$> unfoldM (atomically (tryReadTChan displayChan))
+
+-- | unfoldM in monad-loops
+unfoldM :: IO (Maybe a) -> IO [a]
+unfoldM f = maybe (return []) (\r -> (r:) <$> unfoldM f) =<< f
 
 -- | Encode many displays into a single one. All will be output.
 many :: [Display] -> Display
