@@ -32,6 +32,7 @@ import            Control.Applicative         ((<$>), (<*>))
 import            Data.ByteString             (ByteString)
 import qualified  Data.ByteString.Char8       as Char
 import qualified  Data.Text                   as Text
+import            Data.Text                   (Text)
 import            Data.Serialize
 import            IPython.Message.UUID
 import            GHC.Generics                (Generic)
@@ -60,7 +61,7 @@ data Profile = Profile {
   hbPort :: Port,         -- ^ The heartbeat channel port.
   shellPort :: Port,      -- ^ The shell command port.
   iopubPort :: Port,      -- ^ The IOPub port.
-  key :: ByteString       -- ^ The HMAC encryption key.
+  key :: Text             -- ^ The HMAC encryption key.
   } deriving (Show, Read)
 
 -- Convert the kernel profile to and from JSON.
@@ -124,10 +125,10 @@ instance ToJSON MessageHeader where
                   ]
 
 -- | A username for the source of a message.
-type Username = ByteString
+type Username = Text
 
 -- | A metadata dictionary.
-type Metadata = Map ByteString ByteString
+type Metadata = Map Text Text
 
 -- | The type of a message, corresponding to IPython message types.
 data MessageType = KernelInfoReplyMessage
@@ -209,13 +210,13 @@ data Message
   -- | A request from a frontend to execute some code.
   | ExecuteRequest {
       header :: MessageHeader,
-      getCode :: ByteString,             -- ^ The code string.
+      getCode :: Text,             -- ^ The code string.
       getSilent :: Bool,                 -- ^ Whether this should be silently executed.
       getStoreHistory :: Bool,           -- ^ Whether to store this in history.
       getAllowStdin :: Bool,             -- ^ Whether this code can use stdin.
 
-      getUserVariables :: [ByteString],  -- ^ Unused.
-      getUserExpressions :: [ByteString] -- ^ Unused.
+      getUserVariables :: [Text],  -- ^ Unused.
+      getUserExpressions :: [Text] -- ^ Unused.
     }
 
   -- | A reply to an execute request.
@@ -257,27 +258,27 @@ data Message
 
   | CompleteRequest {
       header :: MessageHeader,
-      getCode :: ByteString, {- ^
+      getCode :: Text, {- ^
             The entire block of text where the line is.  This may be useful in the
             case of multiline completions where more context may be needed.  Note: if
             in practice this field proves unnecessary, remove it to lighten the
             messages. json field @block@  -}
-      getCodeLine :: ByteString, -- ^ just the line with the cursor. json field @line@
+      getCodeLine :: Text, -- ^ just the line with the cursor. json field @line@
       getCursorPos :: Int -- ^ position of the cursor (index into the line?). json field @cursor_pos@
 
     }
 
   | CompleteReply {
      header :: MessageHeader,
-     completionMatches :: [ByteString],
-     completionMatchedText :: ByteString,
-     completionText :: ByteString,
+     completionMatches :: [Text],
+     completionMatchedText :: Text,
+     completionText :: Text,
      completionStatus :: Bool
   }
 
   | ObjectInfoRequest {
       header :: MessageHeader, 
-      objectName :: ByteString,  -- ^ Name of object being searched for.
+      objectName :: Text,  -- ^ Name of object being searched for.
       detailLevel :: Int         -- ^ Level of detail desired (defaults to 0).
                                 -- 0 is equivalent to foo?, 1 is equivalent
                                 -- to foo??.
@@ -285,10 +286,10 @@ data Message
 
   | ObjectInfoReply {
       header :: MessageHeader, 
-      objectName :: ByteString,       -- ^ Name of object which was searched for.
+      objectName :: Text,       -- ^ Name of object which was searched for.
       objectFound :: Bool,            -- ^ Whether the object was found.
-      objectTypeString :: ByteString, -- ^ Object type.
-      objectDocString  :: ByteString
+      objectTypeString :: Text, -- ^ Object type.
+      objectDocString  :: Text 
     }
 
   | ShutdownRequest {

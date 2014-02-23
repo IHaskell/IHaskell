@@ -26,13 +26,11 @@ import            IHaskell.Flags
 import            IHaskell.IPython
 import            IHaskell.Types
 import            IPython.ZeroMQ
-import qualified  Data.ByteString.Char8     as Chars
 import qualified  IPython.Message.UUID      as UUID
 import qualified  IPython.Stdin             as Stdin
 
 -- GHC API imports.
 import GHC        hiding (extensions, language)
-import Outputable (showSDoc, ppr)
 
 -- | Compute the GHC API version number using the dist/build/autogen/cabal_macros.h
 ghcVersionInts :: [Int]
@@ -304,9 +302,9 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
   let execCount = getExecutionCounter state
   -- Let all frontends know the execution count and code that's about to run
   inputHeader <- liftIO $ dupHeader replyHeader InputMessage
-  send $ PublishInput inputHeader (Chars.unpack code) execCount
+  send $ PublishInput inputHeader (unpack code) execCount
   -- Run code and publish to the frontend as we go.
-  updatedState <- evaluate state (Chars.unpack code) publish
+  updatedState <- evaluate state (unpack code) publish
 
   -- Notify the frontend that we're done computing.
   idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
@@ -322,20 +320,20 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
 
 
 replyTo _ req@CompleteRequest{} replyHeader state = do
-  (matchedText, completions) <- complete (Chars.unpack $ getCodeLine req) (getCursorPos req)
+  (matchedText, completions) <- complete (unpack (getCodeLine req)) (getCursorPos req)
 
-  let reply =  CompleteReply replyHeader (map Chars.pack completions) (Chars.pack matchedText) (getCodeLine req) True
+  let reply =  CompleteReply replyHeader (map pack completions) (pack matchedText) (getCodeLine req) True
   return (state,  reply)
 
 -- | Reply to the object_info_request message. Given an object name, return
 -- | the associated type calculated by GHC.
 replyTo _ ObjectInfoRequest{objectName=oname} replyHeader state = do
-  docs <- info $ Chars.unpack oname
+  docs <- info (unpack oname)
   let reply = ObjectInfoReply {
                 header = replyHeader,
                 objectName = oname,
                 objectFound = strip docs /= "",
-                objectTypeString = Chars.pack docs,
-                objectDocString  = Chars.pack docs
+                objectTypeString = pack docs,
+                objectDocString  = pack docs
               }
   return (state, reply)

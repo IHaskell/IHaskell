@@ -12,6 +12,7 @@ import            Data.Aeson.Types      (parse)
 import            Data.ByteString
 import qualified  Data.ByteString.Lazy  as Lazy
 import            Data.Map              (Map)
+import            Data.Text             (Text)
 
 import IPython.Types
 
@@ -65,7 +66,7 @@ parseHeader idents headerData parentHeader metadata = MessageHeader {
         return (messType, username, message, session)
 
       -- Get metadata as a simple map.
-      Just metadataMap = decode $ Lazy.fromStrict metadata :: Maybe (Map ByteString ByteString)
+      Just metadataMap = decode $ Lazy.fromStrict metadata :: Maybe (Map Text Text)
 
 noHeader :: MessageHeader
 noHeader = error "No header created"

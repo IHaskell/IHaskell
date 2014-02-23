@@ -11,6 +11,9 @@ import Data.Map     (Map)
 import Data.Text    (Text, pack)
 import Data.Monoid  (mempty)
 
+import qualified Data.ByteString.Lazy as L
+import qualified Data.ByteString as B
+import Data.Text.Encoding
 
 import IPython.Types
 
@@ -101,7 +104,8 @@ instance ToJSON StreamType where
 
 -- | Convert a MIME type and value into a JSON dictionary pair.
 displayDataToJson :: DisplayData -> (Text, Value) 
-displayDataToJson (DisplayData mimeType dataStr) = pack (show mimeType) .= dataStr
+displayDataToJson (DisplayData mimeType dataStr) =
+    pack (show mimeType) .= String (decodeUtf8 dataStr)
 
 ----- Constants -----
 

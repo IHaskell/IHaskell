@@ -1,4 +1,5 @@
-{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances #-}
+{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances,
+   ScopedTypeVariables #-}
 
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
