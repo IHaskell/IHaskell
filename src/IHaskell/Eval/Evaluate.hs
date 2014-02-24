@@ -27,7 +27,7 @@ import System.Posix.IO
 import System.IO (hGetChar, hFlush)
 import System.Random (getStdGen, randomRs)
 import Unsafe.Coerce
-import Control.Monad (guard)
+import Control.Monad (guard, msum)
 import System.Process
 import System.Exit
 import Data.Maybe (fromJust)
@@ -52,7 +52,7 @@ import GhcMonad (liftIO, withSession)
 import GHC hiding (Stmt, TypeSig)
 import GHC.Paths
 import Exception hiding (evaluate)
-import Outputable
+import Outputable hiding ((<>))
 import Packages
 import Module
 import qualified Pretty
@@ -702,14 +702,18 @@ evalCommand output (Expression expr) state = do
   -- Dislay If typechecking fails and there is no appropriate
   -- typeclass instance, this will throw an exception and thus `attempt` will
   -- return False, and we just resort to plaintext.
-  let displayExpr1  = printf "(IHaskell.Display.display (%s))" expr :: String
-  let displayExpr2 = printf "(IHaskell.Display.displayFromDyn (%s))" expr :: String
-  let displayExpr3 = printf "IHaskell.Display.displayFromChan" :: String
+  let displayClass = printf "(IHaskell.Display.display (%s))" expr :: String
+  let displayMVar  = printf "(IHaskell.Display.displayFromDyn (%s))" expr :: String
+  let displayChan  = printf "IHaskell.Display.displayFromChan" :: String
 
-  Right r <- runErrorT $ ud displayExpr1 `mplus` lift fallback
-  r' <- runErrorT (ud displayExpr3)
-  return (r{ evalResult = evalResult r `mappend` either mempty evalResult r'})
+  Right result <- runErrorT $ msum
+        [-- tryDisplay displayMVar,
+         tryDisplay displayClass,
+         lift fallback]
+  fromChan <- runErrorT (tryDisplay displayChan)
+  return $ appendEvalResult result (either mempty evalResult fromChan)
   where
+    appendEvalResult x y = x{ evalResult = evalResult x <> y }
     fallback = do
       -- Evaluate this expression as though it's just a statement.
       -- The output is bound to 'it', so we can then use it.
@@ -745,9 +749,9 @@ evalCommand output (Expression expr) state = do
     removeSvg (Display disps) = Display $ filter (not . isSvg) disps
     removeSvg (ManyDisplay disps) = ManyDisplay $ map removeSvg disps
 
-    ud :: String -> ErrorT String Interpreter EvalOut
-    ud de = do
-      True <- lift (attempt (exprType de))
+    tryDisplay :: String -> ErrorT String Interpreter EvalOut
+    tryDisplay command = do
+      True <- lift (attempt (exprType command))
       ErrorT $ ghandle (\ (e :: SomeException) -> return (Left (show e))) $ fmap Right $ do
         -- If there are instance matches, convert the object into
         -- a Display. We also serialize it into a bytestring. We get
@@ -757,7 +761,7 @@ evalCommand output (Expression expr) state = do
         -- back gives very strange errors - all the types match but it
         -- refuses to decode back into a Display.
         -- Suppress output, so as not to mess up console.
-        out <- capturedStatement (const $ return ()) de
+        out <- capturedStatement (const $ return ()) command
         displayedBytestring <- dynCompileExpr "IHaskell.Display.serializeDisplay it"
         case Serialize.decode $ fromDyn displayedBytestring (error "Expecting lazy Bytestring") of
             Left err -> error err

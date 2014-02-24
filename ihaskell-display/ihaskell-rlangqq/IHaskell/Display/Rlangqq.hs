@@ -54,6 +54,8 @@ rOutput = do
   fs' <- forM fs $ \f -> (,f) <$> getModificationTime (showf ("Rtmp/raw"%Int%".md") f)
   return $ map snd $ sortBy (flip (comparing fst)) fs'
 
+-- | like 'stripPrefix' except on the end
+stripSuffix :: String -> String -> Maybe String
 stripSuffix s x = fmap reverse $ stripPrefix (reverse s) $ reverse x
 
 rOutputParsed :: IO [KnitInteraction]
@@ -74,9 +76,14 @@ getCaptions = do
   interactions <- rOutputParsed
   return [ c |  KnitInteraction _ is <- interactions,
                 KnitImage c _ <- is,
-                not (boringCaption c) ]
+                not (isBoringCaption c) ]
 
-boringCaption s = maybe False (all isDigit) (stripPrefix "plot of chunk unnamed-chunk-" s)
+-- | true when the caption name looks like one knitr will automatically
+-- generate
+isBoringCaption :: String -> Bool
+isBoringCaption s = maybe False
+                      (all isDigit)
+                      (stripPrefix "plot of chunk unnamed-chunk-" s)
 
 rDisplayAll :: IO Display
 rDisplayAll = do
@@ -90,10 +97,12 @@ displayInteraction (KnitPrint c) = display (plain c)
 displayInteraction (KnitWarning c) = display (plain c)
 displayInteraction (KnitError c) = display (plain c)
 displayInteraction (KnitAsIs c) = display (plain c)
-displayInteraction (KnitImage c img) = do
-  let cap | boringCaption c = mempty
-          | otherwise = H.p (H.toMarkup c)
-  e <- Base64.encode <$> B.readFile img
+displayInteraction (KnitImage cap img) = do
+  let caption
+          | isBoringCaption cap = mempty
+          | otherwise = H.p (H.toMarkup cap)
+  encoded <- Base64.encode <$> B.readFile img
   display $ H.img H.! H.src (H.unsafeByteStringValue
-                        (Char.pack "data:image/png;base64," <> e))
-              <> cap 
+                         -- assumes you use the default device which is png
+                        (Char.pack "data:image/png;base64," <> encoded))
+              <> caption

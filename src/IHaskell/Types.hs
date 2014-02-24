@@ -78,6 +78,9 @@ instance Monoid Display where
     a             `mappend` ManyDisplay b = ManyDisplay (a : b)
     a             `mappend` b             = ManyDisplay [a,b]
 
+instance Semigroup Display where
+    a <> b = a `mappend` b
+
 -- | All state stored in the kernel between executions.
 data KernelState = KernelState
   { getExecutionCounter :: Int,

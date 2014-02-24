@@ -1,15 +1,25 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings, FlexibleInstances #-}
 module IHaskell.Display (
+  -- * How to get IHaskell to display different types
   IHaskellDisplay(..),
-  plain, html, png, jpg, svg, latex,
-  serializeDisplay,
-  Width, Height, Base64,
-  encode64, base64,
+  -- $displayDynCommentary
+  --
+  -- $displayDynExBad
+  displayDyn,
+  -- $displayChanCommentary
+  displayChan,
+
+  -- * Ways to create 'Display'
   Display(..),
   DisplayData(..),
-  displayDyn,
+
+  plain, html, png, jpg, svg, latex,
+  Width, Height, Base64,
+  encode64, base64,
+
+  -- * for internal use
+  serializeDisplay,
   displayFromDyn,
-  displayChan,
   displayFromChan,
   ) where
 
@@ -63,6 +73,8 @@ instance IHaskellDisplay a => IHaskellDisplay [a] where
     displays <- mapM display disps
     return $ ManyDisplay displays
 
+-- | see 'displayDyn'
+displayFromDyn :: Typeable a => a -> IO Display
 displayFromDyn x = do
      fs <- readMVar displayDyn 
      let go [] = return Nothing
@@ -71,29 +83,34 @@ displayFromDyn x = do
             case fx of
                 First Nothing -> go fs
                 First (Just y) -> return (Just y)
-     Just x <- go fs
+     Just x <- go fs -- can throw an exception,
+                     -- but those are caught later
+                     -- in IHaskell.Eval.Evaluate
      display x
 
--- | rather than using -XOverlappingInstances, functions added
--- to this MVar are applied to the value that 'display' is
--- normally applied to.
+
+-- IHaskell tries to apply functions from this list when displaying things:
+-- the first function that produces a 'Display' (rather than @First Nothing@)
+-- is used.
 {-# NOINLINE displayDyn #-}
 displayDyn :: MVar [Dynamic -> IO (First Display)]
 displayDyn = unsafePerformIO (newMVar [])
 
--- | items written here will be displayed the next time IHaskell
--- has a an item to display
+-- | Items written to this chan will be included in the output sent
+-- to the frontend (ultimately the browser), the next time IHaskell
+-- has an item to display.
 {-# NOINLINE displayChan #-}
 displayChan :: TChan Display
 displayChan = unsafePerformIO newTChanIO
 
--- | take everything that was put into the 'displayChan' at that point
--- out, and make a 'Display' out of it
+-- | Take everything that was put into the 'displayChan' at that point
+-- out, and make a 'Display' out of it.
 displayFromChan :: IO Display
 displayFromChan = do
     many <$> unfoldM (atomically (tryReadTChan displayChan))
 
--- | unfoldM in monad-loops
+-- | This is unfoldM from monad-loops. It repeatedly runs an IO action
+-- until it return Nothing, and puts all the Justs in a list.
 unfoldM :: IO (Maybe a) -> IO [a]
 unfoldM f = maybe (return []) (\r -> (r:) <$> unfoldM f) =<< f
 
@@ -141,3 +158,91 @@ base64 = Base64.encode
 -- Serialize displays to a ByteString.
 serializeDisplay :: Display -> ByteString
 serializeDisplay = Serialize.encode
+
+{- $displayDynCommentary
+
+There is some overlap between what you can do with 'displayDyn' and what
+you can do by writing an instance of 'IHaskellDisplay'. The following is a
+comparison of the two approaches.
+
+Suppose that we want to display images generated in the IHaskell notebook,
+and that they are defined:
+
+> newtype Image = Image ByteString deriving Typeable
+
+One function that can make a 'Display' out of 'Image' is:
+
+> displayImage :: Int -> Int -> Image -> IO Display
+> displayImage w h (Image x) = display (png w h (base64 x))
+
+It is straightforward to define an IHaskellDisplay instance. This one
+assumes you always want a fixed image size:
+
+> instance IHaskellDisplay DynamicImage where
+>  display = displayImage 640 480
+
+The equivalent results can be achieved with the 'displayDyn' MVar too. 
+
+> -- first a utility function that applies displayImage iff the
+> -- the Dynamic contains an Image
+> handleImage :: Int -> Int -> Dynamic -> IO (First Display)
+> handleImage w h = fmap First . traverse (displayImage w h) . fromDynamic
+>
+> -- then in the notebook you can add a
+> modifyMVar_ displayDyn (return . (handleImage 640 480 :))
+
+Then later on after making some pictures, you can add another
+function that will be used instead:
+
+> modifyMVar_ displayDyn (return . (handleImage 1280 800 :))
+
+To approach displayDyn version, you would have to write all
+IHaskellDisplay instances using a global variable containing
+the function that is actually used. A minor issue is that you cannot remove
+instances, but you can remove elements from the list referenced by
+'displayDyn'
+-}
+
+-- this one is separate because of a haddock bug
+-- http://trac.haskell.org/haddock/ticket/282
+
+-- $displayDynExBad
+--
+-- > {-# NOINLINE imageDisplay #-}
+-- > displayImageRef :: IORef (Image -> IO Display)
+-- > displayImageRef = unsafePerformIO (displayImage 640 480)
+-- >
+-- > instance IHaskellDisplay Image where
+-- >   display img = do
+-- >       fn <- readIORef displayImageRef
+-- >       fn img 
+
+{- $displayChanCommentary
+
+In the notebook, writes to stdout are captured and 'display'ed later
+on. Without 'displayChan', this functionality is available if the output is
+in some format besides plain text. In other words, a function might be:
+
+> histWithPlot :: Vector Double -> IO (Vector Int, Display)
+
+Then in the notebook, users have to explicitly handle that argument:
+
+> (binnedCounts, showPlot) <- histWithPlot ys
+> showPlot
+> .. do stuff with binnedCounts ..
+
+If we instead define a new @histWithPlot'@ that sends the image to
+'displayChan':
+
+> histWithPlot' :: Vector Double -> IO (Vector Int)
+> histWithPlot' ys = do
+>     (binnedCounts, showPlot) <- histWithPlot ys
+>     writeTChan displayChan showPlot
+>     return binnedCounts
+
+Then code in the notebook is \"better\"
+
+> binnedCounts <- histWithPlot ys
+> .. do stuff with binnedCounts ...
+
+-}
