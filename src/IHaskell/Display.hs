@@ -63,8 +63,6 @@ instance IHaskellDisplay a => IHaskellDisplay [a] where
     displays <- mapM display disps
     return $ ManyDisplay displays
 
--- to be tried first: if it gives Nothing (or doesn't typecheck due to no
--- Typeable instance), try IHaskellDisplay
 displayFromDyn x = do
      fs <- readMVar displayDyn 
      let go [] = return Nothing
@@ -76,15 +74,21 @@ displayFromDyn x = do
      Just x <- go fs
      display x
 
+-- | rather than using -XOverlappingInstances, functions added
+-- to this MVar are applied to the value that 'display' is
+-- normally applied to.
 {-# NOINLINE displayDyn #-}
 displayDyn :: MVar [Dynamic -> IO (First Display)]
 displayDyn = unsafePerformIO (newMVar [])
 
+-- | items written here will be displayed the next time IHaskell
+-- has a an item to display
 {-# NOINLINE displayChan #-}
 displayChan :: TChan Display
 displayChan = unsafePerformIO newTChanIO
 
-
+-- | take everything that was put into the 'displayChan' at that point
+-- out, and make a 'Display' out of it
 displayFromChan :: IO Display
 displayFromChan = do
     many <$> unfoldM (atomically (tryReadTChan displayChan))
