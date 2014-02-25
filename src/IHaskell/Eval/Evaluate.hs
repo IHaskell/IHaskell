@@ -702,12 +702,12 @@ evalCommand output (Expression expr) state = do
   -- Dislay If typechecking fails and there is no appropriate
   -- typeclass instance, this will throw an exception and thus `attempt` will
   -- return False, and we just resort to plaintext.
-  let displayClass = printf "(IHaskell.Display.display (%s))" expr :: String
+  let displayClass = printf "(IHaskell.Display.displayClass (%s))" expr :: String
   let displayMVar  = printf "(IHaskell.Display.displayFromDyn (%s))" expr :: String
   let displayChan  = printf "IHaskell.Display.displayFromChan" :: String
 
   Right result <- runErrorT $ msum
-        [-- tryDisplay displayMVar,
+        [tryDisplay displayMVar,
          tryDisplay displayClass,
          lift fallback]
   fromChan <- runErrorT (tryDisplay displayChan)
@@ -752,7 +752,7 @@ evalCommand output (Expression expr) state = do
     tryDisplay :: String -> ErrorT String Interpreter EvalOut
     tryDisplay command = do
       True <- lift (attempt (exprType command))
-      ErrorT $ ghandle (\ (e :: SomeException) -> return (Left (show e))) $ fmap Right $ do
+      ErrorT $ ghandle (\ (e :: SomeException) -> return (Left (show e))) $ do
         -- If there are instance matches, convert the object into
         -- a Display. We also serialize it into a bytestring. We get
         -- the bytestring as a dynamic and then convert back to
@@ -765,8 +765,9 @@ evalCommand output (Expression expr) state = do
         displayedBytestring <- dynCompileExpr "IHaskell.Display.serializeDisplay it"
         case Serialize.decode $ fromDyn displayedBytestring (error "Expecting lazy Bytestring") of
             Left err -> error err
-            Right display ->
-              return $ wrapE $
+            Right Nothing -> return (Left "nothing to display")
+            Right (Just display) ->
+              return $ Right $ wrapE $
                 if useSvg state
                 then display
                 else removeSvg display

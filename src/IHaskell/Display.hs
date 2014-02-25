@@ -19,6 +19,7 @@ module IHaskell.Display (
 
   -- * for internal use
   serializeDisplay,
+  displayClass,
   displayFromDyn,
   displayFromChan,
   ) where
@@ -74,7 +75,7 @@ instance IHaskellDisplay a => IHaskellDisplay [a] where
     return $ ManyDisplay displays
 
 -- | see 'displayDyn'
-displayFromDyn :: Typeable a => a -> IO Display
+displayFromDyn :: Typeable a => a -> IO (Maybe Display)
 displayFromDyn x = do
      fs <- readMVar displayDyn 
      let go [] = return Nothing
@@ -83,10 +84,7 @@ displayFromDyn x = do
             case fx of
                 First Nothing -> go fs
                 First (Just y) -> return (Just y)
-     Just x <- go fs -- can throw an exception,
-                     -- but those are caught later
-                     -- in IHaskell.Eval.Evaluate
-     display x
+     go fs
 
 
 -- IHaskell tries to apply functions from this list when displaying things:
@@ -105,9 +103,9 @@ displayChan = unsafePerformIO newTChanIO
 
 -- | Take everything that was put into the 'displayChan' at that point
 -- out, and make a 'Display' out of it.
-displayFromChan :: IO Display
-displayFromChan = do
-    many <$> unfoldM (atomically (tryReadTChan displayChan))
+displayFromChan :: IO (Maybe Display)
+displayFromChan =
+    Just . many <$> unfoldM (atomically (tryReadTChan displayChan))
 
 -- | This is unfoldM from monad-loops. It repeatedly runs an IO action
 -- until it return Nothing, and puts all the Justs in a list.
@@ -156,8 +154,14 @@ base64 = Base64.encode
 
 -- | For internal use within IHaskell.
 -- Serialize displays to a ByteString.
-serializeDisplay :: Display -> ByteString
+serializeDisplay :: Maybe Display -> ByteString
 serializeDisplay = Serialize.encode
+
+-- | This variation of 'display' that always has a 'Just' is used to
+-- simplify code in "IHaskell.Eval.Evaluate", which needs to handle
+-- the case when 'displayFromDyn' does not find a function to display.
+displayClass :: IHaskellDisplay a => a -> IO (Maybe Display) 
+displayClass = fmap Just . display
 
 {- $displayDynCommentary
 
