@@ -55,9 +55,15 @@ ipython which suppress args = do
   runCmd <- liftIO $ Paths.getDataFileName "installation/run.sh"
   venv <- fpToText <$> ipythonDir
   let cmdArgs = [pack runCmd, venv] ++ args
-  unpack <$> if suppress
-             then silently $ run "bash" cmdArgs
-             else run "bash" cmdArgs
+  runHandles "bash" cmdArgs handles doNothing
+  where handles = [InHandle Inherit, outHandle suppress, errorHandle suppress]
+        outHandle True = OutHandle CreatePipe
+        outHandle False = OutHandle Inherit
+        errorHandle True =  ErrorHandle CreatePipe
+        errorHandle False = ErrorHandle Inherit
+        doNothing _ stdout _ = if suppress 
+                                then liftIO $ StrictIO.hGetContents stdout
+                                else return ""
 
 -- | Run while suppressing all output.
 quietRun path args = runHandles path args handles nothing
