@@ -9,7 +9,7 @@ module IHaskell.Eval.Evaluate (
   interpret, evaluate, Interpreter, liftIO, typeCleaner, globalImports
   ) where
 
-import ClassyPrelude hiding (liftIO, hGetContents, try)
+import ClassyPrelude hiding (init, last, liftIO, head, hGetContents, tail, try)
 import Control.Concurrent (forkIO, threadDelay)
 import Prelude (putChar, head, tail, last, init, (!!))
 import Data.List.Utils
@@ -119,7 +119,7 @@ interpret allowedStdin action = runGhc (Just libdir) $ do
   sandboxPackages <- liftIO getSandboxPackageConf
   let pkgConfs = case sandboxPackages of
         Nothing -> extraPkgConfs dflags
-        Just path -> 
+        Just path ->
           let pkg  = PkgConfFile path in
             (pkg:) . extraPkgConfs dflags
 
@@ -275,20 +275,18 @@ safely state = ghandle handler . ghandle sourceErrorHandler
     sourceErrorHandler srcerr = do
       let msgs = bagToList $ srcErrorMessages srcerr
       errStrs <- forM msgs $ \msg -> do
-        shortStr <- doc $ errMsgShortDoc msg 
-        contextStr <- doc $ errMsgExtraInfo msg 
+        shortStr <- doc $ errMsgShortDoc msg
+        contextStr <- doc $ errMsgExtraInfo msg
         return $ unlines [shortStr, contextStr]
 
       let fullErr = unlines errStrs
-      
+
       return EvalOut {
         evalStatus = Failure,
         evalResult = displayError fullErr,
         evalState = state,
         evalPager = ""
       }
-      
-    
 
 wrapExecution :: KernelState
               -> Interpreter Display
@@ -300,7 +298,6 @@ wrapExecution state exec = safely state $ exec >>= \res ->
       evalState = state,
       evalPager = ""
     }
-
 
 -- | Return the display data for this command, as well as whether it
 -- resulted in an error.
@@ -360,8 +357,8 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
     -- Since nothing prevents loading the module, compile and load it.
     Nothing -> doLoadModule modName modName
 
--- | Directives set via `:set`. 
-evalCommand output (Directive SetDynFlag flags) state = 
+-- | Directives set via `:set`.
+evalCommand output (Directive SetDynFlag flags) state =
   case words flags of
     -- For a single flag.
     [flag] -> do
@@ -595,7 +592,7 @@ evalCommand _ (Directive GetInfo str) state = safely state $ do
       htmlify str =
         printf "<div style='background: rgb(247, 247, 247);'><form><textarea id='code'>%s</textarea></form></div>" str
         ++ script
-      script = 
+      script =
         "<script>CodeMirror.fromTextArea(document.getElementById('code'), {mode: 'haskell', readOnly: 'nocursor'});</script>"
 
   return EvalOut {
@@ -648,7 +645,7 @@ evalCommand output (Statement stmt) state = wrapExecution state $ do
 
           -- Return plain and html versions.
           -- Previously there was only a plain version.
-          text -> Display 
+          text -> Display
             [plain $ joined ++ "\n" ++ text,
              html  $ htmled ++ mono text]
 
@@ -692,7 +689,7 @@ evalCommand output (Expression expr) state = do
     -- Check if the error is due to trying to print something that doesn't
     -- implement the Show typeclass.
     isShowError (ManyDisplay _) = False
-    isShowError (Display errs) = 
+    isShowError (Display errs) =
         -- Note that we rely on this error message being 'type cleaned', so
         -- that `Show` is not displayed as GHC.Show.Show.
         startswith "No instance for (Show" msg &&
@@ -802,7 +799,7 @@ hoogleResults state results = EvalOut {
     evalPager = output
   }
   where
-    fmt = 
+    fmt =
         case getFrontend state of
           IPythonNotebook -> Hoogle.HTML
           IPythonConsole -> Hoogle.Plain

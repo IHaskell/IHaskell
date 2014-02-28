@@ -63,7 +63,7 @@ import GHC.Exts
 import Data.Char
 import Control.Monad    ( mplus )
 
--- parser produced by Happy Version 1.19.2
+-- parser produced by Happy Version 1.19.3
 
 data HappyAbsSyn 
 	= HappyTerminal ((Located Token))
