@@ -11,7 +11,7 @@ import Prelude        (last, read)
 import            Control.Concurrent        (threadDelay)
 import            Control.Concurrent.Chan
 import            Data.Aeson
-import            Data.String.Utils         (strip)
+import qualified  Data.Text                 as T
 import            System.Directory
 import            System.Exit               (exitSuccess)
 import            Text.Printf
@@ -19,6 +19,7 @@ import            System.Posix.Signals
 import qualified  Data.Map                  as Map
 
 -- IHaskell imports.
+import            IHaskell.Convert          (convert)
 import            IHaskell.Eval.Completion  (complete)
 import            IHaskell.Eval.Evaluate
 import            IHaskell.Eval.Info
@@ -26,13 +27,11 @@ import            IHaskell.Flags
 import            IHaskell.IPython
 import            IHaskell.Types
 import            IPython.ZeroMQ
-import qualified  Data.ByteString.Char8     as Chars
 import qualified  IPython.Message.UUID      as UUID
 import qualified  IPython.Stdin             as Stdin
 
 -- GHC API imports.
 import GHC        hiding (extensions, language)
-import Outputable (showSDoc, ppr)
 
 -- | Compute the GHC API version number using the dist/build/autogen/cabal_macros.h
 ghcVersionInts :: [Int]
@@ -59,6 +58,8 @@ ihaskell :: Args -> IO ()
 -- If no mode is specified, print help text.
 ihaskell (Args (ShowHelp help) _) =
   putStrLn $ pack help
+
+ihaskell (Args ConvertLhs args) = convert args
 
 ihaskell (Args Console flags) = showingHelp Console flags $ do
   ipython <- chooseIPython flags
@@ -304,9 +305,9 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
   let execCount = getExecutionCounter state
   -- Let all frontends know the execution count and code that's about to run
   inputHeader <- liftIO $ dupHeader replyHeader InputMessage
-  send $ PublishInput inputHeader (Chars.unpack code) execCount
+  send $ PublishInput inputHeader code execCount
   -- Run code and publish to the frontend as we go.
-  updatedState <- evaluate state (Chars.unpack code) publish
+  updatedState <- evaluate state (unpack code) publish
 
   -- Notify the frontend that we're done computing.
   idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
@@ -322,20 +323,20 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
 
 
 replyTo _ req@CompleteRequest{} replyHeader state = do
-  let line = Chars.unpack $ getCodeLine req
-  (matchedText, completions) <- complete line (getCursorPos req)
+  let line = getCodeLine req
+  (matchedText, completions) <- complete (unpack line) (getCursorPos req)
 
-  let reply =  CompleteReply replyHeader completions matchedText line True
+  let reply = CompleteReply replyHeader (map pack completions) (pack matchedText) line True
   return (state,  reply)
 
 -- | Reply to the object_info_request message. Given an object name, return
 -- | the associated type calculated by GHC.
 replyTo _ ObjectInfoRequest{objectName = oname} replyHeader state = do
-  docs <- info oname
+  docs <- pack <$> info (unpack oname)
   let reply = ObjectInfoReply {
                 header = replyHeader,
                 objectName = oname,
-                objectFound = strip docs /= "",
+                objectFound = T.strip docs /= "",
                 objectTypeString = docs,
                 objectDocString  = docs
               }

@@ -1,0 +1,49 @@
+-- the sources.txt.in is used to generates sources.txt.
+-- The command to generate it is something like:
+-- 
+--  m4 -D_ALL=-- -D_DISP < sources.txt.in > sources.txt
+-- 
+-- Above, the m4 preprocessor replaces the _BLAH with either whitespace
+-- or a comment to enable or disable the source named on the rest
+-- of the line
+
+_ALL ./
+_ALL ./ipython-kernel
+_ALL ./ghci-lib
+_ALL
+_ALL -- the ghc-parser on hackage is new enough, and cabal tries
+_ALL -- to recompile each time... other preprocessors don't have
+_ALL -- this problem
+_ALL -- ./ghc-parser
+
+_DISP ./ihaskell-display/ihaskell-aeson
+_DISP ./ihaskell-display/ihaskell-basic
+_DISP ./ihaskell-display/ihaskell-blaze
+_DISP ./ihaskell-display/ihaskell-charts
+_DISP ./ihaskell-display/ihaskell-diagrams
+_DISP ./ihaskell-display/ihaskell-hatex
+_DISP ./ihaskell-display/ihaskell-magic
+_DISP ./ihaskell-display/ihaskell-rlangqq
+_DISP 
+
+_DISP https://github.com/diagrams/diagrams-core
+_DISP https://github.com/diagrams/diagrams-lib
+_DISP https://github.com/diagrams/diagrams-svg
+_DISP https://github.com/diagrams/diagrams-cairo
+_DISP https://github.com/diagrams/diagrams-postscript
+_DISP https://github.com/diagrams/diagrams-contrib
+_DISP https://github.com/diagrams/SVGFonts
+
+-- _DISP ./vendor/diagrams-core
+-- _DISP ./vendor/diagrams-lib
+-- _DISP ./vendor/diagrams-svg
+-- _DISP ./vendor/diagrams-cairo
+-- _DISP ./vendor/diagrams-postscript
+-- _DISP ./vendor/diagrams-contrib
+-- _DISP ./vendor/SVGFonts
+
+_DISP 
+_DISP -- https://github.com/timbod7/haskell-chart
+_DISP -- when a forthcoming PR for the sources.txt gets added
+_DISP -- https://github.com/aavogt/haskell-chart
+_DISP ./vendor/haskell-chart
