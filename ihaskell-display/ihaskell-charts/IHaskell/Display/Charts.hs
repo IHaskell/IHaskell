@@ -43,6 +43,4 @@ chartData renderable format = do
   imgData <- readFile $ fpFromString filename
   return $ case format of
     PNG -> png width height $ base64 imgData
-    SVG -> html $ makeSvgImg $ base64 imgData
-  where
-    makeSvgImg base64data = Char.unpack $ "<img src=\"data:image/svg+xml;base64," ++ base64data ++ "\"/>"
+    SVG -> svg $ Char.unpack imgData

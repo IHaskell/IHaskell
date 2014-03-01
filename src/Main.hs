@@ -21,11 +21,13 @@ import qualified  Data.Map                  as Map
 -- IHaskell imports.
 import            IHaskell.Eval.Completion  (complete)
 import            IHaskell.Eval.Evaluate
+import            IHaskell.Display
 import            IHaskell.Eval.Info
 import            IHaskell.Flags
 import            IHaskell.IPython
 import            IHaskell.Types
 import            IPython.ZeroMQ
+import            IPython.Types
 import qualified  Data.ByteString.Char8     as Chars
 import qualified  IPython.Message.UUID      as UUID
 import qualified  IPython.Stdin             as Stdin
@@ -270,7 +272,11 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
       sendOutput (ManyDisplay manyOuts) = mapM_ sendOutput manyOuts
       sendOutput (Display outs) = do
         header <- dupHeader replyHeader DisplayDataMessage
-        send $ PublishDisplayData header "haskell" outs
+        send $ PublishDisplayData header "haskell" $ map convertSvgToHtml outs
+
+      convertSvgToHtml (DisplayData MimeSvg svg) = html $ makeSvgImg $ base64 svg
+      convertSvgToHtml x = x
+      makeSvgImg base64data = Chars.unpack $ "<img src=\"data:image/svg+xml;base64," ++ base64data ++ "\"/>"
 
       publish :: EvaluationResult -> IO ()
       publish result = do

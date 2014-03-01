@@ -145,10 +145,8 @@ interpret allowedStdin action = runGhc (Just libdir) $ do
 initializeImports :: Interpreter ()
 initializeImports = do
   -- Load packages that start with ihaskell-*, aren't just IHaskell,
-  -- and depend directly on the right version of the ihaskell library
-  --
-  -- XXX this will try to load broken packages, provided they depend
-  -- on the right ihaskell version
+  -- and depend directly on the right version of the ihaskell library.
+  -- Also verify that the packages we load are not broken.
   dflags <- getSessionDynFlags
   broken <- liftIO getBrokenPackages
   displayPackages <- liftIO $ do
@@ -157,7 +155,8 @@ initializeImports = do
         packageNames = map (packageIdString . packageConfigId) db
 
         initStr = "ihaskell-"
-        -- "ihaskell-1.2.3.4"
+
+        -- Name of the ihaskell package, e.g. "ihaskell-1.2.3.4"
         iHaskellPkgName = initStr ++ intercalate "." (map show (versionBranch version))
 
         dependsOnRight pkg = not $ null $ do
@@ -172,8 +171,8 @@ initializeImports = do
         -- ihaskell-0.2.0.5-ce34eadc18cf2b28c8d338d0f3755502 installed.
         iHaskellPkg = case filter (== iHaskellPkgName) packageNames of
                 [x] -> x
-                [] -> error ("cannot find required haskell library: "++iHaskellPkgName)
-                _ -> error ("multiple haskell packages "++iHaskellPkgName++" found")
+                [] -> error ("cannot find required haskell library: " ++ iHaskellPkgName)
+                _ -> error ("multiple haskell packages " ++ iHaskellPkgName ++ " found")
 
         displayPkgs = [ pkgName
                   | pkgName <- packageNames,
@@ -193,8 +192,6 @@ initializeImports = do
       toImportStmt = printf importFmt . capitalize . (!! 1) . split "-"
 
       displayImports = map toImportStmt displayPackages
-
-  liftIO $ print displayImports
 
   -- Import implicit prelude.
   importDecl <- parseImportDecl "import Prelude"
