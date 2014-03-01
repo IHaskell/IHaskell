@@ -3,7 +3,7 @@ module IHaskell.Display (
   IHaskellDisplay(..),
   plain, html, png, jpg, svg, latex,
   serializeDisplay,
-  Width, Height, Base64,
+  Width, Height, Base64(..),
   encode64, base64,
   Display(..),
   DisplayData(..),
