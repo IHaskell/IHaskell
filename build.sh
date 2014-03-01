@@ -2,10 +2,20 @@
 set -e
 
 # Verify that we're in the IHaskell directory.
-test -f "ihaskell.cabal"
+if [ ! -e ihaskell.cabal ]; then
+  echo "run from inside the IHaskell directory:
+        ./build.sh all
+        ./build.sh    # less dependencies"
+  exit 1
+fi
 
-# What to install.
-INSTALLS=""
+# Get cabal cabal-meta if necessary.
+[ -e "`which cabal-meta`" ] || cabal install cabal-meta cabal-src
+if [ ! -e "`which cabal-meta`" ]; then
+  echo "cabal-meta isn't in \$PATH:\n
+    maybe you need to add $HOME/.cabal/bin to your \$PATH";
+  exit 1
+fi
 
 # Make the profile
 cd profile
@@ -17,37 +27,14 @@ cd ..
 rm -rf ~/.ipython/profile_haskell
 
 # Compile dependencies.
-if [ $# -gt 0 ]; then
-  if [ $1 = "all" ]; then
-    INSTALLS="$INSTALLS ipython-kernel ghc-parser ghci-lib"
-  fi
+declare -a args
+[ $# = 0 ] || args[${#args[*]}]=-D_ALL
+[ "$1" != "all" ] || args[${#args[*]}]=-D_DISP
+[ -d vendor ] || args[${#args[*]}]=-D_PULL
+
+cpp -P -C ${args[*]} < sources.txt.in > sources.txt
+
+if [ ${#args} -lt 1 ]; then
+  force=--force
 fi
-
-# Make ihaskell itself
-INSTALLS="$INSTALLS ."
-
-# Install ihaskell-display packages.
-if [ $# -gt 0 ]; then
-  if [ $1 = "display" ]; then
-        # Install all the display libraries
-        cd ihaskell-display
-        for dir in `ls`
-        do
-            INSTALLS="$INSTALLS ihaskell-display/$dir"
-        done
-        cd ..
-    fi
-fi
-
-# Clean all required directories, just in case.
-TOP=`pwd`
-for pkg in $INSTALLS
-do
-    cd ./$pkg
-    cabal clean
-    cd $TOP
-done
-
-# Stick a "./" before everything.
-INSTALL_DIRS=`echo $INSTALLS | tr ' ' '\n' | sed 's#^#./#' | tr ' ' '\n'`
-cabal install $INSTALL_DIRS --force-reinstalls
+cabal-meta install $force

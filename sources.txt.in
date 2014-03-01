@@ -1,0 +1,51 @@
+-- This sources.txt.in is processed by the c preprocessor
+-- to generate a sources.txt suitable for cabal-meta
+-- 
+-- The command to generate it is something like:
+-- 
+--  cpp -P -C -D_ALL -D_DISP < sources.txt.in > sources.txt
+
+./
+#ifdef _ALL
+./ipython-kernel
+./ghci-lib
+
+-- the ghc-parser on hackage is new enough, and cabal tries
+-- to recompile each time... other preprocessors don't have
+-- this problem
+-- ./ghc-parser
+
+#ifdef _DISP
+./ihaskell-display/ihaskell-aeson
+./ihaskell-display/ihaskell-basic
+./ihaskell-display/ihaskell-blaze
+./ihaskell-display/ihaskell-charts
+./ihaskell-display/ihaskell-diagrams
+./ihaskell-display/ihaskell-hatex
+./ihaskell-display/ihaskell-magic
+./ihaskell-display/ihaskell-rlangqq
+#ifdef _PULL
+https://github.com/diagrams/diagrams-core
+https://github.com/diagrams/diagrams-lib
+https://github.com/diagrams/diagrams-svg
+https://github.com/diagrams/diagrams-cairo
+https://github.com/diagrams/diagrams-postscript
+https://github.com/diagrams/diagrams-contrib
+https://github.com/diagrams/SVGFonts
+
+-- https://github.com/timbod7/haskell-chart
+-- when a forthcoming PR for the sources.txt gets added
+https://github.com/aavogt/haskell-chart
+#else
+./vendor/diagrams-core
+./vendor/diagrams-lib
+./vendor/diagrams-svg
+./vendor/diagrams-cairo
+./vendor/diagrams-postscript
+./vendor/diagrams-contrib
+./vendor/SVGFonts
+./vendor/haskell-chart
+#endif
+#endif
+
+#endif
