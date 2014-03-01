@@ -11,7 +11,7 @@ import Prelude        (last, read)
 import            Control.Concurrent        (threadDelay)
 import            Control.Concurrent.Chan
 import            Data.Aeson
-import            Data.String.Utils         (strip)
+import qualified  Data.Text                 as T
 import            System.Directory
 import            System.Exit               (exitSuccess)
 import            Text.Printf
@@ -305,7 +305,7 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
   let execCount = getExecutionCounter state
   -- Let all frontends know the execution count and code that's about to run
   inputHeader <- liftIO $ dupHeader replyHeader InputMessage
-  send $ PublishInput inputHeader (unpack code) execCount
+  send $ PublishInput inputHeader code execCount
   -- Run code and publish to the frontend as we go.
   updatedState <- evaluate state (unpack code) publish
 
@@ -323,20 +323,21 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
 
 
 replyTo _ req@CompleteRequest{} replyHeader state = do
-  (matchedText, completions) <- complete (unpack (getCodeLine req)) (getCursorPos req)
+  let line = getCodeLine req
+  (matchedText, completions) <- complete (unpack line) (getCursorPos req)
 
-  let reply =  CompleteReply replyHeader (map pack completions) (pack matchedText) (getCodeLine req) True
+  let reply = CompleteReply replyHeader (map pack completions) (pack matchedText) line True
   return (state,  reply)
 
 -- | Reply to the object_info_request message. Given an object name, return
 -- | the associated type calculated by GHC.
-replyTo _ ObjectInfoRequest{objectName=oname} replyHeader state = do
-  docs <- info (unpack oname)
+replyTo _ ObjectInfoRequest{objectName = oname} replyHeader state = do
+  docs <- pack <$> info (unpack oname)
   let reply = ObjectInfoReply {
                 header = replyHeader,
                 objectName = oname,
-                objectFound = strip docs /= "",
-                objectTypeString = pack docs,
-                objectDocString  = pack docs
+                objectFound = T.strip docs /= "",
+                objectTypeString = docs,
+                objectDocString  = docs
               }
   return (state, reply)

@@ -151,7 +151,7 @@ data MessageType = KernelInfoReplyMessage
                  | InputReplyMessage
                  deriving (Show, Read)
 
-showMessageType :: MessageType -> String
+showMessageType :: MessageType -> Text
 showMessageType KernelInfoReplyMessage     = "kernel_info_reply"
 showMessageType KernelInfoRequestMessage   = "kernel_info_request"
 showMessageType ExecuteReplyMessage        = "execute_reply"
@@ -252,7 +252,7 @@ data Message
 
   | PublishInput {
       header :: MessageHeader,
-      inCode :: String,                     -- ^ Submitted input code.
+      inCode :: Text,                       -- ^ Submitted input code.
       executionCount :: Int                 -- ^ Which input this is.
     }
 

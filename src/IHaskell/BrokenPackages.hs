@@ -7,6 +7,8 @@ import Text.Parsec
 import Text.Parsec.String
 import Control.Applicative hiding ((<|>), many)
 
+import Data.String.Utils (startswith)
+
 import Shelly
 
 data BrokenPackage = BrokenPackage {
@@ -22,7 +24,12 @@ getBrokenPackages = shellyNoDir $ do
   silently $ errExit False $ run "ghc-pkg" ["check"]
   checkOut <- lastStderr
   
-  return $ case parse (many check) "ghc-pkg output" $ unpack checkOut of
+  -- Get rid of extraneous things
+  let rightStart str = startswith "There are problems" str || 
+                       startswith "  dependency" str 
+      ghcPkgOutput = unlines . filter rightStart . lines $ unpack checkOut
+
+  return $ case parse (many check) "ghc-pkg output" ghcPkgOutput of
     Left err -> []
     Right pkgs -> map show pkgs
 

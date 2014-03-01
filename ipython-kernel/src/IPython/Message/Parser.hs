@@ -10,7 +10,7 @@ import            Data.Aeson            ((.:), decode, Result(..), Object)
 import            Control.Applicative   ((<|>))
 import            Data.Aeson.Types      (parse)
 import            Data.ByteString
-import qualified  Data.ByteString.Lazy  as Lazy
+import qualified  Data.ByteString.Lazy as Lazy
 import            Data.Map              (Map)
 import            Data.Text             (Text)
 

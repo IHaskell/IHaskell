@@ -99,6 +99,8 @@ cabal update # Please do this! IHaskell updates *very* frequently.
 cabal install ihaskell
 ```
 
+If you are on Linux, make sure you also have `python-dev` (or equivalent) installed, as `pyzmq` (which IHaskell will install itself) may need it.
+
 Running IHaskell
 ---
 

@@ -105,6 +105,7 @@ instance MonadIO.MonadIO Interpreter where
 globalImports :: [String]
 globalImports =
   [ "import IHaskell.Display()"
+  , "import qualified IHaskell.Display"
   , "import qualified IPython.Stdin"
   , "import qualified System.Posix.IO as IHaskellIO"
   , "import qualified System.IO as IHaskellSysIO"
@@ -194,6 +195,8 @@ initializeImports = do
       toImportStmt = printf importFmt . capitalize . (!! 1) . split "-"
 
       displayImports = map toImportStmt displayPackages
+
+  liftIO $ print displayImports
 
   -- Import implicit prelude.
   importDecl <- parseImportDecl "import Prelude"
