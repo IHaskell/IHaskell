@@ -1,12 +1,11 @@
 #!/bin/bash
-
 set -e
 
-# Recompile ipython-kernel
-cd ipython-kernel
-cabal clean
-cabal install --force-reinstalls
-cd ..
+# Verify that we're in the IHaskell directory.
+test -f "ihaskell.cabal"
+
+# What to install.
+INSTALLS=""
 
 # Make the profile
 cd profile
@@ -14,33 +13,41 @@ rm -f profile.tar
 tar -cvf profile.tar *
 cd ..
 
+# Remove my profile
+rm -rf ~/.ipython/profile_haskell
+
+# Compile dependencies.
 if [ $# -gt 0 ]; then
   if [ $1 = "all" ]; then
-    cd ghc-parser;
-    cabal install --force-reinstalls;
-    cd ../ghci-lib;
-    cabal install --force-reinstalls;
-    cd ..;
+    INSTALLS="$INSTALLS ipython-kernel ghc-parser ghci-lib"
   fi
 fi
 
 # Make ihaskell itself
-cabal clean
-cabal install --force-reinstalls
+INSTALLS="$INSTALLS ."
 
-# Remove my profile
-rm -rf ~/.ipython/profile_haskell
-
+# Install ihaskell-display packages.
 if [ $# -gt 0 ]; then
   if [ $1 = "display" ]; then
         # Install all the display libraries
         cd ihaskell-display
         for dir in `ls`
         do
-            cd $dir
-            cabal clean
-            cabal install
-            cd ..
+            INSTALLS="$INSTALLS ihaskell-display/$dir"
         done
+        cd ..
     fi
 fi
+
+# Clean all required directories, just in case.
+TOP=`pwd`
+for pkg in $INSTALLS
+do
+    cd ./$pkg
+    cabal clean
+    cd $TOP
+done
+
+# Stick a "./" before everything.
+INSTALL_DIRS=`echo $INSTALLS | tr ' ' '\n' | sed 's#^#./#' | tr ' ' '\n'`
+cabal install $INSTALL_DIRS --force-reinstalls
