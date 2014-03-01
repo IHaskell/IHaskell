@@ -1,4 +1,5 @@
-{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances #-}
+{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances,
+   ScopedTypeVariables #-}
 
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
@@ -26,7 +27,7 @@ import System.Posix.IO
 import System.IO (hGetChar, hFlush)
 import System.Random (getStdGen, randomRs)
 import Unsafe.Coerce
-import Control.Monad (guard)
+import Control.Monad (guard, msum)
 import System.Process
 import System.Exit
 import Data.Maybe (fromJust)
@@ -51,7 +52,7 @@ import GhcMonad (liftIO, withSession)
 import GHC hiding (Stmt, TypeSig)
 import GHC.Paths
 import Exception hiding (evaluate)
-import Outputable
+import Outputable hiding ((<>))
 import Packages
 import Module
 import qualified Pretty
@@ -60,6 +61,7 @@ import Bag
 import ErrUtils (errMsgShortDoc, errMsgExtraInfo)
 
 import qualified System.IO.Strict as StrictIO
+import Control.Monad.Error (ErrorT(..),mplus,throwError)
 
 import IHaskell.Types
 import IHaskell.IPython
@@ -662,26 +664,31 @@ evalCommand output (Expression expr) state = do
   -- Dislay If typechecking fails and there is no appropriate
   -- typeclass instance, this will throw an exception and thus `attempt` will
   -- return False, and we just resort to plaintext.
-  let displayExpr = printf "(IHaskell.Display.display (%s))" expr :: String
-  canRunDisplay <- attempt $ exprType displayExpr
+  let displayClass = printf "(IHaskell.Display.displayClass (%s))" expr :: String
+  let displayMVar  = printf "(IHaskell.Display.displayFromDyn (%s))" expr :: String
+  let displayChan  = printf "IHaskell.Display.displayFromChan" :: String
 
-  if canRunDisplay
-  then useDisplay displayExpr
-  else do
-    -- Evaluate this expression as though it's just a statement.
-    -- The output is bound to 'it', so we can then use it.
-    evalOut <- evalCommand output (Statement expr) state
-
-    let out = evalResult evalOut
-        showErr = isShowError out
-
-    -- If evaluation failed, return the failure.  If it was successful, we
-    -- may be able to use the IHaskellDisplay typeclass.
-    return $ if not showErr || useShowErrors state
-            then evalOut
-            else postprocessShowError evalOut
-
+  Right result <- runErrorT $ msum
+        [tryDisplay displayMVar,
+         tryDisplay displayClass,
+         lift fallback]
+  fromChan <- runErrorT (tryDisplay displayChan)
+  return $ appendEvalResult result (either mempty evalResult fromChan)
   where
+    appendEvalResult x y = x{ evalResult = evalResult x <> y }
+    fallback = do
+      -- Evaluate this expression as though it's just a statement.
+      -- The output is bound to 'it', so we can then use it.
+      evalOut <- evalCommand output (Statement expr) state
+
+      let out = evalResult evalOut
+          showErr = isShowError out
+
+      -- If evaluation failed, return the failure.  If it was successful, we
+      -- may be able to use the IHaskellDisplay typeclass.
+      return $ if not showErr || useShowErrors state
+              then evalOut
+              else postprocessShowError evalOut
     -- Try to evaluate an action. Return True if it succeeds and False if
     -- it throws an exception. The result of the action is discarded.
     attempt :: Interpreter a -> Interpreter Bool
@@ -705,7 +712,10 @@ evalCommand output (Expression expr) state = do
     removeSvg (Display disps) = Display $ filter (not . isSvg) disps
     removeSvg (ManyDisplay disps) = ManyDisplay $ map removeSvg disps
 
-    useDisplay displayExpr = do
+    tryDisplay :: String -> ErrorT String Interpreter EvalOut
+    tryDisplay displayExpr = do
+     True <- lift (attempt (exprType displayExpr))
+     ErrorT $ ghandle (\ (e :: SomeException) -> return (Left (show e))) $ do
       -- If there are instance matches, convert the object into
       -- a Display. We also serialize it into a bytestring. We get
       -- the bytestring IO action as a dynamic and then convert back to
@@ -722,8 +732,8 @@ evalCommand output (Expression expr) state = do
                          else "let { it = %s }"
       evalOut <- evalCommand output (Statement $ printf stmtTemplate expr) state
       case evalStatus evalOut of
-        Failure -> return evalOut
-        Success -> wrapExecution state $ do
+        Failure -> return (Right evalOut)
+        Success -> do
           -- Compile the display data into a bytestring.
           let compileExpr = "fmap IHaskell.Display.serializeDisplay (IHaskell.Display.display it)"
           displayedBytestring <- dynCompileExpr compileExpr
@@ -735,13 +745,20 @@ evalCommand output (Expression expr) state = do
               bytestring <- liftIO bytestringIO
               case Serialize.decode bytestring of
                 Left err -> error err
-                Right display ->
-                  return $
+                Right Nothing -> return (Left "Nothing to display")
+                Right (Just display) ->
+                  return $ Right $ wrapE $
                     if useSvg state
                     then display :: Display
                     else removeSvg display
 
     isIO expr = attempt $ exprType $ printf "((\\x -> x) :: IO a -> IO a) (%s)" expr
+
+    wrapE res = EvalOut {
+      evalStatus = Success,
+      evalResult = res,
+      evalState = state,
+      evalPager = "" }
 
     postprocessShowError :: EvalOut -> EvalOut
     postprocessShowError evalOut = evalOut { evalResult = Display $ map postprocess disps }

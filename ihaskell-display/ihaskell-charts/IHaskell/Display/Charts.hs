@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module IHaskell.Display.Charts () where
 
@@ -11,6 +12,7 @@ import qualified Data.ByteString.Char8 as Char
 import System.IO.Unsafe
 
 import IHaskell.Display
+import IPython.Types
 
 width :: Width
 width = 450
@@ -43,4 +45,6 @@ chartData renderable format = do
   imgData <- readFile $ fpFromString filename
   return $ case format of
     PNG -> png width height $ base64 imgData
-    SVG -> svg $ Char.unpack imgData
+    SVG -> DisplayData MimeHtml $ makeSvgImg $ base64 imgData
+  where
+    makeSvgImg base64data = "<img src=\"data:image/svg+xml;base64," ++ base64data ++ "\"/>"

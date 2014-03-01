@@ -14,6 +14,7 @@ import Data.Char
 
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
+import IPython.Types (MimeType(MimeSvg))
 import Data.ByteString.UTF8
 
 instance IHaskellDisplay T.Text where
@@ -30,9 +31,9 @@ b64 :: B.ByteString -> String
 b64 = Char.unpack . Base64.encode
 
 withClass :: MagicClass -> B.ByteString -> DisplayData
-withClass SVG = svg . B.toString
-withClass (PNG w h) = png w h . Base64.encode
-withClass JPG = jpg 400 300 . Base64.encode
+withClass SVG = DisplayData MimeSvg . T.decodeUtf8
+withClass (PNG w h) = png w h . T.decodeUtf8 . Base64.encode
+withClass JPG = jpg 400 300 . T.decodeUtf8 . Base64.encode
 withClass HTML = html . B.toString 
 withClass LaTeX = latex . B.toString
 withClass _ = plain . B.toString

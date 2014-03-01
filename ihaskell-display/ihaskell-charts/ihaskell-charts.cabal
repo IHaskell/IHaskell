@@ -65,6 +65,7 @@ library
                        directory,
                        Chart,
                        Chart-cairo,
+                       ipython-kernel,
                        ihaskell >= 0.3
   
   -- Directories containing source files.
