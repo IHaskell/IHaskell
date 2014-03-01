@@ -62,6 +62,7 @@ library
                        classy-prelude >=0.7,
                        aeson,
                        aeson-pretty,
+                       chunked-data,
                        ihaskell >= 0.3
   
   -- Directories containing source files.
