@@ -2,10 +2,10 @@
 
 set -e
 
-# Recompile ipython-kernel
+INSTALLS="ipython-kernel"
+# ipython-kernel
 cd ipython-kernel
 cabal clean
-cabal install --force-reinstalls
 cd ..
 
 # Make the profile
@@ -16,17 +16,14 @@ cd ..
 
 if [ $# -gt 0 ]; then
   if [ $1 = "all" ]; then
-    cd ghc-parser;
-    cabal install --force-reinstalls;
-    cd ../ghci-lib;
-    cabal install --force-reinstalls;
-    cd ..;
+    $INSTALLS="$INSTALLS ghc-parser ghci-lib"
   fi
 fi
 
 # Make ihaskell itself
 cabal clean
-cabal install --force-reinstalls
+
+cabal install --force-reinstalls $INSTALLS .
 
 # Remove my profile
 rm -rf ~/.ipython/profile_haskell
@@ -39,8 +36,8 @@ if [ $# -gt 0 ]; then
         do
             cd $dir
             cabal clean
-            cabal install
             cd ..
         done
+        cabal install *
     fi
 fi
