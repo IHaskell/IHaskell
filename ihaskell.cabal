@@ -53,8 +53,8 @@ library
   hs-source-dirs:      src
   default-language:    Haskell2010
   build-depends:       
-                       base                 ==4.6.*,
                        aeson                >=0.6.1,
+                       base                 ==4.6.*,
                        base64-bytestring    >=1.0,
                        bytestring           >=0.10,
                        cereal               ==0.3.*,
@@ -64,10 +64,11 @@ library
                        directory            -any,
                        filepath             -any,
                        ghc                  ==7.6.*,
-                       ghc-parser           >=0.1.1,
                        ghci-lib             >=0.1,
+                       ghc-parser           >=0.1.1,
                        ghc-paths            ==0.1.*,
                        haskeline            -any,
+                       haskell-src-meta     -any,
                        here                 -any,
                        hlint                -any,
                        hspec                -any,
@@ -86,11 +87,17 @@ library
                        system-argv0         -any,
                        system-filepath      -any,
                        tar                  -any,
+                       template-haskell     -any,
+                       text                 -any,
                        transformers         -any,
                        unix                 >= 2.6,
-                       utf8-string          -any
+                       unordered-containers -any,
+                       utf8-string          -any,
+                       vector               -any
 
-  exposed-modules: IHaskell.Display
+  exposed-modules: IHaskell.Convert
+                   IHaskell.Convert.HMQQ
+                   IHaskell.Display
                    IHaskell.Eval.Completion
                    IHaskell.Eval.Evaluate
                    IHaskell.Eval.Info

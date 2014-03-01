@@ -19,6 +19,7 @@ import            System.Posix.Signals
 import qualified  Data.Map                  as Map
 
 -- IHaskell imports.
+import            IHaskell.Convert          (convert)
 import            IHaskell.Eval.Completion  (complete)
 import            IHaskell.Eval.Evaluate
 import            IHaskell.Eval.Info
@@ -57,6 +58,8 @@ ihaskell :: Args -> IO ()
 -- If no mode is specified, print help text.
 ihaskell (Args (ShowHelp help) _) =
   putStrLn $ pack help
+
+ihaskell (Args ConvertLhs args) = convert args
 
 ihaskell (Args Console flags) = showingHelp Console flags $ do
   ipython <- chooseIPython flags
