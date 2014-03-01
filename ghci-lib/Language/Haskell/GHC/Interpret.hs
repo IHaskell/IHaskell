@@ -8,11 +8,10 @@ module Language.Haskell.GHC.Interpret (
   evalExpression,
   -}
   evalImport,
-  {-
   evalDeclarations,
-  setExtension,
-  setFlag,
+  setFlags,
   getType,
+  {-
   loadFile,
   -}
   ) where
@@ -24,9 +23,12 @@ import GhcMonad
 import HsImpExp
 import HscTypes
 import RdrName
+import Outputable
 
 import Data.Function (on)
 import Control.Monad (void)
+
+import Data.String.Utils (replace)
 
 -- | Initialize the GHC API. Run this as the first thing in the `runGhc`.
 initGhci :: GhcMonad m => m ()
@@ -42,6 +44,10 @@ initGhci = do
                                        ghcLink = LinkInMemory,
                                        pprCols = 300 }
 
+-- | Evaluate a single import statement.
+-- If this import statement is importing a module which was previously
+-- imported implicitly (such as `Prelude`) or if this module has a `hiding`
+-- annotation, the previous import is removed.
 evalImport :: GhcMonad m => String -> m ()
 evalImport imports = do
   importDecl <- parseImportDecl imports
@@ -74,3 +80,41 @@ evalImport imports = do
     isHiddenImport imp = case ideclHiding imp of
                            Just (True, _) -> True
                            _ -> False
+
+-- | Evaluate a series of declarations.
+-- Return all names which were bound by these declarations.
+evalDeclarations :: GhcMonad m => String -> m [String]
+evalDeclarations decl = do
+  names <- runDecls decl
+  flags <- getSessionDynFlags
+  return $ map (replace ":Interactive." "" . showPpr flags) names
+
+-- | Set a list of flags, as per GHCi's `:set`.
+-- This was adapted from GHC's InteractiveUI.hs (newDynFlags).
+-- It returns a list of error messages.
+setFlags :: GhcMonad m => [String] -> m [String]
+setFlags ext = do
+    -- Try to parse flags.
+    flags <- getSessionDynFlags
+    (flags', unrecognized, warnings) <- parseDynamicFlags flags (map noLoc ext)
+
+    -- First, try to check if this flag matches any extension name.
+    let restorePkg x = x { packageFlags = packageFlags flags }
+    let restoredPkgs = flags' { packageFlags = packageFlags flags}
+    GHC.setProgramDynFlags restoredPkgs
+    GHC.setInteractiveDynFlags restoredPkgs
+
+    -- Create the parse errors.
+    let noParseErrs = map (("Could not parse: " ++) . unLoc) unrecognized
+        allWarns = map unLoc warnings ++ 
+                     ["-package not supported yet" | packageFlags flags /= packageFlags flags']
+        warnErrs    = map ("Warning: " ++) allWarns
+    return $ noParseErrs ++ warnErrs
+
+-- | Get the type of an expression.
+getType :: GhcMonad m => String -> m String
+getType expr = do
+  result <- exprType expr
+  flags <- getSessionDynFlags
+  let typeStr = showSDocUnqual flags $ ppr result
+  return typeStr

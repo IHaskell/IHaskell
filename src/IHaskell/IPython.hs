@@ -55,6 +55,12 @@ ipython which suppress args = do
   runCmd <- liftIO $ Paths.getDataFileName "installation/run.sh"
   venv <- fpToText <$> ipythonDir
   let cmdArgs = [pack runCmd, venv] ++ args
+
+  -- We have this because `silently` in shelly < 1.4 does not silence
+  -- stderr. In shelly 1.4, however, using `run` does not let us use stdin,
+  -- and the current code breaks for unknown reasons. When the bug
+  --      https://github.com/yesodweb/Shelly.hs/issues/54
+  -- is closed, we should edit ihaskell.cabal to allow shelly 1.4.
   runHandles "bash" cmdArgs handles doNothing
   where handles = [InHandle Inherit, outHandle suppress, errorHandle suppress]
         outHandle True = OutHandle CreatePipe

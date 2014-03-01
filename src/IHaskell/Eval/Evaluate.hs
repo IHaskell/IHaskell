@@ -70,11 +70,13 @@ import IHaskell.Eval.Lint
 import IHaskell.Display
 import qualified IHaskell.Eval.Hoogle as Hoogle
 import IHaskell.Eval.Util
+import IHaskell.BrokenPackages
 
 import Paths_ihaskell (version)
 import Data.Version (versionBranch)
 
 import Language.Haskell.GHC.Interpret
+import Language.Haskell.GHC.Util
 
 data ErrorOccurred = Success | Failure deriving (Show, Eq)
 
@@ -149,6 +151,7 @@ initializeImports = do
   -- XXX this will try to load broken packages, provided they depend
   -- on the right ihaskell version
   dflags <- getSessionDynFlags
+  broken <- liftIO getBrokenPackages
   displayPackages <- liftIO $ do
     (dflags, _) <- initPackages dflags
     let Just db = pkgDatabase dflags
@@ -176,6 +179,7 @@ initializeImports = do
         displayPkgs = [ pkgName
                   | pkgName <- packageNames,
                     Just (x:_) <- [stripPrefix initStr pkgName],
+                    pkgName `notElem` broken,
                     isAlpha x]
 
     return displayPkgs
@@ -289,22 +293,6 @@ safely state = ghandle handler . ghandle sourceErrorHandler
         evalPager = ""
       }
 
-doc :: GhcMonad m => SDoc -> m String
-doc sdoc = do
-  flags <- getSessionDynFlags
-  unqual <- getPrintUnqual
-  let style = mkUserStyle unqual AllTheWay
-  let cols = pprCols flags
-      d = runSDoc sdoc (initSDocContext flags style)
-  return $ Pretty.fullRender Pretty.PageMode cols 1.5 string_txt "" d
-  where
-    string_txt :: Pretty.TextDetails -> String -> String
-    string_txt (Pretty.Chr c)   s  = c:s
-    string_txt (Pretty.Str s1)  s2 = s1 ++ s2
-    string_txt (Pretty.PStr s1) s2 = unpackFS s1 ++ s2
-    string_txt (Pretty.LStr s1 _) s2 = unpackLitString s1 ++ s2
-
-
 wrapExecution :: KernelState
               -> Interpreter Display
               -> Interpreter EvalOut
@@ -315,29 +303,6 @@ wrapExecution state exec = safely state $ exec >>= \res ->
       evalState = state,
       evalPager = ""
     }
-
--- | Set dynamic flags.
---
--- This was adapted from GHC's InteractiveUI.hs (newDynFlags).
-setDynFlags :: [String]               -- ^ Flags to set.
-            -> Interpreter [ErrMsg]   -- ^ Errors from trying to set flags.
-setDynFlags ext = do
-    -- Try to parse flags.
-    flags <- getSessionDynFlags
-    (flags', unrecognized, warnings) <- parseDynamicFlags flags (map noLoc ext)
-
-    -- First, try to check if this flag matches any extension name.
-    let restorePkg x = x { packageFlags = packageFlags flags }
-    let restoredPkgs = flags' { packageFlags = packageFlags flags}
-    GHC.setProgramDynFlags restoredPkgs
-    GHC.setInteractiveDynFlags restoredPkgs
-
-    -- Create the parse errors.
-    let noParseErrs = map (("Could not parse: " ++) . unLoc) unrecognized
-        allWarns = map unLoc warnings ++
-                     ["-package not supported yet" | packageFlags flags /= packageFlags flags']
-        warnErrs    = map ("Warning: " ++) allWarns
-    return $ noParseErrs ++ warnErrs
 
 -- | Return the display data for this command, as well as whether it
 -- resulted in an error.
@@ -417,7 +382,7 @@ evalCommand output (Directive SetDynFlag flags) state =
 
         -- If not a kernel option, must be a dyn flag.
         Nothing -> do
-          errs <- setDynFlags [flag]
+          errs <- setFlags [flag]
           let display = case errs of
                 [] -> mempty
                 _ -> displayError $ intercalate "\n" errs
@@ -474,10 +439,7 @@ evalCommand a (Directive SetOption opts) state = do
 
 evalCommand _ (Directive GetType expr) state = wrapExecution state $ do
   write $ "Type: " ++ expr
-  result <- exprType expr
-  flags <- getSessionDynFlags
-  let typeStr = showSDocUnqual flags $ ppr result
-  return $ formatType typeStr
+  formatType <$> getType expr
 
 evalCommand _ (Directive LoadFile name) state = wrapExecution state $ do
   write $ "Load: " ++ name
@@ -812,11 +774,8 @@ evalCommand output (Expression expr) state = do
 
 evalCommand _ (Declaration decl) state = wrapExecution state $ do
   write $ "Declaration:\n" ++ decl
-  names <- runDecls decl
-
-  dflags <- getSessionDynFlags
-  let boundNames = map (replace ":Interactive." "" . showPpr dflags) names
-      nonDataNames = filter (not . isUpper . head) boundNames
+  boundNames <- evalDeclarations decl
+  let nonDataNames = filter (not . isUpper . head) boundNames
 
   -- Display the types of all bound names if the option is on.
   -- This is similar to GHCi :set +t.
@@ -824,6 +783,7 @@ evalCommand _ (Declaration decl) state = wrapExecution state $ do
   then return mempty
   else do
     -- Get all the type strings.
+    dflags <- getSessionDynFlags
     types <- forM nonDataNames $ \name -> do
       theType <- showSDocUnqual dflags . ppr <$> exprType name
       return $ name ++ " :: " ++ theType

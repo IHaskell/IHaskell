@@ -79,7 +79,7 @@ library
                        parsec               -any,
                        process              >=1.1,
                        random               >=1.0,
-                       shelly               >=1.3,
+                       shelly               ==1.3.* || >= 1.4.4.2,
                        split                >= 0.2,
                        stm                  -any,
                        strict               >=0.3,
@@ -102,6 +102,7 @@ library
                    IHaskell.IPython
                    IHaskell.Flags
                    IHaskell.Types
+                   IHaskell.BrokenPackages
   other-modules: 
                    Paths_ihaskell
 
@@ -113,8 +114,7 @@ executable IHaskell
   
   -- Other library packages from which modules are imported.
   default-language:    Haskell2010
-  build-depends:       
-                       aeson                >=0.6,
+  build-depends:       aeson                >=0.6,
                        base                 ==4.6.*,
                        bytestring           >=0.10,
                        cereal               ==0.3.*,
@@ -124,8 +124,8 @@ executable IHaskell
                        ghc                  ==7.6.*,
                        ihaskell             -any,
                        ipython-kernel       -any,
-                       MissingH             >=1.2,
-                       unix                 >= 2.6
+                       unix                 -any,
+                       MissingH             >=1.2
 
 Test-Suite hspec
   hs-source-dirs:      src
@@ -161,7 +161,7 @@ Test-Suite hspec
                        process              >=1.1,
                        random               >=1.0,
                        setenv               -any,
-                       shelly               >=1.3,
+                       shelly               ==1.3.* || >= 1.4.4.2,
                        split                >= 0.2,
                        strict               >=0.3,
                        system-argv0         -any,
