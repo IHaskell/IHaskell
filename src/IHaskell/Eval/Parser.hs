@@ -10,7 +10,6 @@ module IHaskell.Eval.Parser (
     layoutChunks,
     parseDirective,
     getModuleName,
-    unloc,
     Located(..),
     ) where
 

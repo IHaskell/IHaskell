@@ -73,7 +73,7 @@ instance FromJSON Profile where
             <*> v .: "hb_port"
             <*> v .: "shell_port"
             <*> v .: "iopub_port"
-            <*> v .: "key"
+            <*> (Char.pack <$> v .: "key")
   parseJSON _ = fail "Expecting JSON object."
 
 instance ToJSON Profile where
@@ -85,7 +85,7 @@ instance ToJSON Profile where
                     "hb_port"     .= hbPort profile,
                     "shell_port"  .= shellPort profile,
                     "iopub_port"  .= iopubPort profile,
-                    "key"         .= key profile
+                    "key"         .= Char.unpack (key profile)
                    ]
 
 instance FromJSON Transport where
@@ -119,7 +119,7 @@ instance ToJSON MessageHeader where
   toJSON header = object [
                     "msg_id"  .= messageId header,
                     "session" .= sessionId header,
-                    "username" .= username header,
+                    "username" .= Char.unpack (username header),
                     "msg_type" .= showMessageType (msgType header)
                   ]
 
@@ -269,15 +269,15 @@ data Message
 
   | CompleteReply {
      header :: MessageHeader,
-     completionMatches :: [ByteString],
-     completionMatchedText :: ByteString,
-     completionText :: ByteString,
+     completionMatches :: [String],
+     completionMatchedText :: String,
+     completionText :: String,
      completionStatus :: Bool
   }
 
   | ObjectInfoRequest {
       header :: MessageHeader, 
-      objectName :: ByteString,  -- ^ Name of object being searched for.
+      objectName :: String,      -- ^ Name of object being searched for.
       detailLevel :: Int         -- ^ Level of detail desired (defaults to 0).
                                 -- 0 is equivalent to foo?, 1 is equivalent
                                 -- to foo??.
@@ -285,10 +285,10 @@ data Message
 
   | ObjectInfoReply {
       header :: MessageHeader, 
-      objectName :: ByteString,       -- ^ Name of object which was searched for.
-      objectFound :: Bool,            -- ^ Whether the object was found.
-      objectTypeString :: ByteString, -- ^ Object type.
-      objectDocString  :: ByteString
+      objectName :: String,        -- ^ Name of object which was searched for.
+      objectFound :: Bool,         -- ^ Whether the object was found.
+      objectTypeString :: String,  -- ^ Object type.
+      objectDocString  :: String
     }
 
   | ShutdownRequest {

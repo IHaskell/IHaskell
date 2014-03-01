@@ -322,20 +322,21 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
 
 
 replyTo _ req@CompleteRequest{} replyHeader state = do
-  (matchedText, completions) <- complete (Chars.unpack $ getCodeLine req) (getCursorPos req)
+  let line = Chars.unpack $ getCodeLine req
+  (matchedText, completions) <- complete line (getCursorPos req)
 
-  let reply =  CompleteReply replyHeader (map Chars.pack completions) (Chars.pack matchedText) (getCodeLine req) True
+  let reply =  CompleteReply replyHeader completions matchedText line True
   return (state,  reply)
 
 -- | Reply to the object_info_request message. Given an object name, return
 -- | the associated type calculated by GHC.
-replyTo _ ObjectInfoRequest{objectName=oname} replyHeader state = do
-  docs <- info $ Chars.unpack oname
+replyTo _ ObjectInfoRequest{objectName = oname} replyHeader state = do
+  docs <- info oname
   let reply = ObjectInfoReply {
                 header = replyHeader,
                 objectName = oname,
                 objectFound = strip docs /= "",
-                objectTypeString = Chars.pack docs,
-                objectDocString  = Chars.pack docs
+                objectTypeString = docs,
+                objectDocString  = docs
               }
   return (state, reply)

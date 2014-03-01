@@ -60,8 +60,8 @@ library
   build-depends:       base ==4.6.*,
                        here,
                        classy-prelude >=0.7,
-                       aeson,
-                       aeson-pretty,
+                       aeson >= 0.7,
+                       aeson-pretty >= 0.7,
                        chunked-data >=0.1,
                        ihaskell >= 0.3
   

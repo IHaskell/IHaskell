@@ -10,8 +10,10 @@ import            Data.Aeson            ((.:), decode, Result(..), Object)
 import            Control.Applicative   ((<|>))
 import            Data.Aeson.Types      (parse)
 import            Data.ByteString
-import qualified  Data.ByteString.Lazy  as Lazy
 import            Data.Map              (Map)
+import qualified  Data.ByteString.Lazy  as Lazy
+import qualified  Data.ByteString.Char8 as Char
+import qualified  Data.Map              as Map
 
 import IPython.Types
 
@@ -43,10 +45,10 @@ parseHeader :: [ByteString]  -- ^ The list of identifiers.
 parseHeader idents headerData parentHeader metadata = MessageHeader {
   identifiers = idents,
   parentHeader = parentResult,
-  metadata = metadataMap,
+  metadata = Map.map Char.pack $ Map.mapKeys Char.pack metadataMap,
   messageId = messageUUID,
   sessionId = sessionUUID,
-  username = username,
+  username = Char.pack username,
   msgType = messageType
   } where
       -- Decode the header data and the parent header data into JSON objects.
@@ -65,7 +67,7 @@ parseHeader idents headerData parentHeader metadata = MessageHeader {
         return (messType, username, message, session)
 
       -- Get metadata as a simple map.
-      Just metadataMap = decode $ Lazy.fromStrict metadata :: Maybe (Map ByteString ByteString)
+      Just metadataMap = decode $ Lazy.fromStrict metadata :: Maybe (Map String String)
 
 noHeader :: MessageHeader
 noHeader = error "No header created"
@@ -106,7 +108,7 @@ executeRequestParser content =
       Success (code, silent, storeHistory, allowStdin) = parse parser decoded in
     ExecuteRequest {
       header = noHeader,
-      getCode = code,
+      getCode = Char.pack code,
       getSilent = silent,
       getAllowStdin = allowStdin,
       getStoreHistory = storeHistory,
@@ -121,7 +123,7 @@ completeRequestParser content = parsed
         code     <- obj .: "block" <|> return ""
         codeLine <- obj .: "line"
         pos      <- obj .: "cursor_pos"
-        return $ CompleteRequest noHeader code codeLine pos
+        return $ CompleteRequest noHeader (Char.pack code) (Char.pack codeLine) pos
 
   Just decoded = decode content
 
