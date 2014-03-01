@@ -36,6 +36,8 @@ import            Text.ParserCombinators.ReadP
 
 import IPython.Kernel
 
+data Test = Test
+
 data ViewFormat
      = Pdf
      | Html

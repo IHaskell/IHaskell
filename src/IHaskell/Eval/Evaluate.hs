@@ -68,6 +68,7 @@ import IHaskell.Eval.Lint
 import IHaskell.Display
 import qualified IHaskell.Eval.Hoogle as Hoogle
 import IHaskell.Eval.Util
+import IHaskell.BrokenPackages
 
 import Paths_ihaskell (version)
 import Data.Version (versionBranch)
@@ -148,6 +149,7 @@ initializeImports = do
   -- XXX this will try to load broken packages, provided they depend
   -- on the right ihaskell version
   dflags <- getSessionDynFlags
+  broken <- liftIO getBrokenPackages
   displayPackages <- liftIO $ do
     (dflags, _) <- initPackages dflags
     let Just db = pkgDatabase dflags
@@ -175,6 +177,7 @@ initializeImports = do
         displayPkgs = [ pkgName
                   | pkgName <- packageNames,
                     Just (x:_) <- [stripPrefix initStr pkgName],
+                    pkgName `notElem` broken,
                     isAlpha x]
 
     return displayPkgs

@@ -101,6 +101,7 @@ library
                    IHaskell.IPython
                    IHaskell.Flags
                    IHaskell.Types
+                   IHaskell.BrokenPackages
   other-modules: 
                    Paths_ihaskell
 
@@ -125,6 +126,7 @@ executable IHaskell
              IHaskell.Flags
              IHaskell.Types
              IHaskell.Display
+             IHaskell.BrokenPackages
 
   default-extensions: DoAndIfThenElse
   
