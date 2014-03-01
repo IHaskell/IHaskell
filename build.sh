@@ -2,11 +2,13 @@
 
 set -e
 
-# Recompile ipython-kernel
-cd ipython-kernel
-cabal clean
-cabal install --force-reinstalls
-cd ..
+# get cabal cabal-meta
+[ -e "`which cabal-meta`" ] || cabal install cabal-meta cabal-src
+if [ ! -e "`which cabal-meta`" ]; then
+  echo "cabal-meta isn't in \$PATH:\n
+    maybe you need to add $HOME/.cabal/bin to your \$PATH";
+  exit 1
+fi
 
 # Make the profile
 cd profile
@@ -14,33 +16,16 @@ rm -f profile.tar
 tar -cvf profile.tar *
 cd ..
 
+declare m4Args
 if [ $# -gt 0 ]; then
+  m4Args[${#m4Args}]=-D_ALL
   if [ $1 = "all" ]; then
-    cd ghc-parser;
-    cabal install --force-reinstalls;
-    cd ../ghci-lib;
-    cabal install --force-reinstalls;
-    cd ..;
+    m4Args[${#m4Args}]=-D_DISP
   fi
 fi
 
-# Make ihaskell itself
-cabal clean
-cabal install --force-reinstalls
+m4 ${m4Args[*]} < sources.txt.in > sources.txt
+cabal-meta install
 
 # Remove my profile
 rm -rf ~/.ipython/profile_haskell
-
-if [ $# -gt 0 ]; then
-  if [ $1 = "all" ]; then
-        # Install all the display libraries
-        cd ihaskell-display
-        for dir in `ls`
-        do
-            cd $dir
-            cabal clean
-            cabal install
-            cd ..
-        done
-    fi
-fi
