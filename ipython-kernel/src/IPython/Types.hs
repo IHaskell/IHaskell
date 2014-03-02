@@ -30,8 +30,9 @@ module IPython.Types (
 import            Data.Aeson
 import            Control.Applicative         ((<$>), (<*>))
 import            Data.ByteString             (ByteString)
-import qualified  Data.ByteString.Char8       as Char
 import qualified  Data.Text                   as Text
+import qualified  Data.Text.Encoding          as Text
+import            Data.Text                   (Text)
 import            Data.Serialize
 import            IPython.Message.UUID
 import            GHC.Generics                (Generic)
@@ -60,7 +61,7 @@ data Profile = Profile {
   hbPort :: Port,         -- ^ The heartbeat channel port.
   shellPort :: Port,      -- ^ The shell command port.
   iopubPort :: Port,      -- ^ The IOPub port.
-  key :: ByteString       -- ^ The HMAC encryption key.
+  key :: Text             -- ^ The HMAC encryption key.
   } deriving (Show, Read)
 
 -- Convert the kernel profile to and from JSON.
@@ -73,7 +74,7 @@ instance FromJSON Profile where
             <*> v .: "hb_port"
             <*> v .: "shell_port"
             <*> v .: "iopub_port"
-            <*> (Char.pack <$> v .: "key")
+            <*> v .: "key"
   parseJSON _ = fail "Expecting JSON object."
 
 instance ToJSON Profile where
@@ -85,15 +86,14 @@ instance ToJSON Profile where
                     "hb_port"     .= hbPort profile,
                     "shell_port"  .= shellPort profile,
                     "iopub_port"  .= iopubPort profile,
-                    "key"         .= Char.unpack (key profile)
+                    "key"         .= key profile
                    ]
 
 instance FromJSON Transport where
-  parseJSON (String str) = do
-    let mech = Text.unpack str
+  parseJSON (String mech) = do
     case mech of
       "tcp" -> return TCP
-      _ -> fail $ "Unknown transport mechanism " ++ mech
+      _ -> fail $ "Unknown transport mechanism " ++ Text.unpack mech
   parseJSON _ = fail "Expected JSON string as transport."
 
 instance ToJSON Transport where
@@ -119,15 +119,15 @@ instance ToJSON MessageHeader where
   toJSON header = object [
                     "msg_id"  .= messageId header,
                     "session" .= sessionId header,
-                    "username" .= Char.unpack (username header),
+                    "username" .= username header,
                     "msg_type" .= showMessageType (msgType header)
                   ]
 
 -- | A username for the source of a message.
-type Username = ByteString
+type Username = Text
 
 -- | A metadata dictionary.
-type Metadata = Map ByteString ByteString
+type Metadata = Map Text Text
 
 -- | The type of a message, corresponding to IPython message types.
 data MessageType = KernelInfoReplyMessage
@@ -209,13 +209,13 @@ data Message
   -- | A request from a frontend to execute some code.
   | ExecuteRequest {
       header :: MessageHeader,
-      getCode :: ByteString,             -- ^ The code string.
+      getCode :: Text,             -- ^ The code string.
       getSilent :: Bool,                 -- ^ Whether this should be silently executed.
       getStoreHistory :: Bool,           -- ^ Whether to store this in history.
       getAllowStdin :: Bool,             -- ^ Whether this code can use stdin.
 
-      getUserVariables :: [ByteString],  -- ^ Unused.
-      getUserExpressions :: [ByteString] -- ^ Unused.
+      getUserVariables :: [Text],  -- ^ Unused.
+      getUserExpressions :: [Text] -- ^ Unused.
     }
 
   -- | A reply to an execute request.
@@ -257,27 +257,27 @@ data Message
 
   | CompleteRequest {
       header :: MessageHeader,
-      getCode :: ByteString, {- ^
+      getCode :: Text, {- ^
             The entire block of text where the line is.  This may be useful in the
             case of multiline completions where more context may be needed.  Note: if
             in practice this field proves unnecessary, remove it to lighten the
             messages. json field @block@  -}
-      getCodeLine :: ByteString, -- ^ just the line with the cursor. json field @line@
+      getCodeLine :: Text, -- ^ just the line with the cursor. json field @line@
       getCursorPos :: Int -- ^ position of the cursor (index into the line?). json field @cursor_pos@
 
     }
 
   | CompleteReply {
      header :: MessageHeader,
-     completionMatches :: [String],
-     completionMatchedText :: String,
-     completionText :: String,
+     completionMatches :: [Text],
+     completionMatchedText :: Text,
+     completionText :: Text,
      completionStatus :: Bool
   }
 
   | ObjectInfoRequest {
       header :: MessageHeader, 
-      objectName :: String,      -- ^ Name of object being searched for.
+      objectName :: Text,  -- ^ Name of object being searched for.
       detailLevel :: Int         -- ^ Level of detail desired (defaults to 0).
                                 -- 0 is equivalent to foo?, 1 is equivalent
                                 -- to foo??.
@@ -285,10 +285,10 @@ data Message
 
   | ObjectInfoReply {
       header :: MessageHeader, 
-      objectName :: String,        -- ^ Name of object which was searched for.
+      objectName :: Text,          -- ^ Name of object which was searched for.
       objectFound :: Bool,         -- ^ Whether the object was found.
-      objectTypeString :: String,  -- ^ Object type.
-      objectDocString  :: String
+      objectTypeString :: Text,    -- ^ Object type.
+      objectDocString  :: Text 
     }
 
   | ShutdownRequest {
@@ -341,7 +341,7 @@ replyType ShutdownRequestMessage    = Just ShutdownReplyMessage
 replyType _ = Nothing
 
 -- | Data for display: a string with associated MIME type.
-data DisplayData = DisplayData MimeType ByteString deriving (Typeable, Generic)
+data DisplayData = DisplayData MimeType Text deriving (Typeable, Generic)
 
 -- We can't print the actual data, otherwise this will be printed every
 -- time it gets computed because of the way the evaluator is structured.
@@ -350,6 +350,9 @@ instance Show DisplayData where
   show _ = "DisplayData"
 
 -- Allow DisplayData serialization
+instance Serialize Text where
+    put str = put (Text.encodeUtf8 str)
+    get = Text.decodeUtf8 <$> get
 instance Serialize DisplayData
 instance Serialize MimeType
 
@@ -369,7 +372,7 @@ extractPlain :: [DisplayData] -> String
 extractPlain disps =
   case find isPlain disps of
     Nothing -> ""
-    Just (DisplayData PlainText bytestr) -> Char.unpack bytestr
+    Just (DisplayData PlainText bytestr) -> Text.unpack bytestr
   where
     isPlain (DisplayData mime _) = mime == PlainText
 
