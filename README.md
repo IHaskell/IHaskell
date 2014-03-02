@@ -20,7 +20,24 @@ As well as the IPython browser-based notebook interface:
 
 *More usage information on the [wiki](https://github.com/gibiansky/IHaskell/wiki).*
 
-Installation
+
+Linux Package Installation
+===
+
+There is a docker package for Linux. We will put it up on the registry, but for now you can build it yourself by cloning the repo and running:
+
+    sudo docker build .
+    sudo docker run -rm -p 8778:8778 -i -t <image>
+
+
+Windows Installation
+===
+
+Install Virtualbox. Load a Linux distro and install Docker, then run the docker package.
+This also works on Mac, but Mac users may prefer installing from source.
+
+
+Source Installation (Mac and Linux)
 ===
 
 If you have any trouble with installation or have other questions about IHaskell, feel free to open an issue [on Github](https://github.com/gibiansky/IHaskell/issues?direction=desc&sort=updated&state=open) or join our IRC at #ihaskell on chat.freenode.net.
@@ -90,6 +107,14 @@ Install the `happy` parser generator tool and `cpphs` preprocessor:
 cabal install happy cpphs
 ```
 
+Python Installation
+---
+
+IHaskell will automatically install python tools itself.
+If you already have ipython installed you can use the --ipython flag.
+
+On Linux make sure you also have `python-dev` (or equivalent) installed, which is needed to install `pyzmq`
+
 IHaskell Installation
 ---
 
@@ -98,8 +123,6 @@ Install the IHaskell package from Hackage:
 cabal update # Please do this! IHaskell updates *very* frequently.
 cabal install ihaskell
 ```
-
-If you are on Linux, make sure you also have `python-dev` (or equivalent) installed, as `pyzmq` (which IHaskell will install itself) may need it.
 
 Running IHaskell
 ---
