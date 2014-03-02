@@ -10,6 +10,7 @@ module IHaskell.Flags (
 import ClassyPrelude
 import System.Console.CmdArgs.Explicit
 import System.Console.CmdArgs.Text
+import Data.List (findIndex)
 
 import IHaskell.Types
 
@@ -39,7 +40,21 @@ data IHaskellMode
 -- | Given a list of command-line arguments, return the IHaskell mode and
 -- arguments to process.
 parseFlags :: [String] -> Either String Args
-parseFlags = process ihaskellArgs
+parseFlags flags = 
+  let modeIndex = findIndex (`elem` modeFlags) flags in
+    case modeIndex of
+      Nothing -> Left $ "No mode provided. Modes available are: " ++ show modeFlags
+      Just 0 -> process ihaskellArgs flags
+
+      -- If mode not first, move it to be first.
+      Just idx -> 
+        let (start, first:end) = splitAt idx flags in
+          process ihaskellArgs $ first:start ++ end
+  where
+    modeFlags = concatMap modeNames allModes
+
+allModes :: [Mode Args]
+allModes = [console, notebook, view, kernel]
 
 -- | Get help text for a given IHaskell ode.
 help :: IHaskellMode -> String
@@ -116,7 +131,7 @@ ihaskellArgs =
       helpStr = showText (Wrap 100) $ helpText [] HelpFormatAll ihaskellArgs
       onlyHelp = [flagHelpSimple (add Help)]
       noMode = mode "IHaskell" (Args (ShowHelp helpStr) []) descr noArgs onlyHelp in
-    noMode { modeGroupModes = toGroup [console, notebook, view, kernel] }
+    noMode { modeGroupModes = toGroup allModes }
   where 
     add flag (Args mode flags) = Args mode $ flag : flags
 
