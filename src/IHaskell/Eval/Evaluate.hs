@@ -701,10 +701,11 @@ evalCommand output (Expression expr) state = do
 
     isSvg (DisplayData mime _) = mime == MimeSvg
 
+    removeSvg :: Display -> Display
     removeSvg (Display disps) = Display $ filter (not . isSvg) disps
     removeSvg (ManyDisplay disps) = ManyDisplay $ map removeSvg disps
 
-    useDisplay displayExpr = wrapExecution state $ do
+    useDisplay displayExpr = do
       -- If there are instance matches, convert the object into
       -- a Display. We also serialize it into a bytestring. We get
       -- the bytestring as a dynamic and then convert back to
@@ -713,19 +714,34 @@ evalCommand output (Expression expr) state = do
       -- back gives very strange errors - all the types match but it
       -- refuses to decode back into a Display.
       -- Suppress output, so as not to mess up console.
-      out <- capturedStatement (const $ return ()) displayExpr
 
-      displayedBytestring <- dynCompileExpr "IHaskell.Display.serializeDisplay it"
-      case fromDynamic displayedBytestring of
-        Nothing -> error "Expecting lazy Bytestring"
-        Just bytestring ->
-          case Serialize.decode bytestring of
-            Left err -> error err
-            Right display ->
-              return $
-                if useSvg state
-                then display
-                else removeSvg display
+      -- First, evaluate the expression in such a way that we have access to `it`.
+      io <- isIO expr
+      let stmtTemplate = if io
+                         then "it <- (%s)"
+                         else "let { it = %s }"
+      evalOut <- evalCommand output (Statement $ printf stmtTemplate expr) state
+      case evalStatus evalOut of
+        Failure -> return evalOut
+        Success -> wrapExecution state $ do
+          -- Compile the display data into a bytestring.
+          let compileExpr = "fmap IHaskell.Display.serializeDisplay (IHaskell.Display.display it)"
+          displayedBytestring <- dynCompileExpr compileExpr
+
+          -- Convert from the bytestring into a display.
+          case fromDynamic displayedBytestring of
+            Nothing -> error "Expecting lazy Bytestring"
+            Just bytestringIO -> do
+              bytestring <- liftIO bytestringIO
+              case Serialize.decode bytestring of
+                Left err -> error err
+                Right display ->
+                  return $
+                    if useSvg state
+                    then display :: Display
+                    else removeSvg display
+
+    isIO expr = attempt $ exprType $ printf "((\\x -> x) :: IO a -> IO a) (%s)" expr
 
     postprocessShowError :: EvalOut -> EvalOut
     postprocessShowError evalOut = evalOut { evalResult = Display $ map postprocess disps }
@@ -870,6 +886,20 @@ doLoadModule name modName = flip gcatch unload $ do
 
       initializeItVariable
       return $ displayError $ "Failed to load module " ++ modName ++ ": " ++ show exception
+
+keepingItVariable :: Interpreter a -> Interpreter a
+keepingItVariable act = do
+  -- Generate the it variable temp name
+  gen <- liftIO getStdGen
+  let rand = take 20 $ randomRs ('0', '9') gen
+      var name = name ++ rand
+      goStmt s = runStmt s RunToCompletion
+      itVariable = var "it_var_temp_"
+  
+  goStmt $ printf "let %s = it" itVariable
+  val <- act
+  goStmt $ printf "let it = %s" itVariable
+  act
 
 capturedStatement :: (String -> IO ())         -- ^ Function used to publish intermediate output.
                   -> String                            -- ^ Statement to evaluate.
