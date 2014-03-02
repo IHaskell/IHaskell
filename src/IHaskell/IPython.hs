@@ -37,6 +37,7 @@ import IHaskell.Types
 data WhichIPython
      = DefaultIPython           -- ^ Use the one that IHaskell tries to install.
      | ExplicitIPython String   -- ^ Use the command-line flag provided one.
+     deriving Eq
 
 -- | Which commit of IPython we are on.
 ipythonCommit :: Text
@@ -51,17 +52,21 @@ ipython :: WhichIPython -- ^ Which IPython to use (user-provided or IHaskell-ins
         -> Bool         -- ^ Whether to suppress output.
         -> [Text]       -- ^ IPython command line arguments.
         -> Sh String    -- ^ IPython output.
-ipython which suppress args = do
-  runCmd <- liftIO $ Paths.getDataFileName "installation/run.sh"
-  venv <- fpToText <$> ipythonDir
-  let cmdArgs = [pack runCmd, venv] ++ args
+ipython which suppress args
+  | which == DefaultIPython = do
+      runCmd <- liftIO $ Paths.getDataFileName "installation/run.sh"
+      venv <- fpToText <$> ipythonDir
+      let cmdArgs = [pack runCmd, venv] ++ args
+      -- We have this because `silently` in shelly < 1.4 does not silence
+      -- stderr. In shelly 1.4, however, using `run` does not let us use stdin,
+      -- and the current code breaks for unknown reasons. When the bug
+      --      https://github.com/yesodweb/Shelly.hs/issues/54
+      -- is closed, we should edit ihaskell.cabal to allow shelly 1.4.
+      runHandles "bash" cmdArgs handles doNothing
+  | otherwise = do
+      let ExplicitIPython exe = which
+      runHandles (fpFromString exe) args handles doNothing
 
-  -- We have this because `silently` in shelly < 1.4 does not silence
-  -- stderr. In shelly 1.4, however, using `run` does not let us use stdin,
-  -- and the current code breaks for unknown reasons. When the bug
-  --      https://github.com/yesodweb/Shelly.hs/issues/54
-  -- is closed, we should edit ihaskell.cabal to allow shelly 1.4.
-  runHandles "bash" cmdArgs handles doNothing
   where handles = [InHandle Inherit, outHandle suppress, errorHandle suppress]
         outHandle True = OutHandle CreatePipe
         outHandle False = OutHandle Inherit

@@ -708,7 +708,7 @@ evalCommand output (Expression expr) state = do
     useDisplay displayExpr = do
       -- If there are instance matches, convert the object into
       -- a Display. We also serialize it into a bytestring. We get
-      -- the bytestring as a dynamic and then convert back to
+      -- the bytestring IO action as a dynamic and then convert back to
       -- a bytestring, which we promptly unserialize. Note that
       -- attempting to do this without the serialization to binary and
       -- back gives very strange errors - all the types match but it
