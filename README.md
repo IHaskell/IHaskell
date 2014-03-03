@@ -20,7 +20,24 @@ As well as the IPython browser-based notebook interface:
 
 *More usage information on the [wiki](https://github.com/gibiansky/IHaskell/wiki).*
 
-Installation
+
+Linux Package Installation
+===
+
+There is a docker package for Linux. We will put it up on the registry, but for now you can build it yourself by cloning the repo and running:
+
+    sudo docker build .
+    sudo docker run -rm -i -t <image>
+
+
+Windows Installation
+===
+
+Install Virtualbox. Load a Linux distro and install Docker, then run the docker package.
+This also works on Mac, but Mac users may prefer installing from source.
+
+
+Source Installation (Mac and Linux)
 ===
 
 If you have any trouble with installation or have other questions about IHaskell, feel free to open an issue [on Github](https://github.com/gibiansky/IHaskell/issues?direction=desc&sort=updated&state=open) or join our IRC at #ihaskell on chat.freenode.net.
