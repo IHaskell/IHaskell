@@ -8,7 +8,6 @@ RUN git clone https://github.com/zeromq/zeromq4-x.git libzmq
 RUN cd libzmq && ./autogen.sh && ./configure && make && sudo make install && sudo ldconfig && cd ..
 
 RUN git clone https://github.com/gibiansky/IHaskell
-RUN cd IHaskell
 RUN echo "PATH=~/.cabal/bin:$PATH" >> ~/.bashrc
 RUN cabal update
 RUN cabal install happy cpphs
