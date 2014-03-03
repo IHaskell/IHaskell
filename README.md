@@ -90,6 +90,14 @@ Install the `happy` parser generator tool and `cpphs` preprocessor:
 cabal install happy cpphs
 ```
 
+Python Installation
+---
+
+IHaskell will automatically install python tools itself.
+If you already have ipython installed you can use the --ipython flag.
+
+On Linux make sure you also have `python-dev` (or equivalent) installed, which is needed to install `pyzmq`
+
 IHaskell Installation
 ---
 
@@ -98,8 +106,6 @@ Install the IHaskell package from Hackage:
 cabal update # Please do this! IHaskell updates *very* frequently.
 cabal install ihaskell
 ```
-
-If you are on Linux, make sure you also have `python-dev` (or equivalent) installed, as `pyzmq` (which IHaskell will install itself) may need it.
 
 Running IHaskell
 ---

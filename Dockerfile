@@ -2,7 +2,7 @@ from zsol/haskell-platform-2013.2.0.0:latest
 maintainer IHaskell
 
 RUN sudo apt-get update
-RUN sudo apt-get install -y pkg-config libtool git automake libncurses-dev
+RUN sudo apt-get install -y pkg-config libtool git automake libncurses-dev python-dev
 
 RUN git clone https://github.com/zeromq/zeromq4-x.git libzmq
 RUN cd libzmq && ./autogen.sh && ./configure && make && sudo make install && sudo ldconfig && cd ..
