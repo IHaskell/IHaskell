@@ -1,5 +1,5 @@
 # run this with a terminal
-# sudo docker run -rm -i -t <image>
+# sudo docker run -rm -p 8778:8778 -i -t <image>
 
 # browser, but the port is not visible
 # sudo docker run -rm -i <image> IHaskell notebook
