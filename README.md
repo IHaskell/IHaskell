@@ -20,10 +20,31 @@ As well as the IPython browser-based notebook interface:
 
 *More usage information on the [wiki](https://github.com/gibiansky/IHaskell/wiki).*
 
-Installation
+
+Linux Package Installation
+===
+
+There is a Docker package for Linux. We will put it up on the registry, but for now you can build it yourself by cloning the repo and running:
+
+    sudo docker build -t IHaskell:dev .
+    sudo docker run -p 8778:8778 IHaskell:dev
+
+The console (instead of the browser) can be run with
+
+    sudo docker run -rm -i -t IHaskell:dev console
+
+Windows Installation
+===
+
+Install Virtualbox. Load a Linux distro and install Docker, then run the Docker package.
+This also works on Mac, but Mac users may prefer installing from source.
+
+Source Installation (Mac and Linux)
 ===
 
 If you have any trouble with installation or have other questions about IHaskell, feel free to open an issue [on Github](https://github.com/gibiansky/IHaskell/issues?direction=desc&sort=updated&state=open) or join our IRC at #ihaskell on chat.freenode.net.
+
+IHaskell is built on top of IPython, which provides the frontends and the entire infrastructure. By default, IHaskell will create its own virtualenv and install all its own Python dependencies (this happens on the first run). However, if you want to provide your own IPython, you can instead pass IHaskell the `--ipython /path/to/exec/ipython` flag, in which case the installation will not happen and it'll just use the IPython you passed it. You *must* have IPython 2.0, though; older versions will *not* work properly! Installing IPython from Github is recommended, as this is how the automatic installer does it.
 
 ZeroMQ
 ---
@@ -90,6 +111,14 @@ Install the `happy` parser generator tool and `cpphs` preprocessor:
 cabal install happy cpphs
 ```
 
+Python Installation
+---
+
+IHaskell will automatically install python tools itself.
+If you already have ipython installed you can use the --ipython flag.
+
+On Linux make sure you also have `python-dev` (or equivalent) installed, which is needed to install `pyzmq`
+
 IHaskell Installation
 ---
 
@@ -98,8 +127,6 @@ Install the IHaskell package from Hackage:
 cabal update # Please do this! IHaskell updates *very* frequently.
 cabal install ihaskell
 ```
-
-If you are on Linux, make sure you also have `python-dev` (or equivalent) installed, as `pyzmq` (which IHaskell will install itself) may need it.
 
 Running IHaskell
 ---
