@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveFunctor #-}
 module IHaskell.Flags ( 
   IHaskellMode(..),
   Argument(..),
@@ -48,7 +48,7 @@ data LhsStyle string = LhsStyle
 
 data NotebookFormat
   = LhsMarkdown
-  | Ipynb
+  | IpynbFile
   deriving (Eq,Show)
 
 -- Which mode IHaskell is being invoked in.
@@ -143,7 +143,7 @@ convert = mode "convert" (Args ConvertLhs []) description unnamedArg convertFlag
 
     storeFormat constructor str (Args mode prev) = case toLower str of
       "lhs" -> Right $ Args mode $ constructor LhsMarkdown : prev
-      "ipynb" -> Right $ Args mode $ constructor IPYNB : prev
+      "ipynb" -> Right $ Args mode $ constructor IpynbFile : prev
       _ -> Left $ "Unknown format requested: " ++ str
 
     storeLhs str previousArgs = case toLower str of

@@ -11,7 +11,7 @@ import Data.Char (toLower)
 import Data.List (partition)
 import Data.Maybe (fromMaybe)
 import qualified Data.Text.Lazy as T (pack, Text)
-import IHaskell.Flags (Argument(ConvertFrom, ConvertFromFormat, ConvertLhsStyle, ConvertTo, ConvertToFormat, OverwriteFiles), LhsStyle, lhsStyleBird, NotebookFormat(..))
+import IHaskell.Flags (Argument(..), LhsStyle, lhsStyleBird, NotebookFormat(..))
 import System.FilePath ((<.>), dropExtension, takeExtension)
 import Text.Printf (printf)
 
@@ -93,7 +93,7 @@ mergeArg (ConvertTo outputFile) convertSpec
           convertToIpynb = case (convertToIpynb convertSpec, fromExt outputFile) of
                               (prev, Nothing)         -> prev
                               (prev @ (Just _), _) -> prev
-                              (Nothing, format) -> fmap (== IPYNB) format
+                              (Nothing, format) -> fmap (== IpynbFile) format
         }
 
 mergeArg unexpectedArg _ = error $ "IHaskell.Convert.mergeArg: impossible argument: "
@@ -103,5 +103,5 @@ mergeArg unexpectedArg _ = error $ "IHaskell.Convert.mergeArg: impossible argume
 fromExt ::  FilePath -> Maybe NotebookFormat
 fromExt s = case map toLower (takeExtension s) of
   ".lhs" -> Just LhsMarkdown
-  ".ipynb" -> Just IPYNB
+  ".ipynb" -> Just IpynbFile
   _ -> Nothing

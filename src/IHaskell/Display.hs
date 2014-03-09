@@ -11,14 +11,14 @@ module IHaskell.Display (
 
 import ClassyPrelude
 import Data.Serialize as Serialize
-import Data.ByteString hiding (map)
+import Data.ByteString hiding (map, pack)
 import Data.String.Utils (rstrip) 
 import qualified Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Char8 as Char
 
 import IHaskell.Types
 
-type Base64 = ByteString
+type Base64 = Text
 
 -- | A class for displayable Haskell types.
 --
@@ -59,19 +59,19 @@ many = ManyDisplay
 
 -- | Generate a plain text display.
 plain :: String -> DisplayData
-plain = DisplayData PlainText . Char.pack . rstrip
+plain = DisplayData PlainText . pack . rstrip
 
 -- | Generate an HTML display.
 html :: String -> DisplayData
-html = DisplayData MimeHtml . Char.pack
+html = DisplayData MimeHtml . pack
 
 -- | Genreate an SVG display.
 svg :: String -> DisplayData
-svg = DisplayData MimeSvg . Char.pack
+svg = DisplayData MimeSvg . pack
 
 -- | Genreate a LaTeX display.
 latex :: String -> DisplayData
-latex = DisplayData MimeLatex . Char.pack
+latex = DisplayData MimeLatex . pack
 
 -- | Generate a PNG display of the given width and height. Data must be
 -- provided in a Base64 encoded manner, suitable for embedding into HTML.
@@ -91,7 +91,7 @@ encode64 str = base64 $ Char.pack str
 
 -- | Convert from a ByteString into base 64 encoded data.
 base64 :: ByteString -> Base64
-base64 = Base64.encode
+base64 = decodeUtf8 . Base64.encode
 
 -- | For internal use within IHaskell.
 -- Serialize displays to a ByteString.
