@@ -10,4 +10,4 @@ source $VIRTUALENV/bin/activate
 
 # Run IPython.
 # Quotes around $@ are necessary to deal properly with spaces.
-ipython "$@"
+ipython "$@" $IHASKELL_IPYTHON_ARGS
