@@ -3,6 +3,9 @@ module IHaskell.Flags (
   IHaskellMode(..),
   Argument(..),
   Args(..),
+  LhsStyle(..),
+  lhsStyleBird,
+  NotebookFormat(..),
   parseFlags,
   help,
   ) where
@@ -24,8 +27,29 @@ data Argument
   | Extension String    -- ^ An extension to load at startup.
   | ConfFile String     -- ^ A file with commands to load at startup.
   | IPythonFrom String  -- ^ Which executable to use for IPython.
+  | OverwriteFiles      -- ^ Present when output should overwrite existing files. 
+  | ConvertFrom String
+  | ConvertTo String 
+  | ConvertFromFormat NotebookFormat
+  | ConvertToFormat   NotebookFormat
+  | ConvertLhsStyle   (LhsStyle String)
   | Help                -- ^ Display help text.
   deriving (Eq, Show)
+
+data LhsStyle string = LhsStyle
+  { lhsCodePrefix   :: string, -- ^ @>@
+    lhsOutputPrefix :: string, -- ^ @<<@
+    lhsBeginCode    :: string, -- ^ @\\begin{code}@
+    lhsEndCode      :: string, -- ^ @\\end{code}@
+    lhsBeginOutput  :: string, -- ^ @\\begin{verbatim}@
+    lhsEndOutput    :: string  -- ^ @\\end{verbatim}@
+  }
+  deriving (Eq, Functor, Show)
+
+data NotebookFormat
+  = LhsMarkdown
+  | Ipynb
+  deriving (Eq,Show)
 
 -- Which mode IHaskell is being invoked in.
 -- `None` means no mode was specified.
@@ -33,6 +57,7 @@ data IHaskellMode
   = ShowHelp String
   | Notebook
   | Console
+  | ConvertLhs
   | Kernel (Maybe String)
   | View (Maybe ViewFormat) (Maybe String)
   deriving (Eq, Show)
@@ -54,7 +79,7 @@ parseFlags flags =
     modeFlags = concatMap modeNames allModes
 
 allModes :: [Mode Args]
-allModes = [console, notebook, view, kernel]
+allModes = [console, notebook, view, kernel, convert]
 
 -- | Get help text for a given IHaskell ode.
 help :: IHaskellMode -> String
@@ -64,6 +89,7 @@ help mode =
     chooseMode Console = console
     chooseMode Notebook = notebook
     chooseMode (Kernel _) = kernel
+    chooseMode ConvertLhs = convert
 
 ipythonFlag :: Flag Args
 ipythonFlag = 
@@ -90,10 +116,47 @@ notebook = mode "notebook" (Args Notebook []) "Browser-based notebook interface.
 console :: Mode Args
 console = mode "console" (Args Console []) "Console-based interactive repl." noArgs $ ipythonFlag:universalFlags
 
+kernel :: Mode Args
 kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg []
   where
     kernelArg = flagArg update "<json-kernel-file>"
     update filename (Args _ flags) = Right $ Args (Kernel $ Just filename) flags
+
+convert :: Mode Args
+convert = mode "convert" (Args ConvertLhs []) description unnamedArg convertFlags
+  where
+    description = "Convert between Literate Haskell (*.lhs) and Ipython notebooks (*.ipynb)."
+    convertFlags = universalFlags
+      ++ [ flagReq  ["input","i"]  (store ConvertFrom) "<file>" "File to read."
+        , flagReq  ["output","o"] (store ConvertTo) "<file>" "File to write."
+        , flagReq  ["from","f"]   (storeFormat ConvertFromFormat) "lhs|ipynb" "Format of the file to read."
+        , flagReq  ["to","t"]     (storeFormat ConvertToFormat) "lhs|ipynb" "Format of the file to write."
+        , flagNone ["force"]      consForce "Overwrite existing files with output."
+        , flagReq  ["style","s"]  storeLhs "bird|tex" "Type of markup used for the literate haskell file"
+        , flagNone ["bird"]       (consStyle lhsStyleBird) "Literate haskell uses >"
+        , flagNone ["tex"]        (consStyle lhsStyleTex ) "Literate haskell uses \\begin{code}"
+         ]
+
+    consForce (Args mode prev) = Args mode (OverwriteFiles : prev)
+    unnamedArg = Arg (store ConvertFrom) "<file>" False
+    consStyle style (Args mode prev) = Args mode (ConvertLhsStyle style : prev)
+
+    storeFormat constructor str (Args mode prev) = case toLower str of
+      "lhs" -> Right $ Args mode $ constructor LhsMarkdown : prev
+      "ipynb" -> Right $ Args mode $ constructor IPYNB : prev
+      _ -> Left $ "Unknown format requested: " ++ str
+
+    storeLhs str previousArgs = case toLower str of
+      "bird" -> success lhsStyleBird
+      "tex" -> success lhsStyleTex
+      _ -> Left $ "Unknown lhs style: " ++ str
+      where
+        success lhsStyle = Right $ consStyle lhsStyle previousArgs
+
+lhsStyleBird, lhsStyleTex :: LhsStyle String
+lhsStyleBird = LhsStyle "> " "\n<< " "" "" "" ""
+lhsStyleTex  = LhsStyle "" "" "\\begin{code}" "\\end{code}" "\\begin{verbatim}" "\\end{verbatim}"
+
 
 view :: Mode Args
 view =
