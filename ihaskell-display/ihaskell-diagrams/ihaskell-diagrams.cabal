@@ -62,7 +62,7 @@ library
                        classy-prelude >=0.6,
                        bytestring,
                        directory,
-                       diagrams,
+                       diagrams-core,
                        diagrams-lib, 
                        diagrams-cairo,
                        ihaskell >= 0.3
