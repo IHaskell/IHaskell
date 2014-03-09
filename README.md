@@ -26,8 +26,12 @@ Linux Package Installation
 
 There is a docker package for Linux. We will put it up on the registry, but for now you can build it yourself by cloning the repo and running:
 
-    sudo docker build .
-    sudo docker run -rm -p 8778:8778 -i -t <image>
+    sudo docker build -t IHaskell:dev .
+    sudo docker run -p 8778:8778 IHaskell:dev
+
+The console (instead of the browser) can be run with
+
+    sudo docker run -rm -i -t IHaskell:dev console
 
 
 Windows Installation
