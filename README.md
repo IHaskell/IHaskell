@@ -24,18 +24,16 @@ As well as the IPython browser-based notebook interface:
 Linux Package Installation
 ===
 
-There is a docker package for Linux. We will put it up on the registry, but for now you can build it yourself by cloning the repo and running:
+There is a Docker package for Linux. We will put it up on the registry, but for now you can build it yourself by cloning the repo and running:
 
     sudo docker build .
     sudo docker run -rm -p 8778:8778 -i -t <image>
 
-
 Windows Installation
 ===
 
-Install Virtualbox. Load a Linux distro and install Docker, then run the docker package.
+Install Virtualbox. Load a Linux distro and install Docker, then run the Docker package.
 This also works on Mac, but Mac users may prefer installing from source.
-
 
 Source Installation (Mac and Linux)
 ===
