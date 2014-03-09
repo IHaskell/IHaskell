@@ -29,7 +29,7 @@ library
   build-depends:       base            >=4.6 && <4.7,
                        aeson           >=0.7,
                        bytestring      >=0.10,
-                       cereal          ==0.3.*,
+                       cereal          >=0.3,
                        containers      >=0.5,
                        text            >=0.11,
                        unix            >=2.6,
