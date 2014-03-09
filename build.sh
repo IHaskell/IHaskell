@@ -2,7 +2,13 @@
 set -e
 
 # Verify that we're in the IHaskell directory.
-test -f "ihaskell.cabal"
+if [ ! -e ihaskell.cabal ]; then
+  echo "Run build.sh from inside the IHaskell directory:"
+  echo "  ./build.sh all      # Install IHaskell and deps (use if first install)"
+  echo "  ./build.sh          # Install only IHaskell, no deps"
+  echo "  ./build.sh display  # Install IHaskell and display libraries"
+  exit 1
+fi
 
 # What to install.
 INSTALLS=""
