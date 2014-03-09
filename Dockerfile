@@ -1,8 +1,10 @@
+# sudo docker build -t IHaskell:dev .
+#
 # run in the browser
-# sudo docker run -rm -p 8778:8778 -i -t <image> IHaskell notebook
+# sudo docker run -p 8778:8778 IHaskell:dev
 #
 # run this with a terminal
-# sudo docker run -rm -p 8778:8778 -i -t <image> IHaskell console
+# sudo docker run -rm -i -t IHaskell:dev console
 
 
 from zsol/haskell-platform-2013.2.0.0:latest
