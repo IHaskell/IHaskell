@@ -44,6 +44,8 @@ Source Installation (Mac and Linux)
 
 If you have any trouble with installation or have other questions about IHaskell, feel free to open an issue [on Github](https://github.com/gibiansky/IHaskell/issues?direction=desc&sort=updated&state=open) or join our IRC at #ihaskell on chat.freenode.net.
 
+IHaskell is built on top of IPython, which provides the frontends and the entire infrastructure. By default, IHaskell will create its own virtualenv and install all its own Python dependencies (this happens on the first run). However, if you want to provide your own IPython, you can instead pass IHaskell the `--ipython /path/to/exec/ipython` flag, in which case the installation will not happen and it'll just use the IPython you passed it. You *must* have IPython 2.0, though; older versions will *not* work properly! Installing IPython from Github is recommended, as this is how the automatic installer does it.
+
 ZeroMQ
 ---
 IHaskell uses a library known as ZeroMQ for asynchronous communication. Make sure that ZeroMQ 4 is installed - it is a relatively recent library and thus you may have older versions installed.
