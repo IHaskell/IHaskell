@@ -57,6 +57,9 @@ ipython which suppress args
       runCmd <- liftIO $ Paths.getDataFileName "installation/run.sh"
       venv <- fpToText <$> ipythonDir
       let cmdArgs = [pack runCmd, venv] ++ args
+      -- If we have PYTHONDONTWRITEBYTECODE enabled, everything breaks.
+      setenv "PYTHONDONTWRITEBYTECODE" ""
+
       -- We have this because `silently` in shelly < 1.4 does not silence
       -- stderr. In shelly 1.4, however, using `run` does not let us use stdin,
       -- and the current code breaks for unknown reasons. When the bug
