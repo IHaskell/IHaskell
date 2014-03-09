@@ -137,6 +137,13 @@ IHaskell notebook # Should open a browser window!
 IHaskell console
 ```
 
+If you want to pass specific options to the underlying IPython, you can do it like this:
+```bash
+# Expose the notebook on all ports!
+IHASKELL_IPYTHON_ARGS="--ip=*" ihaskell notebook
+```
+Anything in `IHASKELL_IPYTHON_ARGS` will be passed to the underlying `ipython` instance as an argument when you run IHaskell.
+
 There is a test notebook in the `IHaskell` directory. To try it, run IHaskell with `IHaskell notebook --serve=IHaskell`.
 
 If you get a pip error while IHaskell is installing Python
