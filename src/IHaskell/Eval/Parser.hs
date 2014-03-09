@@ -14,7 +14,7 @@ module IHaskell.Eval.Parser (
     ) where
 
 -- Hide 'unlines' to use our own 'joinLines' instead.
-import ClassyPrelude hiding (head, tail, liftIO, unlines)
+import ClassyPrelude hiding (head, tail, liftIO, unlines, maximumBy)
 
 import Data.List (findIndex, maximumBy, maximum, inits)
 import Data.String.Utils (startswith, strip, split)
