@@ -50,4 +50,4 @@ done
 
 # Stick a "./" before everything.
 INSTALL_DIRS=`echo $INSTALLS | tr ' ' '\n' | sed 's#^#./#' | tr ' ' '\n'`
-cabal install $INSTALL_DIRS --force-reinstalls
+cabal install -j $INSTALL_DIRS --force-reinstalls
