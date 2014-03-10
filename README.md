@@ -24,14 +24,13 @@ As well as the IPython browser-based notebook interface:
 Linux Package Installation
 ===
 
-There is a docker package for Linux. We will put it up on the registry, but for now you can build it yourself by cloning the repo and running:
+There is a docker package for Linux.
 
-    sudo docker build -t IHaskell:dev .
-    sudo docker run -p 8778:8778 IHaskell:dev
+    sudo docker run -p 8778:8778 gregweber/ihaskell
 
-The console (instead of the browser) can be run with
+This is defaulted to run the browser. You can run the console instead with
 
-    sudo docker run -rm -i -t IHaskell:dev console
+    sudo docker run -rm -i -t gregweber/ihaskell console
 
 
 Windows Installation
