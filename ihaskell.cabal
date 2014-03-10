@@ -57,7 +57,7 @@ library
                        aeson                >=0.6 && < 0.8,
                        base64-bytestring    >=1.0,
                        bytestring           >=0.10,
-                       cereal               ==0.3.*,
+                       cereal               >=0.3,
                        classy-prelude       >=0.7,
                        cmdargs              >=0.10,
                        containers           >=0.5,
@@ -110,8 +110,9 @@ library
                    IHaskell.Flags
                    IHaskell.Types
                    IHaskell.BrokenPackages
-  other-modules: 
                    Paths_ihaskell
+--  other-modules: 
+--                   Paths_ihaskell
 
 executable IHaskell
   -- .hs or .lhs file containing the Main module.
@@ -125,7 +126,7 @@ executable IHaskell
                        base                 ==4.6.*,
                        aeson                >=0.6 && < 0.8,
                        bytestring           >=0.10,
-                       cereal               ==0.3.*,
+                       cereal               >=0.3,
                        classy-prelude       >=0.7,
                        containers           >=0.5,
                        directory            -any,
@@ -147,7 +148,7 @@ Test-Suite hspec
                        aeson                >=0.6 && < 0.8,
                        base64-bytestring    >=1.0,
                        bytestring           >=0.10,
-                       cereal               ==0.3.*,
+                       cereal               >=0.3,
                        classy-prelude       >=0.7,
                        cmdargs              >=0.10,
                        containers           >=0.5,

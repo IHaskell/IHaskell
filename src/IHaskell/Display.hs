@@ -7,6 +7,10 @@ module IHaskell.Display (
   encode64, base64,
   Display(..),
   DisplayData(..),
+  printDisplay,
+
+  -- Internal only use
+  displayFromChan
   ) where
 
 import ClassyPrelude
@@ -15,6 +19,10 @@ import Data.ByteString hiding (map, pack)
 import Data.String.Utils (rstrip) 
 import qualified Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Char8 as Char
+
+import Control.Concurrent.STM.TChan
+import Control.Monad.STM
+import System.IO.Unsafe (unsafePerformIO)
 
 import IHaskell.Types
 
@@ -97,3 +105,28 @@ base64 = decodeUtf8 . Base64.encode
 -- Serialize displays to a ByteString.
 serializeDisplay :: Display -> ByteString
 serializeDisplay = Serialize.encode
+
+-- | Items written to this chan will be included in the output sent
+-- to the frontend (ultimately the browser), the next time IHaskell
+-- has an item to display.
+{-# NOINLINE displayChan #-}
+displayChan :: TChan Display
+displayChan = unsafePerformIO newTChanIO
+
+-- | Take everything that was put into the 'displayChan' at that point
+-- out, and make a 'Display' out of it.
+displayFromChan :: IO (Maybe Display)
+displayFromChan =
+  Just . many <$> unfoldM (atomically $ tryReadTChan displayChan)
+
+-- | This is unfoldM from monad-loops. It repeatedly runs an IO action
+-- until it return Nothing, and puts all the Justs in a list.
+-- If you find yourself using more functionality from monad-loops, just add
+-- the package dependency instead of copying more code from it.
+unfoldM :: IO (Maybe a) -> IO [a]
+unfoldM f = maybe (return []) (\r -> (r:) <$> unfoldM f) =<< f
+
+-- | Write to the display channel. The contents will be displayed in the
+-- notebook once the current execution call ends.
+printDisplay :: IHaskellDisplay a => a -> IO ()
+printDisplay disp = display disp >>= atomically . writeTChan displayChan

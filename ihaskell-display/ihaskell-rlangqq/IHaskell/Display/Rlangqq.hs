@@ -43,7 +43,7 @@ import Language.Haskell.TH.Quote
 rDisp = QuasiQuoter { quoteExp = \s -> [| do
   result <- $(quoteExp r s)
   p <- rDisplayAll
-  atomically (writeTChan displayChan p)
+  printDisplay p
   return result
   |] }
 

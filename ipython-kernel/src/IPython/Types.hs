@@ -90,7 +90,7 @@ instance ToJSON Profile where
                    ]
 
 instance FromJSON Transport where
-  parseJSON (String mech) = do
+  parseJSON (String mech) =
     case mech of
       "tcp" -> return TCP
       _ -> fail $ "Unknown transport mechanism " ++ Text.unpack mech

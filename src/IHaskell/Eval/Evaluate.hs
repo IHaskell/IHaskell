@@ -51,7 +51,7 @@ import GhcMonad (liftIO, withSession)
 import GHC hiding (Stmt, TypeSig)
 import GHC.Paths
 import Exception hiding (evaluate)
-import Outputable
+import Outputable hiding ((<>))
 import Packages
 import Module
 import qualified Pretty
@@ -249,9 +249,17 @@ evaluate kernelState code output = do
     runUntilFailure state (cmd:rest) = do
       evalOut <- evalCommand output cmd state
 
-      -- Output things only if they are non-empty.
-      let result = evalResult evalOut
+      -- Get displayed channel outputs.
+      -- Merge them with normal display outputs.
+      dispsIO <- extractValue "IHaskell.Display.displayFromChan"
+      dispsMay <- liftIO dispsIO
+      let result = 
+            case dispsMay of
+              Nothing -> evalResult evalOut
+              Just disps -> evalResult evalOut <> disps
           helpStr = evalPager evalOut
+
+      -- Output things only if they are non-empty.
       unless (noResults result && null helpStr) $
         liftIO $ output $ FinalResult result helpStr
 
@@ -261,6 +269,13 @@ evaluate kernelState code output = do
         Failure -> return newState
 
     storeItCommand execCount = Statement $ printf "let it%d = it" execCount
+
+    extractValue :: Typeable a => String -> Interpreter a
+    extractValue expr = do
+      compiled <- dynCompileExpr expr
+      case fromDynamic compiled of
+        Nothing -> error "Expecting value!"
+        Just result -> return result
 
 safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
 safely state = ghandle handler . ghandle sourceErrorHandler
