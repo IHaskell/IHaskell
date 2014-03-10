@@ -110,9 +110,8 @@ library
                    IHaskell.Flags
                    IHaskell.Types
                    IHaskell.BrokenPackages
+  other-modules: 
                    Paths_ihaskell
---  other-modules: 
---                   Paths_ihaskell
 
 executable IHaskell
   -- .hs or .lhs file containing the Main module.
