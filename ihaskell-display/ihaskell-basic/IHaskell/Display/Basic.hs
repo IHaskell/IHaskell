@@ -6,9 +6,7 @@ import IHaskell.Display
 import Text.Printf
 
 instance Show a => IHaskellDisplay (Maybe a) where
-  display just = do
-    printDisplay $ Display [stringDisplay, htmlDisplay]
-    return $ Display [stringDisplay, htmlDisplay]
+  display just = return $ Display [stringDisplay, htmlDisplay]
     where 
       stringDisplay = plain (show just)
       htmlDisplay = html str
