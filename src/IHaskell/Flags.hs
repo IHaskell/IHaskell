@@ -68,7 +68,8 @@ parseFlags :: [String] -> Either String Args
 parseFlags flags = 
   let modeIndex = findIndex (`elem` modeFlags) flags in
     case modeIndex of
-      Nothing -> Left $ "No mode provided. Modes available are: " ++ show modeFlags
+      Nothing -> Left $ "No mode provided. Modes available are: " ++ show modeFlags ++ "\n" ++
+                       pack (showText (Wrap 100) $ helpText [] HelpFormatAll ihaskellArgs)
       Just 0 -> process ihaskellArgs flags
 
       -- If mode not first, move it to be first.
@@ -160,7 +161,7 @@ lhsStyleTex  = LhsStyle "" "" "\\begin{code}" "\\end{code}" "\\begin{verbatim}" 
 
 view :: Mode Args
 view =
-  let empty = mode "view" (Args (View Nothing Nothing) []) "View IHaskell notebook." noArgs [ipythonFlag] in
+  let empty = mode "view" (Args (View Nothing Nothing) []) "View IHaskell notebook." noArgs flags in
     empty {
       modeNames = ["view"],
       modeCheck  =
@@ -180,6 +181,7 @@ view =
                                                     
   }
   where
+    flags = [ipythonFlag, flagHelpSimple (add Help)]
     formatArg = flagArg updateFmt "<format>"
     filenameArg = flagArg updateFile "<name>[.ipynb]"
     updateFmt fmtStr (Args (View _ s) flags) = 
@@ -187,6 +189,7 @@ view =
         Just fmt -> Right $ Args (View (Just fmt) s) flags
         Nothing -> Left $ "Invalid format '" ++ fmtStr ++ "'."
     updateFile name (Args (View f _) flags) = Right $ Args (View f (Just name)) flags
+    add flag (Args mode flags) = Args mode $ flag : flags
   
 ihaskellArgs :: Mode Args
 ihaskellArgs =

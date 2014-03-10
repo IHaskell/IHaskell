@@ -62,7 +62,7 @@ ihaskell :: Args -> IO ()
 ihaskell (Args (ShowHelp help) _) =
   putStrLn $ pack help
 
-ihaskell (Args ConvertLhs args) = convert args
+ihaskell (Args ConvertLhs args) = showingHelp ConvertLhs args $ convert args
 
 ihaskell (Args Console flags) = showingHelp Console flags $ do
   ipython <- chooseIPython flags
@@ -72,7 +72,7 @@ ihaskell (Args Console flags) = showingHelp Console flags $ do
   info <- initInfo IPythonConsole flags
   runConsole ipython info
 
-ihaskell (Args (View (Just fmt) (Just name)) args) = do
+ihaskell (Args mode@(View (Just fmt) (Just name)) args) = showingHelp mode args $ do
   ipython <- chooseIPython args
   nbconvert ipython fmt name
 
