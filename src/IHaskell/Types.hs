@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings, DeriveDataTypeable, DeriveGeneric #-}
+{-# LANGUAGE ExistentialQuantification #-}
 -- | Description : All message type definitions.
 module IHaskell.Types (
   Message (..),
@@ -24,19 +25,22 @@ module IHaskell.Types (
   extractPlain,
   kernelOpts,
   KernelOpt(..),
+  IHaskellDisplay(..),
+  IHaskellWidget(..),
+  Widget(..),
   ) where
 
 import            ClassyPrelude
 import qualified  Data.ByteString.Char8           as Char
 import            Data.Serialize
 import            GHC.Generics
+import            Data.Map                        (Map, empty)
+import            Data.Aeson                      (Value)
 
 import            Text.Read                       as Read hiding (pfail, String)
 import            Text.ParserCombinators.ReadP
 
 import IPython.Kernel
-
-data Test = Test
 
 data ViewFormat
      = Pdf
@@ -66,6 +70,38 @@ instance Read ViewFormat where
       "md" -> return Markdown
       _ -> pfail
 
+-- | A class for displayable Haskell types.
+--
+-- IHaskell's displaying of results behaves as if these two
+-- overlapping/undecidable instances also existed:
+-- 
+-- > instance (Show a) => IHaskellDisplay a
+-- > instance Show a where shows _ = id
+class IHaskellDisplay a where
+  display :: a -> IO Display
+
+-- | Display as an interactive widget.
+class IHaskellDisplay a => IHaskellWidget a where
+  open :: a               -- ^ Widget to open a comm port with.
+       -> Value           -- ^ Comm open metadata.
+       -> (Value -> IO ()) -- ^ Way to respond to the message.
+       -> IO ()
+
+  comm :: a               -- ^ Widget which is being communicated with.
+       -> Value           -- ^ Sent data.
+       -> (Value -> IO ()) -- ^ Way to respond to the message.
+       -> IO ()
+
+  close :: a               -- ^ Widget to close comm port with.
+        -> Value           -- ^ Sent data.
+        -> IO ()
+
+data Widget = forall a. IHaskellWidget a => Widget a
+
+instance Show Widget where
+  show _ = "<Widget>"
+
+
 -- | Wrapper for ipython-kernel's DisplayData which allows sending multiple
 -- results from the same expression.
 data Display = Display [DisplayData]
@@ -90,7 +126,8 @@ data KernelState = KernelState
     getFrontend :: FrontendType,
     useSvg :: Bool,
     useShowErrors :: Bool,
-    useShowTypes :: Bool
+    useShowTypes :: Bool,
+    openComms :: Map UUID Widget
   }
   deriving Show
 
@@ -101,7 +138,8 @@ defaultKernelState = KernelState
     getFrontend = IPythonConsole,
     useSvg = True,
     useShowErrors = False,
-    useShowTypes = False
+    useShowTypes = False,
+    openComms = empty
   }
 
 data FrontendType

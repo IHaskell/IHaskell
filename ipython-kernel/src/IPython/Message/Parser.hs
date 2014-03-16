@@ -82,6 +82,9 @@ parser CompleteRequestMessage    = completeRequestParser
 parser ObjectInfoRequestMessage  = objectInfoRequestParser
 parser ShutdownRequestMessage    = shutdownRequestParser
 parser InputReplyMessage         = inputReplyParser
+parser CommOpenMessage           = commOpenParser
+parser CommDataMessage           = commDataParser
+parser CommCloseMessage          = commCloseParser
 parser other = error $ "Unknown message type " ++ show other
 
 -- | Parse a kernel info request.
@@ -153,5 +156,36 @@ inputReplyParser content = parsed
   Success parsed = flip parse decoded $ \ obj -> do
         value <- obj .: "value"
         return $ InputReply noHeader value
+
+  Just decoded = decode content
+
+commOpenParser :: LByteString -> Message
+commOpenParser content = parsed
+  where
+  Success parsed = flip parse decoded $ \ obj -> do
+        uuid <- obj .: "comm_id"
+        name <- obj .: "target_name"
+        value <- obj .: "data"
+        return $ CommOpen noHeader name uuid value
+
+  Just decoded = decode content
+
+commDataParser :: LByteString -> Message
+commDataParser content = parsed
+  where
+  Success parsed = flip parse decoded $ \ obj -> do
+        uuid <- obj .: "comm_id"
+        value <- obj .: "data"
+        return $ CommData noHeader uuid value
+
+  Just decoded = decode content
+
+commCloseParser :: LByteString -> Message
+commCloseParser content = parsed
+  where
+  Success parsed = flip parse decoded $ \ obj -> do
+        uuid <- obj .: "comm_id"
+        value <- obj .: "data"
+        return $ CommClose noHeader uuid value
 
   Just decoded = decode content

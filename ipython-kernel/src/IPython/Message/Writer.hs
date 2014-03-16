@@ -87,6 +87,21 @@ instance ToJSON Message where
                             "prompt" .= prompt
                            ]
 
+  toJSON req@CommOpen{} = object [
+                            "comm_id" .= commUuid req,
+                            "target_name" .= commTargetName req,
+                            "data" .= commData req
+                           ]
+
+  toJSON req@CommData{} = object [
+                            "comm_id" .= commUuid req,
+                            "data" .= commData req
+                           ]
+
+  toJSON req@CommClose{} = object [
+                            "comm_id" .= commUuid req,
+                            "data" .= commData req
+                           ]
 
   toJSON body = error $ "Do not know how to convert to JSON for message " ++ show body
 

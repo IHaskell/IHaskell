@@ -180,16 +180,28 @@ runKernel profileSrc initInfo = do
       -- Create a header for the reply.
       replyHeader <- createReplyHeader (header request)
 
-      -- Create the reply, possibly modifying kernel state.
-      oldState <- liftIO $ takeMVar state
-      (newState, reply) <- replyTo interface request replyHeader oldState
-      liftIO $ putMVar state newState
+      -- We handle comm messages and normal ones separately.
+      -- The normal ones are a standard request/response style, while comms
+      -- can be anything, and don't necessarily require a response.
+      if isCommMessage request
+      then liftIO $ do
+        oldState <- takeMVar state
+        let replier = writeChan (shellReplyChannel interface)
+        newState <- handleComm replier oldState request replyHeader
+        putMVar state newState
+      else do
+        -- Create the reply, possibly modifying kernel state.
+        oldState <- liftIO $ takeMVar state
+        (newState, reply) <- replyTo interface request replyHeader oldState
+        liftIO $ putMVar state newState
 
-      -- Write the reply to the reply channel.
-      liftIO $ writeChan (shellReplyChannel interface) reply
+        -- Write the reply to the reply channel.
+        liftIO $ writeChan (shellReplyChannel interface) reply
   where
     ignoreCtrlC =
       installHandler keyboardSignal (CatchOnce $ putStrLn "Press Ctrl-C again to quit kernel.") Nothing
+
+    isCommMessage req = msgType (header req) `elem` [CommOpenMessage, CommDataMessage, CommCloseMessage]
 
 -- Initial kernel state.
 initialKernelState :: IO (MVar KernelState)
@@ -348,3 +360,25 @@ replyTo _ ObjectInfoRequest{objectName = oname} replyHeader state = do
                 objectDocString  = docs
               }
   return (state, reply)
+
+handleComm :: (Message -> IO ()) -> KernelState -> Message -> MessageHeader -> IO KernelState
+handleComm replier kernelState req replyHeader = do
+  let widgets = openComms kernelState
+      uuid = commUuid req
+      dat = commData req
+      communicate value = do
+        head <- dupHeader replyHeader CommDataMessage
+        replier $ CommData head uuid value
+  case lookup uuid widgets of
+    Nothing -> fail $ "no widget with uuid " ++ show uuid
+    Just (Widget widget) ->
+      case msgType $ header req of
+        CommOpenMessage -> do
+          open widget dat communicate
+          return kernelState
+        CommDataMessage -> do
+          comm widget dat communicate
+          return kernelState
+        CommCloseMessage -> do
+          close widget dat
+          return kernelState { openComms = Map.delete uuid widgets }
