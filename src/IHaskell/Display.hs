@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings, FlexibleInstances #-}
 module IHaskell.Display (
   IHaskellDisplay(..),
+  IHaskellWidget(..),
   plain, html, png, jpg, svg, latex,
   serializeDisplay,
   Width, Height, Base64(..),
@@ -10,7 +11,8 @@ module IHaskell.Display (
   printDisplay,
 
   -- Internal only use
-  displayFromChan
+  displayFromChan,
+  Widget(..),
   ) where
 
 import ClassyPrelude

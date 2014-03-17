@@ -97,6 +97,7 @@ class IHaskellDisplay a => IHaskellWidget a where
         -> IO ()
 
 data Widget = forall a. IHaskellWidget a => Widget a
+            deriving Typeable
 
 instance Show Widget where
   show _ = "<Widget>"

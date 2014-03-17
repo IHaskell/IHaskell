@@ -8,6 +8,7 @@ import Data.String.Here
 import Text.Parsec.String
 
 import IHaskell.Display
+import IHaskell.Display (IHaskellWidget)
 
 instance IHaskellDisplay (Parser a) where
   display renderable = do
@@ -42,3 +43,8 @@ instance IHaskellDisplay (Parser a) where
           });
         </script>
         |]
+
+instance IHaskellWidget (Parser a) where
+  open widget value publisher = return ()
+  comm widget value publisher = return ()
+  close widget value = return ()

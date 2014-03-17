@@ -69,6 +69,7 @@ import IHaskell.Display
 import qualified IHaskell.Eval.Hoogle as Hoogle
 import IHaskell.Eval.Util
 import IHaskell.BrokenPackages
+import qualified  IPython.Message.UUID      as UUID
 
 import Paths_ihaskell (version)
 import Data.Version (versionBranch)
@@ -680,8 +681,21 @@ evalCommand output (Expression expr) state = do
   let displayExpr = printf "(IHaskell.Display.display (%s))" expr :: String
   canRunDisplay <- attempt $ exprType displayExpr
 
+  -- Check if this is a widget.
+  let widgetExpr = printf "(IHaskell.Display.Widget (%s))" expr :: String
+  isWidget <- attempt $ exprType displayExpr
+
   if canRunDisplay
-  then useDisplay displayExpr
+  then do
+    -- Use the display. As a result, `it` is set to the output.
+    out <- useDisplay displayExpr
+
+    -- Register the `it` object as a widget.
+    newState <- if isWidget
+               then registerWidget out
+               else return state
+    return out { evalState = newState }
+
   else do
     -- Evaluate this expression as though it's just a statement.
     -- The output is bound to 'it', so we can then use it.
@@ -755,6 +769,31 @@ evalCommand output (Expression expr) state = do
                     if useSvg state
                     then display :: Display
                     else removeSvg display
+
+    registerWidget state evalOut =
+      when (evalStatus evalOut == Success) $ do
+        element <- dynCompileExpr "IHaskell.Display.Widget it"
+        case fromDynamic element of
+          Nothing -> error "Expecting widget"
+          Just widget -> do
+            -- Stick the widget in the kernel state.
+            uuid <- UUID.random
+            let newComms = Map.insert uuid widget $ openComms state
+                newState = state { openComms = newComms }
+
+            -- Start the comm.
+            startComm uuid widget
+            -- HOW DO WE START A COMM?
+            -- 1. Add field to EvalOut
+            -- that describes commes to start
+            -- 2. Add method to IHaskellWidget that describes the
+            -- target_name.
+            -- 3. Store UUID and target_name in EvalOut field.
+            -- 4. When EvalOut is returned, have Main.hs start the comm.
+            -- 5. Have JS receive the comm and create a widget, just like
+            -- it does in the real IPython example.
+
+            return newState
 
     isIO expr = attempt $ exprType $ printf "((\\x -> x) :: IO a -> IO a) (%s)" expr
 
