@@ -696,7 +696,7 @@ evalCommand output (Expression expr) state = do
 
   -- Check if this is a widget.
   let widgetExpr = printf "(IHaskell.Display.Widget (%s))" expr :: String
-  isWidget <- attempt $ exprType displayExpr
+  isWidget <- attempt $ exprType widgetExpr
 
   if canRunDisplay
   then do

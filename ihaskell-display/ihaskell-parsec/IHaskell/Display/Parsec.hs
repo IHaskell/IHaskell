@@ -8,7 +8,6 @@ import Data.String.Here
 import Text.Parsec.String
 
 import IHaskell.Display
-import IHaskell.Display (IHaskellWidget)
 
 instance IHaskellDisplay (Parser a) where
   display renderable = do
@@ -18,33 +17,52 @@ instance IHaskellDisplay (Parser a) where
       dom key = 
         let divId = "text" ++ show key ++ "" in
         [i|
-        <form><textarea id="${divId}">Hello!</textarea></form>
+        <form><textarea id="parsec-editor">Hello!</textarea></form>
+        <!--
         <script>
-          // Start the Comm.
-          var CommManager = IPython.notebook.kernel.comm_manager;
-          var comm = CommManager.new_comm("parsec", {}, {
-              iopub : {
-                output : function () {
-                  console.log("Iopub output init:");
-                  console.log(arguments);
-                }
-              }
-          });
+          // Register the comm target.
+          var ParsecWidget = function (comm) {
+              this.comm = comm;
+              this.comm.on_msg($.proxy(this.handler, this));
 
-          // Create the editor.
-          var textarea = document.getElementById("${divId}");
-          var editor = CodeMirror.fromTextArea(textarea);
-          editor.on("change", function() {
-            var text = editor.getDoc().getValue();
-            console.log("New text: " + text);
-            comm.send({"text": text}, function () {
-                console.log("Got response!", arguments);
-            });
-          });
+              // get the cell that was probably executed
+              // msg_id:cell mapping will make this possible without guessing
+              this.cell = IPython.notebook.get_cell(IPython.notebook.get_selected_index()-1);
+              this.callbacks = {
+                  iopub : {
+                      output : function () {
+                          console.log("Iopub output", arguments);
+                      }
+                  }
+              };
+
+              // Create the editor.
+              console.log("Editoring");
+              var out = this.cell.output_area.element;
+              var textarea = output_area.find("#parsec-editor")[0];
+              var editor = CodeMirror.fromTextArea(textarea);
+              editor.on("change", function() {
+                var text = editor.getDoc().getValue();
+                console.log("New text: " + text);
+                comm.send({"text": text}, function () {
+                    console.log("Got response!", arguments);
+                });
+              });
+          };
+
+          ParsecWidget.prototype.handler = function(msg) {
+              console.log('handle', this, msg, this.cell.output_area);
+          };
+
+          IPython.notebook.kernel.comm_manager.register_target('parsec', IPython.utils.always_new(ParsecWidget));
         </script>
+        -->
         |]
 
 instance IHaskellWidget (Parser a) where
+  targetName _ = "parsec"
   open widget value publisher = return ()
-  comm widget value publisher = return ()
+  comm widget value publisher = do
+    DEAL WITH ACTUAL PARSECS
+    publisher value
   close widget value = return ()

@@ -186,7 +186,7 @@ runKernel profileSrc initInfo = do
       if isCommMessage request
       then liftIO $ do
         oldState <- takeMVar state
-        let replier = writeChan (shellReplyChannel interface)
+        let replier = writeChan (iopubChannel interface)
         newState <- handleComm replier oldState request replyHeader
         putMVar state newState
       else do
@@ -373,11 +373,15 @@ replyTo _ ObjectInfoRequest{objectName = oname} replyHeader state = do
 
 handleComm :: (Message -> IO ()) -> KernelState -> Message -> MessageHeader -> IO KernelState
 handleComm replier kernelState req replyHeader = do
+  putStrLn "Handle comm"
+  print req
   let widgets = openComms kernelState
       uuid = commUuid req
       dat = commData req
       communicate value = do
         head <- dupHeader replyHeader CommDataMessage
+        putStrLn "Sending back data:"
+        print value
         replier $ CommData head uuid value
   case lookup uuid widgets of
     Nothing -> fail $ "no widget with uuid " ++ show uuid
@@ -387,6 +391,7 @@ handleComm replier kernelState req replyHeader = do
           open widget dat communicate
           return kernelState
         CommDataMessage -> do
+          putStrLn "comm data"
           comm widget dat communicate
           return kernelState
         CommCloseMessage -> do
