@@ -19,11 +19,26 @@ instance IHaskellDisplay (Parser a) where
         [i|
         <form><textarea id="${divId}">Hello!</textarea></form>
         <script>
+          // Start the Comm.
+          var CommManager = IPython.notebook.kernel.comm_manager;
+          var comm = CommManager.new_comm("parsec", {}, {
+              iopub : {
+                output : function () {
+                  console.log("Iopub output init:");
+                  console.log(arguments);
+                }
+              }
+          });
+
+          // Create the editor.
           var textarea = document.getElementById("${divId}");
           var editor = CodeMirror.fromTextArea(textarea);
           editor.on("change", function() {
             var text = editor.getDoc().getValue();
             console.log("New text: " + text);
+            comm.send({"text": text}, function () {
+                console.log("Got response!", arguments);
+            });
           });
         </script>
         |]
