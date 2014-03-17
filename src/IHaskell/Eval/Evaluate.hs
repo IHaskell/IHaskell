@@ -33,6 +33,7 @@ import Data.Maybe (fromJust)
 import qualified Control.Monad.IO.Class as MonadIO (MonadIO, liftIO)
 import qualified MonadUtils (MonadIO, liftIO)
 import System.Environment (getEnv)
+import qualified Data.Map as Map
 
 import NameSet
 import Name
@@ -220,7 +221,8 @@ data EvalOut = EvalOut {
     evalStatus :: ErrorOccurred,
     evalResult :: Display,
     evalState :: KernelState,
-    evalPager :: String
+    evalPager :: String,
+    evalComms :: [CommInfo]
   }
 
 -- | Evaluate some IPython input code.
@@ -235,7 +237,7 @@ evaluate kernelState code output = do
   when (getLintStatus kernelState /= LintOff) $ liftIO $ do
     lintSuggestions <- lint cmds
     unless (noResults lintSuggestions) $
-      output $ FinalResult lintSuggestions ""
+      output $ FinalResult lintSuggestions "" []
 
   updated <- runUntilFailure kernelState (map unloc cmds ++ [storeItCommand execCount])
   return updated {
@@ -262,9 +264,11 @@ evaluate kernelState code output = do
 
       -- Output things only if they are non-empty.
       unless (noResults result && null helpStr) $
-        liftIO $ output $ FinalResult result helpStr
+        liftIO $ output $ FinalResult result helpStr (evalComms evalOut)
 
-      let newState = evalState evalOut
+      -- Make sure to clear all comms we've started.
+      let newState = evalState evalOut { evalComms = [] }
+
       case evalStatus evalOut of
         Success -> runUntilFailure newState rest
         Failure -> return newState
@@ -287,7 +291,8 @@ safely state = ghandle handler . ghandle sourceErrorHandler
         evalStatus = Failure,
         evalResult = displayError $ show exception,
         evalState = state,
-        evalPager = ""
+        evalPager = "",
+        evalComms = []
       }
 
     sourceErrorHandler :: SourceError -> Interpreter EvalOut
@@ -304,7 +309,8 @@ safely state = ghandle handler . ghandle sourceErrorHandler
         evalStatus = Failure,
         evalResult = displayError fullErr,
         evalState = state,
-        evalPager = ""
+        evalPager = "",
+        evalComms = []
       }
 
 wrapExecution :: KernelState
@@ -315,7 +321,8 @@ wrapExecution state exec = safely state $ exec >>= \res ->
       evalStatus = Success,
       evalResult = res,
       evalState = state,
-      evalPager = ""
+      evalPager = "",
+      evalComms = []
     }
 
 -- | Return the display data for this command, as well as whether it
@@ -391,7 +398,8 @@ evalCommand output (Directive SetDynFlag flags) state =
               evalStatus = Success,
               evalResult = mempty,
               evalState = updater state,
-              evalPager = ""
+              evalPager = "",
+              evalComms = []
             }
 
         -- If not a kernel option, must be a dyn flag.
@@ -404,7 +412,8 @@ evalCommand output (Directive SetDynFlag flags) state =
             evalStatus = Success,
             evalResult = display,
             evalState = state,
-            evalPager = ""
+            evalPager = "",
+            evalComms = []
           }
 
     -- Apply many flags.
@@ -435,7 +444,8 @@ evalCommand a (Directive SetOption opts) state = do
       evalStatus = Failure,
       evalResult = displayError err,
       evalState = state,
-      evalPager = ""
+      evalPager = "",
+      evalComms = []
     }
   else
     let options = mapMaybe findOption $ words opts
@@ -444,7 +454,8 @@ evalCommand a (Directive SetOption opts) state = do
         evalStatus = Success,
         evalResult = mempty,
         evalState = updater state,
-        evalPager = ""
+        evalPager = "",
+        evalComms = []
       }
   where
     optionExists = isJust . findOption
@@ -553,7 +564,8 @@ evalCommand _ (Directive GetHelp _) state = do
     evalStatus = Success,
     evalResult = Display [out],
     evalState = state,
-    evalPager = ""
+    evalPager = "",
+    evalComms = []
   }
   where out = plain $ intercalate "\n"
           ["The following commands are available:"
@@ -618,7 +630,8 @@ evalCommand _ (Directive GetInfo str) state = safely state $ do
     evalStatus = Success,
     evalResult = mempty,
     evalState = state,
-    evalPager = output
+    evalPager = output,
+    evalComms = []
   }
 
 evalCommand _ (Directive SearchHoogle query) state = safely state $ do
@@ -691,10 +704,10 @@ evalCommand output (Expression expr) state = do
     out <- useDisplay displayExpr
 
     -- Register the `it` object as a widget.
-    newState <- if isWidget
-               then registerWidget out
-               else return state
-    return out { evalState = newState }
+    out' <- if isWidget
+           then registerWidget out
+           else return out
+    return out'
 
   else do
     -- Evaluate this expression as though it's just a statement.
@@ -770,30 +783,26 @@ evalCommand output (Expression expr) state = do
                     then display :: Display
                     else removeSvg display
 
-    registerWidget state evalOut =
-      when (evalStatus evalOut == Success) $ do
-        element <- dynCompileExpr "IHaskell.Display.Widget it"
-        case fromDynamic element of
-          Nothing -> error "Expecting widget"
-          Just widget -> do
-            -- Stick the widget in the kernel state.
-            uuid <- UUID.random
-            let newComms = Map.insert uuid widget $ openComms state
-                newState = state { openComms = newComms }
+    registerWidget :: EvalOut -> Ghc EvalOut
+    registerWidget evalOut =
+      case evalStatus evalOut of
+        Failure -> return evalOut
+        Success -> do
+          element <- dynCompileExpr "IHaskell.Display.Widget it"
+          case fromDynamic element of
+            Nothing -> error "Expecting widget"
+            Just widget -> do
+              -- Stick the widget in the kernel state.
+              uuid <- liftIO UUID.random
+              let state = evalState evalOut
+                  newComms = Map.insert uuid widget $ openComms state
+                  state' = state { openComms = newComms }
 
-            -- Start the comm.
-            startComm uuid widget
-            -- HOW DO WE START A COMM?
-            -- 1. Add field to EvalOut
-            -- that describes commes to start
-            -- 2. Add method to IHaskellWidget that describes the
-            -- target_name.
-            -- 3. Store UUID and target_name in EvalOut field.
-            -- 4. When EvalOut is returned, have Main.hs start the comm.
-            -- 5. Have JS receive the comm and create a widget, just like
-            -- it does in the real IPython example.
-
-            return newState
+              -- Store the fact that we should start this comm.
+              return evalOut {
+                evalComms = CommInfo uuid (targetName widget) : evalComms evalOut,
+                evalState = state'
+              }
 
     isIO expr = attempt $ exprType $ printf "((\\x -> x) :: IO a -> IO a) (%s)" expr
 
@@ -860,7 +869,8 @@ evalCommand _ (ParseError loc err) state = do
     evalStatus = Failure,
     evalResult = displayError $ formatParseError loc err,
     evalState = state,
-    evalPager = ""
+    evalPager = "",
+    evalComms = []
   }
 
 
@@ -869,7 +879,8 @@ hoogleResults state results = EvalOut {
     evalStatus = Success,
     evalResult = mempty,
     evalState = state,
-    evalPager = output
+    evalPager = output,
+    evalComms = []
   }
   where
     fmt =

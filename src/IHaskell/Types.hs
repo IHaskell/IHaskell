@@ -28,6 +28,7 @@ module IHaskell.Types (
   IHaskellDisplay(..),
   IHaskellWidget(..),
   Widget(..),
+  CommInfo(..),
   ) where
 
 import            ClassyPrelude
@@ -82,6 +83,10 @@ class IHaskellDisplay a where
 
 -- | Display as an interactive widget.
 class IHaskellDisplay a => IHaskellWidget a where
+  -- Output target name for this widget.
+  -- The actual input parameter should be ignored.
+  targetName :: a -> String
+
   open :: a               -- ^ Widget to open a comm port with.
        -> Value           -- ^ Comm open metadata.
        -> (Value -> IO ()) -- ^ Way to respond to the message.
@@ -98,6 +103,15 @@ class IHaskellDisplay a => IHaskellWidget a where
 
 data Widget = forall a. IHaskellWidget a => Widget a
             deriving Typeable
+
+instance IHaskellDisplay Widget where
+  display (Widget widget) = display widget
+
+instance IHaskellWidget Widget where
+  targetName (Widget widget) = targetName widget
+  open (Widget widget) = open widget
+  comm (Widget widget) = comm widget
+  close (Widget widget) = close widget
 
 instance Show Widget where
   show _ = "<Widget>"
@@ -182,6 +196,7 @@ data LintStatus
      | LintOff
      deriving (Eq, Show)
 
+data CommInfo = CommInfo UUID String
 
 -- | Output of evaluation.
 data EvaluationResult =
@@ -191,6 +206,7 @@ data EvaluationResult =
     outputs :: Display      -- ^ Display outputs.
   }
   | FinalResult {
-    outputs :: Display,     -- ^ Display outputs.
-    pagerOut :: String            -- ^ Text to display in the IPython pager.
+    outputs :: Display,       -- ^ Display outputs.
+    pagerOut :: String,       -- ^ Text to display in the IPython pager.
+    startComms :: [CommInfo]  -- ^ Comms to start.
   }

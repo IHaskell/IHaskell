@@ -292,6 +292,11 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
       convertSvgToHtml x = x
       makeSvgImg base64data = unpack $ "<img src=\"data:image/svg+xml;base64," ++ base64data ++ "\"/>"
 
+      startComm :: CommInfo -> IO ()
+      startComm (CommInfo uuid target) = do
+        header <- dupHeader replyHeader CommOpenMessage
+        send $ CommOpen header target uuid (Object mempty)
+
       publish :: EvaluationResult -> IO ()
       publish result = do
         let final = case result of
@@ -316,15 +321,20 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
         when final $ do
           modifyMVar_ displayed (return . (outs:))
 
+          -- Start all comms that need to be started.
+          mapM_ startComm $ startComms result
+
           -- If this has some pager output, store it for later.
           let pager = pagerOut result
           unless (null pager) $
             modifyMVar_ pagerOutput (return . (++ pager ++ "\n"))
+            
 
   let execCount = getExecutionCounter state
   -- Let all frontends know the execution count and code that's about to run
   inputHeader <- liftIO $ dupHeader replyHeader InputMessage
   send $ PublishInput inputHeader (unpack code) execCount
+
   -- Run code and publish to the frontend as we go.
   updatedState <- evaluate state (unpack code) publish
 
