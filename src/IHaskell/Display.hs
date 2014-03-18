@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings, FlexibleInstances #-}
 module IHaskell.Display (
   IHaskellDisplay(..),
+  IHaskellWidget(..),
   plain, html, png, jpg, svg, latex,
   serializeDisplay,
   Width, Height, Base64(..),
@@ -10,7 +11,8 @@ module IHaskell.Display (
   printDisplay,
 
   -- Internal only use
-  displayFromChan
+  displayFromChan,
+  Widget(..),
   ) where
 
 import ClassyPrelude
@@ -19,6 +21,7 @@ import Data.ByteString hiding (map, pack)
 import Data.String.Utils (rstrip) 
 import qualified Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Char8 as Char
+import Data.Aeson (Value)
 
 import Control.Concurrent.STM.TChan
 import Control.Monad.STM
@@ -27,16 +30,6 @@ import System.IO.Unsafe (unsafePerformIO)
 import IHaskell.Types
 
 type Base64 = Text
-
--- | A class for displayable Haskell types.
---
--- IHaskell's displaying of results behaves as if these two
--- overlapping/undecidable instances also existed:
--- 
--- > instance (Show a) => IHaskellDisplay a
--- > instance Show a where shows _ = id
-class IHaskellDisplay a where
-  display :: a -> IO Display
 
 -- | these instances cause the image, html etc. which look like:
 --

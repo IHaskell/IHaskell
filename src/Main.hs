@@ -180,16 +180,29 @@ runKernel profileSrc initInfo = do
       -- Create a header for the reply.
       replyHeader <- createReplyHeader (header request)
 
-      -- Create the reply, possibly modifying kernel state.
-      oldState <- liftIO $ takeMVar state
-      (newState, reply) <- replyTo interface request replyHeader oldState
-      liftIO $ putMVar state newState
+      -- We handle comm messages and normal ones separately.
+      -- The normal ones are a standard request/response style, while comms
+      -- can be anything, and don't necessarily require a response.
+      if isCommMessage request
+      then liftIO $ do
+        oldState <- takeMVar state
+        let replier = writeChan (iopubChannel interface)
+        newState <- handleComm replier oldState request replyHeader
+        putMVar state newState
+        writeChan (shellReplyChannel interface) SendNothing
+      else do
+        -- Create the reply, possibly modifying kernel state.
+        oldState <- liftIO $ takeMVar state
+        (newState, reply) <- replyTo interface request replyHeader oldState
+        liftIO $ putMVar state newState
 
-      -- Write the reply to the reply channel.
-      liftIO $ writeChan (shellReplyChannel interface) reply
+        -- Write the reply to the reply channel.
+        liftIO $ writeChan (shellReplyChannel interface) reply
   where
     ignoreCtrlC =
       installHandler keyboardSignal (CatchOnce $ putStrLn "Press Ctrl-C again to quit kernel.") Nothing
+
+    isCommMessage req = msgType (header req) `elem` [CommDataMessage, CommCloseMessage]
 
 -- Initial kernel state.
 initialKernelState :: IO (MVar KernelState)
@@ -280,6 +293,11 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
       convertSvgToHtml x = x
       makeSvgImg base64data = unpack $ "<img src=\"data:image/svg+xml;base64," ++ base64data ++ "\"/>"
 
+      startComm :: CommInfo -> IO ()
+      startComm (CommInfo uuid target) = do
+        header <- dupHeader replyHeader CommOpenMessage
+        send $ CommOpen header target uuid (Object mempty)
+
       publish :: EvaluationResult -> IO ()
       publish result = do
         let final = case result of
@@ -304,15 +322,20 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
         when final $ do
           modifyMVar_ displayed (return . (outs:))
 
+          -- Start all comms that need to be started.
+          mapM_ startComm $ startComms result
+
           -- If this has some pager output, store it for later.
           let pager = pagerOut result
           unless (null pager) $
             modifyMVar_ pagerOutput (return . (++ pager ++ "\n"))
+            
 
   let execCount = getExecutionCounter state
   -- Let all frontends know the execution count and code that's about to run
   inputHeader <- liftIO $ dupHeader replyHeader InputMessage
   send $ PublishInput inputHeader (unpack code) execCount
+
   -- Run code and publish to the frontend as we go.
   updatedState <- evaluate state (unpack code) publish
 
@@ -348,3 +371,22 @@ replyTo _ ObjectInfoRequest{objectName = oname} replyHeader state = do
                 objectDocString  = docs
               }
   return (state, reply)
+
+handleComm :: (Message -> IO ()) -> KernelState -> Message -> MessageHeader -> IO KernelState
+handleComm replier kernelState req replyHeader = do
+  let widgets = openComms kernelState
+      uuid = commUuid req
+      dat = commData req
+      communicate value = do
+        head <- dupHeader replyHeader CommDataMessage
+        replier $ CommData head uuid value
+  case lookup uuid widgets of
+    Nothing -> fail $ "no widget with uuid " ++ show uuid
+    Just (Widget widget) ->
+      case msgType $ header req of
+        CommDataMessage -> do
+          comm widget dat communicate
+          return kernelState
+        CommCloseMessage -> do
+          close widget dat
+          return kernelState { openComms = Map.delete uuid widgets }

@@ -148,7 +148,10 @@ data MessageType = KernelInfoReplyMessage
                  | ClearOutputMessage
                  | InputRequestMessage
                  | InputReplyMessage
-                 deriving (Show, Read)
+                 | CommOpenMessage
+                 | CommDataMessage
+                 | CommCloseMessage
+                 deriving (Show, Read, Eq)
 
 showMessageType :: MessageType -> String
 showMessageType KernelInfoReplyMessage     = "kernel_info_reply"
@@ -169,6 +172,9 @@ showMessageType ShutdownReplyMessage       = "shutdown_reply"
 showMessageType ClearOutputMessage         = "clear_output"
 showMessageType InputRequestMessage        = "input_request"
 showMessageType InputReplyMessage          = "input_reply"
+showMessageType CommOpenMessage            = "comm_open"           
+showMessageType CommDataMessage            = "comm_msg"            
+showMessageType CommCloseMessage           = "comm_close"          
 
 instance FromJSON MessageType where
   parseJSON (String s) = case s of
@@ -190,6 +196,9 @@ instance FromJSON MessageType where
     "clear_output"        -> return ClearOutputMessage
     "input_request"       -> return InputRequestMessage
     "input_reply"         -> return InputReplyMessage
+    "comm_open"           -> return CommOpenMessage
+    "comm_msg"            -> return CommDataMessage
+    "comm_close"          -> return CommCloseMessage
 
     _                     -> fail ("Unknown message type: " ++ show s)
   parseJSON _ = fail "Must be a string."
@@ -315,6 +324,26 @@ data Message
       inputValue :: String      
   }
 
+  | CommOpen {
+      header :: MessageHeader,
+      commTargetName :: String,
+      commUuid :: UUID,
+      commData :: Value
+  }
+
+  | CommData {
+      header :: MessageHeader,
+      commUuid :: UUID,
+      commData :: Value
+  }
+
+  | CommClose {
+      header :: MessageHeader,
+      commUuid :: UUID,
+      commData :: Value
+  }
+
+  | SendNothing -- Dummy message; nothing is sent.
     deriving Show
 
 -- | Possible statuses in the execution reply messages.

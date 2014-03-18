@@ -23,7 +23,7 @@ import Text.Read as Read hiding (pfail, String)
 -- them.
 
 -- | A UUID (universally unique identifier).
-data UUID = UUID String deriving (Show, Read, Eq)
+data UUID = UUID String deriving (Show, Read, Eq, Ord)
 
 -- | Generate a list of random UUIDs.
 randoms :: Int      -- ^ Number of UUIDs to generate.
