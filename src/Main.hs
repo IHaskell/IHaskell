@@ -374,7 +374,6 @@ replyTo _ ObjectInfoRequest{objectName = oname} replyHeader state = do
 
 handleComm :: (Message -> IO ()) -> KernelState -> Message -> MessageHeader -> IO KernelState
 handleComm replier kernelState req replyHeader = do
-  print req
   let widgets = openComms kernelState
       uuid = commUuid req
       dat = commData req

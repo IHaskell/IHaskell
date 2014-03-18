@@ -18,12 +18,7 @@ import IHaskell.Display
 instance Show a => IHaskellDisplay (Parser a) where
   display renderable = return $ Display [html dom]
     where 
-      dom = 
-        [i|
-        <script src="/static/components/codemirror/addon/lint/lint.js" charset="utf-8"></script>
-        <form><textarea id="parsec-editor">Insert parser text here...</textarea></form>
-        <pre id="parsec-output"></pre>
-        |]
+      dom = [hereFile|widget.html|]
 
 -- | Text to parse.
 data ParseText = ParseText String
