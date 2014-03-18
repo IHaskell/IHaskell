@@ -50,6 +50,3 @@ instance Show a => IHaskellWidget (Parser a) where
         Just (String text) = Map.lookup key dict
         result = parse widget "<interactive>" $ unpack text
     publisher $ toJSON result
-
-  -- We have no resources to close.
-  close widget value = return ()

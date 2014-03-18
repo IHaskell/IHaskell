@@ -263,7 +263,8 @@ evaluate kernelState code output = do
           helpStr = evalPager evalOut
 
       -- Output things only if they are non-empty.
-      unless (noResults result && null helpStr) $
+      let empty = noResults result && null helpStr && null (evalComms evalOut)
+      unless empty $
         liftIO $ output $ FinalResult result helpStr (evalComms evalOut)
 
       -- Make sure to clear all comms we've started.
@@ -800,7 +801,7 @@ evalCommand output (Expression expr) state = do
 
               -- Store the fact that we should start this comm.
               return evalOut {
-                evalComms = CommInfo uuid (targetName widget) : evalComms evalOut,
+                evalComms = CommInfo widget uuid (targetName widget) : evalComms evalOut,
                 evalState = state'
               }
 

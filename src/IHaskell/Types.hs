@@ -83,23 +83,29 @@ class IHaskellDisplay a where
 
 -- | Display as an interactive widget.
 class IHaskellDisplay a => IHaskellWidget a where
-  -- Output target name for this widget.
+  -- | Output target name for this widget.
   -- The actual input parameter should be ignored.
   targetName :: a -> String
 
+  -- | Called when the comm is opened. Allows additional messages to be sent
+  -- after comm open.
   open :: a               -- ^ Widget to open a comm port with.
-       -> Value           -- ^ Comm open metadata.
        -> (Value -> IO ()) -- ^ Way to respond to the message.
        -> IO ()
+  open _ _ = return ()
 
+  -- | Respond to a comm data message.
   comm :: a               -- ^ Widget which is being communicated with.
        -> Value           -- ^ Sent data.
        -> (Value -> IO ()) -- ^ Way to respond to the message.
        -> IO ()
+  comm _ _ _ = return ()
 
+  -- | Close the comm, releasing any resources we might need to.
   close :: a               -- ^ Widget to close comm port with.
         -> Value           -- ^ Sent data.
         -> IO ()
+  close _ _ = return ()
 
 data Widget = forall a. IHaskellWidget a => Widget a
             deriving Typeable
@@ -195,7 +201,7 @@ data LintStatus
      | LintOff
      deriving (Eq, Show)
 
-data CommInfo = CommInfo UUID String
+data CommInfo = CommInfo Widget UUID String
 
 -- | Output of evaluation.
 data EvaluationResult =

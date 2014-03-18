@@ -294,9 +294,16 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
       makeSvgImg base64data = unpack $ "<img src=\"data:image/svg+xml;base64," ++ base64data ++ "\"/>"
 
       startComm :: CommInfo -> IO ()
-      startComm (CommInfo uuid target) = do
+      startComm (CommInfo widget uuid target) = do
+        -- Send the actual comm open.
         header <- dupHeader replyHeader CommOpenMessage
         send $ CommOpen header target uuid (Object mempty)
+
+        -- Send anything else the widget requires.
+        let communicate value = do
+              head <- dupHeader replyHeader CommDataMessage
+              writeChan (iopubChannel interface) $ CommData head uuid value
+        open widget communicate
 
       publish :: EvaluationResult -> IO ()
       publish result = do
