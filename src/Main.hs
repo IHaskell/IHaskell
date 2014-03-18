@@ -189,6 +189,7 @@ runKernel profileSrc initInfo = do
         let replier = writeChan (iopubChannel interface)
         newState <- handleComm replier oldState request replyHeader
         putMVar state newState
+        writeChan (shellReplyChannel interface) SendNothing
       else do
         -- Create the reply, possibly modifying kernel state.
         oldState <- liftIO $ takeMVar state
@@ -201,7 +202,7 @@ runKernel profileSrc initInfo = do
     ignoreCtrlC =
       installHandler keyboardSignal (CatchOnce $ putStrLn "Press Ctrl-C again to quit kernel.") Nothing
 
-    isCommMessage req = msgType (header req) `elem` [CommOpenMessage, CommDataMessage, CommCloseMessage]
+    isCommMessage req = msgType (header req) `elem` [CommDataMessage, CommCloseMessage]
 
 -- Initial kernel state.
 initialKernelState :: IO (MVar KernelState)
@@ -373,25 +374,18 @@ replyTo _ ObjectInfoRequest{objectName = oname} replyHeader state = do
 
 handleComm :: (Message -> IO ()) -> KernelState -> Message -> MessageHeader -> IO KernelState
 handleComm replier kernelState req replyHeader = do
-  putStrLn "Handle comm"
   print req
   let widgets = openComms kernelState
       uuid = commUuid req
       dat = commData req
       communicate value = do
         head <- dupHeader replyHeader CommDataMessage
-        putStrLn "Sending back data:"
-        print value
         replier $ CommData head uuid value
   case lookup uuid widgets of
     Nothing -> fail $ "no widget with uuid " ++ show uuid
     Just (Widget widget) ->
       case msgType $ header req of
-        CommOpenMessage -> do
-          open widget dat communicate
-          return kernelState
         CommDataMessage -> do
-          putStrLn "comm data"
           comm widget dat communicate
           return kernelState
         CommCloseMessage -> do

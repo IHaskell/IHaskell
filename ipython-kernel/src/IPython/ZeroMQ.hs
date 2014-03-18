@@ -179,6 +179,7 @@ receiveMessage socket = do
 -- | Encode a message in the IPython ZeroMQ communication protocol 
 -- | and send it through the provided socket.
 sendMessage :: Sender a => Socket a -> Message -> IO ()
+sendMessage _ SendNothing = return ()
 sendMessage socket message = do
   let head = header message
       parentHeaderStr = maybe "{}" encodeStrict $ parentHeader head

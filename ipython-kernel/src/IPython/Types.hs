@@ -342,6 +342,8 @@ data Message
       commUuid :: UUID,
       commData :: Value
   }
+
+  | SendNothing -- Dummy message; nothing is sent.
     deriving Show
 
 -- | Possible statuses in the execution reply messages.

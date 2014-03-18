@@ -109,7 +109,6 @@ instance IHaskellDisplay Widget where
 
 instance IHaskellWidget Widget where
   targetName (Widget widget) = targetName widget
-  open (Widget widget) = open widget
   comm (Widget widget) = comm widget
   close (Widget widget) = close widget
 
