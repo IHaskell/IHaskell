@@ -20,7 +20,7 @@ instance Show BrokenPackage where
   show = packageID
 
 getBrokenPackages :: IO [String]
-getBrokenPackages = shellyNoDir $ do
+getBrokenPackages = shelly $ do
   silently $ errExit False $ run "ghc-pkg" ["check"]
   checkOut <- lastStderr
   

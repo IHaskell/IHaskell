@@ -32,6 +32,7 @@ import qualified Paths_ihaskell as Paths
 import qualified Codec.Archive.Tar as Tar
 
 import IHaskell.Types
+import            System.Posix.Signals
 
 -- | Which IPython to use.
 data WhichIPython
@@ -60,11 +61,9 @@ ipython which suppress args
       -- If we have PYTHONDONTWRITEBYTECODE enabled, everything breaks.
       setenv "PYTHONDONTWRITEBYTECODE" ""
 
-      -- We have this because `silently` in shelly < 1.4 does not silence
-      -- stderr. In shelly 1.4, however, using `run` does not let us use stdin,
-      -- and the current code breaks for unknown reasons. When the bug
-      --      https://github.com/yesodweb/Shelly.hs/issues/54
-      -- is closed, we should edit ihaskell.cabal to allow shelly 1.4.
+      liftIO $ installHandler keyboardSignal (CatchOnce $ return ()) Nothing
+
+      -- We have this because using `run` does not let us use stdin.
       runHandles "bash" cmdArgs handles doNothing
   | otherwise = do
       let ExplicitIPython exe = which
@@ -114,10 +113,10 @@ ipythonSourceDir :: Sh FilePath
 ipythonSourceDir = ensure $ (</> "ipython-src") <$> ihaskellDir
 
 getIHaskellDir :: IO String
-getIHaskellDir = shellyNoDir $ fpToString <$> ihaskellDir
+getIHaskellDir = shelly $ fpToString <$> ihaskellDir
 
 defaultConfFile :: IO (Maybe String)
-defaultConfFile = shellyNoDir $ do
+defaultConfFile = shelly $ do
   filename <- (</> "rc.hs") <$> ihaskellDir
   exists <- test_f filename
   return $ if exists
@@ -128,7 +127,7 @@ defaultConfFile = shellyNoDir $ do
 -- Notebooks are searched in the current directory as well as the IHaskell
 -- notebook directory (in that order).
 nbconvert :: WhichIPython -> ViewFormat -> String -> IO ()
-nbconvert which fmt name = void . shellyNoDir $ do
+nbconvert which fmt name = void . shelly $ do
   curdir <- pwd
   nbdir <- notebookDir
 
@@ -157,7 +156,7 @@ nbconvert which fmt name = void . shellyNoDir $ do
 setupIPython :: WhichIPython -> IO ()
 
 setupIPython (ExplicitIPython path) = do
-  exists <- shellyNoDir $
+  exists <- shelly $
     test_f $ fromString path
 
   unless exists $
@@ -172,7 +171,7 @@ setupIPython DefaultIPython = do
 -- | Replace "~" with $HOME if $HOME is defined.
 -- Otherwise, do nothing.
 subHome :: String -> IO String
-subHome path = shellyNoDir $ do
+subHome path = shelly $ do
   home <- unpack <$> fromMaybe "~" <$> get_env "HOME"
   return $ replace "~" home path
 
@@ -217,12 +216,12 @@ runIHaskell which profile app args = void $ do
   ipython which False $ map pack $ [app, "--profile", profile] ++ args
 
 runConsole :: WhichIPython -> InitInfo -> IO ()
-runConsole which initInfo = void . shellyNoDir $ do
+runConsole which initInfo = void . shelly $ do
   writeInitInfo initInfo
   runIHaskell which ipythonProfile "console" []
 
 runNotebook :: WhichIPython -> InitInfo -> Maybe String -> IO ()
-runNotebook which initInfo maybeServeDir = void . shellyNoDir $ do
+runNotebook which initInfo maybeServeDir = void . shelly $ do
   notebookDirStr <- fpToString <$> notebookDir
   let args = case maybeServeDir of 
                Nothing -> ["--notebook-dir", unpack notebookDirStr]
@@ -237,7 +236,7 @@ writeInitInfo info = do
   liftIO $ writeFile filename $ show info
 
 readInitInfo :: IO InitInfo
-readInitInfo = shellyNoDir $ do
+readInitInfo = shelly $ do
   filename <- (</>  ".last-arguments") <$> ihaskellDir
   read <$> liftIO (readFile filename)
 
@@ -245,7 +244,7 @@ readInitInfo = shellyNoDir $ do
 setupIPythonProfile :: WhichIPython
                     -> String -- ^ IHaskell profile name.
                     -> IO ()
-setupIPythonProfile which profile = shellyNoDir $ do
+setupIPythonProfile which profile = shelly $ do
   -- Create the IPython profile.
   void $ ipython which True ["profile", "create", pack profile]
 
@@ -314,7 +313,7 @@ getIHaskellPath = do
       return $ FS.encodeString $ FS.decodeString cd FS.</> f
 
 getSandboxPackageConf :: IO (Maybe String)
-getSandboxPackageConf = shellyNoDir $ do
+getSandboxPackageConf = shelly $ do
   myPath <- getIHaskellPath
   let sandboxName = ".cabal-sandbox"
   if not $ sandboxName`isInfixOf` myPath
@@ -331,7 +330,7 @@ getSandboxPackageConf = shellyNoDir $ do
 
 -- | Check whether IPython is properly installed.
 ipythonInstalled :: IO Bool
-ipythonInstalled = shellyNoDir $ do
+ipythonInstalled = shelly $ do
   ipythonPath <- ipythonExePath DefaultIPython
   test_f ipythonPath
 
@@ -339,12 +338,12 @@ ipythonInstalled = shellyNoDir $ do
 updateIPython :: IO ()
 updateIPython = do
   updateScript <- Paths.getDataFileName "installation/update.sh"
-  venv <- fpToText <$> shellyNoDir ipythonDir
+  venv <- fpToText <$> shelly ipythonDir
   runTmp updateScript [venv, ipythonCommit]
 
   -- Remove the old IPython profile.
   -- A new one will be regenerated when it is needed.
-  -- shellyNoDir $ removeIPythonProfile DefaultIPython ipythonProfile
+  -- shelly $ removeIPythonProfile DefaultIPython ipythonProfile
 
 -- | Install IPython from source.
 installIPython :: IO ()
@@ -355,13 +354,13 @@ installIPython = do
 
   -- Set up the virtualenv.
   virtualenvScript <- Paths.getDataFileName "installation/virtualenv.sh"
-  venvDir <- fpToText <$> shellyNoDir ipythonDir
+  venvDir <- fpToText <$> shelly ipythonDir
   runTmp virtualenvScript [venvDir]
 
   -- Set up Python depenencies.
   installScript <- Paths.getDataFileName "installation/ipython.sh"
   runTmp installScript [venvDir, ipythonCommit]
 
-runTmp script args = shellyNoDir $ withTmpDir $ \tmp -> do
+runTmp script args = shelly $ withTmpDir $ \tmp -> do
   cd tmp
   run_ "bash" $ pack script: args
