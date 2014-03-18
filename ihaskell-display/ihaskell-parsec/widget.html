@@ -4,12 +4,10 @@
 
 <!-- Parsec widget -->
 <script>
-console.log("Registered: ", window.parsecWidgetRegistered);
 var kernel = IPython.notebook.kernel;
 var initialized = kernel !== undefined && kernel != null;
 if (initialized && window.parsecWidgetRegistered === undefined) {
 window.parsecWidgetRegistered = true;
-console.log("Initializing Parsec widget.");
 // Register the comm target.
 var ParsecWidget = function (comm) {
     this.comm = comm;
@@ -76,7 +74,7 @@ ParsecWidget.prototype.handler = function(msg) {
 
 // Register this widget.
 IPython.notebook.kernel.comm_manager.register_target('parsec', IPython.utils.always_new(ParsecWidget));
-console.log("Registering parsec widget.");
+console.log("Registering Parsec widget.");
 }
 </script>
 
