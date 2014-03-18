@@ -4,10 +4,14 @@
 
 <!-- Parsec widget -->
 <script>
+// Only load this script once.
 var kernel = IPython.notebook.kernel;
 var initialized = kernel !== undefined && kernel != null;
 if (initialized && window.parsecWidgetRegistered === undefined) {
+
+// Do not load this script again.
 window.parsecWidgetRegistered = true;
+
 // Register the comm target.
 var ParsecWidget = function (comm) {
     this.comm = comm;
