@@ -18,6 +18,9 @@ $([IPython.events]).on('app_initialized.NotebookApp', function(){
     
     // Set tooltips to be triggered after 800ms
     IPython.tooltip.time_before_tooltip = 800;
+
+    // IPython keycodes.
+    IPython.keyboard.keycodes.down = 32; // space
     
     CodeMirror.requireMode('haskell', function(){
         // Create a multiplexing mode that uses Haskell highlighting by default but
