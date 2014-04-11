@@ -59,7 +59,7 @@ library
                        base64-bytestring    >=1.0,
                        bytestring           >=0.10,
                        cereal               >=0.3,
-                       classy-prelude       >=0.7,
+                       classy-prelude       (>= 0.7 && < 0.8.3) || (>= 0.9 && < 1.0),
                        cmdargs              >=0.10,
                        containers           >=0.5,
                        directory            -any,

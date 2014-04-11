@@ -15,7 +15,7 @@ module IHaskell.Display (
   Widget(..),
   ) where
 
-import ClassyPrelude
+import ClassyPrelude hiding (atomically) -- a lifted version
 import Data.Serialize as Serialize
 import Data.ByteString hiding (map, pack)
 import Data.String.Utils (rstrip) 
