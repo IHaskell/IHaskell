@@ -21,6 +21,7 @@ import Data.ByteString hiding (map, pack)
 import Data.String.Utils (rstrip) 
 import qualified Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Char8 as Char
+import Data.Bits.Utils (c2w8)
 import Data.Aeson (Value)
 
 import Control.Concurrent.STM.TChan
@@ -60,31 +61,31 @@ many = ManyDisplay
 
 -- | Generate a plain text display.
 plain :: String -> DisplayData
-plain = DisplayData PlainText . pack . rstrip
+plain = DisplayData PlainText . Char.pack . rstrip
 
 -- | Generate an HTML display.
 html :: String -> DisplayData
-html = DisplayData MimeHtml . pack
+html = DisplayData MimeHtml . Char.pack
 
 -- | Genreate an SVG display.
 svg :: String -> DisplayData
-svg = DisplayData MimeSvg . pack
+svg = DisplayData MimeSvg . Char.pack
 
 -- | Genreate a LaTeX display.
 latex :: String -> DisplayData
-latex = DisplayData MimeLatex . pack
+latex = DisplayData MimeLatex . Char.pack
 
 -- | Generate a PNG display of the given width and height. Data must be
 -- provided in a Base64 encoded manner, suitable for embedding into HTML.
 -- The @base64@ function may be used to encode data into this format.
 png :: Width -> Height -> Base64 -> DisplayData
-png width height = DisplayData (MimePng width height)
+png width height = DisplayData (MimePng width height) . encodeUtf8
 
 -- | Generate a JPG display of the given width and height. Data must be
 -- provided in a Base64 encoded manner, suitable for embedding into HTML.
 -- The @base64@ function may be used to encode data into this format.
 jpg :: Width -> Height -> Base64 -> DisplayData
-jpg width height = DisplayData (MimeJpg width height)
+jpg width height = DisplayData (MimeJpg width height) . encodeUtf8
 
 -- | Convert from a string into base 64 encoded data.
 encode64 :: String -> Base64
