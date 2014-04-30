@@ -4,9 +4,6 @@ set -e
 # Which virtualenv to use.
 VIRTUALENV=$1
 
-# Commit hash to install.
-COMMIT=$2
-
 # Activate the virtualenv.
 source $VIRTUALENV/bin/activate
 
@@ -32,4 +29,4 @@ pip install pygments==1.6
 
 # Install IPython itself.
 echo "Installing IPython (this may take a while)."
-pip install -e git+https://github.com/gibiansky/ipython.git@$COMMIT#egg=ipython-dev
+pip install ipython

@@ -26,6 +26,7 @@ import qualified  Filesystem.Path.CurrentOS as FS
 import            Data.List.Utils (split)
 import            Data.String.Utils (rstrip, endswith, strip, replace)
 import            Text.Printf
+import Data.Maybe (fromJust)
 
 import qualified System.IO.Strict as StrictIO
 import qualified Paths_ihaskell as Paths
@@ -39,10 +40,6 @@ data WhichIPython
      = DefaultIPython           -- ^ Use the one that IHaskell tries to install.
      | ExplicitIPython String   -- ^ Use the command-line flag provided one.
      deriving Eq
-
--- | Which commit of IPython we are on.
-ipythonCommit :: Text
-ipythonCommit = "9c1c7a7e32118942a06eb39909c942e628090c14"
 
 -- | The IPython profile name.
 ipythonProfile :: String
@@ -164,9 +161,30 @@ setupIPython (ExplicitIPython path) = do
 
 setupIPython DefaultIPython = do
   installed <- ipythonInstalled
-  if installed
-  then updateIPython
-  else installIPython
+  when (not installed) $ do
+    path <- shelly $ which "ipython"
+    case path of
+      Just ipythonPath -> checkIPythonVersion ipythonPath
+      Nothing -> badIPython "Did not detect IHaskell-installed or system IPython."
+  where
+    checkIPythonVersion :: FilePath -> IO ()
+    checkIPythonVersion path = do
+      output <- unpack <$> shelly (run path ["--version"])
+      case parseVersion output of
+        Just (2:_) -> putStrLn "Detected IPython 2.0.0 or higher, using system-wide IPython."
+        Just (1:_) -> badIPython "Detected old version of IPython. IHaskell requires 2.0.0 or up."
+        Nothing -> badIPython "Detected IPython, but could not parse version number."
+
+    badIPython :: Text -> IO ()
+    badIPython reason = void $ do
+        putStrLn reason
+        putStrLn "IHaskell will not proceed to install IPython (locally for itself)."
+        putStrLn "Installing IPython in IHaskell's virtualenv in 10 seconds. Ctrl-C to cancel."
+        threadDelay $ 1000 * 1000 * 10
+        installIPython
+
+
+
 
 -- | Replace "~" with $HOME if $HOME is defined.
 -- Otherwise, do nothing.
@@ -188,11 +206,16 @@ path exe = do
     Just exePath -> return exePath
 
 -- | Parse an IPython version string into a list of integers.
-parseVersion :: String -> [Int]
-parseVersion versionStr = map read' $ split "." versionStr
-    where read' x = case reads x of
-                        [(n, _)] -> n
-                        _ -> error $ "cannot parse version: "++ versionStr
+parseVersion :: String -> Maybe [Int]
+parseVersion versionStr = 
+  let versions = map read' $ split "." versionStr
+      parsed = all isJust versions in
+    if parsed
+    then Just $ map fromJust versions
+    else Nothing
+  where read' x = case reads x of
+                      [(n, _)] -> n
+                      _ -> Nothing
 
 -- | Run an IHaskell application using the given profile.
 runIHaskell :: WhichIPython
@@ -334,33 +357,28 @@ ipythonInstalled = shelly $ do
   ipythonPath <- ipythonExePath DefaultIPython
   test_f ipythonPath
 
--- | Update the IPython source tree and rebuild.
-updateIPython :: IO ()
-updateIPython = do
-  updateScript <- Paths.getDataFileName "installation/update.sh"
-  venv <- fpToText <$> shelly ipythonDir
-  runTmp updateScript [venv, ipythonCommit]
-
   -- Remove the old IPython profile.
   -- A new one will be regenerated when it is needed.
   -- shelly $ removeIPythonProfile DefaultIPython ipythonProfile
 
 -- | Install IPython from source.
 installIPython :: IO ()
-installIPython = do
+installIPython = shelly $ do
   -- Print a message and wait a little.
-  putStrLn "Installing IPython for IHaskell. This may take a while."
-  threadDelay $ 3 * 1000 * 100
+  liftIO $ do
+    putStrLn "Installing IPython for IHaskell. This may take a while."
+    threadDelay $ 500 * 1000
 
   -- Set up the virtualenv.
-  virtualenvScript <- Paths.getDataFileName "installation/virtualenv.sh"
-  venvDir <- fpToText <$> shelly ipythonDir
+  virtualenvScript <- liftIO $ Paths.getDataFileName "installation/virtualenv.sh"
+  venvDir <- fpToText <$> ipythonDir
   runTmp virtualenvScript [venvDir]
 
   -- Set up Python depenencies.
-  installScript <- Paths.getDataFileName "installation/ipython.sh"
-  runTmp installScript [venvDir, ipythonCommit]
+  setenv "ARCHFLAGS" "-Wno-error=unused-command-line-argument-hard-error-in-future"
+  installScript <- liftIO $ Paths.getDataFileName "installation/ipython.sh"
+  runTmp installScript [venvDir]
 
-runTmp script args = shelly $ withTmpDir $ \tmp -> do
+runTmp script args = withTmpDir $ \tmp -> do
   cd tmp
   run_ "bash" $ pack script: args
