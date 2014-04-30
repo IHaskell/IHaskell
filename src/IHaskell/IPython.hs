@@ -169,9 +169,9 @@ setupIPython DefaultIPython = do
   where
     checkIPythonVersion :: FilePath -> IO ()
     checkIPythonVersion path = do
-      output <- unpack <$> shelly (run path ["--version"])
+      output <- unpack <$> shelly (silently $ run path ["--version"])
       case parseVersion output of
-        Just (2:_) -> putStrLn "Detected IPython 2.0.0 or higher, using system-wide IPython."
+        Just (2:_) -> putStrLn "Using system-wide IPython."
         Just (1:_) -> badIPython "Detected old version of IPython. IHaskell requires 2.0.0 or up."
         Nothing -> badIPython "Detected IPython, but could not parse version number."
 
@@ -182,8 +182,6 @@ setupIPython DefaultIPython = do
         putStrLn "Installing IPython in IHaskell's virtualenv in 10 seconds. Ctrl-C to cancel."
         threadDelay $ 1000 * 1000 * 10
         installIPython
-
-
 
 
 -- | Replace "~" with $HOME if $HOME is defined.
@@ -213,9 +211,12 @@ parseVersion versionStr =
     if parsed
     then Just $ map fromJust versions
     else Nothing
-  where read' x = case reads x of
-                      [(n, _)] -> n
-                      _ -> Nothing
+  where 
+    read' :: String -> Maybe Int
+    read' x = 
+      case reads x of
+        [(n, _)] -> Just n
+        _ -> Nothing
 
 -- | Run an IHaskell application using the given profile.
 runIHaskell :: WhichIPython
@@ -356,10 +357,6 @@ ipythonInstalled :: IO Bool
 ipythonInstalled = shelly $ do
   ipythonPath <- ipythonExePath DefaultIPython
   test_f ipythonPath
-
-  -- Remove the old IPython profile.
-  -- A new one will be regenerated when it is needed.
-  -- shelly $ removeIPythonProfile DefaultIPython ipythonProfile
 
 -- | Install IPython from source.
 installIPython :: IO ()
