@@ -30,9 +30,7 @@ instance IHaskellDisplay (Renderable a) where
 
 chartData :: Renderable a -> FileFormat -> IO DisplayData
 chartData renderable format = do
-  -- Switch to a temporary directory so that any files we create aren't
-  -- visible. On Unix, this is usually /tmp.
-  try (getTemporaryDirectory >>= setCurrentDirectory) :: IO (Either SomeException ())
+  switchToTmpDir
 
   -- Write the PNG image.
   let filename = ".ihaskell-chart.png"

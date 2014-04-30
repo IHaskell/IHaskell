@@ -29,9 +29,8 @@ instance IHaskellDisplay (Image PixelCMYK16) where display = displayImageAsJpg .
 -- main rendering function
 displayImageAsJpg ::  DynamicImage -> IO Display
 displayImageAsJpg renderable = do
-  -- Switch to a temporary directory so that any files we create aren't
-  -- visible. On Unix, this is usually /tmp.
-  try (getTemporaryDirectory >>= setCurrentDirectory) :: IO (Either SomeException ())
+  switchToTmpDir
+
   let filename = ".ihaskell.juicypixels.jpg"
   -- Write the image
   saveJpgImage 95 filename renderable

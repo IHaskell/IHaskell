@@ -9,6 +9,7 @@ module IHaskell.Display (
   Display(..),
   DisplayData(..),
   printDisplay,
+  switchToTmpDir,
 
   -- Internal only use
   displayFromChan,
@@ -22,6 +23,10 @@ import Data.String.Utils (rstrip)
 import qualified Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Char8 as Char
 import Data.Aeson (Value)
+
+import System.Directory(getTemporaryDirectory, setCurrentDirectory)
+import System.IO.Temp(createTempDirectory)
+
 
 import Control.Concurrent.STM.TChan
 import System.IO.Unsafe (unsafePerformIO)
@@ -122,3 +127,14 @@ unfoldM f = maybe (return []) (\r -> (r:) <$> unfoldM f) =<< f
 -- notebook once the current execution call ends.
 printDisplay :: IHaskellDisplay a => a -> IO ()
 printDisplay disp = display disp >>= atomically . writeTChan displayChan
+
+-- | Convenience function for client libraries. Switch to a temporary
+-- directory so that any files we create aren't visible. On Unix, this is
+-- usually /tmp.
+switchToTmpDir = void (try switchDir :: IO (Either SomeException ()))
+  where 
+    switchDir =
+      getTemporaryDirectory  >>=
+      flip createTempDirectory "ihaskell-display-tmp" >>=
+      setCurrentDirectory
+

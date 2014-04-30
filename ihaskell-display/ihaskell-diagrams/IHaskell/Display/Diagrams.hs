@@ -20,9 +20,7 @@ instance IHaskellDisplay (Diagram Cairo R2) where
 
 diagramData :: Diagram Cairo R2 -> OutputType -> IO DisplayData
 diagramData renderable format = do
-  -- Switch to a temporary directory so that any files we create aren't
-  -- visible. On Unix, this is usually /tmp.
-  try (getTemporaryDirectory >>= setCurrentDirectory) :: IO (Either SomeException ())
+  switchToTmpDir
 
   -- Compute width and height.
   let w = width renderable
