@@ -24,7 +24,6 @@ import qualified Data.ByteString.Char8 as Char
 import Data.Aeson (Value)
 
 import Control.Concurrent.STM.TChan
-import Control.Monad.STM
 import System.IO.Unsafe (unsafePerformIO)
 
 import IHaskell.Types
