@@ -705,10 +705,9 @@ evalCommand output (Expression expr) state = do
     out <- useDisplay displayExpr
 
     -- Register the `it` object as a widget.
-    out' <- if isWidget
-           then registerWidget out
-           else return out
-    return out'
+    if isWidget
+    then registerWidget out
+    else return out
 
   else do
     -- Evaluate this expression as though it's just a statement.

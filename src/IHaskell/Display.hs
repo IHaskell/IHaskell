@@ -25,7 +25,6 @@ import qualified Data.ByteString.Char8 as Char
 import Data.Aeson (Value)
 
 import System.Directory(getTemporaryDirectory, setCurrentDirectory)
-import System.IO.Temp(createTempDirectory)
 
 
 import Control.Concurrent.STM.TChan
@@ -135,6 +134,5 @@ switchToTmpDir = void (try switchDir :: IO (Either SomeException ()))
   where 
     switchDir =
       getTemporaryDirectory  >>=
-      flip createTempDirectory "ihaskell-display-tmp" >>=
       setCurrentDirectory
 
