@@ -106,7 +106,7 @@ globalImports :: [String]
 globalImports =
   [ "import IHaskell.Display()"
   , "import qualified IHaskell.Display"
-  , "import qualified IPython.Stdin"
+  , "import qualified IHaskell.IPython.Stdin"
   , "import qualified System.Posix.IO as IHaskellIO"
   , "import qualified System.IO as IHaskellSysIO"
   ]
@@ -134,7 +134,7 @@ interpret allowedStdin action = runGhc (Just libdir) $ do
   -- Close stdin so it can't be used.
   -- Otherwise it'll block the kernel forever.
   dir <- liftIO getIHaskellDir
-  let cmd = printf "IPython.Stdin.fixStdin \"%s\"" dir
+  let cmd = printf "IHaskell.IPython.Stdin.fixStdin \"%s\"" dir
   when allowedStdin $ void $
     runStmt cmd RunToCompletion
 
