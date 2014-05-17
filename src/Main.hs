@@ -170,8 +170,8 @@ runKernel profileSrc initInfo = do
           state <- liftIO $ takeMVar stateVar
           evaluate state line noPublish
 
-    mapM_ evaluator extLines
-    mapM_ evaluator $ initCells initInfo
+    mapM evaluator extLines
+    mapM evaluator $ initCells initInfo
 
     forever $ do
       -- Read the request from the request channel.

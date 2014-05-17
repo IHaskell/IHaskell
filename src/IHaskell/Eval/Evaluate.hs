@@ -1010,10 +1010,11 @@ capturedStatement output stmt = do
       ]
     pipeExpr = printf "let %s = %s" (var "pipe_var_") readVariable
 
+    goStmt :: String -> Ghc RunResult
     goStmt s = runStmt s RunToCompletion
 
   -- Initialize evaluation context.
-  forM_ initStmts goStmt
+  void $ forM initStmts goStmt
 
   -- Get the pipe to read printed output from.
   -- This is effectively the source code of dynCompileExpr from GHC API's
@@ -1101,7 +1102,7 @@ capturedStatement output stmt = do
     liftIO $ modifyMVar_ completed (const $ return True)
 
     -- Finalize evaluation context.
-    forM_ postStmts goStmt
+    void $ forM postStmts goStmt
 
     -- Once context is finalized, reading can finish.
     -- Wait for reading to finish to that the output accumulator is
