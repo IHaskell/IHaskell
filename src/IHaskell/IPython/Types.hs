@@ -394,6 +394,7 @@ data MimeType = PlainText
               | MimeJpg Width Height
               | MimeSvg
               | MimeLatex
+              | MimeJavascript
               deriving (Eq, Typeable, Generic)
 
 -- Extract the plain text from a list of displays.
@@ -412,3 +413,4 @@ instance Show MimeType where
   show (MimeJpg _ _)   = "image/jpeg"
   show MimeSvg   = "image/svg+xml"
   show MimeLatex = "text/latex"
+  show MimeJavascript = "application/javascript"

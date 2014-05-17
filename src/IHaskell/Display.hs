@@ -2,7 +2,7 @@
 module IHaskell.Display (
   IHaskellDisplay(..),
   IHaskellWidget(..),
-  plain, html, png, jpg, svg, latex,
+  plain, html, png, jpg, svg, latex, javascript, many,
   serializeDisplay,
   Width, Height, Base64(..),
   encode64, base64,
@@ -69,13 +69,17 @@ plain = DisplayData PlainText . pack . rstrip
 html :: String -> DisplayData
 html = DisplayData MimeHtml . pack
 
--- | Genreate an SVG display.
+-- | Generate an SVG display.
 svg :: String -> DisplayData
 svg = DisplayData MimeSvg . pack
 
--- | Genreate a LaTeX display.
+-- | Generate a LaTeX display.
 latex :: String -> DisplayData
 latex = DisplayData MimeLatex . pack
+
+-- | Generate a Javascript display.
+javascript :: String -> DisplayData
+javascript = DisplayData MimeJavascript . pack
 
 -- | Generate a PNG display of the given width and height. Data must be
 -- provided in a Base64 encoded manner, suitable for embedding into HTML.

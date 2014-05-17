@@ -6,19 +6,20 @@ import System.Random
 import Data.String.Here
 import Data.HashMap.Strict as Map
 
-import Text.Parsec
-import Text.Parsec.Prim
-import Text.Parsec.String
-import Text.Parsec.Error
+import Text.Parsec (parse, sourceLine, sourceColumn)
+--import Text.Parsec.Prim (Parser)
+import Text.Parsec.String (Parser)
+import Text.Parsec.Error (errorPos, ParseError)
 
 import Data.Aeson
 
 import IHaskell.Display
 
 instance Show a => IHaskellDisplay (Parser a) where
-  display renderable = return $ Display [html dom]
+  display renderable = return $ many [Display [javascript js], Display [html dom]]
     where 
       dom = [hereFile|widget.html|]
+      js = [hereFile|widget.js|]
 
 -- | Text to parse.
 data ParseText = ParseText String
