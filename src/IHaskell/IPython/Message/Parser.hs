@@ -4,7 +4,7 @@
 -- This module is responsible for converting from low-level ByteStrings
 -- obtained from the 0MQ sockets into Messages. The only exposed function is
 -- `parseMessage`, which should only be used in the low-level 0MQ interface.
-module IPython.Message.Parser (parseMessage) where
+module IHaskell.IPython.Message.Parser (parseMessage) where
 
 import            Data.Aeson            ((.:), decode, Result(..), Object)
 import            Control.Applicative   ((<|>))
@@ -15,7 +15,7 @@ import            Data.Text             (Text)
 
 import qualified  Data.ByteString.Lazy as Lazy
 
-import IPython.Types
+import IHaskell.IPython.Types
 
 type LByteString = Lazy.ByteString
 

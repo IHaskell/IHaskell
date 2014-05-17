@@ -41,7 +41,7 @@ import            Data.Aeson                      (Value)
 import            Text.Read                       as Read hiding (pfail, String)
 import            Text.ParserCombinators.ReadP
 
-import IPython.Kernel
+import IHaskell.IPython.Kernel
 
 data ViewFormat
      = Pdf

@@ -27,11 +27,11 @@ import            IHaskell.Eval.Info
 import            IHaskell.Flags
 import            IHaskell.IPython
 import            IHaskell.Types
-import            IPython.ZeroMQ
-import            IPython.Types
+import            IHaskell.IPython.ZeroMQ
+import            IHaskell.IPython.Types
 import qualified  Data.ByteString.Char8     as Chars
-import qualified  IPython.Message.UUID      as UUID
-import qualified  IPython.Stdin             as Stdin
+import qualified  IHaskell.IPython.Message.UUID      as UUID
+import qualified  IHaskell.IPython.Stdin             as Stdin
 
 -- GHC API imports.
 import GHC        hiding (extensions, language)

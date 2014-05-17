@@ -1,7 +1,7 @@
 -- | Description : UUID generator and data structure
 --
 -- Generate, parse, and pretty print UUIDs for use with IPython.
-module IPython.Message.UUID (
+module IHaskell.IPython.Message.UUID (
   UUID,
   random, randoms,
   ) where

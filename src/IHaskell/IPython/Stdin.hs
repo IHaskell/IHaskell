@@ -28,7 +28,7 @@
 -- and @recordKernelProfile@. Note that if this is being used from within
 -- the GHC API, @fixStdin@ /must/ be called from within the GHC session
 -- not from the host code.
-module IPython.Stdin (
+module IHaskell.IPython.Stdin (
   fixStdin,
   recordParentHeader,
   recordKernelProfile
@@ -45,9 +45,9 @@ import            System.Posix.IO
 import            System.IO.Unsafe
 import qualified  Data.Map                    as Map
 
-import            IPython.Types
-import            IPython.ZeroMQ
-import            IPython.Message.UUID       as UUID
+import            IHaskell.IPython.Types
+import            IHaskell.IPython.ZeroMQ
+import            IHaskell.IPython.Message.UUID       as UUID
 
 stdinInterface :: MVar ZeroMQStdin
 {-# NOINLINE stdinInterface #-}

@@ -70,7 +70,7 @@ import IHaskell.Display
 import qualified IHaskell.Eval.Hoogle as Hoogle
 import IHaskell.Eval.Util
 import IHaskell.BrokenPackages
-import qualified  IPython.Message.UUID      as UUID
+import qualified  IHaskell.IPython.Message.UUID      as UUID
 
 import Paths_ihaskell (version)
 import Data.Version (versionBranch)

@@ -2,7 +2,7 @@
 -- | Description : @ToJSON@ for Messages
 --
 -- This module contains the @ToJSON@ instance for @Message@.
-module IPython.Message.Writer (
+module IHaskell.IPython.Message.Writer (
   ToJSON(..)
 )  where
 
@@ -15,7 +15,7 @@ import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString as B
 import Data.Text.Encoding
 
-import IPython.Types
+import IHaskell.IPython.Types
 
 -- Convert message bodies into JSON.
 instance ToJSON Message where

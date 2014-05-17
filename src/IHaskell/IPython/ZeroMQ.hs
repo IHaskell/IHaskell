@@ -4,7 +4,7 @@
 -- The "ZeroMQ" module abstracts away the low-level 0MQ based interface with IPython,
 -- replacing it instead with a Haskell Channel based interface. The `serveProfile` function
 -- takes a IPython profile specification and returns the channel interface to use.
-module IPython.ZeroMQ (
+module IHaskell.IPython.ZeroMQ (
   ZeroMQInterface (..),
   ZeroMQStdin(..),
   serveProfile,
@@ -19,9 +19,9 @@ import            System.IO.Unsafe
 import            Data.Aeson            (encode)
 import            System.ZMQ4           hiding (stdin)
 
-import IPython.Types
-import IPython.Message.Parser
-import IPython.Message.Writer
+import IHaskell.IPython.Types
+import IHaskell.IPython.Message.Parser
+import IHaskell.IPython.Message.Writer
 
 -- | The channel interface to the ZeroMQ sockets. All communication is done via
 -- Messages, which are encoded and decoded into a lower level form before being

@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings, DeriveDataTypeable, DeriveGeneric #-}
 -- | This module contains all types used to create an IPython language
 -- kernel.
-module IPython.Types (
+module IHaskell.IPython.Types (
   -- * IPython kernel profile
   Profile(..),
   Transport(..),
@@ -34,7 +34,7 @@ import qualified  Data.Text                   as Text
 import qualified  Data.Text.Encoding          as Text
 import            Data.Text                   (Text)
 import            Data.Serialize
-import            IPython.Message.UUID
+import            IHaskell.IPython.Message.UUID
 import            GHC.Generics                (Generic)
 import            Data.Typeable
 import            Data.List                   (find)
