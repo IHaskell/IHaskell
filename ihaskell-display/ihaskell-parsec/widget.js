@@ -7,6 +7,8 @@ if (initialized && window.parsecWidgetRegistered === undefined) {
 // Do not load this script again.
 window.parsecWidgetRegistered = true;
 
+var parsecWidgetCounter = 0;
+
 // Register the comm target.
 var ParsecWidget = function (comm) {
     this.comm = comm;
@@ -47,6 +49,10 @@ var ParsecWidget = function (comm) {
     var out = this.cell.output_area.element;
     this.textarea = out.find("#parsec-editor")[0];
     this.output = out.find("#parsec-output")[0];
+    // Give the elements a different name.
+    this.textarea.id += parsecWidgetCounter;
+    this.output.id += parsecWidgetCounter;
+    parsecWidgetCounter++;
 
     var editor = CodeMirror.fromTextArea(this.textarea, options);
     var editor = editor;
@@ -61,14 +67,13 @@ var ParsecWidget = function (comm) {
 ParsecWidget.prototype.handler = function(msg) {
     var data = msg.content.data;
     this.hasError = data["status"] == "error";
+    console.log('handler', msg);
     if (this.hasError) {
-        out = data["msg"];
+        this.output.innerHTML = data["msg"];
         this.error = data;
     } else {
-        out = data["result"];
+        this.output.innerHTML = data["result"];
     }
-    // Update viewed output.
-    this.output.innerHTML = out;
 };
 
 // Register this widget.

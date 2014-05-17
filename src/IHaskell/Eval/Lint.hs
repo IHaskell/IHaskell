@@ -56,13 +56,13 @@ lintIdent = "lintIdentAEjlkQeh"
 lint :: [Located CodeBlock] -> IO Display
 lint blocks = do
   -- Initialize hlint settings
-  initialized <- isEmptyMVar hlintSettings
-  when (not initialized) $ autoSettings >>= putMVar hlintSettings
+  initialized <- not <$> isEmptyMVar hlintSettings
+  when (not initialized) $ do
+    autoSettings >>= putMVar hlintSettings
 
   -- Get hlint settings
   (flags, classify, hint) <- readMVar hlintSettings
   let mode = hseFlags flags
-
 
   -- create 'suggestions'
   let modules = mapMaybe (createModule mode) blocks
