@@ -480,11 +480,8 @@ evalCommand _ (Directive LoadFile name) state = wrapExecution state $ do
   let filename = if endswith ".hs" name
                  then name
                  else name ++ ".hs"
-  let modName =  replace "/" "."  $
-                   if endswith ".hs" name
-                   then replace ".hs" "" name
-                   else name
-
+  contents <- readFile $ fpFromString filename
+  modName <- intercalate "." <$> getModuleName contents
   doLoadModule filename modName
 
 evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $ liftIO $
@@ -920,43 +917,56 @@ readChars handle delims nchars = do
 
 
 doLoadModule :: String -> String -> Ghc Display
-doLoadModule name modName = flip gcatch unload $ do
-  -- Compile loaded modules.
-  flags <- getSessionDynFlags
-  let objTarget = defaultObjectTarget
-  setSessionDynFlags flags{ hscTarget = objTarget }
-
+doLoadModule name modName = do
   -- Remember which modules we've loaded before.
   importedModules <- getContext
 
-  -- Create a new target
-  target <- guessTarget name Nothing
-  addTarget target
-  result <- load LoadAllTargets
+  flip gcatch (unload importedModules) $ do
+    -- Compile loaded modules.
+    flags <- getSessionDynFlags
+    let objTarget = defaultObjectTarget
+    setSessionDynFlags flags{ hscTarget = objTarget }
 
-  -- Reset the context, since loading things screws it up.
-  initializeItVariable
+    -- Clear old targets to be sure.
+    setTargets []
+    load LoadAllTargets
 
-  -- Add imports
-  importDecl <- parseImportDecl $ "import " ++ modName
-  let implicitImport = importDecl { ideclImplicit = True }
-  setContext $ IIDecl implicitImport : importedModules
+    -- Load the new target.
+    target <- guessTarget name Nothing
+    addTarget target
+    result <- load LoadAllTargets
 
-  -- Switch back to interpreted mode.
-  flags <- getSessionDynFlags
-  setSessionDynFlags flags{ hscTarget = HscInterpreted }
+    -- Reset the context, since loading things screws it up.
+    initializeItVariable
 
-  case result of
-    Succeeded -> return mempty
-    Failed -> return $ displayError $ "Failed to load module " ++ modName
+    -- Add imports
+    importDecl <- parseImportDecl $ "import " ++ modName
+    let implicitImport = importDecl { ideclImplicit = True }
+    setContext $ IIDecl implicitImport : importedModules
+
+    -- Switch back to interpreted mode.
+    flags <- getSessionDynFlags
+    setSessionDynFlags flags{ hscTarget = HscInterpreted }
+
+    case result of
+      Succeeded -> return mempty
+      Failed -> return $ displayError $ "Failed to load module " ++ modName
   where
-    unload :: SomeException -> Ghc Display
-    unload exception = do
+    unload :: [InteractiveImport] -> SomeException -> Ghc Display
+    unload imported exception = do
+      print $ show exception
       -- Explicitly clear targets
       setTargets []
       load LoadAllTargets
 
+      -- Switch to interpreted mode!
+      flags <- getSessionDynFlags
+      setSessionDynFlags flags{ hscTarget = HscInterpreted }
+
+      -- Return to old context, make sure we have `it`.
+      setContext imported
       initializeItVariable
+
       return $ displayError $ "Failed to load module " ++ modName ++ ": " ++ show exception
 
 keepingItVariable :: Interpreter a -> Interpreter a
