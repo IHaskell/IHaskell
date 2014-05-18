@@ -12,6 +12,7 @@ import System.Directory
 import Shelly (Sh, shelly, cmd, (</>), toTextIgnore, cd, withTmpDir, mkdir_p,
   touchfile)
 import qualified Shelly
+import Control.Applicative ((<$>))
 import Filesystem.Path.CurrentOS (encodeString)
 import System.SetEnv (setEnv)
 import Data.String.Here
@@ -33,6 +34,8 @@ import Test.Hspec
 import Test.Hspec.HUnit
 import Test.HUnit (assertBool, assertFailure)
 
+traceShowId x = traceShow x x 
+
 doGhc = runGhc (Just libdir)
 
 parses str = do
@@ -50,7 +53,7 @@ eval string = do
   pagerAccum <- newIORef []
   let publish evalResult = case evalResult of
         IntermediateResult {} -> return ()
-        FinalResult outs page -> do
+        FinalResult outs page [] -> do
           modifyIORef outputAccum (outs :)
           modifyIORef pagerAccum (page :)
 
@@ -78,7 +81,7 @@ becomes string expected = evaluationComparing comparison string
         expectationFailure $ "Expected result to have " ++ show (length expected)
                              ++ " results. Got " ++ show results
 
-      forM_ (zip results expected) $ \(Display result, expected) ->
+      forM_ (zip results expected) $ \(ManyDisplay [Display result], expected) ->
         case extractPlain result  of
           "" -> expectationFailure $ "No plain-text output in " ++ show result ++ "\nExpected: " ++ expected
           str -> str `shouldBe` expected
@@ -99,8 +102,7 @@ completes string expected = completionTarget newString cursorloc `shouldBe` expe
   where (newString, cursorloc) = readCompletePrompt string
 
 completionEvent :: String -> Interpreter (String, [String])
-completionEvent string  =  do
-      complete newString cursorloc
+completionEvent string = complete newString cursorloc
   where (newString, cursorloc) = case elemIndex '*' string of
           Nothing -> error "Expected cursor written as '*'."
           Just idx -> (replace "*" "" string, idx)      
@@ -111,11 +113,11 @@ completionEventInDirectory string
                           
 
 shouldHaveCompletionsInDirectory :: String -> [String] -> IO ()
-shouldHaveCompletionsInDirectory string expected 
-  = do (matched, completions) <- completionEventInDirectory string  
-       let existsInCompletion = (`elem` completions)
-           unmatched = filter (not . existsInCompletion) expected
-       expected `shouldBeAmong` completions
+shouldHaveCompletionsInDirectory string expected = do 
+  (matched, completions) <- completionEventInDirectory string  
+  let existsInCompletion = (`elem` completions)
+      unmatched = filter (not . existsInCompletion) expected
+  expected `shouldBeAmong` completions
 
 completionHas string expected 
   = do (matched, completions) <- doGhc $ do initCompleter 
@@ -133,6 +135,7 @@ initCompleter  = do
   imports <- mapM parseImportDecl ["import Prelude",
                                    "import qualified Control.Monad",
                                    "import qualified Data.List as List",
+                                   "import IHaskell.Display",
                                    "import Data.Maybe as Maybe"]
   setContext $ map IIDecl imports
 
@@ -147,8 +150,7 @@ inDirectory dirs files action = shelly $ withTmpDir $ \dirPath ->
          mapM_ mkdir_p   dirs
          mapM_ touchfile files
          liftIO $ doGhc $ wrap (encodeString dirPath) (action dirPath)
-      where noPublish = const $ return ()
-            cdEvent path = Eval.evaluate defaultKernelState (":! cd " ++ path) noPublish
+      where cdEvent path = liftIO $ setCurrentDirectory path --Eval.evaluate defaultKernelState (":! cd " ++ path) noPublish
             wrap :: FilePath -> Interpreter a -> Interpreter a
             wrap path action = 
               do initCompleter
@@ -223,7 +225,7 @@ completionTests = do
 
     it "properly completes haskell file paths on :load directive" $
          let loading xs = ":load " ++ encodeString xs
-             paths xs = map encodeString xs
+             paths = map encodeString
          in do 
             loading ("dir" </> "file*") `shouldHaveCompletionsInDirectory` paths ["dir" </> "file2.hs",
                                                                                   "dir" </> "file2.lhs"]
@@ -238,24 +240,27 @@ completionTests = do
                                                                            , "./" </> "file1.hs"
                                                                            , "./" </> "file1.lhs"]
 
-    it "provides path completions on empty shell cmds " $ do 
-      ":! cd *" `shouldHaveCompletionsInDirectory` (map encodeString ["" </> "dir/"
-                                                                      , "" </> "file1.hs"
-                                                                      , "" </> "file1.lhs"])
+    it "provides path completions on empty shell cmds " $
+      ":! cd *" `shouldHaveCompletionsInDirectory` map encodeString ["" </> "dir/"
+                                                                    , "" </> "file1.hs"
+                                                                    , "" </> "file1.lhs"]
 
+    let withHsHome action = withHsDirectory $ \dirPath->  do
+          home <- shelly $ Shelly.get_env_text "HOME"
+          setHomeEvent dirPath
+          result <- action
+          setHomeEvent $ Shelly.fromText home
+          return result
+        setHomeEvent path = liftIO $ setEnv "HOME" (encodeString path)
 
     it "correctly interprets ~ as the environment HOME variable" $ 
         let shouldHaveCompletions :: String -> [String] -> IO ()
             shouldHaveCompletions string expected = do 
-              (matched, completions) 
-                    <- withHsDirectory $ \dirPath -> 
-                           do setHomeEvent dirPath
-                              completionEvent string 
+              (matched, completions) <- withHsHome $ completionEvent string 
               let existsInCompletion = (`elem` completions)
                   unmatched = filter (not . existsInCompletion) expected     
               expected `shouldBeAmong` completions
 
-            setHomeEvent path = liftIO $ setEnv "HOME" (encodeString path)
         in do 
           ":! cd ~/*" `shouldHaveCompletions` ["~/dir/"]
           ":! ~/*" `shouldHaveCompletions` ["~/dir/"]
@@ -264,11 +269,7 @@ completionTests = do
 
     let shouldHaveMatchingText :: String -> String -> IO ()
         shouldHaveMatchingText string expected = do 
-          matchText 
-                <- withHsDirectory $ \dirPath -> 
-                       do setHomeEvent dirPath
-                          (matchText, _) <- uncurry complete (readCompletePrompt string)
-                          return matchText
+          matchText <- withHsHome $ fst <$> uncurry complete (readCompletePrompt string)
           matchText `shouldBe` expected
 
         setHomeEvent path = liftIO $ setEnv "HOME" (encodeString path)
@@ -333,7 +334,8 @@ evalTests = do
       "import Control.Monad (when)" `becomes` []
 
     it "evaluates directives" $ do
-      ":typ 3" `becomes` ["forall a. Num a => a"]
+      ":typ 3" `becomes` ["3 :: forall a. Num a => a"]
+      ":k Maybe" `becomes` ["Maybe :: * -> *"]
       ":in String" `pages` ["type String = [Char] \t-- Defined in `GHC.Base'"]
 
 parserTests = do
