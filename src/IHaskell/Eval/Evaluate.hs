@@ -106,6 +106,7 @@ globalImports :: [String]
 globalImports =
   [ "import IHaskell.Display()"
   , "import qualified Prelude as IHaskellPrelude"
+  , "import qualified System.Directory as IHaskellDirectory"
   , "import qualified IHaskell.Display"
   , "import qualified IHaskell.IPython.Stdin"
   , "import qualified System.Posix.IO as IHaskellIO"
@@ -498,24 +499,32 @@ evalCommand _ (Directive LoadFile name) state = wrapExecution state $ do
   modName <- intercalate "." <$> getModuleName contents
   doLoadModule filename modName
 
-evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $ liftIO $
+evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
   case words cmd of
     "cd":dirs -> do
       -- Get home so we can replace '~` with it.
-      homeEither <- try  $ getEnv "HOME" :: IO (Either SomeException String)
+      homeEither <- liftIO (try $ getEnv "HOME" :: IO (Either SomeException String))
       let home = case homeEither of
                   Left _ -> "~"
                   Right val -> val
 
       let directory = replace "~" home $ unwords dirs
-      exists <- doesDirectoryExist directory
+      exists <- liftIO $ doesDirectoryExist directory
       if exists
       then do
-        setCurrentDirectory directory
+        -- Set the directory in IHaskell native code, for future shell
+        -- commands. This doesn't set it for user code, though.
+        liftIO $ setCurrentDirectory directory
+
+        -- Set the directory for user code.
+        let cmd = printf "IHaskellDirectory.setCurrentDirectory \"%s\"" $
+                  replace " " "\\ " $
+                  replace "\"" "\\\"" directory
+        runStmt cmd RunToCompletion
         return mempty
       else
         return $ displayError $ printf "No such directory: '%s'" directory
-    cmd -> do
+    cmd -> liftIO $ do
       (readEnd, writeEnd) <- createPipe
       handle <- fdToHandle writeEnd
       pipe <- fdToHandle readEnd
