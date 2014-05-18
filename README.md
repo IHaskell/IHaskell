@@ -18,7 +18,7 @@ As well as the IPython browser-based notebook interface:
 
 ![IPython Notebook](https://raw.github.com/gibiansky/IHaskell/master/images/ihaskell-notebook.png)
 
-*More usage information on the [wiki](https://github.com/gibiansky/IHaskell/wiki).*
+# More usage information on the [wiki](https://github.com/gibiansky/IHaskell/wiki).
 
 
 Linux Package Installation
@@ -43,7 +43,9 @@ Source Installation (Mac and Linux)
 
 If you have any trouble with installation or have other questions about IHaskell, feel free to open an issue [on Github](https://github.com/gibiansky/IHaskell/issues?direction=desc&sort=updated&state=open) or join our IRC at #ihaskell on chat.freenode.net.
 
-IHaskell is built on top of IPython, which provides the frontends and the entire infrastructure. By default, IHaskell will create its own virtualenv and install all its own Python dependencies (this happens on the first run). However, if you want to provide your own IPython, you can instead pass IHaskell the `--ipython /path/to/exec/ipython` flag, in which case the installation will not happen and it'll just use the IPython you passed it. You *must* have IPython 2.0, though; older versions will *not* work properly! Installing IPython from Github is recommended, as this is how the automatic installer does it. (Note that since the default install  uses virtualenv, your system must be virtualenv compatibile. Mac users have run into [this issue](http://stackoverflow.com/questions/5904319/problem-with-virtualenv-in-mac-os-x) before, for example.)
+IHaskell is built on top of IPython, which provides the frontends and the entire infrastructure. By default, IHaskell will attempt to use the system IPython installation. If it fails to find one, it will create its own virtualenv and install all its own Python dependencies (this happens on the first run). However, if you want to provide your own IPython to override the automatic behaviour, you can instead pass IHaskell the `--ipython /path/to/exec/ipython` flag, in which case the installation will not happen and it'll just use the IPython you passed it. You *must* have IPython 2.0, though; older versions will *not* work properly!  Installing IPython 2.0 from PyPI is recommended (as this is how the automatic installer does it).
+
+*Note that since the default install  uses virtualenv, your system must be virtualenv compatibile. Mac users have run into [this issue](http://stackoverflow.com/questions/5904319/problem-with-virtualenv-in-mac-os-x) before, for example.*
 
 ZeroMQ
 ---
@@ -95,13 +97,14 @@ export PATH=~/.cabal/bin:$PATH
 export PATH=~/Library/Haskell/bin:$PATH
 ```
 
-If you are using Mac OS X 10.9 (Mavericks) you will need to compile
+Some of the IHaskell packages depend on `cairo`, such as `ihaskell-diagrams`, where `cairo` is used for drawing the displays. If you are using Mac OS X 10.9 (Mavericks) you will need to compile
 cairo with gcc, not clang. This can be done as follows:
 
 ```bash
 brew install gcc48
 cabal install cairo --with-gcc=gcc-4.8
 ```
+Note that this is only necessary if you want to use the `ihaskell-display` packages provided.
 
 Compilation Tools
 ---
