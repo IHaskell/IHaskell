@@ -130,6 +130,12 @@ cabal update # Please do this! IHaskell updates *very* frequently.
 cabal install ihaskell
 ```
 
+If you have trouble with this installation, please make sure to try the Github version first. IHaskell is in rapid development, so Hackage may not always be the most recent. In order to install from Github, pull from the repository, and then install with
+```bash
+./build.sh all
+```
+Note that you should *not* use `cabal install`, as you want to also install dependencies from the Github source, and not Hackage. `build.sh` is a simple included script which manages this for you.
+
 Running IHaskell
 ---
 
