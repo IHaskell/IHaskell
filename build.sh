@@ -25,7 +25,7 @@ rm -rf ~/.ipython/profile_haskell
 # Compile dependencies.
 if [ $# -gt 0 ]; then
   if [ $1 = "all" ]; then
-    INSTALLS="$INSTALLS ghc-parser ghci-lib"
+    INSTALLS="$INSTALLS ghc-parser"
   fi
 fi
 
