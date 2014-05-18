@@ -25,6 +25,7 @@ import Bag
 import ErrUtils hiding (ErrMsg)
 import FastString
 import GHC hiding (Located)
+import GhcMonad
 import Lexer
 import OrdList
 import Outputable hiding ((<>))
@@ -66,7 +67,7 @@ data DirectiveType
   deriving (Show, Eq)
 
 -- | Parse a string into code blocks.
-parseString :: GhcMonad m => String -> m [Located CodeBlock]
+parseString :: String -> Ghc [Located CodeBlock]
 parseString codeString = do
   -- Try to parse this as a single module.
   flags <- getSessionDynFlags
@@ -77,6 +78,7 @@ parseString codeString = do
       -- Split input into chunks based on indentation.
       let chunks = layoutChunks $ removeComments codeString
       result <- joinFunctions <$> processChunks [] chunks
+      liftIO $ print result
 
       -- Return to previous flags. When parsing, flags can be set to make
       -- sure parsing works properly. But we don't want those flags to be
@@ -190,7 +192,10 @@ parseCodeChunk code startLine = do
 -- signature, which is also joined with the subsequent declarations.
 joinFunctions :: [Located CodeBlock] -> [Located CodeBlock]
 joinFunctions [] = []
-joinFunctions blocks = Located lnum (conjoin $ map unloc decls) : joinFunctions rest
+joinFunctions blocks = 
+  if signatureOrDecl $ unloc $ head blocks
+  then Located lnum (conjoin $ map unloc decls) : joinFunctions rest
+  else head blocks : joinFunctions (tail blocks)
   where 
     decls = takeWhile (signatureOrDecl . unloc) blocks
     rest = drop (length decls) blocks
