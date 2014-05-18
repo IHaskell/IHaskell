@@ -105,6 +105,7 @@ instance MonadIO.MonadIO Interpreter where
 globalImports :: [String]
 globalImports =
   [ "import IHaskell.Display()"
+  , "import qualified Prelude as IHaskellPrelude"
   , "import qualified IHaskell.Display"
   , "import qualified IHaskell.IPython.Stdin"
   , "import qualified System.Posix.IO as IHaskellIO"
@@ -409,6 +410,19 @@ evalCommand output (Directive SetDynFlag flags) state =
           let display = case errs of
                 [] -> mempty
                 _ -> displayError $ intercalate "\n" errs
+
+          -- For -XNoImplicitPrelude, remove the Prelude import.
+          -- For -XImplicitPrelude, add it back in.
+          case flag of
+            "-XNoImplicitPrelude" -> 
+              evalImport "import qualified Prelude as Prelude"
+            "-XImplicitPrelude" -> do
+              importDecl <- parseImportDecl "import Prelude"
+              let implicitPrelude = importDecl { ideclImplicit = True }
+              imports <- getContext
+              setContext $ IIDecl implicitPrelude : imports
+            _ -> return ()
+
           return EvalOut {
             evalStatus = Success,
             evalResult = display,
@@ -1005,7 +1019,7 @@ capturedStatement output stmt = do
     -- Variable used to store true `it` value.
     itVariable = var "it_var_"
 
-    voidpf str = printf $ str ++ " >> return ()"
+    voidpf str = printf $ str ++ " IHaskellPrelude.>> IHaskellPrelude.return ()"
 
     -- Statements run before the thing we're evaluating.
     initStmts =
