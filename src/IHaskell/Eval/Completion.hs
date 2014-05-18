@@ -69,14 +69,15 @@ complete line pos = do
       moduleNames = nub $ concatMap getNames db
 
   let target = completionTarget line pos
+      completion = completionType line pos target
 
-  let matchedText = case completionType line pos target of
+  let matchedText = case completion of
         HsFilePath _ match ->  match
         FilePath   _ match ->  match
         otherwise       -> intercalate "." target
 
   options <-
-        case completionType line pos target of
+        case completion of
           Empty -> return []
 
           Identifier candidate ->
@@ -175,10 +176,18 @@ completionType line loc target
   -- If it's empty, no completion.
   | null target
     = Empty
+
+  -- When in a string, complete filenames.
+  | cursorInString line loc 
+    = FilePath (getStringTarget lineUpToCursor) (getStringTarget lineUpToCursor)
+
+  -- Complete module names in imports and elsewhere.
   | startswith "import" stripped && isModName
     = ModuleName dotted candidate
   | isModName && (not . null . init) target
     = Qualified dotted candidate
+
+  -- Default to completing identifiers.
   | otherwise
     = Identifier candidate
   where stripped = strip line
@@ -196,6 +205,26 @@ completionType line loc target
                        else []
           Left  _  -> Empty
 
+        cursorInString str loc = nquotes (take loc str) `mod` 2 /= 0
+
+        nquotes ('\\':'"':xs) = nquotes xs
+        nquotes ('"':xs) = 1 + nquotes xs
+        nquotes (_:xs) = nquotes xs
+        nquotes [] = 0
+
+        -- Get the bit of a string that might be a filename completion.
+        -- Logic is a bit convoluted, but basically go backwards from the
+        -- end, stopping at any quote or space, unless they are escaped.
+        getStringTarget :: String -> String
+        getStringTarget = go "" . reverse
+          where
+            go acc rest = case rest of
+              '"':'\\':rem -> go ('"':acc) rem
+              '"':rem ->  acc
+              ' ':'\\':rem -> go (' ':acc) rem
+              ' ':rem ->  acc
+              x:rem -> go (x:acc) rem
+              [] ->  acc
 
 -- | Get the word under a given cursor location.
 completionTarget :: String -> Int -> [String]
