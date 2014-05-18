@@ -1,18 +1,40 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings, FlexibleInstances #-}
+
+-- | If you are interested in the IHaskell library for the purpose of
+-- augmenting the IHaskell notebook or writing your own display mechanisms
+-- and widgets, this module contains all functions you need. 
+--
+-- In order to create a display mechanism for a particular data type, write
+-- a module named (for example) @IHaskell.Display.YourThing@ in a package named @ihaskell-yourThing@.
+-- (Note the capitalization - it's important!) Then, in that module, add an
+-- instance of @IHaskellDisplay@ for your data type. Similarly, to create
+-- a widget, add an instance of @IHaskellWidget@. 
+--
+-- An example of creating a display is provided in the <http://gibiansky.github.io/IHaskell/demo.html demo notebook>.
+--
 module IHaskell.Display (
+  -- * Rich display and interactive display typeclasses and types
   IHaskellDisplay(..),
-  IHaskellWidget(..),
-  plain, html, png, jpg, svg, latex, javascript, many,
-  serializeDisplay,
-  Width, Height, Base64(..),
-  encode64, base64,
   Display(..),
   DisplayData(..),
+  IHaskellWidget(..),
+
+  -- ** Interactive use functions
   printDisplay,
+
+  -- * Constructors for displays
+  plain, html, png, jpg, svg, latex, javascript, many,
+
+  -- ** Image and data encoding functions
+  Width, Height, Base64(..),
+  encode64, base64,
+
+  -- ** Utilities
   switchToTmpDir,
 
-  -- Internal only use
+  -- * Internal only use
   displayFromChan,
+  serializeDisplay,
   Widget(..),
   ) where
 
@@ -25,7 +47,6 @@ import qualified Data.ByteString.Char8 as Char
 import Data.Aeson (Value)
 
 import System.Directory(getTemporaryDirectory, setCurrentDirectory)
-
 
 import Control.Concurrent.STM.TChan
 import System.IO.Unsafe (unsafePerformIO)

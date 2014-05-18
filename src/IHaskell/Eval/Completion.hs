@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings, DoAndIfThenElse #-}
 {- |
-Description : Generates tab completion options.
+Description:    Generates tab completion options.
 
 This has a limited amount of context sensitivity. It distinguishes between four contexts at the moment:
 - import statements (completed using modules)

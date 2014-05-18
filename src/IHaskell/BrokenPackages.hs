@@ -19,6 +19,9 @@ data BrokenPackage = BrokenPackage {
 instance Show BrokenPackage where
   show = packageID
 
+-- | Get a list of broken packages.
+-- This function internally shells out to `ghc-pkg`, and parses the output
+-- in order to determine what packages are broken.
 getBrokenPackages :: IO [String]
 getBrokenPackages = shelly $ do
   silently $ errExit False $ run "ghc-pkg" ["check"]
