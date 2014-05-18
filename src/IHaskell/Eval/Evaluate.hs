@@ -75,9 +75,6 @@ import qualified  IHaskell.IPython.Message.UUID      as UUID
 import Paths_ihaskell (version)
 import Data.Version (versionBranch)
 
-import Language.Haskell.GHC.Interpret
-import Language.Haskell.GHC.Util
-
 data ErrorOccurred = Success | Failure deriving (Show, Eq)
 
 debug :: Bool
