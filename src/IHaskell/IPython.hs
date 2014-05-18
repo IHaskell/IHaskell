@@ -45,6 +45,16 @@ data WhichIPython
 ipythonProfile :: String
 ipythonProfile = "haskell"
 
+-- | The current IPython profile version.
+-- This must be the same as the file in the profile.tar.
+-- The filename used is @profileVersionFile@.
+profileVersion :: String
+profileVersion = "0.3.0.5"
+
+-- | Filename in the profile where the version ins kept.
+profileVersionFile :: FilePath
+profileVersionFile = ".profile_version"
+
 -- | Run IPython with any arguments.
 ipython :: WhichIPython -- ^ Which IPython to use (user-provided or IHaskell-installed).
         -> Bool         -- ^ Whether to suppress output.
@@ -229,12 +239,13 @@ runIHaskell which profile app args = void $ do
   errExit False $ ipython which True ["locate", "profile", pack profile]
 
   -- If the profile doesn't exist, create it.
-  -- We have an ugly hack that removes the profile whenever the IPython
-  -- version is updated. This means profiles get updated with IPython.
   exitCode <- lastExitCode
-  when (exitCode /= 0) $ liftIO $ do
+  if exitCode /= 0
+  then liftIO $ do
     putStrLn "Creating IPython profile."
     setupIPythonProfile which profile
+  -- If the profile exists, update it if necessary.
+  else updateIPythonProfile which profile
 
   -- Run the IHaskell command.
   ipython which False $ map pack $ [app, "--profile", profile] ++ args
@@ -280,18 +291,29 @@ setupIPythonProfile which profile = shelly $ do
   liftIO $ copyProfile profileDir
   insertIHaskellPath profileDir
 
-removeIPythonProfile :: WhichIPython -> String -> Sh ()
-removeIPythonProfile which profile = do
-  -- Try to locate the profile. Do not die if it doesn't exist.
-  errExit False $ ipython which True ["locate", "profile", pack profile]
-
-  -- If the profile exists, delete it.
+-- | Update the IPython profile.
+updateIPythonProfile :: WhichIPython
+                     -> String -- ^ IHaskell profile name.
+                     -> Sh ()
+updateIPythonProfile which profile = do
+  -- Find out whether the profile exists.
+  dir <- pack <$> rstrip <$> errExit False (ipython which True ["locate", "profile", pack profile])
   exitCode <- lastExitCode
-  dir <- pack <$> rstrip <$> ipython which True ["locate"]
-  when (exitCode == 0 && dir /= "") $ do
+  updated <- if exitCode == 0 && dir /= ""
+            then do
+              let versionFile = fpFromText dir </> profileVersionFile
+              fileExists <- test_f versionFile
+              if not fileExists
+              then return False
+              else liftIO $ do
+                contents <- StrictIO.readFile $ fpToString versionFile
+                return $ strip contents == profileVersion
+            else return False
+
+  when (not updated) $ do
     putStrLn "Updating IPython profile."
-    let profileDir = dir ++ "/profile_" ++ pack profile ++ "/"
-    rm_rf $ fromText profileDir
+    liftIO $ copyProfile dir
+    insertIHaskellPath $ dir ++ "/"
 
 -- | Copy the profile files into the IPython profile. 
 copyProfile :: Text -> IO ()

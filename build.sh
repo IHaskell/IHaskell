@@ -16,7 +16,7 @@ INSTALLS=""
 # Make the profile
 cd profile
 rm -f profile.tar
-tar -cvf profile.tar *
+tar -cvf profile.tar * .profile_version
 cd ..
 
 # Remove my profile
