@@ -218,6 +218,14 @@ joinFunctions (Located line (TypeSignature sig) : Located dl (Declaration decl) 
   Located line (Declaration $ sig ++ "\n" ++ joinedDecl):remaining
   where Located _ (Declaration joinedDecl):remaining = joinFunctions $ Located dl (Declaration decl) : rest
 
+-- Also allow two type signatures. This is necessary for operator
+-- declarations in which you have a fixity declaration.
+joinFunctions (Located line (TypeSignature sig) :
+               Located _ (TypeSignature sig')   :
+               Located dl (Declaration decl)    : rest) =
+  Located line (Declaration $ intercalate "\n" [sig, sig', joinedDecl]):remaining
+  where Located _ (Declaration joinedDecl):remaining = joinFunctions $ Located dl (Declaration decl) : rest
+
 joinFunctions (x:xs) = x : joinFunctions xs
 joinFunctions [] = []
 
