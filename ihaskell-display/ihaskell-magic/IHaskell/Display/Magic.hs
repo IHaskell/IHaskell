@@ -14,7 +14,7 @@ import Data.Char
 
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
-import IPython.Types (MimeType(MimeSvg))
+import IHaskell.IPython.Types (MimeType(MimeSvg))
 import Data.ByteString.UTF8
 
 instance IHaskellDisplay T.Text where

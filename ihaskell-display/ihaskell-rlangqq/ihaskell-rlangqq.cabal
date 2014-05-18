@@ -20,7 +20,7 @@ library
                        base64-bytestring >=1.0 && <1.1,
                        ihaskell >=0.3 && <0.4,
                        ihaskell-blaze >=0.1 && <0.2,
-                       blaze-html >=0.6 && <0.7,
+                       blaze-html >=0.6 && <0.8,
                        split >=0.2 && <0.3,
                        stm   -any,
                        xformat >=0.1 && <0.2,
