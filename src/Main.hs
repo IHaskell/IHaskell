@@ -164,14 +164,14 @@ runKernel profileSrc initInfo = do
     -- running some code.
     let extLines = map (":extension " ++) $ extensions initInfo
         noPublish _ = return ()
-        evaluator line = do
+        evaluator line = void $ do
           -- Create a new state each time.
           stateVar <- liftIO initialKernelState
           state <- liftIO $ takeMVar stateVar
           evaluate state line noPublish
 
-    mapM evaluator extLines
-    mapM evaluator $ initCells initInfo
+    mapM_ evaluator extLines
+    mapM_ evaluator $ initCells initInfo
 
     forever $ do
       -- Read the request from the request channel.
@@ -335,8 +335,9 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
           -- If this has some pager output, store it for later.
           let pager = pagerOut result
           unless (null pager) $
-            modifyMVar_ pagerOutput (return . (++ pager ++ "\n"))
-            
+            if usePager state
+            then modifyMVar_ pagerOutput (return . (++ pager ++ "\n"))
+            else sendOutput $ Display [html pager]
 
   let execCount = getExecutionCounter state
   -- Let all frontends know the execution count and code that's about to run
@@ -350,7 +351,10 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
   idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
   send $ PublishStatus idleHeader Idle
 
-  pager <- liftIO $ readMVar pagerOutput
+  -- Take pager output if we're using the pager.
+  pager <- if usePager state
+          then liftIO $ readMVar pagerOutput
+          else return ""
   return (updatedState, ExecuteReply {
     header = replyHeader,
     pagerOutput = pager,

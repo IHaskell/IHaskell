@@ -78,7 +78,6 @@ parseString codeString = do
       -- Split input into chunks based on indentation.
       let chunks = layoutChunks $ removeComments codeString
       result <- joinFunctions <$> processChunks [] chunks
-      liftIO $ print result
 
       -- Return to previous flags. When parsing, flags can be set to make
       -- sure parsing works properly. But we don't want those flags to be

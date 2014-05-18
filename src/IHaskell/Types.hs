@@ -148,6 +148,7 @@ data KernelState = KernelState
     useSvg :: Bool,
     useShowErrors :: Bool,
     useShowTypes :: Bool,
+    usePager :: Bool,
     openComms :: Map UUID Widget
   }
   deriving Show
@@ -160,6 +161,7 @@ defaultKernelState = KernelState
     useSvg = True,
     useShowErrors = False,
     useShowTypes = False,
+    usePager = True,
     openComms = empty
   }
 
@@ -185,6 +187,8 @@ kernelOpts =
   , KernelOpt ["no-show-types"]  ["-t"] $ \state -> state { useShowTypes  = False }
   , KernelOpt ["show-errors"]    []     $ \state -> state { useShowErrors = True }
   , KernelOpt ["no-show-errors"] []     $ \state -> state { useShowErrors = False }
+  , KernelOpt ["pager"]          []     $ \state -> state { usePager = True }
+  , KernelOpt ["no-pager"]       []     $ \state -> state { usePager = False }
   ]
 
 -- | Initialization information for the kernel.

@@ -201,10 +201,9 @@ htmlSuggestions = concatMap toHtml
 
 
 showSuggestion :: String -> String
-showSuggestion = removeSplices . remove lintIdent .  dropDo
+showSuggestion = remove lintIdent .  dropDo
   where
     remove str = replace str ""
-    removeSplices = id
 
     -- Drop leading '  do ', and blank spaces following.
     dropDo :: String -> String
