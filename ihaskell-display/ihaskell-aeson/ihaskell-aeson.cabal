@@ -63,7 +63,7 @@ library
                        aeson >= 0.7,
                        aeson-pretty >= 0.7,
                        chunked-data >=0.1,
-                       ihaskell >= 0.3
+                       ihaskell >= 0.4
   
   -- Directories containing source files.
   -- hs-source-dirs:      

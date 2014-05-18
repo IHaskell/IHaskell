@@ -63,7 +63,7 @@ library
   -- Other library packages from which modules are imported.
   build-depends:       base ==4.6.*,
                        classy-prelude >=0.6,
-                       ihaskell >= 0.3
+                       ihaskell >= 0.4
   
   -- Directories containing source files.
   -- hs-source-dirs:      

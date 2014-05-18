@@ -65,7 +65,7 @@ library
                        directory,
                        Chart,
                        Chart-cairo,
-                       ihaskell >= 0.3
+                       ihaskell >= 0.4
   
   -- Directories containing source files.
   -- hs-source-dirs:      

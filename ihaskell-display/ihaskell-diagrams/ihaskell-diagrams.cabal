@@ -66,7 +66,7 @@ library
                        diagrams==1.1.*,
                        diagrams-lib,
                        diagrams-cairo,
-                       ihaskell >= 0.3
+                       ihaskell >= 0.4
   
   -- Directories containing source files.
   -- hs-source-dirs:      

@@ -65,7 +65,7 @@ library
                        classy-prelude >=0.6,
                        blaze-html >= 0.6,
                        blaze-markup >= 0.5,
-                       ihaskell >= 0.3
+                       ihaskell >= 0.4
   
   -- Directories containing source files.
   -- hs-source-dirs:      

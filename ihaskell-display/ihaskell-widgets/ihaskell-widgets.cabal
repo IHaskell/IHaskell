@@ -62,7 +62,7 @@ library
                        aeson ==0.7.*,
                        classy-prelude,
                        here,
-                       ihaskell >= 0.3
+                       ihaskell >= 0.4
   
   -- Directories containing source files.
   -- hs-source-dirs:      
