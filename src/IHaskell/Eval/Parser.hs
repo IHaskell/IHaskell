@@ -189,46 +189,23 @@ parseCodeChunk code startLine = do
 -- a single declaration. These declarations may also include a type
 -- signature, which is also joined with the subsequent declarations.
 joinFunctions :: [Located CodeBlock] -> [Located CodeBlock]
-joinFunctions (Located line (Declaration decl) : rest) =
-    -- Find all declarations having the same name as this one.
-    let (decls, other) = havingSameName rest in
-      -- Convert them into a single declaration.
-      Located line (Declaration (joinLines $ map (undecl . unloc) decls)) : joinFunctions other
-  where
-    undecl (Declaration decl) = decl
-    undecl _ = error "Expected declaration!"
-
-    -- Get all declarations with the same name as the first declaration.
-    -- The name of a declaration is the first word, which we expect to be
-    -- the name of the function.
-    havingSameName :: [Located CodeBlock] -> ([Located CodeBlock], [Located CodeBlock])
-    havingSameName blocks =
-      let name = head $ words decl
-          sameName = takeWhile (isNamedDecl name) rest
-          others = drop (length sameName) rest in
-        (Located line (Declaration decl) : sameName, others)
-
-    isNamedDecl :: String -> Located CodeBlock -> Bool
-    isNamedDecl name (Located _ (Declaration dec)) = head (words dec) == name
-    isNamedDecl _ _ = False
-
--- Allow a type signature followed by declarations to be joined to the
--- declarations. Parse the declaration joining separately.
-joinFunctions (Located line (TypeSignature sig) : Located dl (Declaration decl) : rest) =
-  Located line (Declaration $ sig ++ "\n" ++ joinedDecl):remaining
-  where Located _ (Declaration joinedDecl):remaining = joinFunctions $ Located dl (Declaration decl) : rest
-
--- Also allow two type signatures. This is necessary for operator
--- declarations in which you have a fixity declaration.
-joinFunctions (Located line (TypeSignature sig) :
-               Located _ (TypeSignature sig')   :
-               Located dl (Declaration decl)    : rest) =
-  Located line (Declaration $ intercalate "\n" [sig, sig', joinedDecl]):remaining
-  where Located _ (Declaration joinedDecl):remaining = joinFunctions $ Located dl (Declaration decl) : rest
-
-joinFunctions (x:xs) = x : joinFunctions xs
 joinFunctions [] = []
+joinFunctions blocks = Located lnum (conjoin $ map unloc decls) : joinFunctions rest
+  where 
+    decls = takeWhile (signatureOrDecl . unloc) blocks
+    rest = drop (length decls) blocks
+    lnum = line $ head decls
 
+    signatureOrDecl (Declaration _) = True
+    signatureOrDecl (TypeSignature _) = True
+    signatureOrDecl _ = False
+
+    str (Declaration s) = s
+    str (TypeSignature s) = s
+    str _ = error "Expected declaration or signature"
+
+    conjoin :: [CodeBlock] -> CodeBlock
+    conjoin = Declaration . intercalate "\n" . map str
 
 -- | Parse a directive of the form :directiveName.
 parseDirective :: String       -- ^ Directive string.
