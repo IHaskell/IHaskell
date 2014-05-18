@@ -62,6 +62,7 @@ data DirectiveType
   | GetHelp         -- ^ General help via ':?' or ':help'.
   | SearchHoogle    -- ^ Search for something via Hoogle.
   | GetDoc          -- ^ Get documentation for an identifier via Hoogle.
+  | GetKind         -- ^ Get the kind of a type via ':kind'.
   deriving (Show, Eq)
 
 -- | Parse a string into code blocks.
@@ -242,6 +243,7 @@ parseDirective (':':directive) line = case find rightDirective directives of
       dir:_ -> dir `elem` tail (inits dirname)
     directives =
       [ (GetType,      "type")
+      , (GetKind,      "kind")
       , (GetInfo,      "info")
       , (SearchHoogle, "hoogle")
       , (GetDoc,       "documentation")

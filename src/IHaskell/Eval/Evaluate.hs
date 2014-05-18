@@ -465,7 +465,14 @@ evalCommand a (Directive SetOption opts) state = do
 
 evalCommand _ (Directive GetType expr) state = wrapExecution state $ do
   write $ "Type: " ++ expr
-  formatType <$> getType expr
+  formatType <$> ((expr ++ " :: ") ++ ) <$> getType expr
+
+evalCommand _ (Directive GetKind expr) state = wrapExecution state $ do
+  write $ "Kind: " ++ expr
+  (_, kind) <- GHC.typeKind False expr
+  flags <- getSessionDynFlags
+  let typeStr = showSDocUnqual flags $ ppr kind
+  return $ formatType $ expr ++ " :: " ++ typeStr
 
 evalCommand _ (Directive LoadFile name) state = wrapExecution state $ do
   write $ "Load: " ++ name
