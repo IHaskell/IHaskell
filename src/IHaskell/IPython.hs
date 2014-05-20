@@ -183,7 +183,8 @@ setupIPython DefaultIPython = do
       case parseVersion output of
         Just (2:_) -> putStrLn "Using system-wide IPython."
         Just (1:_) -> badIPython "Detected old version of IPython. IHaskell requires 2.0.0 or up."
-        Nothing -> badIPython "Detected IPython, but could not parse version number."
+        Just (0:_) -> badIPython "Detected old version of IPython. IHaskell requires 2.0.0 or up."
+        _ -> badIPython "Detected IPython, but could not parse version number."
 
     badIPython :: Text -> IO ()
     badIPython reason = void $ do
