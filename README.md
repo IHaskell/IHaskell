@@ -127,8 +127,9 @@ IHaskell Installation
 Install the IHaskell package from Hackage:
 ```bash
 cabal update # Please do this! IHaskell updates *very* frequently.
-cabal install ihaskell
+cabal install ihaskell --reorder-goals
 ```
+The `--reorder-goals` flag is necessary due to a bug in `cabal-install`. The `--solver=topdown` also seems to do the trick.
 
 If you have trouble with this installation, please make sure to try the Github version first. IHaskell is in rapid development, so Hackage may not always be the most recent. In order to install from Github, pull from the repository, and then install with
 ```bash
