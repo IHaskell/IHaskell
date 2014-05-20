@@ -146,6 +146,23 @@ IHaskell notebook # Should open a browser window!
 IHaskell console
 ```
 
+#### Gotchas
+
+These are simply some problems have had and solutions to them.
+
+**Problem**: You have Anaconda or Enthought or some other python distribution, and for unknown reasons IHaskell just hangs after the first input.
+
+**Solution**: Anaconda and Enthought cause problems. Get rid of them.
+
+**Problem**: You get an error when `pyzmq` is compiling that looks somewhat like
+```
+cc1: error: -Werror=unused-command-line-argument-hard-error-in-future: No option -Wunused-command-line-argument-hard-error-in-future
+```
+**Solution:** Rerun the command after changing the `ARCHFLAGS` variable via
+```bash
+export ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future
+```
+
 If you want to pass specific options to the underlying IPython, you can do it like this:
 ```bash
 # Expose the notebook on all ports!
