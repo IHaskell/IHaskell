@@ -189,7 +189,7 @@ setupIPython DefaultIPython = do
     badIPython :: Text -> IO ()
     badIPython reason = void $ do
         putStrLn reason
-        putStrLn "IHaskell will not proceed to install IPython (locally for itself)."
+        putStrLn "IHaskell will now proceed to install IPython (locally for itself)."
         putStrLn "Installing IPython in IHaskell's virtualenv in 10 seconds. Ctrl-C to cancel."
         threadDelay $ 1000 * 1000 * 10
         installIPython
