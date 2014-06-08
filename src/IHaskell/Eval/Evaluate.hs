@@ -1,4 +1,4 @@
-{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances #-}
+{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances, CPP #-}
 
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
@@ -96,8 +96,12 @@ write x = when debug $ liftIO $ hPutStrLn stderr $ "DEBUG: " ++ x
 
 type Interpreter = Ghc
 
+#if MIN_VERSION_ghc(7, 8, 0)
+   -- GHC 7.8 exports a MonadIO instance for Ghc
+#else
 instance MonadIO.MonadIO Interpreter where
     liftIO = MonadUtils.liftIO
+#endif
 
 globalImports :: [String]
 globalImports =
@@ -618,30 +622,8 @@ evalCommand _ (Directive GetHelp _) state = do
 evalCommand _ (Directive GetInfo str) state = safely state $ do
   write $ "Info: " ++ str
   -- Get all the info for all the names we're given.
-  names     <- parseName str
-  maybeInfos <- mapM getInfo names
+  strings <- getDescription str
 
-  -- Filter out types that have parents in the same set.
-  -- GHCi also does this.
-  let getType (theType, _, _) = theType
-      infos = catMaybes maybeInfos
-      allNames = mkNameSet $ map (getName . getType) infos
-      hasParent info = case tyThingParent_maybe (getType info) of
-        Just parent -> getName parent `elemNameSet` allNames
-        Nothing -> False
-      filteredOutput = filter (not . hasParent) infos
-
-  -- Convert to textual data.
-  let printInfo (thing, fixity, classInstances) =
-        pprTyThingInContextLoc False thing $$ showFixity fixity $$ vcat (map GHC.pprInstance classInstances)
-        where
-          showFixity fixity =
-            if fixity == GHC.defaultFixity
-            then empty
-            else ppr fixity <+> pprInfixName (getName thing)
-
-  -- Print nicely.
-  strings <- mapM (doc . printInfo) filteredOutput
   let output = case getFrontend state of
         IPythonConsole -> unlines strings
         IPythonNotebook -> unlines (map htmlify strings)

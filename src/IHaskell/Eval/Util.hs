@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP, NoImplicitPrelude #-}
 module IHaskell.Eval.Util (
   -- * Initialization
   initGhci,
@@ -12,10 +13,13 @@ module IHaskell.Eval.Util (
   evalImport,
   evalDeclarations,
   getType,
+  getDescription,
 
   -- * Pretty printing
   doc,
   ) where
+
+import ClassyPrelude
 
 -- GHC imports.
 import DynFlags
@@ -29,11 +33,13 @@ import Module
 import Outputable
 import Packages
 import RdrName
+import NameSet
+import Name
+import PprTyThing
 import qualified Pretty
 
 import Control.Monad (void)
 import Data.Function (on)
-import Data.List (find)
 import Data.String.Utils (replace)
 
 -- | A extension flag that can be set or unset.
@@ -190,3 +196,48 @@ getType expr = do
   flags <- getSessionDynFlags
   let typeStr = showSDocUnqual flags $ ppr result
   return typeStr
+
+-- | A wrapper around @getInfo@. Return info about each name in the string.
+getDescription :: GhcMonad m => String -> m [String]
+getDescription str = do
+  names     <- parseName str
+  maybeInfos <- mapM getInfo' names
+
+  -- Filter out types that have parents in the same set.
+  -- GHCi also does this.
+  let infos = catMaybes maybeInfos
+      allNames = mkNameSet $ map (getName . getType) infos
+      hasParent info = case tyThingParent_maybe (getType info) of
+        Just parent -> getName parent `elemNameSet` allNames
+        Nothing -> False
+      filteredOutput = filter (not . hasParent) infos
+
+  -- Print nicely
+  mapM (doc . printInfo) filteredOutput
+  where
+#if MIN_VERSION_ghc(7,8,0)
+    getInfo' = getInfo False
+#else
+    getInfo' = getInfo
+#endif
+
+#if MIN_VERSION_ghc(7,8,0)
+    getType (theType, _, _, _) = theType
+#else
+    getType (theType, _, _) = theType
+#endif
+
+#if MIN_VERSION_ghc(7,8,0)
+    printInfo (thing, fixity, classInstances, famInstances) =
+          pprTyThingInContextLoc thing $$
+          showFixity thing fixity $$
+          vcat (map GHC.pprInstance classInstances) $$
+          vcat (map GHC.pprFamInst famInstances)
+#else
+    printInfo (thing, fixity, classInstances) =
+          pprTyThingInContextLoc False thing $$ showFixity thing fixity $$ vcat (map GHC.pprInstance classInstances)
+#endif
+    showFixity thing fixity =
+      if fixity == GHC.defaultFixity
+      then empty
+      else ppr fixity <+> pprInfixName (getName thing)
