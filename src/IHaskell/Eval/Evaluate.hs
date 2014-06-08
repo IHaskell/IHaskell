@@ -926,7 +926,12 @@ doLoadModule name modName = do
   flip gcatch (unload importedModules) $ do
     -- Compile loaded modules.
     flags <- getSessionDynFlags
+#if MIN_VERSION_ghc(7,8,0)
+    let objTarget = defaultObjectTarget platform
+        platform = targetPlatform flags
+#else
     let objTarget = defaultObjectTarget
+#endif
     setSessionDynFlags flags{ hscTarget = objTarget }
 
     -- Clear old targets to be sure.
