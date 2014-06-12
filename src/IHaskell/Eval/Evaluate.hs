@@ -78,7 +78,7 @@ import Data.Version (versionBranch)
 data ErrorOccurred = Success | Failure deriving (Show, Eq)
 
 debug :: Bool
-debug = False
+debug = True
 
 ignoreTypePrefixes :: [String]
 ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",
@@ -704,6 +704,9 @@ evalCommand output (Expression expr) state = do
   -- Check if this is a widget.
   let widgetExpr = printf "(IHaskell.Display.Widget (%s))" expr :: String
   isWidget <- attempt $ exprType widgetExpr
+
+  write $ "Can Display: " ++ show canRunDisplay
+  write $ "  Is Widget: " ++ show canRunDisplay
 
   if canRunDisplay
   then do
