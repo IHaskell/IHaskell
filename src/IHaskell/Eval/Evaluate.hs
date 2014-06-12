@@ -78,7 +78,7 @@ import Data.Version (versionBranch)
 data ErrorOccurred = Success | Failure deriving (Show, Eq)
 
 debug :: Bool
-debug = True
+debug = False
 
 ignoreTypePrefixes :: [String]
 ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",

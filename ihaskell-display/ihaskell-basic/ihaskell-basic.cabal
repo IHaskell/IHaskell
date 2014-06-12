@@ -61,7 +61,7 @@ library
               OverloadedStrings
              
   -- Other library packages from which modules are imported.
-  build-depends:       base ==4.6.*,
+  build-depends:       base ==4.6.* || ==4.7.*,
                        classy-prelude >=0.6,
                        ihaskell >= 0.4
   
