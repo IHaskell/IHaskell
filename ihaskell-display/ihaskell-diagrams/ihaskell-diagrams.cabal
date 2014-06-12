@@ -63,7 +63,7 @@ library
                        bytestring,
                        directory,
                        -- Use diagrams wrapper package to ensure all same versions of subpackages
-                       diagrams==1.1.*,
+                       diagrams==1.2.*,
                        diagrams-lib,
                        diagrams-cairo,
                        ihaskell >= 0.4

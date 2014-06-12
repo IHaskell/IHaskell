@@ -168,7 +168,8 @@ evalImport imports = do
     -- Check whether an import is the same as another import (same module).
     importOf :: ImportDecl RdrName -> InteractiveImport -> Bool
     importOf _ (IIModule _) = False
-    importOf imp (IIDecl decl) = ((==) `on` (unLoc . ideclName)) decl imp
+    importOf imp (IIDecl decl) = 
+      ((==) `on` (unLoc . ideclName)) decl imp && not (ideclQualified decl)
 
     -- Check whether an import is an *implicit* import of something.
     implicitImportOf :: ImportDecl RdrName -> InteractiveImport -> Bool
