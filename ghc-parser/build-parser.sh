@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -e
 # Called from Setup.hs.
 
 function make_parser {
