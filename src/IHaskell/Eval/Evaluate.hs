@@ -119,18 +119,9 @@ globalImports =
 -- is handled specially, which cannot be done in a testing environment.
 interpret :: Bool -> Interpreter a -> IO a
 interpret allowedStdin action = runGhc (Just libdir) $ do
-  initGhci
-
   -- If we're in a sandbox, add the relevant package database
-  dflags <- getSessionDynFlags
   sandboxPackages <- liftIO getSandboxPackageConf
-  let pkgConfs = case sandboxPackages of
-        Nothing -> extraPkgConfs dflags
-        Just path ->
-          let pkg  = PkgConfFile path in
-            (pkg:) . extraPkgConfs dflags
-
-  void $ setSessionDynFlags $ dflags { extraPkgConfs = pkgConfs }
+  initGhci sandboxPackages
 
   initializeImports
 

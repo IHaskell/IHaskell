@@ -131,18 +131,28 @@ doc sdoc = do
 -- @NoMonomorphismRestriction@), sets the target to interpreted, link in
 -- memory, sets a reasonable output width, and potentially a few other
 -- things. It should be invoked before other functions from this module.
-initGhci :: GhcMonad m => m ()
-initGhci = do
+--
+-- We also require that the sandbox PackageConf (if any) is passed here
+-- as setSessionDynFlags will read the package database the first time
+-- (and only the first time) it is called.
+initGhci :: GhcMonad m => Maybe String -> m ()
+initGhci sandboxPackages = do
   -- Initialize dyn flags.
   -- Start with -XExtendedDefaultRules and -XNoMonomorphismRestriction.
   originalFlags <- getSessionDynFlags
   let flag = flip xopt_set
       unflag = flip xopt_unset
       dflags = flag Opt_ExtendedDefaultRules . unflag Opt_MonomorphismRestriction $ originalFlags
+      pkgConfs = case sandboxPackages of
+        Nothing -> extraPkgConfs originalFlags
+        Just path ->
+          let pkg  = PkgConfFile path in
+            (pkg:) . extraPkgConfs originalFlags
 
   void $ setSessionDynFlags $ dflags { hscTarget = HscInterpreted,
                                        ghcLink = LinkInMemory,
-                                       pprCols = 300 }
+                                       pprCols = 300,
+                                       extraPkgConfs = pkgConfs }
 
 -- | Evaluate a single import statement.
 -- If this import statement is importing a module which was previously
