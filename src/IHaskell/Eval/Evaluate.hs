@@ -77,8 +77,13 @@ import Data.Version (versionBranch)
 
 data ErrorOccurred = Success | Failure deriving (Show, Eq)
 
+-- | Enable debugging output
 debug :: Bool
 debug = False
+
+-- | Set GHC's verbosity for debugging
+ghcVerbosity :: Maybe Int
+ghcVerbosity = Nothing -- Just 5
 
 ignoreTypePrefixes :: [String]
 ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",
@@ -119,18 +124,13 @@ globalImports =
 -- is handled specially, which cannot be done in a testing environment.
 interpret :: Bool -> Interpreter a -> IO a
 interpret allowedStdin action = runGhc (Just libdir) $ do
-  initGhci
-
   -- If we're in a sandbox, add the relevant package database
-  dflags <- getSessionDynFlags
   sandboxPackages <- liftIO getSandboxPackageConf
-  let pkgConfs = case sandboxPackages of
-        Nothing -> extraPkgConfs dflags
-        Just path ->
-          let pkg  = PkgConfFile path in
-            (pkg:) . extraPkgConfs dflags
-
-  void $ setSessionDynFlags $ dflags { extraPkgConfs = pkgConfs }
+  initGhci sandboxPackages
+  case ghcVerbosity of
+    Just verb -> do dflags <- getSessionDynFlags
+                    void $ setSessionDynFlags $ dflags { verbosity = verb }
+    Nothing   -> return ()
 
   initializeImports
 
