@@ -1147,6 +1147,7 @@ formatErrorWithClass cls =
     printf "<span class='%s'>%s</span>" cls .
     replace "\n" "<br/>" .
     replace useDashV "" .
+    replace "Ghci" "IHaskell" .
     fixDollarSigns .
     rstrip .
     typeCleaner
