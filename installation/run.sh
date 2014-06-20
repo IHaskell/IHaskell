@@ -12,4 +12,9 @@ fi
 
 # Run IPython.
 # Quotes around $@ are necessary to deal properly with spaces.
-ipython "$@" $IHASKELL_IPYTHON_ARGS
+# Only add IHASKELL_IPYTHON_ARGS to notebook.
+if [[ $1 == "notebook" ]]; then
+    ipython "$@" $IHASKELL_IPYTHON_ARGS
+else
+    ipython "$@"
+fi

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP, NoImplicitPrelude #-}
 module IHaskell.Eval.Util (
   -- * Initialization
   initGhci,
@@ -12,10 +13,13 @@ module IHaskell.Eval.Util (
   evalImport,
   evalDeclarations,
   getType,
+  getDescription,
 
   -- * Pretty printing
   doc,
   ) where
+
+import ClassyPrelude
 
 -- GHC imports.
 import DynFlags
@@ -29,11 +33,13 @@ import Module
 import Outputable
 import Packages
 import RdrName
+import NameSet
+import Name
+import PprTyThing
 import qualified Pretty
 
 import Control.Monad (void)
 import Data.Function (on)
-import Data.List (find)
 import Data.String.Utils (replace)
 
 -- | A extension flag that can be set or unset.
@@ -125,18 +131,28 @@ doc sdoc = do
 -- @NoMonomorphismRestriction@), sets the target to interpreted, link in
 -- memory, sets a reasonable output width, and potentially a few other
 -- things. It should be invoked before other functions from this module.
-initGhci :: GhcMonad m => m ()
-initGhci = do
+--
+-- We also require that the sandbox PackageConf (if any) is passed here
+-- as setSessionDynFlags will read the package database the first time
+-- (and only the first time) it is called.
+initGhci :: GhcMonad m => Maybe String -> m ()
+initGhci sandboxPackages = do
   -- Initialize dyn flags.
   -- Start with -XExtendedDefaultRules and -XNoMonomorphismRestriction.
   originalFlags <- getSessionDynFlags
   let flag = flip xopt_set
       unflag = flip xopt_unset
       dflags = flag Opt_ExtendedDefaultRules . unflag Opt_MonomorphismRestriction $ originalFlags
+      pkgConfs = case sandboxPackages of
+        Nothing -> extraPkgConfs originalFlags
+        Just path ->
+          let pkg  = PkgConfFile path in
+            (pkg:) . extraPkgConfs originalFlags
 
   void $ setSessionDynFlags $ dflags { hscTarget = HscInterpreted,
                                        ghcLink = LinkInMemory,
-                                       pprCols = 300 }
+                                       pprCols = 300,
+                                       extraPkgConfs = pkgConfs }
 
 -- | Evaluate a single import statement.
 -- If this import statement is importing a module which was previously
@@ -162,7 +178,8 @@ evalImport imports = do
     -- Check whether an import is the same as another import (same module).
     importOf :: ImportDecl RdrName -> InteractiveImport -> Bool
     importOf _ (IIModule _) = False
-    importOf imp (IIDecl decl) = ((==) `on` (unLoc . ideclName)) decl imp
+    importOf imp (IIDecl decl) = 
+      ((==) `on` (unLoc . ideclName)) decl imp && not (ideclQualified decl)
 
     -- Check whether an import is an *implicit* import of something.
     implicitImportOf :: ImportDecl RdrName -> InteractiveImport -> Bool
@@ -190,3 +207,48 @@ getType expr = do
   flags <- getSessionDynFlags
   let typeStr = showSDocUnqual flags $ ppr result
   return typeStr
+
+-- | A wrapper around @getInfo@. Return info about each name in the string.
+getDescription :: GhcMonad m => String -> m [String]
+getDescription str = do
+  names     <- parseName str
+  maybeInfos <- mapM getInfo' names
+
+  -- Filter out types that have parents in the same set.
+  -- GHCi also does this.
+  let infos = catMaybes maybeInfos
+      allNames = mkNameSet $ map (getName . getType) infos
+      hasParent info = case tyThingParent_maybe (getType info) of
+        Just parent -> getName parent `elemNameSet` allNames
+        Nothing -> False
+      filteredOutput = filter (not . hasParent) infos
+
+  -- Print nicely
+  mapM (doc . printInfo) filteredOutput
+  where
+#if MIN_VERSION_ghc(7,8,0)
+    getInfo' = getInfo False
+#else
+    getInfo' = getInfo
+#endif
+
+#if MIN_VERSION_ghc(7,8,0)
+    getType (theType, _, _, _) = theType
+#else
+    getType (theType, _, _) = theType
+#endif
+
+#if MIN_VERSION_ghc(7,8,0)
+    printInfo (thing, fixity, classInstances, famInstances) =
+          pprTyThingInContextLoc thing $$
+          showFixity thing fixity $$
+          vcat (map GHC.pprInstance classInstances) $$
+          vcat (map GHC.pprFamInst famInstances)
+#else
+    printInfo (thing, fixity, classInstances) =
+          pprTyThingInContextLoc False thing $$ showFixity thing fixity $$ vcat (map GHC.pprInstance classInstances)
+#endif
+    showFixity thing fixity =
+      if fixity == GHC.defaultFixity
+      then empty
+      else ppr fixity <+> pprInfixName (getName thing)

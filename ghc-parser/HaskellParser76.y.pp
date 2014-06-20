@@ -394,20 +394,6 @@ namedModule  :: { Located (HsModule RdrName) }
                    return (L loc (HsModule (Just $3) $5 (fst $7) (snd $7) $4 $1
                           ) )}
 
-{-
-fundecl :: { OrdList (LHsDecl RdrName) }
-        : sigdecl ';' funcs     { unLoc $1 `appOL` $3 }
-        | funcs                 { $1 }
-
-funcs :: { OrdList (LHsDecl RdrName) }
-      : func ';' funcs        { unLoc $1 `appOL` $3 }
-      | func                  { unLoc $1 }
-
-func :: { Located (OrdList (LHsDecl RdrName)) }
-func : fexp opt_sig rhs  {% do { r <- checkValDef $1 $2 $3;
-                                 let { l = comb2 $1 $> };
-                                 return $! (sL l (unitOL $! (sL l $ ValD r))) } }
--}
 -----------------------------------------------------------------------------
 -- Identifiers; one of the entry points
 identifier :: { Located RdrName }

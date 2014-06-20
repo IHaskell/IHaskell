@@ -175,8 +175,8 @@ parseCodeChunk code startLine = do
     parsers flags =
       [ (Import,        unparser parserImport)
       , (TypeSignature, unparser parserTypeSignature)
-      , (Declaration,   unparser parserDeclaration)
       , (Statement,     unparser parserStatement)
+      , (Declaration,   unparser parserDeclaration)
       ]
       where
         unparser :: Parser a -> String -> ParseOutput String

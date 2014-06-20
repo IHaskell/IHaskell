@@ -1,4 +1,4 @@
-{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances #-}
+{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances, CPP #-}
 
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
@@ -77,8 +77,13 @@ import Data.Version (versionBranch)
 
 data ErrorOccurred = Success | Failure deriving (Show, Eq)
 
+-- | Enable debugging output
 debug :: Bool
 debug = False
+
+-- | Set GHC's verbosity for debugging
+ghcVerbosity :: Maybe Int
+ghcVerbosity = Nothing -- Just 5
 
 ignoreTypePrefixes :: [String]
 ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",
@@ -96,8 +101,12 @@ write x = when debug $ liftIO $ hPutStrLn stderr $ "DEBUG: " ++ x
 
 type Interpreter = Ghc
 
+#if MIN_VERSION_ghc(7, 8, 0)
+   -- GHC 7.8 exports a MonadIO instance for Ghc
+#else
 instance MonadIO.MonadIO Interpreter where
     liftIO = MonadUtils.liftIO
+#endif
 
 globalImports :: [String]
 globalImports =
@@ -115,18 +124,13 @@ globalImports =
 -- is handled specially, which cannot be done in a testing environment.
 interpret :: Bool -> Interpreter a -> IO a
 interpret allowedStdin action = runGhc (Just libdir) $ do
-  initGhci
-
   -- If we're in a sandbox, add the relevant package database
-  dflags <- getSessionDynFlags
   sandboxPackages <- liftIO getSandboxPackageConf
-  let pkgConfs = case sandboxPackages of
-        Nothing -> extraPkgConfs dflags
-        Just path ->
-          let pkg  = PkgConfFile path in
-            (pkg:) . extraPkgConfs dflags
-
-  void $ setSessionDynFlags $ dflags { extraPkgConfs = pkgConfs }
+  initGhci sandboxPackages
+  case ghcVerbosity of
+    Just verb -> do dflags <- getSessionDynFlags
+                    void $ setSessionDynFlags $ dflags { verbosity = verb }
+    Nothing   -> return ()
 
   initializeImports
 
@@ -618,30 +622,8 @@ evalCommand _ (Directive GetHelp _) state = do
 evalCommand _ (Directive GetInfo str) state = safely state $ do
   write $ "Info: " ++ str
   -- Get all the info for all the names we're given.
-  names     <- parseName str
-  maybeInfos <- mapM getInfo names
+  strings <- getDescription str
 
-  -- Filter out types that have parents in the same set.
-  -- GHCi also does this.
-  let getType (theType, _, _) = theType
-      infos = catMaybes maybeInfos
-      allNames = mkNameSet $ map (getName . getType) infos
-      hasParent info = case tyThingParent_maybe (getType info) of
-        Just parent -> getName parent `elemNameSet` allNames
-        Nothing -> False
-      filteredOutput = filter (not . hasParent) infos
-
-  -- Convert to textual data.
-  let printInfo (thing, fixity, classInstances) =
-        pprTyThingInContextLoc False thing $$ showFixity fixity $$ vcat (map GHC.pprInstance classInstances)
-        where
-          showFixity fixity =
-            if fixity == GHC.defaultFixity
-            then empty
-            else ppr fixity <+> pprInfixName (getName thing)
-
-  -- Print nicely.
-  strings <- mapM (doc . printInfo) filteredOutput
   let output = case getFrontend state of
         IPythonConsole -> unlines strings
         IPythonNotebook -> unlines (map htmlify strings)
@@ -722,6 +704,9 @@ evalCommand output (Expression expr) state = do
   -- Check if this is a widget.
   let widgetExpr = printf "(IHaskell.Display.Widget (%s))" expr :: String
   isWidget <- attempt $ exprType widgetExpr
+
+  write $ "Can Display: " ++ show canRunDisplay
+  write $ "  Is Widget: " ++ show canRunDisplay
 
   if canRunDisplay
   then do
@@ -944,7 +929,12 @@ doLoadModule name modName = do
   flip gcatch (unload importedModules) $ do
     -- Compile loaded modules.
     flags <- getSessionDynFlags
+#if MIN_VERSION_ghc(7,8,0)
+    let objTarget = defaultObjectTarget platform
+        platform = targetPlatform flags
+#else
     let objTarget = defaultObjectTarget
+#endif
     setSessionDynFlags flags{ hscTarget = objTarget }
 
     -- Clear old targets to be sure.
@@ -1157,6 +1147,7 @@ formatErrorWithClass cls =
     printf "<span class='%s'>%s</span>" cls .
     replace "\n" "<br/>" .
     replace useDashV "" .
+    replace "Ghci" "IHaskell" .
     fixDollarSigns .
     rstrip .
     typeCleaner

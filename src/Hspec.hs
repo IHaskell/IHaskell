@@ -1,4 +1,4 @@
-{-# LANGUAGE QuasiQuotes, OverloadedStrings, ExtendedDefaultRules #-}
+{-# LANGUAGE QuasiQuotes, OverloadedStrings, ExtendedDefaultRules, CPP #-}
 -- Keep all the language pragmas here so it can be compiled separately.
 module Main where
 import Prelude
@@ -500,7 +500,11 @@ parseStringTests = describe "Parser" $ do
 
   it "breaks without data kinds" $
     parses "data X = 3" `like` [
+#if MIN_VERSION_ghc(7, 8, 0)
+      ParseError (Loc 1 10) "Illegal literal in type (use DataKinds to enable): 3"
+#else
       ParseError (Loc 1 10) "Illegal literal in type (use -XDataKinds to enable): 3"
+#endif
     ]
 
   it "parses statements after imports" $ do
