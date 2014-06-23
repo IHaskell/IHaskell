@@ -57,6 +57,7 @@ For Macs, you can easily install it with [Homebrew](http://brew.sh/):
 brew update
 brew install zeromq
 ```
+(If using 32-bit Haskell Platform, you *may* need to use `brew install zeromq --universal`. YMMV.)
 
 On other platforms, you can easily install from source:
 ```bash
