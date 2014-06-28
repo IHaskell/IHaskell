@@ -181,6 +181,7 @@ setupIPython DefaultIPython = do
     checkIPythonVersion path = do
       output <- unpack <$> shelly (silently $ run path ["--version"])
       case parseVersion output of
+        Just (3:_) -> putStrLn "Using system-wide dev version of IPython."
         Just (2:_) -> putStrLn "Using system-wide IPython."
         Just (1:_) -> badIPython "Detected old version of IPython. IHaskell requires 2.0.0 or up."
         Just (0:_) -> badIPython "Detected old version of IPython. IHaskell requires 2.0.0 or up."
