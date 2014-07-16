@@ -20,7 +20,7 @@ module IHaskell.Display (
   IHaskellWidget(..),
 
   -- ** Interactive use functions
-  printDisplay,
+  printDisplay, clearOutput,
 
   -- * Constructors for displays
   plain, html, png, jpg, svg, latex, javascript, many,
@@ -146,6 +146,10 @@ displayFromChan =
 -- the package dependency instead of copying more code from it.
 unfoldM :: IO (Maybe a) -> IO [a]
 unfoldM f = maybe (return []) (\r -> (r:) <$> unfoldM f) =<< f
+
+-- | Clear the cell below.
+clearOutput :: Display
+clearOutput = ClearDisplay
 
 -- | Write to the display channel. The contents will be displayed in the
 -- notebook once the current execution call ends.

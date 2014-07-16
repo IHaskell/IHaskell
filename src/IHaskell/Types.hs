@@ -127,6 +127,7 @@ instance Show Widget where
 -- results from the same expression.
 data Display = Display [DisplayData]
              | ManyDisplay [Display]
+             | ClearDisplay
              deriving (Show, Typeable, Generic)
 instance Serialize Display
 
