@@ -18,4 +18,5 @@ function make_parser {
 }
 
 make_parser src-7.6 HaskellParser76
-make_parser src-7.8 HaskellParser78
+make_parser src-7.8.2 HaskellParser782
+make_parser src-7.8.3 HaskellParser783
