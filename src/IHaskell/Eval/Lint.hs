@@ -66,7 +66,7 @@ lint blocks = do
 
   -- create 'suggestions'
   let modules = mapMaybe (createModule mode) blocks
-      ideas = applyHints classify hint modules
+      ideas = applyHints classify hint (map (\m->(m,[])) modules)
       suggestions = mapMaybe showIdea ideas
 
   return $ Display $
