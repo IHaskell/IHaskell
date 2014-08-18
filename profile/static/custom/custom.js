@@ -21,6 +21,8 @@ $([IPython.events]).on('app_initialized.NotebookApp', function(){
 
     // IPython keycodes.
     IPython.keyboard.keycodes.down = 32; // space
+
+    IPython.CodeCell.options_default['cm_config']['mode'] = 'haskell';
     
     CodeMirror.requireMode('haskell', function(){
         // Create a multiplexing mode that uses Haskell highlighting by default but
@@ -53,8 +55,6 @@ $([IPython.events]).on('app_initialized.NotebookApp', function(){
         // We can only load the conceal scripts once all cells have mode 'haskell'
         require(['/static/custom/conceal/conceal.js']);
     });
-
-    IPython.CodeCell.options_default['cm_config']['mode'] = 'haskell';
 
     // Prevent the pager from surrounding everything with a <pre>
     IPython.Pager.prototype.append_text = function (text) {
