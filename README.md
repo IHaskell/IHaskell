@@ -75,8 +75,8 @@ Haskell and Cabal
 ---
 You should also have GHC and modern Cabal:
 ```bash
-ghc --numeric-version # Should be 7.6.3
-cabal --version       # Should be 1.18.*
+ghc --numeric-version # Should be 7.6.3, 7.8.2, or 7.8.3
+cabal --version       # Should be 1.18.* or newer
 ```
 Since IHaskell uses the GHC API for evaluation and parsing, other versions of GHC may not work.
 
@@ -215,7 +215,7 @@ cd /path/to/IHaskell
 ```bash
 cd /path/to/IHaskell
 cabal sandbox init
-cabal sandbox add-source ipython-kernel ihaskell-display/* ghc-parser
+cabal sandbox add-source ihaskell-display/* ghc-parser
 cabal install IHaskell $(basename ihaskell-display/*)
 ```
 
