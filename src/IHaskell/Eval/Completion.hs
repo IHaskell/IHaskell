@@ -20,7 +20,7 @@ import Data.Char
 import Data.List (nub, init, last, head, elemIndex)
 import Data.List.Split
 import Data.List.Split.Internals
-import Data.Maybe
+import Data.Maybe (fromJust)
 import Data.String.Utils (strip, startswith, endswith, replace)
 import qualified Data.String.Utils as StringUtils
 import System.Environment (getEnv)
@@ -315,4 +315,3 @@ completePathFilter includeFile includeDirectory left right = liftIO $ do
       visible = filter (not . isHidden) suggestions
       hidden  = filter isHidden suggestions
   return $ visible ++ hidden
-

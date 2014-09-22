@@ -12,9 +12,6 @@ import Data.Text (pack)
 import Data.Aeson
 import Data.UUID.V4 (nextRandom)
 
-import Text.Read as Read hiding (pfail, String)
-
-
 -- We use an internal string representation because for the purposes of
 -- IPython, it matters whether the letters are uppercase or lowercase and
 -- whether the dashes are present in the correct locations. For the

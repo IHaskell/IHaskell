@@ -49,7 +49,7 @@ ipythonProfile = "haskell"
 -- This must be the same as the file in the profile.tar.
 -- The filename used is @profileVersionFile@.
 profileVersion :: String
-profileVersion = "0.3.0.5"
+profileVersion = "0.4.2.0"
 
 -- | Filename in the profile where the version ins kept.
 profileVersionFile :: FilePath
