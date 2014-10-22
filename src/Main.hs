@@ -4,7 +4,7 @@
 module Main where
 
 -- Prelude imports.
-import ClassyPrelude  hiding (last, liftIO)
+import ClassyPrelude  hiding (last, liftIO, readChan, writeChan)
 import Prelude        (last, read)
 
 -- Standard library imports.
