@@ -141,7 +141,7 @@ getTrueModuleName name = do
       onlyImportDecl _ = Nothing
 
   -- Get all imports that we use.
-  imports <- catMaybes <$> map onlyImportDecl <$> getContext
+  imports <- ClassyPrelude.catMaybes <$> map onlyImportDecl <$> getContext
 
   -- Find the ones that have a qualified name attached.
   -- If this name isn't one of them, it already is the true name.
@@ -178,7 +178,7 @@ completionType line loc target
     = Empty
 
   -- When in a string, complete filenames.
-  | cursorInString line loc 
+  | cursorInString line loc
     = FilePath (getStringTarget lineUpToCursor) (getStringTarget lineUpToCursor)
 
   -- Complete module names in imports and elsewhere.
