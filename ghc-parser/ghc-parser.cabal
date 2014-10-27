@@ -16,7 +16,6 @@ build-type:          Custom
 -- extra-source-files:
 cabal-version:       >=1.16
 
-build-tools:         happy, cpphs
 
 extra-source-files:
   build-parser.sh
@@ -25,6 +24,7 @@ extra-source-files:
   HaskellParser783.y.pp
 
 library
+  build-tools:         happy, cpphs
   exposed-modules:     Language.Haskell.GHC.Parser,
                        Language.Haskell.GHC.HappyParser
   -- other-modules:
