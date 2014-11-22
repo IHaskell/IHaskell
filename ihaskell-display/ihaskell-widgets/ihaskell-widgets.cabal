@@ -59,7 +59,7 @@ library
              
   -- Other library packages from which modules are imported.
   build-depends:       base ==4.6.* || ==4.7.*,
-                       aeson ==0.7.*,
+                       aeson >=0.7 && <0.9,
                        classy-prelude,
                        here,
                        ihaskell >= 0.4
