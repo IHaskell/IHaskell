@@ -92,7 +92,7 @@ library
                        utf8-string          -any,
                        uuid                 >=1.3,
                        vector               -any,
-                       zeromq4-haskell      >=0.1
+                       ipython-kernel       >=0.2
 
   exposed-modules: IHaskell.Display
                    IHaskell.Convert
@@ -111,13 +111,6 @@ library
                    IHaskell.Flags
                    IHaskell.Types
                    IHaskell.BrokenPackages
-                   IHaskell.IPython.Kernel
-                   IHaskell.IPython.Types
-                   IHaskell.IPython.ZeroMQ
-                   IHaskell.IPython.Stdin
-                   IHaskell.IPython.Message.Writer
-                   IHaskell.IPython.Message.Parser
-                   IHaskell.IPython.Message.UUID
                    Paths_ihaskell
 --  other-modules: 
 --                   Paths_ihaskell
@@ -144,6 +137,7 @@ executable IHaskell
                        ihaskell             -any,
                        MissingH             >=1.2,
                        text                 -any,
+                       ipython-kernel       >= 0.2,
                        unix                 >= 2.6
 
 Test-Suite hspec
@@ -193,8 +187,8 @@ Test-Suite hspec
                        utf8-string          -any,
                        uuid                 >=1.3,
                        vector               -any,
-                       zeromq4-haskell      >=0.1,
-                       setenv               ==0.1.*
+                       setenv               ==0.1.*,
+                       ipython-kernel       >= 0.2
 
 
   default-extensions:
