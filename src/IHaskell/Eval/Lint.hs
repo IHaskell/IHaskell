@@ -57,7 +57,7 @@ lint :: [Located CodeBlock] -> IO Display
 lint blocks = do
   -- Initialize hlint settings
   initialized <- not <$> isEmptyMVar hlintSettings
-  when (not initialized) $ do
+  unless initialized $
     autoSettings >>= putMVar hlintSettings
 
   -- Get hlint settings
@@ -83,7 +83,7 @@ showIdea idea =
     Just whyNot -> Just Suggest {
       line = srcSpanStartLine $ ideaSpan idea,
       found = showSuggestion $ ideaFrom idea,
-      whyNot = showSuggestion $ whyNot,
+      whyNot = showSuggestion whyNot,
       severity = ideaSeverity idea,
       suggestion = ideaHint idea
   }

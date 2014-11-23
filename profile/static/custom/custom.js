@@ -20,7 +20,9 @@ $([IPython.events]).on('app_initialized.NotebookApp', function(){
     IPython.tooltip.time_before_tooltip = 800;
 
     // IPython keycodes.
-    IPython.keyboard.keycodes.down = 32; // space
+    var space = 32;
+    var downArrow = 40;
+    IPython.keyboard.keycodes.down = downArrow; // space
 
     IPython.CodeCell.options_default['cm_config']['mode'] = 'haskell';
     
