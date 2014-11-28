@@ -9,11 +9,11 @@ module IHaskell.Eval.Hoogle (
 
 import ClassyPrelude hiding (last, span, div)
 import Text.Printf
-import Network.HTTP
+import Network.HTTP.Client
+import Network.HTTP.Client.TLS
 import Data.Aeson
 import Data.String.Utils
 import Data.List (elemIndex, (!!), last)
-import Control.Monad (guard)
 import qualified Data.ByteString.Lazy.Char8 as Char
 
 
@@ -58,14 +58,14 @@ instance FromJSON HoogleResponse where
 -- message or the successful JSON result.
 query :: String -> IO (Either String String)
 query str = do
-  let request = getRequest $ queryUrl str
-  response <- simpleHTTP request
+  request <- parseUrl $ queryUrl str
+  response <- try $ withManager tlsManagerSettings $ httpLbs request
   return $ case response of
-    Left err -> Left $ show err
-    Right resp -> Right $ rspBody resp
+    Left err -> Left $ show (err :: SomeException)
+    Right resp -> Right $ Char.unpack $ responseBody resp
   where
     queryUrl :: String -> String
-    queryUrl = printf "http://www.haskell.org/hoogle/?hoogle=%s&mode=json" . urlEncode
+    queryUrl = printf "https://www.haskell.org/hoogle/?hoogle=%s&mode=json"
 
 -- | Search for a query on Hoogle.
 -- Return all search results.
@@ -156,6 +156,12 @@ renderSelf string loc
         span "hoogle-class" (link loc $ extractClass string) ++
         packageSub package
 
+  | startswith "data" string
+    = let package = extractPackageName loc in
+        dat ++ " " ++
+        span "hoogle-class" (link loc $ extractData string) ++
+        packageSub package
+
   | otherwise
     = let [name, args] = split "::" string
           package = extractPackageName loc
@@ -170,9 +176,11 @@ renderSelf string loc
     extractPackage = strip . replace "package" ""
     extractModule = strip . replace "module" ""
     extractClass = strip . replace "class" ""
+    extractData = strip . replace "data" ""
     pkg = span "hoogle-head" "package"
     mod = span "hoogle-head" "module"
     cls = span "hoogle-head" "class"
+    dat = span "hoogle-head" "data"
 
     unicodeReplace :: String -> String
     unicodeReplace =
