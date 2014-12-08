@@ -99,7 +99,7 @@ ipythonFlag =
 universalFlags :: [Flag Args]
 universalFlags = [
   flagReq ["extension","e", "X"] (store Extension) "<ghc-extension>" "Extension to enable at start.",
-  flagReq ["conf","c"] (store ConfFile) "<file.hs>" "File with commands to execute at start.",
+  flagReq ["conf","c"] (store ConfFile) "<rc.hs>" "File with commands to execute at start; replaces ~/.ihaskell/rc.hs.",
   flagHelpSimple (add Help)
   ]
   where 

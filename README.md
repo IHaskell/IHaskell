@@ -185,6 +185,11 @@ If it *still* doesn't work and you are using Mac OS X then
 `brew upgrade python`. Some older versions of Homebrew's Python have a
 broken version of distutils. Homebrew's version of Python 2.7.6 *does* work.
 
+**Problem**: You'd like to have IHaskell run some code every time it starts up, like `~/.ghci` or `~/.bashrc`.
+
+**Solution**: IHaskell uses `~/.ihaskell/rc.hs` as its default configuration file; if you put code into that file (it may or may not exist), it will be loaded on startup. You can substitute a different file by passing the `--conf=myfile.hs` argument to IHaskell,
+as in `IHaskell notebook --conf=/home/user/.ihaskellrc.hs`.
+
 **Note**: You may have some trouble due to browser caches with the notebook interface if you also use IPython's notebook interface or have used it in the past. If something doesn't work or IPython says it can't connect to the notebook server, make sure to clear the browser cache in whatever browser you're using, or try another browser.
 
 Contributing
