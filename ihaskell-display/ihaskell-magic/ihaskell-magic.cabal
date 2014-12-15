@@ -68,6 +68,7 @@ library
                        bytestring,
                        utf8-string,
                        base64-bytestring,
+                       ipython-kernel,
                        ihaskell >= 0.4
   
   -- Directories containing source files.
