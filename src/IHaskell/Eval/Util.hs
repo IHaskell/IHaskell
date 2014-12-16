@@ -52,7 +52,7 @@ data ExtFlag
 -- If no such extension exist, yield @Nothing@.
 extensionFlag :: String         -- Extension name, such as @"DataKinds"@
               -> Maybe ExtFlag
-extensionFlag ext = 
+extensionFlag ext =
   case find (flagMatches ext) xFlags of
     Just (_, flag, _) -> Just $ SetFlag flag
     -- If it doesn't match an extension name, try matching against
@@ -68,7 +68,7 @@ extensionFlag ext =
 
     -- Check if a FlagSpec matches "No<ExtensionName>".
     -- In that case, we disable the extension.
-    flagMatchesNo ext (name, _, _) = ext == "No"  ++ name
+    flagMatchesNo ext (name, _, _) = ext == "No" ++ name
 
 -- | Set an extension and update flags.
 -- Return @Nothing@ on success. On failure, return an error message.
@@ -78,7 +78,7 @@ setExtension ext = do
   case extensionFlag ext of
     Nothing -> return $ Just $ "Could not parse extension name: " ++ ext
     Just flag -> do
-      setSessionDynFlags $ 
+      setSessionDynFlags $
         case flag of
           SetFlag ghcFlag -> xopt_set flags ghcFlag
           UnsetFlag ghcFlag -> xopt_unset flags ghcFlag
@@ -101,7 +101,7 @@ setFlags ext = do
 
     -- Create the parse errors.
     let noParseErrs = map (("Could not parse: " ++) . unLoc) unrecognized
-        allWarns = map unLoc warnings ++ 
+        allWarns = map unLoc warnings ++
                      ["-package not supported yet" | packageFlags flags /= packageFlags flags']
         warnErrs    = map ("Warning: " ++) allWarns
     return $ noParseErrs ++ warnErrs
@@ -178,7 +178,7 @@ evalImport imports = do
     -- Check whether an import is the same as another import (same module).
     importOf :: ImportDecl RdrName -> InteractiveImport -> Bool
     importOf _ (IIModule _) = False
-    importOf imp (IIDecl decl) = 
+    importOf imp (IIDecl decl) =
       ((==) `on` (unLoc . ideclName)) decl imp && not (ideclQualified decl)
 
     -- Check whether an import is an *implicit* import of something.

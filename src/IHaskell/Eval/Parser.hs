@@ -48,6 +48,7 @@ data CodeBlock
   | Directive DirectiveType String     -- ^ An IHaskell directive.
   | Module String                      -- ^ A full Haskell module, to be compiled and loaded.
   | ParseError StringLoc ErrMsg        -- ^ An error indicating that parsing the code block failed.
+  | Pragma [String]                    -- ^ A list of GHC pragmas (from a {-# LANGUAGE ... #-} block)
   deriving (Show, Eq)
 
 -- | Directive types. Each directive is associated with a string in the
@@ -86,10 +87,11 @@ parseString codeString = do
       return result
   where
     parseChunk :: GhcMonad m => String -> LineNumber -> m (Located CodeBlock)
-    parseChunk chunk line = Located line <$>
-      if isDirective chunk
-      then return $ parseDirective chunk line
-      else parseCodeChunk chunk line
+    parseChunk chunk line
+      | isDirective chunk = return $ Located line $ parseDirective chunk line
+      | isPragma chunk = return $ Located line $ parsePragma chunk line
+      | otherwise = Located line <$> parseCodeChunk chunk line
+
 
     processChunks :: GhcMonad m => [Located CodeBlock] -> [Located String] -> m [Located CodeBlock]
     processChunks accum remaining =
@@ -100,25 +102,39 @@ parseString codeString = do
         -- If we have more remaining, parse the current chunk and recurse.
         Located line chunk:remaining ->  do
           block <- parseChunk chunk line
-          activateParsingExtensions $ unloc block
+          activateExtensions $ unloc block
           processChunks (block : accum) remaining
 
-    -- Test wither a given chunk is a directive.
+    -- Test whether a given chunk is a directive.
     isDirective :: String -> Bool
     isDirective = startswith ":" . strip
+
+    -- Test if a chunk is a pragma.
+    isPragma :: String -> Bool
+    isPragma = startswith "{-#" . strip
 
     -- Number of lines in this string.
     nlines :: String -> Int
     nlines = length . lines
 
-activateParsingExtensions :: GhcMonad m => CodeBlock -> m ()
-activateParsingExtensions (Directive SetExtension ext) = void $ setExtension ext
-activateParsingExtensions (Directive SetDynFlag flags) =
+activateExtensions :: GhcMonad m => CodeBlock -> m ()
+activateExtensions (Directive SetExtension ext) = void $ setExtension ext
+activateExtensions (Directive SetDynFlag flags) =
   case stripPrefix "-X" flags of
     Just ext -> void $ setExtension ext
     Nothing -> return ()
-activateParsingExtensions _ = return ()
 
+activateExtensions (Pragma extensions) = void $ setAll extensions
+  where
+    setAll :: GhcMonad m => [String] -> m (Maybe String)
+    setAll (ext:extensions) = do
+      err <- setExtension ext
+      case err of
+        Nothing -> setAll extensions
+        Just err -> return $ Just err
+    setAll [] = return Nothing
+
+activateExtensions _ = return ()
 -- | Parse a single chunk of code, as indicated by the layout of the code.
 parseCodeChunk :: GhcMonad m => String -> LineNumber  -> m CodeBlock
 parseCodeChunk code startLine = do
@@ -191,11 +207,11 @@ parseCodeChunk code startLine = do
 -- signature, which is also joined with the subsequent declarations.
 joinFunctions :: [Located CodeBlock] -> [Located CodeBlock]
 joinFunctions [] = []
-joinFunctions blocks = 
+joinFunctions blocks =
   if signatureOrDecl $ unloc $ head blocks
   then Located lnum (conjoin $ map unloc decls) : joinFunctions rest
   else head blocks : joinFunctions (tail blocks)
-  where 
+  where
     decls = takeWhile (signatureOrDecl . unloc) blocks
     rest = drop (length decls) blocks
     lnum = line $ head decls
@@ -210,6 +226,20 @@ joinFunctions blocks =
 
     conjoin :: [CodeBlock] -> CodeBlock
     conjoin = Declaration . intercalate "\n" . map str
+
+
+-- | Parse a pragma of the form {-# LANGUAGE ... #-}
+parsePragma :: String       -- ^ Pragma string.
+            -> Int          -- ^ Line number at which the directive appears.
+            -> CodeBlock    -- ^ Pragma code block or a parse error.
+parsePragma ('{':'-':'#':pragma) line = Pragma $ extractPragma pragma
+  where
+    extractPragma :: String -> [String]
+    -- | After removing commas, extract words until a # is reached
+    extractPragma pragmas = case (words $ takeWhile (/= '#') $ filter (/= ',' ) pragmas) of
+      [] -> []
+      x:xs -> xs -- remove the first word (such as LANGUAGE)
+
 
 -- | Parse a directive of the form :directiveName.
 parseDirective :: String       -- ^ Directive string.
