@@ -11,6 +11,7 @@ module IHaskell.Eval.Parser (
     parseDirective,
     getModuleName,
     Located(..),
+    PragmaType(..),
     ) where
 
 -- Hide 'unlines' to use our own 'joinLines' instead.
@@ -20,6 +21,7 @@ import Data.List (findIndex, maximumBy, maximum, inits)
 import Data.String.Utils (startswith, strip, split)
 import Data.List.Utils (subIndex)
 import Prelude (init, last, head, tail)
+import Control.Monad (msum)
 
 import Bag
 import ErrUtils hiding (ErrMsg)
@@ -31,6 +33,7 @@ import OrdList
 import Outputable hiding ((<>))
 import SrcLoc hiding (Located)
 import StringBuffer
+import Debug.Trace
 
 import Language.Haskell.GHC.Parser
 import IHaskell.Eval.Util
@@ -48,7 +51,7 @@ data CodeBlock
   | Directive DirectiveType String     -- ^ An IHaskell directive.
   | Module String                      -- ^ A full Haskell module, to be compiled and loaded.
   | ParseError StringLoc ErrMsg        -- ^ An error indicating that parsing the code block failed.
-  | Pragma [String]                    -- ^ A list of GHC pragmas (from a {-# LANGUAGE ... #-} block)
+  | Pragma PragmaType [String]         -- ^ A list of GHC pragmas (from a {-# LANGUAGE ... #-} block)
   deriving (Show, Eq)
 
 -- | Directive types. Each directive is associated with a string in the
@@ -65,6 +68,13 @@ data DirectiveType
   | SearchHoogle    -- ^ Search for something via Hoogle.
   | GetDoc          -- ^ Get documentation for an identifier via Hoogle.
   | GetKind         -- ^ Get the kind of a type via ':kind'.
+  deriving (Show, Eq)
+
+-- | Pragma types. Only LANGUAGE pragmas are currently supported.
+-- Other pragma types are kept around as a string for error reporting.
+data PragmaType
+  = PragmaLanguage
+  | PragmaUnsupported String
   deriving (Show, Eq)
 
 -- | Parse a string into code blocks.
@@ -87,11 +97,12 @@ parseString codeString = do
       return result
   where
     parseChunk :: GhcMonad m => String -> LineNumber -> m (Located CodeBlock)
-    parseChunk chunk line
-      | isDirective chunk = return $ Located line $ parseDirective chunk line
-      | isPragma chunk = return $ Located line $ parsePragma chunk line
-      | otherwise = Located line <$> parseCodeChunk chunk line
-
+    parseChunk chunk line = Located line <$> handleChunk chunk line
+      where
+        handleChunk chunk line
+          | isDirective chunk = return $ parseDirective chunk line
+          | isPragma chunk = trace ("HERE " ++ (show chunk)) $ return $ parsePragma chunk line
+          | otherwise = parseCodeChunk chunk line
 
     processChunks :: GhcMonad m => [Located CodeBlock] -> [Located String] -> m [Located CodeBlock]
     processChunks accum remaining =
@@ -123,20 +134,16 @@ activateExtensions (Directive SetDynFlag flags) =
   case stripPrefix "-X" flags of
     Just ext -> void $ setExtension ext
     Nothing -> return ()
-
-activateExtensions (Pragma extensions) = void $ setAll extensions
+activateExtensions (Pragma PragmaLanguage extensions) = void $ setAll extensions
   where
     setAll :: GhcMonad m => [String] -> m (Maybe String)
-    setAll (ext:extensions) = do
-      err <- setExtension ext
-      case err of
-        Nothing -> setAll extensions
-        Just err -> return $ Just err
-    setAll [] = return Nothing
-
+    setAll exts = do
+      errs <- mapM setExtension exts
+      return $ msum errs
 activateExtensions _ = return ()
+
 -- | Parse a single chunk of code, as indicated by the layout of the code.
-parseCodeChunk :: GhcMonad m => String -> LineNumber  -> m CodeBlock
+parseCodeChunk :: GhcMonad m => String -> LineNumber -> m CodeBlock
 parseCodeChunk code startLine = do
     flags <- getSessionDynFlags
     let
@@ -232,14 +239,15 @@ joinFunctions blocks =
 parsePragma :: String       -- ^ Pragma string.
             -> Int          -- ^ Line number at which the directive appears.
             -> CodeBlock    -- ^ Pragma code block or a parse error.
-parsePragma ('{':'-':'#':pragma) line = Pragma $ extractPragma pragma
-  where
-    extractPragma :: String -> [String]
-    -- | After removing commas, extract words until a # is reached
-    extractPragma pragmas = case (words $ takeWhile (/= '#') $ filter (/= ',' ) pragmas) of
-      [] -> []
-      x:xs -> xs -- remove the first word (such as LANGUAGE)
-
+parsePragma ('{':'-':'#':pragma) line =
+  let commaToSpace :: Char -> Char
+      commaToSpace ',' = ' '
+      commaToSpace x   = x
+      pragmas = words $ takeWhile (/= '#') $ map commaToSpace pragma in
+  case pragmas of
+    [] -> Pragma (PragmaUnsupported "") []  --empty string pragmas are unsupported
+    "LANGUAGE":xs -> trace ("here we get " ++ (show pragmas)) $ Pragma PragmaLanguage xs
+    x:xs -> Pragma (PragmaUnsupported x) xs
 
 -- | Parse a directive of the form :directiveName.
 parseDirective :: String       -- ^ Directive string.

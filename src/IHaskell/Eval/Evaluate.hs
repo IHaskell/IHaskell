@@ -13,7 +13,7 @@ import ClassyPrelude hiding (init, last, liftIO, head, hGetContents, tail, try)
 import Control.Concurrent (forkIO, threadDelay)
 import Prelude (putChar, head, tail, last, init, (!!))
 import Data.List.Utils
-import Data.List(findIndex, and)
+import Data.List (findIndex, and)
 import Data.String.Utils
 import Text.Printf
 import Data.Char as Char
@@ -79,7 +79,7 @@ data ErrorOccurred = Success | Failure deriving (Show, Eq)
 
 -- | Enable debugging output
 debug :: Bool
-debug = False
+debug = True
 
 -- | Set GHC's verbosity for debugging
 ghcVerbosity :: Maybe Int
@@ -882,8 +882,12 @@ evalCommand _ (ParseError loc err) state = do
     evalComms = []
   }
 
-evalCommand output (Pragma pragmas) state = do
-  write $ "Got pragmas " ++ show pragmas
+evalCommand _ (Pragma (PragmaUnsupported pragmaType) pragmas) state = wrapExecution state $
+  return $ displayError $ "Pragmas of type " ++ pragmaType ++
+                          "\nare not supported."
+
+evalCommand output (Pragma PragmaLanguage pragmas) state = do
+  write $ "Got LANGUAGE pragma " ++ show pragmas
   evalCommand output (Directive SetExtension $ unwords pragmas) state
 
 hoogleResults :: KernelState -> [Hoogle.HoogleResult] -> EvalOut
