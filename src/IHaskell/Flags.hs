@@ -1,65 +1,61 @@
 {-# LANGUAGE NoImplicitPrelude, DeriveFunctor #-}
-module IHaskell.Flags ( 
-  IHaskellMode(..),
-  Argument(..),
-  Args(..),
-  LhsStyle(..),
-  lhsStyleBird,
-  NotebookFormat(..),
-  parseFlags,
-  help,
-  ) where
+module IHaskell.Flags (
+    IHaskellMode(..),
+    Argument(..),
+    Args(..),
+    LhsStyle(..),
+    lhsStyleBird,
+    NotebookFormat(..),
+    parseFlags,
+    help,
+    ) where
 
-import ClassyPrelude
-import System.Console.CmdArgs.Explicit
-import System.Console.CmdArgs.Text
-import Data.List (findIndex)
-
-import IHaskell.Types
+import           ClassyPrelude
+import           System.Console.CmdArgs.Explicit
+import           System.Console.CmdArgs.Text
+import           Data.List (findIndex)
+import           IHaskell.Types
 
 -- Command line arguments to IHaskell.  A set of aruments is annotated with
 -- the mode being invoked.
 data Args = Args IHaskellMode [Argument]
-          deriving Show
+  deriving Show
 
-data Argument
-  = ServeFrom String    -- ^ Which directory to serve notebooks from.
-  | Extension String    -- ^ An extension to load at startup.
-  | ConfFile String     -- ^ A file with commands to load at startup.
-  | IPythonFrom String  -- ^ Which executable to use for IPython.
-  | OverwriteFiles      -- ^ Present when output should overwrite existing files. 
-  | ConvertFrom String
-  | ConvertTo String 
-  | ConvertFromFormat NotebookFormat
-  | ConvertToFormat   NotebookFormat
-  | ConvertLhsStyle   (LhsStyle String)
-  | Help                -- ^ Display help text.
+data Argument = ServeFrom String    -- ^ Which directory to serve notebooks from.
+              | Extension String    -- ^ An extension to load at startup.
+              | ConfFile String     -- ^ A file with commands to load at startup.
+              | IPythonFrom String  -- ^ Which executable to use for IPython.
+              | OverwriteFiles      -- ^ Present when output should overwrite existing files. 
+              | ConvertFrom String
+              | ConvertTo String
+              | ConvertFromFormat NotebookFormat
+              | ConvertToFormat NotebookFormat
+              | ConvertLhsStyle (LhsStyle String)
+              | GhcLibDir String    -- ^ Where to find the GHC libraries.
+              | Help                -- ^ Display help text.
   deriving (Eq, Show)
 
-data LhsStyle string = LhsStyle
-  { lhsCodePrefix   :: string, -- ^ @>@
-    lhsOutputPrefix :: string, -- ^ @<<@
-    lhsBeginCode    :: string, -- ^ @\\begin{code}@
-    lhsEndCode      :: string, -- ^ @\\end{code}@
-    lhsBeginOutput  :: string, -- ^ @\\begin{verbatim}@
-    lhsEndOutput    :: string  -- ^ @\\end{verbatim}@
-  }
+data LhsStyle string = LhsStyle { lhsCodePrefix :: string  -- ^ @>@
+                                , lhsOutputPrefix :: string  -- ^ @<<@
+                                , lhsBeginCode :: string  -- ^ @\\begin{code}@
+                                , lhsEndCode :: string  -- ^ @\\end{code}@
+                                , lhsBeginOutput :: string  -- ^ @\\begin{verbatim}@
+                                , lhsEndOutput :: string  -- ^ @\\end{verbatim}@
+                                }
   deriving (Eq, Functor, Show)
 
-data NotebookFormat
-  = LhsMarkdown
-  | IpynbFile
-  deriving (Eq,Show)
+data NotebookFormat = LhsMarkdown
+                    | IpynbFile
+  deriving (Eq, Show)
 
 -- Which mode IHaskell is being invoked in.
 -- `None` means no mode was specified.
-data IHaskellMode
-  = ShowHelp String
-  | Notebook
-  | Console
-  | ConvertLhs
-  | Kernel (Maybe String)
-  | View (Maybe ViewFormat) (Maybe String)
+data IHaskellMode = ShowHelp String
+                  | Notebook
+                  | Console
+                  | ConvertLhs
+                  | Kernel (Maybe String)
+                  | View (Maybe ViewFormat) (Maybe String)
   deriving (Eq, Show)
 
 -- | Given a list of command-line arguments, return the IHaskell mode and
@@ -84,8 +80,7 @@ allModes = [console, notebook, view, kernel, convert]
 
 -- | Get help text for a given IHaskell ode.
 help :: IHaskellMode -> String
-help mode = 
-    showText (Wrap 100) $ helpText [] HelpFormatAll $ chooseMode mode
+help mode = showText (Wrap 100) $ helpText [] HelpFormatAll $ chooseMode mode
   where
     chooseMode Console = console
     chooseMode Notebook = notebook
@@ -93,16 +88,19 @@ help mode =
     chooseMode ConvertLhs = convert
 
 ipythonFlag :: Flag Args
-ipythonFlag = 
-  flagReq ["ipython", "i"] (store IPythonFrom) "<path>" "Executable for IPython."
+ipythonFlag = flagReq ["ipython", "i"] (store IPythonFrom) "<path>" "Executable for IPython."
+
+ghcLibFlag :: Flag Args
+ghcLibFlag = flagReq ["ghclib", "l"] (store GhcLibDir) "<path>" "Library directory for GHC."
 
 universalFlags :: [Flag Args]
-universalFlags = [
-  flagReq ["extension","e", "X"] (store Extension) "<ghc-extension>" "Extension to enable at start.",
-  flagReq ["conf","c"] (store ConfFile) "<rc.hs>" "File with commands to execute at start; replaces ~/.ihaskell/rc.hs.",
-  flagHelpSimple (add Help)
-  ]
-  where 
+universalFlags = [ flagReq ["extension", "e", "X"] (store Extension) "<ghc-extension>"
+                     "Extension to enable at start."
+                 , flagReq ["conf", "c"] (store ConfFile) "<rc.hs>"
+                     "File with commands to execute at start; replaces ~/.ihaskell/rc.hs."
+                 , flagHelpSimple (add Help)
+                 ]
+  where
     add flag (Args mode flags) = Args mode $ flag : flags
 
 store :: (String -> Argument) -> String -> Args -> Either String Args
@@ -115,10 +113,10 @@ notebook = mode "notebook" (Args Notebook []) "Browser-based notebook interface.
   universalFlags
 
 console :: Mode Args
-console = mode "console" (Args Console []) "Console-based interactive repl." noArgs $ ipythonFlag:universalFlags
+console = mode "console" (Args Console []) "Console-based interactive repl." noArgs $ ipythonFlag : universalFlags
 
 kernel :: Mode Args
-kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg []
+kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg [ghcLibFlag]
   where
     kernelArg = flagArg update "<json-kernel-file>"
     update filename (Args _ flags) = Right $ Args (Kernel $ Just filename) flags
@@ -127,16 +125,23 @@ convert :: Mode Args
 convert = mode "convert" (Args ConvertLhs []) description unnamedArg convertFlags
   where
     description = "Convert between Literate Haskell (*.lhs) and Ipython notebooks (*.ipynb)."
-    convertFlags = universalFlags
-      ++ [ flagReq  ["input","i"]  (store ConvertFrom) "<file>" "File to read."
-        , flagReq  ["output","o"] (store ConvertTo) "<file>" "File to write."
-        , flagReq  ["from","f"]   (storeFormat ConvertFromFormat) "lhs|ipynb" "Format of the file to read."
-        , flagReq  ["to","t"]     (storeFormat ConvertToFormat) "lhs|ipynb" "Format of the file to write."
-        , flagNone ["force"]      consForce "Overwrite existing files with output."
-        , flagReq  ["style","s"]  storeLhs "bird|tex" "Type of markup used for the literate haskell file"
-        , flagNone ["bird"]       (consStyle lhsStyleBird) "Literate haskell uses >"
-        , flagNone ["tex"]        (consStyle lhsStyleTex ) "Literate haskell uses \\begin{code}"
-         ]
+    convertFlags = universalFlags ++ [ flagReq ["input", "i"] (store ConvertFrom) "<file>"
+                                         "File to read."
+                                     , flagReq ["output", "o"] (store ConvertTo) "<file>"
+                                         "File to write."
+                                     , flagReq ["from", "f"] (storeFormat ConvertFromFormat)
+                                         "lhs|ipynb" "Format of the file to read."
+                                     , flagReq ["to", "t"] (storeFormat ConvertToFormat) "lhs|ipynb"
+                                         "Format of the file to write."
+                                     , flagNone ["force"] consForce
+                                         "Overwrite existing files with output."
+                                     , flagReq ["style", "s"] storeLhs "bird|tex"
+                                         "Type of markup used for the literate haskell file"
+                                     , flagNone ["bird"] (consStyle lhsStyleBird)
+                                         "Literate haskell uses >"
+                                     , flagNone ["tex"] (consStyle lhsStyleTex)
+                                         "Literate haskell uses \\begin{code}"
+                                     ]
 
     consForce (Args mode prev) = Args mode (OverwriteFiles : prev)
     unnamedArg = Arg (store ConvertFrom) "<file>" False
@@ -149,8 +154,8 @@ convert = mode "convert" (Args ConvertLhs []) description unnamedArg convertFlag
 
     storeLhs str previousArgs = case toLower str of
       "bird" -> success lhsStyleBird
-      "tex" -> success lhsStyleTex
-      _ -> Left $ "Unknown lhs style: " ++ str
+      "tex"  -> success lhsStyleTex
+      _      -> Left $ "Unknown lhs style: " ++ str
       where
         success lhsStyle = Right $ consStyle lhsStyle previousArgs
 
