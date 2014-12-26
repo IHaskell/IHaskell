@@ -50,7 +50,6 @@ import Unify
 import InstEnv
 import GhcMonad (liftIO, withSession)
 import GHC hiding (Stmt, TypeSig)
-import GHC.Paths
 import Exception hiding (evaluate)
 import Outputable hiding ((<>))
 import Packages
@@ -122,8 +121,8 @@ globalImports =
 -- | Run an interpreting action. This is effectively runGhc with
 -- initialization and importing. First argument indicates whether `stdin`
 -- is handled specially, which cannot be done in a testing environment.
-interpret :: Bool -> Interpreter a -> IO a
-interpret allowedStdin action = runGhc (Just libdir) $ do
+interpret :: String -> Bool -> Interpreter a -> IO a
+interpret libdir allowedStdin action = runGhc (Just libdir) $ do
   -- If we're in a sandbox, add the relevant package database
   sandboxPackages <- liftIO getSandboxPackageConf
   initGhci sandboxPackages

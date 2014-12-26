@@ -4,63 +4,61 @@
 module Main where
 
 -- Prelude imports.
-import ClassyPrelude  hiding (last, liftIO, readChan, writeChan)
-import Prelude        (last, read)
+import           ClassyPrelude hiding (last, liftIO, readChan, writeChan)
+import           Prelude (last, read)
 
 -- Standard library imports.
-import            Control.Concurrent        (threadDelay)
-import            Control.Concurrent.Chan
-import            Data.Aeson
-import            Data.Text                 (strip)
-import            System.Directory
-import            System.Exit               (exitSuccess)
-import            Text.Printf
-import            System.Posix.Signals
-import qualified  Data.Map                  as Map
+import           Control.Concurrent (threadDelay)
+import           Control.Concurrent.Chan
+import           Data.Aeson
+import           Data.Text (strip)
+import           System.Directory
+import           System.Exit (exitSuccess)
+import           Text.Printf
+import           System.Posix.Signals
+import qualified Data.Map as Map
 
 -- IHaskell imports.
-import            IHaskell.Convert          (convert)
-import            IHaskell.Eval.Completion  (complete)
-import            IHaskell.Eval.Evaluate
-import            IHaskell.Display
-import            IHaskell.Eval.Info
-import            IHaskell.Flags
-import            IHaskell.IPython
-import            IHaskell.Types
-import            IHaskell.IPython.ZeroMQ
-import            IHaskell.IPython.Types
-import qualified  Data.ByteString.Char8     as Chars
-import qualified  IHaskell.IPython.Message.UUID      as UUID
-import qualified  IHaskell.IPython.Stdin             as Stdin
+import           IHaskell.Convert (convert)
+import           IHaskell.Eval.Completion (complete)
+import           IHaskell.Eval.Evaluate
+import           IHaskell.Display
+import           IHaskell.Eval.Info
+import           IHaskell.Flags
+import           IHaskell.IPython
+import           IHaskell.Types
+import           IHaskell.IPython.ZeroMQ
+import           IHaskell.IPython.Types
+import qualified Data.ByteString.Char8 as Chars
+import qualified IHaskell.IPython.Message.UUID as UUID
+import qualified IHaskell.IPython.Stdin as Stdin
 
 -- GHC API imports.
-import GHC        hiding (extensions, language)
+import           GHC hiding (extensions, language)
+import qualified GHC.Paths
 
 -- | Compute the GHC API version number using the dist/build/autogen/cabal_macros.h
 ghcVersionInts :: [Int]
 ghcVersionInts = map read . words . map dotToSpace $ VERSION_ghc
-  where dotToSpace '.' = ' '
-        dotToSpace x = x
+  where
+    dotToSpace '.' = ' '
+    dotToSpace x = x
 
 
-main ::  IO ()
+main :: IO ()
 main = do
   args <- parseFlags <$> map unpack <$> getArgs
   case args of
-    Left errorMessage ->
-      hPutStrLn stderr errorMessage
-    Right args ->
-      ihaskell args
+    Left errorMessage -> hPutStrLn stderr errorMessage
+    Right args        -> ihaskell args
 
 chooseIPython [] = return DefaultIPython
-chooseIPython (IPythonFrom path:_) =
-  ExplicitIPython <$> subHome path
+chooseIPython (IPythonFrom path:_) = ExplicitIPython <$> subHome path
 chooseIPython (_:xs) = chooseIPython xs
 
 ihaskell :: Args -> IO ()
 -- If no mode is specified, print help text.
-ihaskell (Args (ShowHelp help) _) =
-  putStrLn $ pack help
+ihaskell (Args (ShowHelp help) _) = putStrLn $ pack help
 
 ihaskell (Args ConvertLhs args) = showingHelp ConvertLhs args $ convert args
 
@@ -95,9 +93,15 @@ ihaskell (Args Notebook flags) = showingHelp Notebook flags $ do
     serveDir (ServeFrom dir) = Just dir
     serveDir _ = Nothing
 
-ihaskell (Args (Kernel (Just filename)) _) = do
+ihaskell (Args (Kernel (Just filename)) flags) = do
   initInfo <- readInitInfo
-  runKernel filename initInfo
+  runKernel libdir filename initInfo
+
+  where
+    libdir = case flags of
+      []              -> GHC.Paths.libdir
+      [GhcLibDir dir] -> dir
+
 
 -- | Add a conf file to the arguments if none exists.
 addDefaultConfFile :: [Argument] -> IO [Argument]
@@ -131,10 +135,11 @@ initInfo front (flag:flags) = do
     _ -> return info
 
 -- | Run the IHaskell language kernel.
-runKernel :: String    -- ^ Filename of profile JSON file.
+runKernel :: String -- ^ GHC libdir.
+          -> String    -- ^ Filename of profile JSON file.
           -> InitInfo  -- ^ Initialization information from the invocation.
           -> IO ()
-runKernel profileSrc initInfo = do
+runKernel libdir profileSrc initInfo = do
   setCurrentDirectory $ initDir initInfo
 
   -- Parse the profile file.
@@ -153,7 +158,7 @@ runKernel profileSrc initInfo = do
     kernelState { getFrontend = frontend initInfo }
 
   -- Receive and reply to all messages on the shell socket.
-  interpret True $ do
+  interpret libdir True $ do
     -- Ignore Ctrl-C the first time.  This has to go inside the
     -- `interpret`, because GHC API resets the signal handlers for some
     -- reason (completely unknown to me).
