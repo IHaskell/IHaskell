@@ -78,7 +78,7 @@ data ErrorOccurred = Success | Failure deriving (Show, Eq)
 
 -- | Enable debugging output
 debug :: Bool
-debug = True
+debug = False
 
 -- | Set GHC's verbosity for debugging
 ghcVerbosity :: Maybe Int
