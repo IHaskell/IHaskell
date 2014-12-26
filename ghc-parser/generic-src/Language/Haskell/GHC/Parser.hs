@@ -67,7 +67,7 @@ data ParseOutput a
 -- | Store locations along with a value.
 data Located a = Located {
     line :: LineNumber, -- Where this element is located.
-    unloc :: a          -- Located element. 
+    unloc :: a          -- Located element.
   } deriving (Eq, Show, Functor)
 
 
@@ -101,17 +101,17 @@ runParser flags (Parser parserType parser) str =
     toParseOut $ unP parser parseState
   where
     toParseOut :: ParseResult a -> ParseOutput a
-    toParseOut (PFailed span@(RealSrcSpan realSpan) err) = 
+    toParseOut (PFailed span@(RealSrcSpan realSpan) err) =
       let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags span err
           line = srcLocLine $ realSrcSpanStart realSpan
           col = srcLocCol $ realSrcSpanStart realSpan
         in Failure errMsg $ Loc line col
 
-    toParseOut (PFailed span err) = 
+    toParseOut (PFailed span err) =
       let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags span err
         in Failure errMsg $ Loc 0 0
 
-    toParseOut (POk parseState result) = 
+    toParseOut (POk parseState result) =
       let parseEnd = realSrcSpanStart $ last_loc parseState
           endLine = srcLocLine parseEnd
           endCol = srcLocCol parseEnd
@@ -126,7 +126,7 @@ runParser flags (Parser parserType parser) str =
 -- | Split a string at a given line and column. The column is included in
 -- the second part of the split.
 splitAtLoc :: LineNumber -> ColumnNumber -> String -> (String, String)
-splitAtLoc line col string = 
+splitAtLoc line col string =
   if line > length (lines string)
   then (string, "")
   else (before, after)
@@ -145,7 +145,7 @@ joinLines = intercalate "\n"
 -- | Split an input string into chunks based on indentation.
 -- A chunk is a line and all lines immediately following that are indented
 -- beyond the indentation of the first line. This parses Haskell layout
--- rules properly, and allows using multiline expressions via indentation. 
+-- rules properly, and allows using multiline expressions via indentation.
 layoutChunks :: String -> [Located String]
 layoutChunks = go 1
   where
@@ -164,16 +164,16 @@ layoutChunks = go 1
     layoutLines _ [] = []
 
     -- Use the indent of the first line to find the end of the first block.
-    layoutLines lineIdx all@(firstLine:rest) = 
+    layoutLines lineIdx all@(firstLine:rest) =
       let firstIndent = indentLevel firstLine
           blockEnded line = indentLevel line <= firstIndent in
         case findIndex blockEnded rest of
           -- If the first block doesn't end, return the whole string, since
-          -- that just means the block takes up the entire string. 
+          -- that just means the block takes up the entire string.
           Nothing -> [Located lineIdx $ intercalate "\n" all]
 
           -- We found the end of the block. Split this bit out and recurse.
-          Just idx -> 
+          Just idx ->
             let (before, after) = splitAt idx rest in
               Located lineIdx (joinLines $ firstLine:before) : go (lineIdx + idx + 1) (joinLines after)
 
@@ -183,7 +183,7 @@ layoutChunks = go 1
 
     -- Count a tab as two spaces.
     indentLevel ('\t':str) = 2 + indentLevel str
-  
+
     -- Count empty lines as a large indent level, so they're always with the previous expression.
     indentLevel "" = 100000
 
@@ -192,7 +192,7 @@ layoutChunks = go 1
 -- | Drop comments from Haskell source.
 -- Simply gets rid of them, does not replace them in any way.
 removeComments :: String -> String
-removeComments = removeOneLineComments . removeMultilineComments 0
+removeComments = removeOneLineComments . removeMultilineComments 0 0
   where
     removeOneLineComments str =
       case str of
@@ -200,7 +200,7 @@ removeComments = removeOneLineComments . removeMultilineComments 0
         ':':'!':remaining ->":!" ++ takeLine remaining ++ dropLine remaining
 
         -- Handle strings.
-        '"':remaining -> 
+        '"':remaining ->
           let quoted = takeString remaining
               len = length quoted in
             '"':quoted ++ removeOneLineComments (drop len remaining)
@@ -211,31 +211,40 @@ removeComments = removeOneLineComments . removeMultilineComments 0
       where
         dropLine = removeOneLineComments . dropWhile (/= '\n')
 
-    removeMultilineComments nesting str =
+    removeMultilineComments nesting pragmaNesting str =
       case str of
         -- Don't remove comments after cmd directives
         ':':'!':remaining ->":!" ++ takeLine remaining ++
-          removeMultilineComments nesting (dropWhile (/= '\n') remaining)
+          removeMultilineComments nesting pragmaNesting (dropWhile (/= '\n') remaining)
 
         -- Handle strings.
-        '"':remaining -> 
+        '"':remaining ->
           if nesting == 0
-          then 
+          then
             let quoted = takeString remaining
                 len = length quoted in
-              '"':quoted ++ removeMultilineComments nesting (drop len remaining)
+              '"':quoted ++ removeMultilineComments nesting pragmaNesting (drop len remaining)
           else
-            removeMultilineComments nesting remaining
-
-        '{':'-':remaining -> removeMultilineComments (nesting + 1) remaining
-        '-':'}':remaining -> 
+            removeMultilineComments nesting pragmaNesting remaining
+        '{':'-':'#':remaining ->
+          if nesting == 0
+          then "{-#" ++ removeMultilineComments nesting (pragmaNesting + 1) remaining
+          else removeMultilineComments nesting pragmaNesting remaining
+        '#':'-':'}':remaining ->
+          if nesting == 0
+          then if pragmaNesting > 0
+               then '#':'-':'}':removeMultilineComments nesting (pragmaNesting - 1) remaining
+               else '#':'-':'}':removeMultilineComments nesting pragmaNesting remaining
+          else removeMultilineComments nesting pragmaNesting remaining
+        '{':'-':remaining -> removeMultilineComments (nesting + 1) pragmaNesting remaining
+        '-':'}':remaining ->
           if nesting > 0
-          then removeMultilineComments (nesting - 1) remaining
-          else '-':'}':removeMultilineComments nesting remaining
-        x:xs -> 
+          then removeMultilineComments (nesting - 1) pragmaNesting remaining
+          else '-':'}':removeMultilineComments nesting pragmaNesting remaining
+        x:xs ->
           if nesting > 0
-          then removeMultilineComments nesting xs
-          else x:removeMultilineComments nesting xs
+          then removeMultilineComments nesting pragmaNesting xs
+          else x:removeMultilineComments nesting pragmaNesting xs
         [] -> []
 
     takeLine = takeWhile (/= '\n')

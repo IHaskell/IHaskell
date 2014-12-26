@@ -11,6 +11,7 @@ module IHaskell.Eval.Parser (
     parseDirective,
     getModuleName,
     Located(..),
+    PragmaType(..),
     ) where
 
 -- Hide 'unlines' to use our own 'joinLines' instead.
@@ -20,6 +21,7 @@ import Data.List (findIndex, maximumBy, maximum, inits)
 import Data.String.Utils (startswith, strip, split)
 import Data.List.Utils (subIndex)
 import Prelude (init, last, head, tail)
+import Control.Monad (msum)
 
 import Bag
 import ErrUtils hiding (ErrMsg)
@@ -48,6 +50,7 @@ data CodeBlock
   | Directive DirectiveType String     -- ^ An IHaskell directive.
   | Module String                      -- ^ A full Haskell module, to be compiled and loaded.
   | ParseError StringLoc ErrMsg        -- ^ An error indicating that parsing the code block failed.
+  | Pragma PragmaType [String]         -- ^ A list of GHC pragmas (from a {-# LANGUAGE ... #-} block)
   deriving (Show, Eq)
 
 -- | Directive types. Each directive is associated with a string in the
@@ -64,6 +67,13 @@ data DirectiveType
   | SearchHoogle    -- ^ Search for something via Hoogle.
   | GetDoc          -- ^ Get documentation for an identifier via Hoogle.
   | GetKind         -- ^ Get the kind of a type via ':kind'.
+  deriving (Show, Eq)
+
+-- | Pragma types. Only LANGUAGE pragmas are currently supported.
+-- Other pragma types are kept around as a string for error reporting.
+data PragmaType
+  = PragmaLanguage
+  | PragmaUnsupported String
   deriving (Show, Eq)
 
 -- | Parse a string into code blocks.
@@ -86,10 +96,12 @@ parseString codeString = do
       return result
   where
     parseChunk :: GhcMonad m => String -> LineNumber -> m (Located CodeBlock)
-    parseChunk chunk line = Located line <$>
-      if isDirective chunk
-      then return $ parseDirective chunk line
-      else parseCodeChunk chunk line
+    parseChunk chunk line = Located line <$> handleChunk chunk line
+      where
+        handleChunk chunk line
+          | isDirective chunk = return $ parseDirective chunk line
+          | isPragma chunk = return $ parsePragma chunk line
+          | otherwise = parseCodeChunk chunk line
 
     processChunks :: GhcMonad m => [Located CodeBlock] -> [Located String] -> m [Located CodeBlock]
     processChunks accum remaining =
@@ -100,27 +112,37 @@ parseString codeString = do
         -- If we have more remaining, parse the current chunk and recurse.
         Located line chunk:remaining ->  do
           block <- parseChunk chunk line
-          activateParsingExtensions $ unloc block
+          activateExtensions $ unloc block
           processChunks (block : accum) remaining
 
-    -- Test wither a given chunk is a directive.
+    -- Test whether a given chunk is a directive.
     isDirective :: String -> Bool
     isDirective = startswith ":" . strip
+
+    -- Test if a chunk is a pragma.
+    isPragma :: String -> Bool
+    isPragma = startswith "{-#" . strip
 
     -- Number of lines in this string.
     nlines :: String -> Int
     nlines = length . lines
 
-activateParsingExtensions :: GhcMonad m => CodeBlock -> m ()
-activateParsingExtensions (Directive SetExtension ext) = void $ setExtension ext
-activateParsingExtensions (Directive SetDynFlag flags) =
+activateExtensions :: GhcMonad m => CodeBlock -> m ()
+activateExtensions (Directive SetExtension ext) = void $ setExtension ext
+activateExtensions (Directive SetDynFlag flags) =
   case stripPrefix "-X" flags of
     Just ext -> void $ setExtension ext
     Nothing -> return ()
-activateParsingExtensions _ = return ()
+activateExtensions (Pragma PragmaLanguage extensions) = void $ setAll extensions
+  where
+    setAll :: GhcMonad m => [String] -> m (Maybe String)
+    setAll exts = do
+      errs <- mapM setExtension exts
+      return $ msum errs
+activateExtensions _ = return ()
 
 -- | Parse a single chunk of code, as indicated by the layout of the code.
-parseCodeChunk :: GhcMonad m => String -> LineNumber  -> m CodeBlock
+parseCodeChunk :: GhcMonad m => String -> LineNumber -> m CodeBlock
 parseCodeChunk code startLine = do
     flags <- getSessionDynFlags
     let
@@ -191,11 +213,11 @@ parseCodeChunk code startLine = do
 -- signature, which is also joined with the subsequent declarations.
 joinFunctions :: [Located CodeBlock] -> [Located CodeBlock]
 joinFunctions [] = []
-joinFunctions blocks = 
+joinFunctions blocks =
   if signatureOrDecl $ unloc $ head blocks
   then Located lnum (conjoin $ map unloc decls) : joinFunctions rest
   else head blocks : joinFunctions (tail blocks)
-  where 
+  where
     decls = takeWhile (signatureOrDecl . unloc) blocks
     rest = drop (length decls) blocks
     lnum = line $ head decls
@@ -210,6 +232,21 @@ joinFunctions blocks =
 
     conjoin :: [CodeBlock] -> CodeBlock
     conjoin = Declaration . intercalate "\n" . map str
+
+
+-- | Parse a pragma of the form {-# LANGUAGE ... #-}
+parsePragma :: String       -- ^ Pragma string.
+            -> Int          -- ^ Line number at which the directive appears.
+            -> CodeBlock    -- ^ Pragma code block or a parse error.
+parsePragma ('{':'-':'#':pragma) line =
+  let commaToSpace :: Char -> Char
+      commaToSpace ',' = ' '
+      commaToSpace x   = x
+      pragmas = words $ takeWhile (/= '#') $ map commaToSpace pragma in
+  case pragmas of
+    [] -> Pragma (PragmaUnsupported "") []  --empty string pragmas are unsupported
+    "LANGUAGE":xs -> Pragma PragmaLanguage xs
+    x:xs -> Pragma (PragmaUnsupported x) xs
 
 -- | Parse a directive of the form :directiveName.
 parseDirective :: String       -- ^ Directive string.

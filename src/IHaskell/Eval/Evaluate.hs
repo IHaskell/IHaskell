@@ -13,7 +13,7 @@ import ClassyPrelude hiding (init, last, liftIO, head, hGetContents, tail, try)
 import Control.Concurrent (forkIO, threadDelay)
 import Prelude (putChar, head, tail, last, init, (!!))
 import Data.List.Utils
-import Data.List(findIndex, and)
+import Data.List (findIndex, and)
 import Data.String.Utils
 import Text.Printf
 import Data.Char as Char
@@ -258,7 +258,7 @@ evaluate kernelState code output = do
       -- Merge them with normal display outputs.
       dispsIO <- extractValue "IHaskell.Display.displayFromChan"
       dispsMay <- liftIO dispsIO
-      let result = 
+      let result =
             case dispsMay of
               Nothing -> evalResult evalOut
               Just disps -> evalResult evalOut <> disps
@@ -415,7 +415,7 @@ evalCommand output (Directive SetDynFlag flags) state =
           -- For -XNoImplicitPrelude, remove the Prelude import.
           -- For -XImplicitPrelude, add it back in.
           case flag of
-            "-XNoImplicitPrelude" -> 
+            "-XNoImplicitPrelude" ->
               evalImport "import qualified Prelude as Prelude"
             "-XImplicitPrelude" -> do
               importDecl <- parseImportDecl "import Prelude"
@@ -881,6 +881,13 @@ evalCommand _ (ParseError loc err) state = do
     evalComms = []
   }
 
+evalCommand _ (Pragma (PragmaUnsupported pragmaType) pragmas) state = wrapExecution state $
+  return $ displayError $ "Pragmas of type " ++ pragmaType ++
+                          "\nare not supported."
+
+evalCommand output (Pragma PragmaLanguage pragmas) state = do
+  write $ "Got LANGUAGE pragma " ++ show pragmas
+  evalCommand output (Directive SetExtension $ unwords pragmas) state
 
 hoogleResults :: KernelState -> [Hoogle.HoogleResult] -> EvalOut
 hoogleResults state results = EvalOut {
@@ -986,7 +993,7 @@ keepingItVariable act = do
       var name = name ++ rand
       goStmt s = runStmt s RunToCompletion
       itVariable = var "it_var_temp_"
-  
+
   goStmt $ printf "let %s = it" itVariable
   val <- act
   goStmt $ printf "let it = %s" itVariable
