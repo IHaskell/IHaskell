@@ -33,7 +33,6 @@ import OrdList
 import Outputable hiding ((<>))
 import SrcLoc hiding (Located)
 import StringBuffer
-import Debug.Trace
 
 import Language.Haskell.GHC.Parser
 import IHaskell.Eval.Util
@@ -101,7 +100,7 @@ parseString codeString = do
       where
         handleChunk chunk line
           | isDirective chunk = return $ parseDirective chunk line
-          | isPragma chunk = trace ("HERE " ++ (show chunk)) $ return $ parsePragma chunk line
+          | isPragma chunk = return $ parsePragma chunk line
           | otherwise = parseCodeChunk chunk line
 
     processChunks :: GhcMonad m => [Located CodeBlock] -> [Located String] -> m [Located CodeBlock]
@@ -246,7 +245,7 @@ parsePragma ('{':'-':'#':pragma) line =
       pragmas = words $ takeWhile (/= '#') $ map commaToSpace pragma in
   case pragmas of
     [] -> Pragma (PragmaUnsupported "") []  --empty string pragmas are unsupported
-    "LANGUAGE":xs -> trace ("here we get " ++ (show pragmas)) $ Pragma PragmaLanguage xs
+    "LANGUAGE":xs -> Pragma PragmaLanguage xs
     x:xs -> Pragma (PragmaUnsupported x) xs
 
 -- | Parse a directive of the form :directiveName.
