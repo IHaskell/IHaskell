@@ -20,6 +20,11 @@ As well as the IPython browser-based notebook interface:
 
 # More usage information on the [wiki](https://github.com/gibiansky/IHaskell/wiki).
 
+Kronos Haskell
+===
+For Mac OS X 10.9 and higher, you can install IHaskell via [Kronos Haskell](http://www.kronosnotebook.com/static/haskell.html).
+Kronos Haskell is a packaged interface for IHaskell, downloadable as a Mac app
+– download it, put it in /Applications, and run it as any other Mac app.
 
 Linux Package Installation
 ===
