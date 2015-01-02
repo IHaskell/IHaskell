@@ -275,7 +275,12 @@ writeInitInfo info = do
 readInitInfo :: IO InitInfo
 readInitInfo = shelly $ do
   filename <- (</>  ".last-arguments") <$> ihaskellDir
-  read <$> liftIO (readFile filename)
+  exists <- test_f filename
+  if exists
+  then read <$> liftIO (readFile filename)
+  else do
+    dir <- fromMaybe "." <$> fmap unpack <$> get_env "HOME"
+    return InitInfo { extensions = [], initCells = [], initDir = dir, frontend = IPythonNotebook }
 
 -- | Create the IPython profile.
 setupIPythonProfile :: WhichIPython
