@@ -26,16 +26,30 @@ For Mac OS X 10.9 and higher, you can install IHaskell via [Kronos Haskell](http
 Kronos Haskell is a packaged interface for IHaskell, downloadable as a Mac app
 – download it, put it in /Applications, and run it as any other Mac app.
 
-Linux Package Installation
+Docker Installation (Linux, Mac and Windows)
 ===
 
-There is a Docker package for Linux.
+There is a Docker container for IHaskell.  It can be run in Linux, Mac OS as well as Windows, although Mac OS and Windows users will need to install [boot2docker](https://github.com/boot2docker/boot2docker). Instructions for installing on your platform can be found on [docker.com](https://docs.docker.com/installation/).
 
-    sudo docker run -p 8778:8778 gregweber/ihaskell
+After installing docker, type the following to run IHaskell in your browser.
 
-This is defaulted to run the browser. You can run the console instead with
+```bash
+docker run -p 8778:8778 -v $(pwd):/home/haskell/.ihaskell/notebooks gregweber/ihaskell
+```
 
-    sudo docker run -rm -i -t gregweber/ihaskell console
+This will share the current working directory with the Docker container.
+
+Visit [http://0.0.0.0:8778/](http://0.0.0.0:8778/) to start using IHaskell.
+
+If you are using boot2docker you may need to visit [http://192.168.59.103:8778/](http://192.168.59.103:8778/) instead.
+
+You can also run the IHaskell in the console with
+
+```bash
+docker run --rm -i -t gregweber/ihaskell console
+```
+
+*Note*: Linux users might need to type `sudo` before this command, unless they have added themselves to the `docker` group.  Please see this [stackexchange](http://askubuntu.com/a/477554) answer for more information.
 
 Windows Installation
 ===
