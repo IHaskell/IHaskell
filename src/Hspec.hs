@@ -59,7 +59,7 @@ eval string = do
 
   getTemporaryDirectory >>= setCurrentDirectory
   let state = defaultKernelState { getLintStatus = LintOff }
-  interpret "" False $ Eval.evaluate state string publish
+  interpret libdir False $ Eval.evaluate state string publish
   out <- readIORef outputAccum
   pagerOut <- readIORef pagerAccum
   return (reverse out, unlines $ reverse pagerOut)
