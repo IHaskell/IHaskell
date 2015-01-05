@@ -85,6 +85,7 @@ library
                        system-argv0         -any,
                        system-filepath      -any,
                        tar                  -any,
+                       template-haskell     -any, 
                        text                 >=0.11,
                        transformers         -any,
                        unix                 >= 2.6,
