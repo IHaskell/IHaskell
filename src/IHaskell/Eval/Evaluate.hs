@@ -79,7 +79,7 @@ data ErrorOccurred = Success | Failure deriving (Show, Eq)
 
 -- | Enable debugging output
 debug :: Bool
-debug = False  
+debug = False    
 
 -- | Set GHC's verbosity for debugging
 ghcVerbosity :: Maybe Int
@@ -699,61 +699,57 @@ evalCommand output (Expression expr) state = do
   -- typeclass instance, this will throw an exception and thus `attempt` will
   -- return False, and we just resort to plaintext.
   let displayExpr = printf "(IHaskell.Display.display (%s))" expr :: String
+  write displayExpr 
   canRunDisplay <- attempt $ exprType displayExpr
 
   -- Check if this is a widget.
   let widgetExpr = printf "(IHaskell.Display.Widget (%s))" expr :: String
   isWidget <- attempt $ exprType widgetExpr
 
-  -- Check if this is a declaration  
- -- let declExpr = printf "((id :: Q [Dec] -> Q [Dec]) (%s))" expr::String
+  -- Check if this is a template haskell declaration 
   let declExpr = printf "((id :: DecsQ -> DecsQ) (%s))" expr::String
-  isDeclaration <- attempt $ exprType declExpr  
+  isTHDeclaration <- attempt $ exprType declExpr  
 
   write $ "Can Display: " ++ show canRunDisplay
-  write $ "  Is Widget: " ++ show isWidget 
-  if isDeclaration 
+  write $ "Is Widget: " ++ show isWidget 
+  write $ "Is Declaration: " ++ show isTHDeclaration 
+
+  if isTHDeclaration 
+    -- If it typechecks as a DecsQ, we do not want to display the DecsQ, 
+    -- we just want the declaration made. 
   then do 
-      write $ "  Is Declaration: " ++ show isDeclaration 
-      (GHC.runDecls expr) >> return ()  
-  else  
-      write $ "  Is Declaration:" ++ show isDeclaration 
-
-
-  if canRunDisplay
-  then do
-    -- Use the display. As a result, `it` is set to the output.
-    out <- useDisplay displayExpr
-
-    -- Register the `it` object as a widget.
-    if isWidget
-    then registerWidget out
-    else return out
-  else do
-    if isDeclaration 
-    -- We do not want to display the DecsQ, we just want the 
-    -- declaration made. 
-    then do write $ "Suppressing display for template haskell declaration"  
-            return EvalOut {
+          write $ "Suppressing display for template haskell declaration"  
+          GHC.runDecls expr  
+          return EvalOut {
                     evalStatus = Success,
                     evalResult = mempty,  
                     evalState = state,
                     evalPager = "",
                     evalComms = []
                 }
-    else do  
-            -- Evaluate this expression as though it's just a statement.
-            -- The output is bound to 'it', so we can then use it.
-            evalOut <- evalCommand output (Statement expr) state
+  else do  
+      if canRunDisplay
+      then do
+        -- Use the display. As a result, `it` is set to the output.
+        out <- useDisplay displayExpr
 
-            let out = evalResult evalOut
-                showErr = isShowError out
+        -- Register the `it` object as a widget.
+        if isWidget
+        then registerWidget out
+        else return out
+      else do
+        -- Evaluate this expression as though it's just a statement.
+        -- The output is bound to 'it', so we can then use it.
+        evalOut <- evalCommand output (Statement expr) state
 
-            -- If evaluation failed, return the failure.  If it was successful, we
-            -- may be able to use the IHaskellDisplay typeclass.
-            return $ if not showErr || useShowErrors state
-                    then evalOut
-                    else postprocessShowError evalOut
+        let out = evalResult evalOut
+            showErr = isShowError out
+
+        -- If evaluation failed, return the failure.  If it was successful, we
+        -- may be able to use the IHaskellDisplay typeclass.
+        return $ if not showErr || useShowErrors state
+                then evalOut
+                else postprocessShowError evalOut
 
   where
     -- Try to evaluate an action. Return True if it succeeds and False if
