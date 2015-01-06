@@ -699,7 +699,6 @@ evalCommand output (Expression expr) state = do
   -- typeclass instance, this will throw an exception and thus `attempt` will
   -- return False, and we just resort to plaintext.
   let displayExpr = printf "(IHaskell.Display.display (%s))" expr :: String
-  write displayExpr 
   canRunDisplay <- attempt $ exprType displayExpr
 
   -- Check if this is a widget.
