@@ -117,6 +117,7 @@ globalImports =
   , "import qualified IHaskell.IPython.Stdin"
   , "import qualified System.Posix.IO as IHaskellIO"
   , "import qualified System.IO as IHaskellSysIO"
+  , "import qualified Language.Haskell.TH as IHaskellTH"
   ]
 
 -- | Run an interpreting action. This is effectively runGhc with
@@ -706,7 +707,7 @@ evalCommand output (Expression expr) state = do
   isWidget <- attempt $ exprType widgetExpr
 
   -- Check if this is a template haskell declaration 
-  let declExpr = printf "((id :: DecsQ -> DecsQ) (%s))" expr::String
+  let declExpr = printf "((id :: IHaskellTH.DecsQ -> IHaskellTH.DecsQ) (%s))" expr::String
   isTHDeclaration <- attempt $ exprType declExpr  
 
   write $ "Can Display: " ++ show canRunDisplay
