@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | This module provides automation for writing simple IPython
+-- | Description : Easy IPython kernels
+-- = Overview
+-- This module provides automation for writing simple IPython
 -- kernels. In particular, it provides a record type that defines
 -- configurations and a function that interprets a configuration as an
 -- action in some monad that can do IO.
@@ -11,9 +13,38 @@
 -- language that nevertheless has side effects, global state, and
 -- timing effects is included in the examples directory.
 --
--- Presently, there is no automation for creating the profile in the
--- .ipython directory. One should follow the IPython instructions for
--- this.
+-- = Profiles
+-- To run your kernel, you will need an IPython profile that causes
+-- the frontend to run it. To generate a fresh profile, run the command
+--
+-- > ipython profile create NAME
+--
+-- This will create a fresh IPython profile in @~\/.ipython\/profile_NAME@.
+-- This profile must be modified in two ways:
+--
+-- 1. It needs to run your kernel instead of the default ipython
+-- 2. It must have message signing turned off, because 'easyKernel' doesn't support it
+--
+-- == Setting the executable
+-- To set the executable, modify the configuration object's
+-- @KernelManager.kernel_cmd@ property. For example:
+--
+-- > c.KernelManager.kernel_cmd = ['my_kernel', '{connection_file}']
+--
+-- Your own main should arrange to parse command line arguments such
+-- that the connection file is passed to easyKernel.
+--
+-- == Message signing
+-- To turn off message signing, use the following snippet:
+--
+-- > c.Session.key = b''
+-- > c.Session.keyfile = b''
+--
+-- == Further profile improvements
+-- Consult the IPython documentation along with the generated profile
+-- source code for further configuration of the frontend, including
+-- syntax highlighting, logos, help text, and so forth.
+
 module IHaskell.IPython.EasyKernel (easyKernel, KernelConfig(..)) where
 
 import Data.Aeson (decode)
@@ -94,7 +125,10 @@ createReplyHeader parent = do
 
 -- | Execute an IPython kernel for a config. Your 'main' action should
 -- call this as the last thing it does.
-easyKernel :: (MonadIO m) => FilePath -> KernelConfig m output result -> m ()
+easyKernel :: (MonadIO m)
+           => FilePath -- ^ The connection file provided by the IPython frontend
+           -> KernelConfig m output result -- ^ The kernel configuration specifying how to react to messages
+           -> m ()
 easyKernel profileFile config = do
   prof <- liftIO $ getProfile profileFile
   zmq@(Channels shellReqChan shellRepChan ctrlReqChan ctrlRepChan iopubChan) <-
