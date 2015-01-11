@@ -45,7 +45,6 @@ import Data.String.Utils (rstrip)
 import qualified Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Char8 as Char
 import Data.Aeson (Value)
-import Language.Haskell.TH as TH 
 import System.Directory(getTemporaryDirectory, setCurrentDirectory)
 
 import Control.Concurrent.STM.TChan
@@ -77,12 +76,6 @@ instance IHaskellDisplay a => IHaskellDisplay [a] where
   display disps = do
     displays <- mapM display disps
     return $ ManyDisplay displays
-
-instance IHaskellDisplay TH.DecsQ where
-  display decl = do    r <- TH.runQ decl
-                       let t = TH.pprint r
-                       let dd = DisplayData PlainText $ pack t
-                       display dd
 
 -- | Encode many displays into a single one. All will be output.
 many :: [Display] -> Display
