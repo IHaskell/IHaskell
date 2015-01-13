@@ -45,11 +45,13 @@
 -- source code for further configuration of the frontend, including
 -- syntax highlighting, logos, help text, and so forth.
 
-module IHaskell.IPython.EasyKernel (easyKernel, KernelConfig(..)) where
+module IHaskell.IPython.EasyKernel (easyKernel, installProfile, KernelConfig(..)) where
 
 import Data.Aeson (decode)
 
 import qualified Data.ByteString.Lazy as BL
+
+import qualified Codec.Archive.Tar as Tar
 
 import Control.Concurrent (MVar, readChan, writeChan, newMVar, readMVar, modifyMVar_)
 import Control.Monad.IO.Class (MonadIO(..))
@@ -62,7 +64,8 @@ import qualified Data.Text as T
 import IHaskell.IPython.Kernel
 import IHaskell.IPython.Message.UUID as UUID
 
-
+import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getHomeDirectory)
+import System.FilePath ((</>))
 import System.Exit (exitSuccess)
 import System.IO (openFile, IOMode(ReadMode))
 
@@ -71,8 +74,18 @@ import System.IO (openFile, IOMode(ReadMode))
 -- your kernel will run, the type of intermediate outputs from running
 -- cells, and the type of final results of cells, respectively.
 data KernelConfig m output result = KernelConfig
-  { languageName :: String -- ^ The name of the language
+  { languageName :: String
+     -- ^ The name of the language. This field is used to calculate
+     -- the name of the profile, so it should contain characters that
+     -- are reasonable to have in file names.
   , languageVersion :: [Int] -- ^ The version of the language
+  , profileSource ::  IO (Maybe FilePath)
+    -- ^ Determine the source of a profile to install using
+    -- 'installProfile'. The source should be a tarball whose contents
+    -- will be unpacked directly into the profile directory. For
+    -- example, the file whose name is @ipython_config.py@ in the
+    -- tar file for a language named @lang@ will end up in
+    -- @~/.ipython/profile_lang/ipython_config.py@.
   , displayOutput :: output -> [DisplayData] -- ^ How to render intermediate output
   , displayResult :: result -> [DisplayData] -- ^ How to render final cell results
   , completion :: T.Text -> T.Text -> Int -> Maybe ([T.Text], T.Text, T.Text) 
@@ -96,6 +109,35 @@ data KernelConfig m output result = KernelConfig
   , debug :: Bool -- ^ Whether to print extra debugging information to
                   -- the console
   }
+
+-- | Attempt to install the IPython profile from the .tar file
+-- indicated by the 'profileSource' field of the configuration, if it
+-- is not already installed.
+installProfile :: MonadIO m => KernelConfig m output result -> m ()
+installProfile config = do
+  installed <- isInstalled
+  when (not installed) $ do
+    profSrc <- liftIO $ profileSource config
+    case profSrc of
+      Nothing -> liftIO (putStrLn "No IPython profile is installed or specified")
+      Just tar -> do
+        profExists <- liftIO $ doesFileExist tar
+        profTgt <- profDir
+        if profExists
+           then do liftIO $ createDirectoryIfMissing True profTgt
+                   liftIO $ Tar.extract profTgt tar
+           else liftIO . putStrLn $
+                  "The supplied profile source '" ++ tar ++ "' does not exist"
+
+  where
+    profDir = do
+      home <- liftIO getHomeDirectory
+      return $ home </> ".ipython" </> ("profile_" ++ languageName config)
+    isInstalled = do
+      prof <- profDir
+      dirThere <- liftIO $ doesDirectoryExist prof
+      isProf <- liftIO . doesFileExist $ prof </> "ipython_config.py"
+      return $ dirThere && isProf
 
 getProfile :: FilePath -> IO Profile
 getProfile fn = do

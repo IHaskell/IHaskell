@@ -15,12 +15,15 @@ import Data.Monoid ((<>))
 import qualified Data.Text as T
 
 import IHaskell.IPython.Kernel
-import IHaskell.IPython.EasyKernel (easyKernel, KernelConfig(..))
+import IHaskell.IPython.EasyKernel (installProfile, easyKernel, KernelConfig(..))
 
 import System.Environment (getArgs)
+import System.FilePath ((</>))
 
 import Text.Parsec (Parsec, ParseError, alphaNum, char, letter, oneOf, optionMaybe, runParser, (<?>))
 import qualified Text.Parsec.Token as P
+
+import qualified Paths_ipython_kernel as Paths
 
 ---------------------------------------------------------
 --  Hutton's Razor, plus time delays, plus a global state
@@ -203,14 +206,15 @@ execRazor val Count clear send = do
 mkConfig :: MVar Integer -- ^ The internal state of the execution
          -> KernelConfig IO [IntermediateEvalRes] (Either ParseError Integer)
 mkConfig var = KernelConfig
-  { languageName = "Hutton's Razor + extra"
-  , languageVersion = [0,1,0]
-  , displayResult = displayRes
-  , displayOutput = displayOut
-  , completion = langCompletion
-  , objectInfo = langInfo
-  , run = parseAndRun
-  , debug = False
+  { languageName     = "expanded_huttons_razor"
+  , languageVersion  = [0,1,0]
+  , profileSource    = Just . (</> "calc_profile.tar") <$> Paths.getDataDir
+  , displayResult    = displayRes
+  , displayOutput    = displayOut
+  , completion       = langCompletion
+  , objectInfo       = langInfo
+  , run              = parseAndRun
+  , debug            = False
   }
   where
     displayRes (Left err) =
@@ -231,6 +235,15 @@ mkConfig var = KernelConfig
           return (Right res, Ok, T.unpack pager)
 
 main :: IO ()
-main = do ["kernel", profileFile] <- getArgs
+main = do args <- getArgs
           val <- newMVar 1
-          easyKernel profileFile (mkConfig val)
+          case args of
+            ["kernel", profileFile] ->
+              easyKernel profileFile (mkConfig val)
+            ["setup"] -> do
+              putStrLn "Installing profile..."
+              installProfile (mkConfig val)
+            _ -> do
+              putStrLn "Usage:"
+              putStrLn "simple-calc-example setup        -- set up the profile"
+              putStrLn "simple-calc-example kernel FILE  -- run a kernel with FILE for communication with the frontend"
