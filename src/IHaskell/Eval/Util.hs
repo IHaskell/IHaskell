@@ -19,28 +19,32 @@ module IHaskell.Eval.Util (
   doc,
   ) where
 
-import ClassyPrelude
+import           ClassyPrelude
 
 -- GHC imports.
-import DynFlags
-import FastString
-import GHC
-import GhcMonad
-import HsImpExp
-import HscTypes
-import InteractiveEval
-import Module
-import Outputable
-import Packages
-import RdrName
-import NameSet
-import Name
-import PprTyThing
+import           DynFlags
+import           FastString
+import           GHC
+import           GhcMonad
+import           HsImpExp
+import           HscTypes
+import           InteractiveEval
+import           Module
+import           Outputable
+import           Packages
+import           RdrName
+import           NameSet
+import           Name
+import           PprTyThing
+import           InstEnv (ClsInst(..))
+import           Unify (tcMatchTys)
+import           VarSet (mkVarSet)
 import qualified Pretty
 
-import Control.Monad (void)
-import Data.Function (on)
-import Data.String.Utils (replace)
+import           Control.Monad (void)
+import           Data.Function (on)
+import           Data.String.Utils (replace)
+import           Data.List (nubBy)
 
 -- | A extension flag that can be set or unset.
 data ExtFlag
@@ -197,8 +201,25 @@ evalImport imports = do
 evalDeclarations :: GhcMonad m => String -> m [String]
 evalDeclarations decl = do
   names <- runDecls decl
+  cleanUpDuplicateInstances
   flags <- getSessionDynFlags
   return $ map (replace ":Interactive." "" . showPpr flags) names
+
+cleanUpDuplicateInstances :: GhcMonad m => m ()
+cleanUpDuplicateInstances = modifySession $ \hscEnv ->
+  let 
+      -- Get all class instancesj
+      ic = hsc_IC hscEnv
+      (clsInsts, famInsts) = ic_instances ic
+      -- Remove duplicates
+      clsInsts' = nubBy instEq clsInsts
+  in hscEnv { hsc_IC = ic { ic_instances = (clsInsts', famInsts) } }
+  where
+    instEq :: ClsInst -> ClsInst -> Bool
+    instEq ClsInst{is_tvs = tpl_tvs,is_tys = tpl_tys} ClsInst{is_tys = tpl_tys'} =
+      let tpl_tv_set = mkVarSet tpl_tvs
+      in isJust $ tcMatchTys tpl_tv_set tpl_tys tpl_tys'
+
 
 -- | Get the type of an expression and convert it to a string.
 getType :: GhcMonad m => String -> m String
