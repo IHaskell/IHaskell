@@ -708,7 +708,8 @@ evalCommand output (Expression expr) state = do
 
   -- Check if this is a template haskell declaration 
   let declExpr = printf "((id :: IHaskellTH.DecsQ -> IHaskellTH.DecsQ) (%s))" expr::String
-  isTHDeclaration <- attempt $ exprType declExpr  
+  let anyExpr = printf "((id :: IHaskellPrelude.Int -> IHaskellPrelude.Int) (%s))" expr :: String
+  isTHDeclaration <- liftM2 (&&) (attempt $ exprType declExpr) (not <$> attempt (exprType anyExpr))
 
   write $ "Can Display: " ++ show canRunDisplay
   write $ "Is Widget: " ++ show isWidget 
