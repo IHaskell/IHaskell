@@ -141,6 +141,11 @@ If you already have ipython installed you can use the --ipython flag.
 
 On Linux make sure you also have `python-dev` (or equivalent) installed, which is needed to install `pyzmq`
 
+In the IPython profile config file for Haskell `~/.ipython/profile_haskell/ipython_config.py` write:
+```python
+exe = "/Users/username/.cabal/bin/IHaskell"  # or your custom path to IHaskell
+```
+
 IHaskell Installation
 ---
 
