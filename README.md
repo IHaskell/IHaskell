@@ -141,11 +141,6 @@ If you already have ipython installed you can use the --ipython flag.
 
 On Linux make sure you also have `python-dev` (or equivalent) installed, which is needed to install `pyzmq`
 
-In the IPython profile config file for Haskell `~/.ipython/profile_haskell/ipython_config.py` write:
-```python
-exe = "/Users/username/.cabal/bin/IHaskell"  # or your custom path to IHaskell
-```
-
 IHaskell Installation
 ---
 
@@ -215,6 +210,22 @@ broken version of distutils. Homebrew's version of Python 2.7.6 *does* work.
 as in `IHaskell notebook --conf=/home/user/.ihaskellrc.hs`.
 
 **Note**: You may have some trouble due to browser caches with the notebook interface if you also use IPython's notebook interface or have used it in the past. If something doesn't work or IPython says it can't connect to the notebook server, make sure to clear the browser cache in whatever browser you're using, or try another browser.
+
+**Problem**:
+
+Running `$ IHaskell console` or starting a kernel in `$ IHaskell notebook` gives an error:
+
+    [ZMQTerminalIPythonApp] ERROR | Exception while loading config file /Users/piotrmigdal/.ipython/profile_haskell/ipython_config.py
+    ...
+    c.KernelManager.kernel_cmd = [exe, 'kernel', '{connection_file}']
+    NameError: name 'exe' is not defined
+
+**Solution**:
+
+In the IPython profile config file for Haskell `~/.ipython/profile_haskell/ipython_config.py` write:
+```python
+exe = "/Users/username/.cabal/bin/IHaskell"  # or your custom path to IHaskell
+```
 
 Contributing
 ===
