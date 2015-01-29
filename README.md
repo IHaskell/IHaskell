@@ -215,7 +215,7 @@ as in `IHaskell notebook --conf=/home/user/.ihaskellrc.hs`.
 
 Running `$ IHaskell console` or starting a kernel in `$ IHaskell notebook` gives an error:
 
-    [ZMQTerminalIPythonApp] ERROR | Exception while loading config file /Users/piotrmigdal/.ipython/profile_haskell/ipython_config.py
+    [ZMQTerminalIPythonApp] ERROR | Exception while loading config file /Users/username/.ipython/profile_haskell/ipython_config.py
     ...
     c.KernelManager.kernel_cmd = [exe, 'kernel', '{connection_file}']
     NameError: name 'exe' is not defined
