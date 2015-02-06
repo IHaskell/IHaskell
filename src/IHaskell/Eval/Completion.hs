@@ -1,4 +1,5 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, DoAndIfThenElse #-}
+{-# LANGUAGE CPP, NoImplicitPrelude, OverloadedStrings, DoAndIfThenElse #-}
+{-# LANGUAGE TypeFamilies, FlexibleContexts #-}
 {- |
 Description:    Generates tab completion options.
 
@@ -25,7 +26,10 @@ import Data.String.Utils (strip, startswith, endswith, replace)
 import qualified Data.String.Utils as StringUtils
 import System.Environment (getEnv)
 
-import GHC
+import GHC hiding (Qualified)
+#if MIN_VERSION_ghc(7,10,0)
+import GHC.PackageDb (ExposedModule(exposedName))
+#endif
 import DynFlags
 import GhcMonad
 import PackageConfig
@@ -64,8 +68,12 @@ complete line pos = do
       unqualNames = nub $ filter (not . isQualified) rdrNames
       qualNames = nub $ scopeNames ++ filter isQualified rdrNames
 
+#if !MIN_VERSION_ghc(7,10,0)
+  let exposedName = id
+#endif
+
   let Just db = pkgDatabase flags
-      getNames = map moduleNameString . exposedModules
+      getNames = map (moduleNameString . exposedName) . exposedModules
       moduleNames = nub $ concatMap getNames db
 
   let target = completionTarget line pos
@@ -75,6 +83,12 @@ complete line pos = do
         HsFilePath _ match ->  match
         FilePath   _ match ->  match
         otherwise       -> intercalate "." target
+
+#if MIN_VERSION_ghc(7,10,0)
+  let extName (FlagSpec {flagSpecName=name}) = name
+#else
+  let extName (name, _, _) = name
+#endif
 
   options <-
         case completion of
@@ -100,9 +114,7 @@ complete line pos = do
             -- Possibly leave out the fLangFlags? The
             -- -XUndecidableInstances vs. obsolete
             -- -fallow-undecidable-instances.
-            let extName (name, _, _) = name
-
-                kernelOptNames = concatMap getSetName kernelOpts
+            let kernelOptNames = concatMap getSetName kernelOpts
                 otherNames = ["-package","-Wall","-w"]
 
                 fNames = map extName fFlags ++
@@ -120,8 +132,7 @@ complete line pos = do
             return $ filter (ext `isPrefixOf`) allNames
 
           Extension ext -> do
-            let extName (name, _, _) = name
-                xNames = map extName xFlags
+            let xNames = map extName xFlags
                 xNoNames = map ("No" ++) xNames
             return $ filter (ext `isPrefixOf`) $ xNames ++ xNoNames
 
