@@ -58,21 +58,25 @@ extensionFlag :: String         -- Extension name, such as @"DataKinds"@
               -> Maybe ExtFlag
 extensionFlag ext =
   case find (flagMatches ext) xFlags of
-    Just (_, flag, _) -> Just $ SetFlag flag
+    Just fs -> Just $ SetFlag $ flagSpecFlag fs
     -- If it doesn't match an extension name, try matching against
     -- disabling an extension.
     Nothing ->
       case find (flagMatchesNo ext) xFlags of
-        Just (_, flag, _) -> Just $ UnsetFlag flag
+        Just fs -> Just $ UnsetFlag $ flagSpecFlag fs
         Nothing -> Nothing
-
   where
     -- Check if a FlagSpec matches an extension name.
-    flagMatches ext (name, _, _) = ext == name
+    flagMatches ext fs = ext == flagSpecName fs
 
     -- Check if a FlagSpec matches "No<ExtensionName>".
     -- In that case, we disable the extension.
-    flagMatchesNo ext (name, _, _) = ext == "No" ++ name
+    flagMatchesNo ext fs = ext == "No" ++ flagSpecName fs
+
+#if !MIN_VERSION_ghc(7,10,0)
+    flagSpecName (name,_,_) = name
+    flagSpecFlag (_,flag,_) = flag
+#endif
 
 -- | Set an extension and update flags.
 -- Return @Nothing@ on success. On failure, return an error message.
