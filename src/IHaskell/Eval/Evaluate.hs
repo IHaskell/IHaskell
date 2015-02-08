@@ -397,6 +397,16 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
 -- | Directives set via `:set`.
 evalCommand output (Directive SetDynFlag flags) state =
   case words flags of
+    -- Ill-formed command
+    [] -> do
+      return EvalOut {
+          evalStatus = Failure,
+          evalResult = displayError "Expected flag to :set",
+          evalState = state,
+          evalPager = "",
+          evalComms = []
+      }
+
     -- For a single flag.
     [flag] -> do
       write $ "DynFlags: " ++ flags
