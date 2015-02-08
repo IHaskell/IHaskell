@@ -399,9 +399,10 @@ evalCommand output (Directive SetDynFlag flags) state =
   case words flags of
     -- Ill-formed command
     [] -> do
+      flags <- getSessionDynFlags
       return EvalOut {
-          evalStatus = Failure,
-          evalResult = displayError "Expected flag to :set",
+          evalStatus = Success,
+          evalResult = Display [plain $ showSDoc flags $ vcat [pprDynFlags False flags, pprLanguages False flags]],
           evalState = state,
           evalPager = "",
           evalComms = []
