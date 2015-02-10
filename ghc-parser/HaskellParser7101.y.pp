@@ -440,17 +440,27 @@ TH_QQUASIQUOTE  { L _ (ITqQuasiQuote _) }
 %partial partialStatement stmt
 %partial partialImport importdecl
 %partial partialDeclaration topdecl
-%partial partialTypeSignature sigdecl
-%partial partialModule module
+%partial partialTypeSignature signature
+%partial partialModule namedModule
 %partial partialExpression exp
 
 %name fullStatement stmt
 %name fullImport importdecl
 %name fullDeclaration topdecl
 %name fullExpression exp
-%name fullTypeSignature sigdecl
-%name fullModule module
+%name fullTypeSignature signature
+%name fullModule namedModule
 %%
+
+signature :: { LHsDecl RdrName }
+          : sigdecl { head (fromOL (unLoc $1)) }
+
+namedModule  :: { Located (HsModule RdrName) }
+        : maybedocheader 'module' modid maybemodwarning maybeexports 'where' body
+                {% fileSrcSpan >>= \ loc ->
+                   let (addAnn, (importDecl, hsDecl)) = $7
+                   in return (L loc (HsModule (Just $3) $5 importDecl hsDecl $4 $1
+                          ) )}
 
 -----------------------------------------------------------------------------
 -- Identifiers; one of the entry points
