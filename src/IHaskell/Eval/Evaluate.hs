@@ -23,7 +23,10 @@ import qualified Data.Serialize as Serialize
 import qualified Language.Haskell.TH as TH  
 import System.Directory
 import Filesystem.Path.CurrentOS (encodeString)
-import System.Posix.IO
+#if !MIN_VERSION_base(4,8,0)
+import System.Posix.IO (createPipe)
+#endif
+import System.Posix.IO (fdToHandle)
 import System.IO (hGetChar, hFlush)
 import System.Random (getStdGen, randomRs)
 import Unsafe.Coerce
@@ -54,7 +57,7 @@ import GHC hiding (Stmt, TypeSig)
 import Exception hiding (evaluate)
 import Outputable hiding ((<>))
 import Packages
-import Module
+import Module hiding (Module)
 import qualified Pretty
 import FastString
 import Bag
@@ -158,6 +161,9 @@ initializeImports = do
   displayPackages <- liftIO $ do
     (dflags, _) <- initPackages dflags
     let Just db = pkgDatabase dflags
+#if MIN_VERSION_ghc(7,10,0)
+        packageIdString = packageKeyPackageIdString dflags
+#endif
         packageNames = map (packageIdString . packageConfigId) db
 
         initStr = "ihaskell-"
@@ -391,6 +397,17 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
 -- | Directives set via `:set`.
 evalCommand output (Directive SetDynFlag flags) state =
   case words flags of
+    -- Ill-formed command
+    [] -> do
+      flags <- getSessionDynFlags
+      return EvalOut {
+          evalStatus = Success,
+          evalResult = Display [plain $ showSDoc flags $ vcat [pprDynFlags False flags, pprLanguages False flags]],
+          evalState = state,
+          evalPager = "",
+          evalComms = []
+      }
+
     -- For a single flag.
     [flag] -> do
       write $ "DynFlags: " ++ flags
@@ -543,9 +560,13 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
       else
         return $ displayError $ printf "No such directory: '%s'" directory
     cmd -> liftIO $ do
+#if MIN_VERSION_base(4,8,0)
+      (pipe, handle) <- createPipe
+#else
       (readEnd, writeEnd) <- createPipe
       handle <- fdToHandle writeEnd
       pipe <- fdToHandle readEnd
+#endif
       let initProcSpec = shell $ unwords cmd
           procSpec = initProcSpec {
             std_in = Inherit,

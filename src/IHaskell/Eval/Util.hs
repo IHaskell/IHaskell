@@ -18,9 +18,11 @@ module IHaskell.Eval.Util (
 
   -- * Pretty printing
   doc,
+  pprDynFlags,
+  pprLanguages
   ) where
 
-import           ClassyPrelude
+import           ClassyPrelude hiding ((<>))
 
 -- GHC imports.
 import           DynFlags
@@ -59,21 +61,97 @@ extensionFlag :: String         -- Extension name, such as @"DataKinds"@
               -> Maybe ExtFlag
 extensionFlag ext =
   case find (flagMatches ext) xFlags of
-    Just (_, flag, _) -> Just $ SetFlag flag
+    Just fs -> Just $ SetFlag $ flagSpecFlag fs
     -- If it doesn't match an extension name, try matching against
     -- disabling an extension.
     Nothing ->
       case find (flagMatchesNo ext) xFlags of
-        Just (_, flag, _) -> Just $ UnsetFlag flag
+        Just fs -> Just $ UnsetFlag $ flagSpecFlag fs
         Nothing -> Nothing
-
   where
     -- Check if a FlagSpec matches an extension name.
-    flagMatches ext (name, _, _) = ext == name
+    flagMatches ext fs = ext == flagSpecName fs
 
     -- Check if a FlagSpec matches "No<ExtensionName>".
     -- In that case, we disable the extension.
-    flagMatchesNo ext (name, _, _) = ext == "No" ++ name
+    flagMatchesNo ext fs = ext == "No" ++ flagSpecName fs
+
+#if !MIN_VERSION_ghc(7,10,0)
+flagSpecName :: FlagSpec a -> String
+flagSpecName (name,_,_) = name
+
+flagSpecFlag :: FlagSpec a -> a
+flagSpecFlag (_,flag,_) = flag
+#endif
+
+-- | Pretty-print dynamic flags (taken from 'InteractiveUI' module of `ghc-bin`)
+pprDynFlags :: Bool       -- ^ Whether to include flags which are on by default
+            -> DynFlags
+            -> SDoc
+pprDynFlags show_all dflags =
+  vcat [
+     text "GHCi-specific dynamic flag settings:" $$
+         nest 2 (vcat (map (setting gopt) ghciFlags)),
+     text "other dynamic, non-language, flag settings:" $$
+         nest 2 (vcat (map (setting gopt) others)),
+     text "warning settings:" $$
+         nest 2 (vcat (map (setting wopt) DynFlags.fWarningFlags))
+  ]
+  where
+        setting test flag
+          | quiet     = empty
+          | is_on     = fstr name
+          | otherwise = fnostr name
+          where name = flagSpecName flag
+                f = flagSpecFlag flag
+                is_on = test f dflags
+                quiet = not show_all && test f default_dflags == is_on
+
+        default_dflags = defaultDynFlags (settings dflags)
+
+        fstr   str = text "-f"    <> text str
+        fnostr str = text "-fno-" <> text str
+
+        (ghciFlags,others)  = partition (\f -> flagSpecFlag f `elem` flgs)
+                                        DynFlags.fFlags
+        flgs = [ Opt_PrintExplicitForalls
+               , Opt_PrintExplicitKinds
+               , Opt_PrintBindResult
+               , Opt_BreakOnException
+               , Opt_BreakOnError
+               , Opt_PrintEvldWithShow
+               ]
+
+-- | Pretty-print the base language and active options (taken from `InteractiveUI` module of `ghc-bin`)
+pprLanguages :: Bool      -- ^ Whether to include flags which are on by default
+             -> DynFlags
+             -> SDoc
+pprLanguages show_all dflags =
+  vcat
+     [ text "base language is: " <>
+         case language dflags of
+           Nothing          -> text "Haskell2010"
+           Just Haskell98   -> text "Haskell98"
+           Just Haskell2010 -> text "Haskell2010"
+     , (if show_all then text "all active language options:"
+                    else text "with the following modifiers:") $$
+          nest 2 (vcat (map (setting xopt) DynFlags.xFlags))
+     ]
+  where
+   setting test flag
+          | quiet     = empty
+          | is_on     = text "-X" <> text name
+          | otherwise = text "-XNo" <> text name
+          where name = flagSpecName flag
+                f = flagSpecFlag flag
+                is_on = test f dflags
+                quiet = not show_all && test f default_dflags == is_on
+
+   default_dflags =
+       defaultDynFlags (settings dflags) `lang_set`
+         case language dflags of
+           Nothing -> Just Haskell2010
+           other   -> other
 
 -- | Set an extension and update flags.
 -- Return @Nothing@ on success. On failure, return an error message.

@@ -9,7 +9,7 @@ function make_parser {
     cpphs --linepragma --text ${SRCNAME}.y.pp -OParser.y
 
     # Compile the parser and remove intermediate file.
-    happy Parser.y
+    happy -agc --strict Parser.y
     rm Parser.y
 
     # Move output Haskell to source directory.
@@ -20,3 +20,4 @@ function make_parser {
 make_parser src-7.6 HaskellParser76
 make_parser src-7.8.2 HaskellParser782
 make_parser src-7.8.3 HaskellParser783
+make_parser src-7.10.1 HaskellParser7101
