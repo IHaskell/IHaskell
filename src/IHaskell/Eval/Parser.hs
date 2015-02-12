@@ -67,6 +67,7 @@ data DirectiveType
   | SearchHoogle    -- ^ Search for something via Hoogle.
   | GetDoc          -- ^ Get documentation for an identifier via Hoogle.
   | GetKind         -- ^ Get the kind of a type via ':kind'.
+  | LoadModule      -- ^ Load and unload modules via ':module'.
   deriving (Show, Eq)
 
 -- | Pragma types. Only LANGUAGE pragmas are currently supported.
@@ -268,7 +269,8 @@ parseDirective (':':directive) line = case find rightDirective directives of
       [] -> False
       dir:_ -> dir `elem` tail (inits dirname)
     directives =
-      [ (GetType,      "type")
+      [ (LoadModule,   "module")
+      , (GetType,      "type")
       , (GetKind,      "kind")
       , (GetInfo,      "info")
       , (SearchHoogle, "hoogle")

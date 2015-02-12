@@ -11,6 +11,7 @@ module IHaskell.Eval.Util (
 
   -- * Code Evaluation
   evalImport,
+  removeImport,
   evalDeclarations,
   getType,
   getDescription,
@@ -195,6 +196,18 @@ evalImport imports = do
     isHiddenImport imp = case ideclHiding imp of
                            Just (True, _) -> True
                            _ -> False
+
+removeImport :: GhcMonad m => String -> m ()
+removeImport moduleName = do
+  flags <- getSessionDynFlags
+  ctx <- getContext
+  let ctx' = filter (not . (isImportOf $ mkModuleName moduleName)) ctx
+  setContext ctx'
+
+  where
+    isImportOf :: ModuleName -> InteractiveImport -> Bool
+    isImportOf name (IIModule modName) = name == modName
+    isImportOf name (IIDecl impDecl) = name == unLoc (ideclName impDecl)
 
 -- | Evaluate a series of declarations.
 -- Return all names which were bound by these declarations.

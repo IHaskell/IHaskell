@@ -452,6 +452,22 @@ evalCommand output (Directive SetExtension opts) state = do
   let set = concatMap (" -X" ++) $ words opts
   evalCommand output (Directive SetDynFlag set) state
 
+evalCommand output (Directive LoadModule mods) state = wrapExecution state $ do
+  write $ "Load Module: " ++ mods
+  let stripped@(firstChar:remainder) = mods
+      (modules, removeModule) =
+        case firstChar of
+          '+' -> (words remainder, False)
+          '-' -> (words remainder, True)
+          _ -> (words stripped, False)
+
+  forM_ modules $ \modl ->
+    if removeModule
+    then removeImport modl
+    else evalImport $ "import " ++ modl
+
+  return mempty
+
 evalCommand a (Directive SetOption opts) state = do
   write $ "Option: " ++ opts
   let (existing, nonExisting) = partition optionExists $ words opts
