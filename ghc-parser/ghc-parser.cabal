@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                ghc-parser
-version:             0.1.3.0
+version:             0.1.4.0
 synopsis:            Haskell source parser from GHC.
 -- description:
 homepage:            https://github.com/gibiansky/IHaskell

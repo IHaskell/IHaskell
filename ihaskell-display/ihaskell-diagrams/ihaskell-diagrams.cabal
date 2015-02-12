@@ -7,7 +7,7 @@ name:                ihaskell-diagrams
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.1.0.0
+version:             0.2.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            IHaskell display instances for diagram types
@@ -66,7 +66,7 @@ library
                        diagrams==1.2.*,
                        diagrams-lib,
                        diagrams-cairo,
-                       ihaskell >= 0.4
+                       ihaskell >= 0.5
   
   -- Directories containing source files.
   -- hs-source-dirs:      

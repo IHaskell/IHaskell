@@ -10,7 +10,7 @@ name:                ihaskell-basic
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.1.0.0
+version:             0.2.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            IHaskell display instances for basic types
@@ -63,7 +63,7 @@ library
   -- Other library packages from which modules are imported.
   build-depends:       base ==4.6.* || ==4.7.*,
                        classy-prelude >=0.6,
-                       ihaskell >= 0.4
+                       ihaskell >= 0.5
   
   -- Directories containing source files.
   -- hs-source-dirs:      
