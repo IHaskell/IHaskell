@@ -233,11 +233,13 @@ cleanString :: String -> String
 cleanString x = strip $ if allBrackets then clean else x
   where
     l = lines x
-    allBrackets = all (fAny [isInfixOf ">", null]) l
+    allBrackets = all (fAny [isPrefixOf ">", null]) l
     fAny fs x = any ($x) fs
     clean = unlines $ map removeBracket l
     removeBracket (x:xs) = xs
     removeBracket [] = []
+    -- should never happen:
+    removeBracket other = error $ "Expected bracket as first char, but got string: " ++ other 
 
 -- | Evaluate some IPython input code.
 evaluate :: KernelState                  -- ^ The kernel state.
