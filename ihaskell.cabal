@@ -169,6 +169,7 @@ Test-Suite hspec
                        haskell-src-exts     ==1.16.*,
                        hspec                -any,
                        HUnit                -any,
+                       template-haskell     -any,
                        MissingH             >=1.2,
                        mtl                  >=2.1,
                        parsec               -any,
