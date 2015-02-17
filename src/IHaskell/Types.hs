@@ -206,7 +206,7 @@ data LintStatus
      | LintOff
      deriving (Eq, Show)
 
-data CommInfo = CommInfo Widget UUID String
+data CommInfo = CommInfo Widget UUID String deriving Show
 
 -- | Output of evaluation.
 data EvaluationResult =
@@ -220,3 +220,4 @@ data EvaluationResult =
     pagerOut :: String,       -- ^ Text to display in the IPython pager.
     startComms :: [CommInfo]  -- ^ Comms to start.
   }
+  deriving Show
