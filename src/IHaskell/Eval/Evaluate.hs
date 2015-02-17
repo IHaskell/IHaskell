@@ -20,7 +20,6 @@ import Data.Char as Char
 import Data.Dynamic
 import Data.Typeable
 import qualified Data.Serialize as Serialize
-import qualified Language.Haskell.TH as TH  
 import System.Directory
 import Filesystem.Path.CurrentOS (encodeString)
 import System.Posix.IO
