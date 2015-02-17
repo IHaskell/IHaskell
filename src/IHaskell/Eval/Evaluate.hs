@@ -230,9 +230,10 @@ data EvalOut = EvalOut {
   }
 
 cleanString :: String -> String
-cleanString x = strip $ if allBrackets then clean else x
+cleanString x =  if allBrackets then clean else str
   where
-    l = lines x
+    str = strip x
+    l = lines str
     allBrackets = all (fAny [isPrefixOf ">", null]) l
     fAny fs x = any ($x) fs
     clean = unlines $ map removeBracket l
