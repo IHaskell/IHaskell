@@ -237,7 +237,7 @@ cleanString x =  if allBrackets then clean else str
     allBrackets = all (fAny [isPrefixOf ">", null]) l
     fAny fs x = any ($x) fs
     clean = unlines $ map removeBracket l
-    removeBracket (x:xs) = xs
+    removeBracket ('>':xs) = xs
     removeBracket [] = []
     -- should never happen:
     removeBracket other = error $ "Expected bracket as first char, but got string: " ++ other 
