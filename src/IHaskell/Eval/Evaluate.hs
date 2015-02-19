@@ -228,13 +228,26 @@ data EvalOut = EvalOut {
     evalComms :: [CommInfo]
   }
 
+cleanString :: String -> String
+cleanString x =  if allBrackets then clean else str
+  where
+    str = strip x
+    l = lines str
+    allBrackets = all (fAny [isPrefixOf ">", null]) l
+    fAny fs x = any ($x) fs
+    clean = unlines $ map removeBracket l
+    removeBracket ('>':xs) = xs
+    removeBracket [] = []
+    -- should never happen:
+    removeBracket other = error $ "Expected bracket as first char, but got string: " ++ other 
+
 -- | Evaluate some IPython input code.
 evaluate :: KernelState                  -- ^ The kernel state.
          -> String                       -- ^ Haskell code or other interpreter commands.
          -> (EvaluationResult -> IO ())   -- ^ Function used to publish data outputs.
          -> Interpreter KernelState
 evaluate kernelState code output = do
-  cmds <- parseString (strip code)
+  cmds <- parseString (cleanString code)
   let execCount = getExecutionCounter kernelState
 
   when (getLintStatus kernelState /= LintOff) $ liftIO $ do
