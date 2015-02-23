@@ -4,7 +4,7 @@ IHaskell
 ===
 IHaskell is an implementation of the [IPython](http://ipython.org) kernel protocol which allows you to use Haskell inside IPython frontends such as `qtconsole` and `notebook`.
 
-[Demo Notebook](http://gibiansky.github.io/IHaskell/demo.html)
+[Demo Notebook](http://gibiansky.github.io/IHaskell/demo.html) (more demos on the [wiki](https://github.com/gibiansky/IHaskell/wiki))
 
 **_Please_ run `cabal update` before installing - IHaskell updates _very_ regularly!**
 
