@@ -403,6 +403,17 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
 -- | Directives set via `:set`.
 evalCommand output (Directive SetDynFlag flags) state =
   case words flags of
+    
+    [] -> do 
+      write "Help for setting flags"
+      return EvalOut {
+        evalStatus = Success,
+        evalResult = Display [plain "You can use the :set command to set IHaskell flags, and GHC flags"],
+        evalState = state,
+        evalPager = "",
+        evalComms = []
+      }
+
     -- For a single flag.
     [flag] -> do
       write $ "DynFlags: " ++ flags
