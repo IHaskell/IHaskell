@@ -38,6 +38,9 @@ library
     if impl(ghc >= 7.8) && impl(ghc < 7.8.3)
       hs-source-dirs:    generic-src src-7.8.2
     else
-      hs-source-dirs:    generic-src src-7.8.3
+      if impl(ghc < 7.10)
+        hs-source-dirs:    generic-src src-7.8.3
+      else
+        hs-source-dirs:    generic-src src-7.10
 
   default-language:    Haskell2010
