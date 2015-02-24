@@ -1,4 +1,4 @@
-{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances, CPP #-}
+{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances, GADTs, CPP #-}
 
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
