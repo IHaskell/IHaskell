@@ -78,10 +78,7 @@ extensionFlag ext =
     flagMatchesNo ext (name, _, _) = ext == "No" ++ name
 
 #if !MIN_VERSION_ghc(7,10,0)
-flagSpecName :: FlagSpec a -> String
 flagSpecName (name,_,_) = name
-
-flagSpecFlag :: FlagSpec a -> a
 flagSpecFlag (_,flag,_) = flag
 #endif
 
