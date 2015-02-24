@@ -31,7 +31,7 @@ diagramData renderable format = do
 
   -- Write the image.
   let filename = ".ihaskell-diagram." ++ extension format
-  renderCairo filename (Height imgHeight) renderable
+  renderCairo filename (mkHeight imgHeight) renderable
 
   -- Convert to base64.
   imgData <- readFile $ fpFromString filename
