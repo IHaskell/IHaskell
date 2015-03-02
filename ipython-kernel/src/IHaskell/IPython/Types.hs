@@ -21,6 +21,8 @@ module IHaskell.IPython.Types (
   StreamType(..),
   ExecutionState(..),
   ExecuteReplyStatus(..),
+  HistoryAccessType(..),
+  HistoryReplyElement(..),
   replyType,
 
   -- ** IPython display data message
@@ -170,56 +172,63 @@ data MessageType = KernelInfoReplyMessage
                  | CommOpenMessage
                  | CommDataMessage
                  | CommCloseMessage
+                 | HistoryRequestMessage
+                 | HistoryReplyMessage
                  deriving (Show, Read, Eq)
 
 showMessageType :: MessageType -> String
-showMessageType KernelInfoReplyMessage     = "kernel_info_reply"
-showMessageType KernelInfoRequestMessage   = "kernel_info_request"
-showMessageType ExecuteReplyMessage        = "execute_reply"
-showMessageType ExecuteRequestMessage      = "execute_request"
-showMessageType StatusMessage              = "status"
-showMessageType StreamMessage              = "stream"
-showMessageType DisplayDataMessage         = "display_data"
-showMessageType OutputMessage              = "pyout"
-showMessageType InputMessage               = "pyin"
-showMessageType CompleteRequestMessage     = "complete_request"
-showMessageType CompleteReplyMessage       = "complete_reply"
-showMessageType ObjectInfoRequestMessage   = "object_info_request"
-showMessageType ObjectInfoReplyMessage     = "object_info_reply"
-showMessageType ShutdownRequestMessage     = "shutdown_request"
-showMessageType ShutdownReplyMessage       = "shutdown_reply"
-showMessageType ClearOutputMessage         = "clear_output"
-showMessageType InputRequestMessage        = "input_request"
-showMessageType InputReplyMessage          = "input_reply"
-showMessageType CommOpenMessage            = "comm_open"           
-showMessageType CommDataMessage            = "comm_msg"            
-showMessageType CommCloseMessage           = "comm_close"          
+showMessageType KernelInfoReplyMessage   = "kernel_info_reply"
+showMessageType KernelInfoRequestMessage = "kernel_info_request"
+showMessageType ExecuteReplyMessage      = "execute_reply"
+showMessageType ExecuteRequestMessage    = "execute_request"
+showMessageType StatusMessage            = "status"
+showMessageType StreamMessage            = "stream"
+showMessageType DisplayDataMessage       = "display_data"
+showMessageType OutputMessage            = "pyout"
+showMessageType InputMessage             = "pyin"
+showMessageType CompleteRequestMessage   = "complete_request"
+showMessageType CompleteReplyMessage     = "complete_reply"
+showMessageType ObjectInfoRequestMessage = "object_info_request"
+showMessageType ObjectInfoReplyMessage   = "object_info_reply"
+showMessageType ShutdownRequestMessage   = "shutdown_request"
+showMessageType ShutdownReplyMessage     = "shutdown_reply"
+showMessageType ClearOutputMessage       = "clear_output"
+showMessageType InputRequestMessage      = "input_request"
+showMessageType InputReplyMessage        = "input_reply"
+showMessageType CommOpenMessage          = "comm_open"
+showMessageType CommDataMessage          = "comm_msg"
+showMessageType CommCloseMessage         = "comm_close"
+showMessageType HistoryRequestMessage    = "history_request"
+showMessageType HistoryReplyMessage      = "history_reply"
 
 instance FromJSON MessageType where
-  parseJSON (String s) = case s of
-    "kernel_info_reply"   -> return KernelInfoReplyMessage
-    "kernel_info_request" -> return KernelInfoRequestMessage
-    "execute_reply"       -> return ExecuteReplyMessage
-    "execute_request"     -> return ExecuteRequestMessage
-    "status"              -> return StatusMessage
-    "stream"              -> return StreamMessage
-    "display_data"        -> return DisplayDataMessage
-    "pyout"               -> return OutputMessage
-    "pyin"                -> return InputMessage
-    "complete_request"    -> return CompleteRequestMessage
-    "complete_reply"      -> return CompleteReplyMessage
-    "object_info_request" -> return ObjectInfoRequestMessage
-    "object_info_reply"   -> return ObjectInfoReplyMessage
-    "shutdown_request"    -> return ShutdownRequestMessage
-    "shutdown_reply"      -> return ShutdownReplyMessage
-    "clear_output"        -> return ClearOutputMessage
-    "input_request"       -> return InputRequestMessage
-    "input_reply"         -> return InputReplyMessage
-    "comm_open"           -> return CommOpenMessage
-    "comm_msg"            -> return CommDataMessage
-    "comm_close"          -> return CommCloseMessage
+  parseJSON (String s) =
+    case s of
+      "kernel_info_reply"   -> return KernelInfoReplyMessage
+      "kernel_info_request" -> return KernelInfoRequestMessage
+      "execute_reply"       -> return ExecuteReplyMessage
+      "execute_request"     -> return ExecuteRequestMessage
+      "status"              -> return StatusMessage
+      "stream"              -> return StreamMessage
+      "display_data"        -> return DisplayDataMessage
+      "pyout"               -> return OutputMessage
+      "pyin"                -> return InputMessage
+      "complete_request"    -> return CompleteRequestMessage
+      "complete_reply"      -> return CompleteReplyMessage
+      "object_info_request" -> return ObjectInfoRequestMessage
+      "object_info_reply"   -> return ObjectInfoReplyMessage
+      "shutdown_request"    -> return ShutdownRequestMessage
+      "shutdown_reply"      -> return ShutdownReplyMessage
+      "clear_output"        -> return ClearOutputMessage
+      "input_request"       -> return InputRequestMessage
+      "input_reply"         -> return InputReplyMessage
+      "comm_open"           -> return CommOpenMessage
+      "comm_msg"            -> return CommDataMessage
+      "comm_close"          -> return CommCloseMessage
+      "history_request"     -> return HistoryRequestMessage
+      "history_reply"       -> return HistoryReplyMessage
 
-    _                     -> fail ("Unknown message type: " ++ show s)
+      _                     -> fail ("Unknown message type: " ++ show s)
   parseJSON _ = fail "Must be a string."
 
 
@@ -362,8 +371,34 @@ data Message
       commData :: Value
   }
 
+  | HistoryRequest {
+      header :: MessageHeader,
+      historyGetOutput :: Bool, -- ^ If True, also return output history in the resulting dict.
+      historyRaw :: Bool,       -- ^ If True, return the raw input history, else the transformed input.
+      historyAccessType :: HistoryAccessType -- ^ What history is being requested.
+  }
+
+  | HistoryReply {
+      header :: MessageHeader,
+      historyReply :: [HistoryReplyElement]
+  }
+
   | SendNothing -- Dummy message; nothing is sent.
     deriving Show
+
+-- | Ways in which the frontend can request history.
+-- TODO: Implement fields as described in messaging spec.
+data HistoryAccessType = HistoryRange
+                       | HistoryTail
+                       | HistorySearch
+  deriving (Eq, Show)
+
+-- | Reply to history requests.
+data HistoryReplyElement = HistoryReplyElement { historyReplySession :: Int
+                                               , historyReplyLineNumber :: Int
+                                               , historyReplyContent :: Either String (String, String)
+                                               }
+  deriving (Eq, Show)
 
 -- | Possible statuses in the execution reply messages.
 data ExecuteReplyStatus = Ok | Err | Abort
@@ -381,12 +416,13 @@ data StreamType = Stdin | Stdout deriving Show
 
 -- | Get the reply message type for a request message type.
 replyType :: MessageType -> Maybe MessageType
-replyType KernelInfoRequestMessage  = Just KernelInfoReplyMessage
-replyType ExecuteRequestMessage     = Just ExecuteReplyMessage
-replyType CompleteRequestMessage    = Just CompleteReplyMessage
-replyType ObjectInfoRequestMessage  = Just ObjectInfoReplyMessage
-replyType ShutdownRequestMessage    = Just ShutdownReplyMessage
-replyType _ = Nothing
+replyType KernelInfoRequestMessage = Just KernelInfoReplyMessage
+replyType ExecuteRequestMessage    = Just ExecuteReplyMessage
+replyType CompleteRequestMessage   = Just CompleteReplyMessage
+replyType ObjectInfoRequestMessage = Just ObjectInfoReplyMessage
+replyType ShutdownRequestMessage   = Just ShutdownReplyMessage
+replyType HistoryRequestMessage    = Just HistoryReplyMessage
+replyType _                        = Nothing
 
 -- | Data for display: a string with associated MIME type.
 data DisplayData = DisplayData MimeType Text deriving (Typeable, Generic)

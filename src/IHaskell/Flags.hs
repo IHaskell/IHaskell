@@ -31,6 +31,7 @@ data Argument = ServeFrom String    -- ^ Which directory to serve notebooks from
               | ConvertToFormat NotebookFormat
               | ConvertLhsStyle (LhsStyle String)
               | GhcLibDir String    -- ^ Where to find the GHC libraries.
+              | KernelDebug         -- ^ Spew debugging output from the kernel.
               | Help                -- ^ Display help text.
   deriving (Eq, Show)
 
@@ -91,6 +92,10 @@ help mode = showText (Wrap 100) $ helpText [] HelpFormatAll $ chooseMode mode
 ghcLibFlag :: Flag Args
 ghcLibFlag = flagReq ["ghclib", "l"] (store GhcLibDir) "<path>" "Library directory for GHC."
 
+kernelDebugFlag :: Flag Args
+kernelDebugFlag = flagNone ["debug"] addDebug "Print debugging output from the kernel."
+  where addDebug (Args mode prev) = Args mode (KernelDebug : prev)
+
 universalFlags :: [Flag Args]
 universalFlags = [ flagReq ["extension", "e", "X"] (store Extension) "<ghc-extension>"
                      "Extension to enable at start."
@@ -116,7 +121,7 @@ installKernelSpec :: Mode Args
 installKernelSpec = mode "install" (Args InstallKernelSpec []) "Install the Jupyter kernelspec." noArgs []
 
 kernel :: Mode Args
-kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg [ghcLibFlag]
+kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg [ghcLibFlag, kernelDebugFlag]
   where
     kernelArg = flagArg update "<json-kernel-file>"
     update filename (Args _ flags) = Right $ Args (Kernel $ Just filename) flags

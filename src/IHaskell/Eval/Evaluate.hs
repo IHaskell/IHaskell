@@ -95,8 +95,8 @@ typeCleaner = useStringType . foldl' (.) id (map (`replace` "") fullPrefixes)
     fullPrefixes = map (++ ".") ignoreTypePrefixes
     useStringType = replace "[Char]" "String"
 
-write :: GhcMonad m => String -> m ()
-write x = when debug $ liftIO $ hPutStrLn stderr $ "DEBUG: " ++ x
+write :: GhcMonad m => KernelState -> String -> m ()
+write state x = when (kernelDebug state) $ liftIO $ hPutStrLn stderr $ "DEBUG: " ++ x
 
 type Interpreter = Ghc
 
@@ -203,7 +203,6 @@ initializeImports = do
   let implicitPrelude = importDecl { ideclImplicit = True }
 
   -- Import modules.
-  mapM_ (write . ("Importing " ++ )) displayImports
   imports <- mapM parseImportDecl $ globalImports ++ displayImports
   setContext $ map IIDecl $ implicitPrelude : imports
 
@@ -212,7 +211,6 @@ initializeItVariable :: Interpreter ()
 initializeItVariable = do
   -- This is required due to the way we handle `it` in the wrapper
   -- statements - if it doesn't exist, the first statement will fail.
-  write "Setting `it` to unit."
   void $ runStmt "let it = ()" RunToCompletion
 
 -- | Publisher for IHaskell outputs.  The first argument indicates whether
@@ -346,7 +344,7 @@ wrapExecution state exec = safely state $ exec >>= \res ->
 -- resulted in an error.
 evalCommand :: Publisher -> CodeBlock -> KernelState -> Interpreter EvalOut
 evalCommand _ (Import importStr) state = wrapExecution state $ do
-  write $ "Import: " ++ importStr
+  write state $ "Import: " ++ importStr
   evalImport importStr
 
   -- Warn about `it` variable.
@@ -356,7 +354,7 @@ evalCommand _ (Import importStr) state = wrapExecution state $ do
            else mempty
 
 evalCommand _ (Module contents) state = wrapExecution state $ do
-  write $ "Module:\n" ++ contents
+  write state $ "Module:\n" ++ contents
 
   -- Write the module contents to a temporary file in our work directory
   namePieces <- getModuleName contents
@@ -415,7 +413,7 @@ evalCommand output (Directive SetDynFlag flags) state =
 
     -- For a single flag.
     [flag] -> do
-      write $ "DynFlags: " ++ flags
+      write state $ "DynFlags: " ++ flags
 
       -- Check if this is setting kernel options.
       case find (elem flag . getSetName) kernelOpts of
@@ -470,12 +468,12 @@ evalCommand output (Directive SetDynFlag flags) state =
           }
 
 evalCommand output (Directive SetExtension opts) state = do
-  write $ "Extension: " ++ opts
+  write state $ "Extension: " ++ opts
   let set = concatMap (" -X" ++) $ words opts
   evalCommand output (Directive SetDynFlag set) state
 
 evalCommand output (Directive LoadModule mods) state = wrapExecution state $ do
-  write $ "Load Module: " ++ mods
+  write state $ "Load Module: " ++ mods
   let stripped@(firstChar:remainder) = mods
       (modules, removeModule) =
         case firstChar of
@@ -491,7 +489,7 @@ evalCommand output (Directive LoadModule mods) state = wrapExecution state $ do
   return mempty
 
 evalCommand a (Directive SetOption opts) state = do
-  write $ "Option: " ++ opts
+  write state $ "Option: " ++ opts
   let (existing, nonExisting) = partition optionExists $ words opts
   if not $ null nonExisting
   then
@@ -519,18 +517,18 @@ evalCommand a (Directive SetOption opts) state = do
       find (elem opt . getOptionName) kernelOpts
 
 evalCommand _ (Directive GetType expr) state = wrapExecution state $ do
-  write $ "Type: " ++ expr
+  write state $ "Type: " ++ expr
   formatType <$> ((expr ++ " :: ") ++ ) <$> getType expr
 
 evalCommand _ (Directive GetKind expr) state = wrapExecution state $ do
-  write $ "Kind: " ++ expr
+  write state $ "Kind: " ++ expr
   (_, kind) <- GHC.typeKind False expr
   flags <- getSessionDynFlags
   let typeStr = showSDocUnqual flags $ ppr kind
   return $ formatType $ expr ++ " :: " ++ typeStr
 
 evalCommand _ (Directive LoadFile name) state = wrapExecution state $ do
-  write $ "Load: " ++ name
+  write state $ "Load: " ++ name
 
   let filename = if endswith ".hs" name
                  then name
@@ -627,7 +625,7 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
 evalCommand _ (Directive GetHelp _) state = do
-  write "Help via :help or :?."
+  write state "Help via :help or :?."
   return EvalOut {
     evalStatus = Success,
     evalResult = Display [out],
@@ -659,7 +657,7 @@ evalCommand _ (Directive GetHelp _) state = do
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
 evalCommand _ (Directive GetInfo str) state = safely state $ do
-  write $ "Info: " ++ str
+  write state $ "Info: " ++ str
   -- Get all the info for all the names we're given.
   strings <- getDescription str
 
@@ -689,7 +687,7 @@ evalCommand _ (Directive GetDoc query) state = safely state $ do
   return $ hoogleResults state results
 
 evalCommand output (Statement stmt) state = wrapExecution state $ do
-  write $ "Statement:\n" ++ stmt
+  write state $ "Statement:\n" ++ stmt
   let outputter str = output $ IntermediateResult $ Display [plain str]
   (printed, result) <- capturedStatement outputter stmt
   case result of
@@ -703,7 +701,7 @@ evalCommand output (Statement stmt) state = wrapExecution state $ do
           nonItNames = filter (not . isItName) allNames
           output = [plain printed | not . null $ strip printed]
 
-      write $ "Names: " ++ show allNames
+      write state $ "Names: " ++ show allNames
 
       -- Display the types of all bound names if the option is on.
       -- This is similar to GHCi :set +t.
@@ -731,7 +729,7 @@ evalCommand output (Statement stmt) state = wrapExecution state $ do
     RunBreak{} -> error "Should not break."
 
 evalCommand output (Expression expr) state = do
-  write $ "Expression:\n" ++ expr
+  write state $ "Expression:\n" ++ expr
 
   -- Try to use `display` to convert our type into the output
   -- Dislay If typechecking fails and there is no appropriate
@@ -749,15 +747,15 @@ evalCommand output (Expression expr) state = do
   let anyExpr = printf "((id :: IHaskellPrelude.Int -> IHaskellPrelude.Int) (%s))" expr :: String
   isTHDeclaration <- liftM2 (&&) (attempt $ exprType declExpr) (not <$> attempt (exprType anyExpr))
 
-  write $ "Can Display: " ++ show canRunDisplay
-  write $ "Is Widget: " ++ show isWidget 
-  write $ "Is Declaration: " ++ show isTHDeclaration 
+  write state $ "Can Display: " ++ show canRunDisplay
+  write state $ "Is Widget: " ++ show isWidget 
+  write state $ "Is Declaration: " ++ show isTHDeclaration 
 
   if isTHDeclaration 
     -- If it typechecks as a DecsQ, we do not want to display the DecsQ, 
     -- we just want the declaration made. 
   then do 
-          write $ "Suppressing display for template haskell declaration"  
+          write state $ "Suppressing display for template haskell declaration"  
           GHC.runDecls expr  
           return EvalOut {
                     evalStatus = Success,
@@ -906,7 +904,7 @@ evalCommand output (Expression expr) state = do
 
 
 evalCommand _ (Declaration decl) state = wrapExecution state $ do
-  write $ "Declaration:\n" ++ decl
+  write state $ "Declaration:\n" ++ decl
   boundNames <- evalDeclarations decl
   let nonDataNames = filter (not . isUpper . head) boundNames
 
@@ -931,7 +929,7 @@ evalCommand _ (TypeSignature sig) state = wrapExecution state $
                           "\nlacks an accompanying binding."
 
 evalCommand _ (ParseError loc err) state = do
-  write "Parse Error."
+  write state "Parse Error."
   return EvalOut {
     evalStatus = Failure,
     evalResult = displayError $ formatParseError loc err,
@@ -945,7 +943,7 @@ evalCommand _ (Pragma (PragmaUnsupported pragmaType) pragmas) state = wrapExecut
                           "\nare not supported."
 
 evalCommand output (Pragma PragmaLanguage pragmas) state = do
-  write $ "Got LANGUAGE pragma " ++ show pragmas
+  write state $ "Got LANGUAGE pragma " ++ show pragmas
   evalCommand output (Directive SetExtension $ unwords pragmas) state
 
 hoogleResults :: KernelState -> [Hoogle.HoogleResult] -> EvalOut

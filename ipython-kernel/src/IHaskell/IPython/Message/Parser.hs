@@ -7,7 +7,7 @@
 module IHaskell.IPython.Message.Parser (parseMessage) where
 
 import            Data.Aeson            ((.:), decode, Result(..), Object)
-import            Control.Applicative   ((<|>))
+import            Control.Applicative   ((<|>), (<$>), (<*>))
 import            Data.Aeson.Types      (parse)
 import            Data.ByteString
 import            Data.Map              (Map)
@@ -16,6 +16,8 @@ import            Data.Text             (Text)
 import qualified  Data.ByteString.Lazy as Lazy
 
 import IHaskell.IPython.Types
+
+import Debug.Trace
 
 type LByteString = Lazy.ByteString
 
@@ -58,8 +60,7 @@ parseHeader idents headerData parentHeader metadata = MessageHeader {
                      then Nothing
                      else Just $ parseHeader idents parentHeader "{}" metadata
 
-      -- Get the basic fields from the header.
-      Success (messageType, username, messageUUID, sessionUUID) = flip parse result $ \obj -> do 
+      Success (messageType, username, messageUUID, sessionUUID) = traceShow result $ flip parse result $ \obj -> do 
         messType <- obj .: "msg_type"
         username <- obj .: "username"
         message <- obj .: "msg_id"
@@ -85,6 +86,7 @@ parser InputReplyMessage         = inputReplyParser
 parser CommOpenMessage           = commOpenParser
 parser CommDataMessage           = commDataParser
 parser CommCloseMessage          = commCloseParser
+parser HistoryRequestMessage     = historyRequestParser
 parser other = error $ "Unknown message type " ++ show other
 
 -- | Parse a kernel info request.
@@ -119,73 +121,64 @@ executeRequestParser content =
       getUserExpressions = []
     }
 
-completeRequestParser :: LByteString -> Message
-completeRequestParser content = parsed
+requestParser parser content = parsed
   where
-  Success parsed = flip parse decoded $ \ obj -> do
-        code     <- obj .: "block" <|> return ""
-        codeLine <- obj .: "line"
-        pos      <- obj .: "cursor_pos"
-        return $ CompleteRequest noHeader code codeLine pos
-
+  Success parsed = parse parser decoded
   Just decoded = decode content
 
-objectInfoRequestParser :: LByteString -> Message
-objectInfoRequestParser content = parsed
+historyRequestParser :: LByteString -> Message
+historyRequestParser = requestParser $ \obj ->
+  HistoryRequest noHeader <$> obj .: "output" <*> obj .: "raw" <*> historyAccessType obj
   where
-    Success parsed = flip parse decoded $ \obj -> do
-      oname <- obj .: "oname"
-      dlevel <- obj .: "detail_level"
-      return $ ObjectInfoRequest noHeader oname dlevel
+    -- TODO: Implement full history access type parsing from message spec
+    historyAccessType obj = do
+      accessTypeStr <- obj .: "hist_access_type"
+      return $
+        case accessTypeStr of
+          "range"  -> HistoryRange
+          "tail"   -> HistoryTail
+          "search" -> HistorySearch
+          str      -> error $ "Unknown history access type: " ++ str
 
-    Just decoded = decode content
+completeRequestParser :: LByteString -> Message
+completeRequestParser = requestParser $ \obj -> do
+  code <- obj .: "block" <|> return ""
+  codeLine <- obj .: "line"
+  pos <- obj .: "cursor_pos"
+  return $ CompleteRequest noHeader code codeLine pos
+
+objectInfoRequestParser :: LByteString -> Message
+objectInfoRequestParser = requestParser $ \obj -> do
+  oname <- obj .: "oname"
+  dlevel <- obj .: "detail_level"
+  return $ ObjectInfoRequest noHeader oname dlevel
 
 
 shutdownRequestParser :: LByteString -> Message
-shutdownRequestParser content = parsed
-  where
-  Success parsed = flip parse decoded $ \ obj -> do
-        code     <- obj .: "restart"
-        return $ ShutdownRequest noHeader code
-
-  Just decoded = decode content
+shutdownRequestParser = requestParser $ \obj -> do
+  code <- obj .: "restart"
+  return $ ShutdownRequest noHeader code
 
 inputReplyParser :: LByteString -> Message
-inputReplyParser content = parsed
-  where
-  Success parsed = flip parse decoded $ \ obj -> do
-        value <- obj .: "value"
-        return $ InputReply noHeader value
-
-  Just decoded = decode content
+inputReplyParser = requestParser $ \obj -> do
+  value <- obj .: "value"
+  return $ InputReply noHeader value
 
 commOpenParser :: LByteString -> Message
-commOpenParser content = parsed
-  where
-  Success parsed = flip parse decoded $ \ obj -> do
-        uuid <- obj .: "comm_id"
-        name <- obj .: "target_name"
-        value <- obj .: "data"
-        return $ CommOpen noHeader name uuid value
-
-  Just decoded = decode content
+commOpenParser = requestParser $ \obj -> do
+  uuid <- obj .: "comm_id"
+  name <- obj .: "target_name"
+  value <- obj .: "data"
+  return $ CommOpen noHeader name uuid value
 
 commDataParser :: LByteString -> Message
-commDataParser content = parsed
-  where
-  Success parsed = flip parse decoded $ \ obj -> do
-        uuid <- obj .: "comm_id"
-        value <- obj .: "data"
-        return $ CommData noHeader uuid value
-
-  Just decoded = decode content
+commDataParser = requestParser $ \obj -> do
+  uuid <- obj .: "comm_id"
+  value <- obj .: "data"
+  return $ CommData noHeader uuid value
 
 commCloseParser :: LByteString -> Message
-commCloseParser content = parsed
-  where
-  Success parsed = flip parse decoded $ \ obj -> do
-        uuid <- obj .: "comm_id"
-        value <- obj .: "data"
-        return $ CommClose noHeader uuid value
-
-  Just decoded = decode content
+commCloseParser = requestParser $ \obj -> do
+  uuid <- obj .: "comm_id"
+  value <- obj .: "data"
+  return $ CommClose noHeader uuid value

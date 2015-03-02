@@ -80,13 +80,13 @@ ihaskell (Args Notebook flags) = showingHelp Notebook flags $ withIPython $ do
     serveDir _ = Nothing
 ihaskell (Args (Kernel (Just filename)) flags) = do
   initInfo <- readInitInfo
-  runKernel libdir filename initInfo
+  runKernel debug libdir filename initInfo
 
   where
-    libdir =
-      case flags of
-        []              -> GHC.Paths.libdir
-        [GhcLibDir dir] -> dir
+    (debug, libdir) = foldl' processFlag (False, GHC.Paths.libdir) flags
+    processFlag (debug, libdir) (GhcLibDir libdir') = (debug, libdir')
+    processFlag (debug, libdir) KernelDebug = (True, libdir)
+    processFlag x _ = x
 
 -- | Add a conf file to the arguments if none exists.
 addDefaultConfFile :: [Argument] -> IO [Argument]
@@ -120,11 +120,12 @@ initInfo front (flag:flags) = do
     _ -> return info
 
 -- | Run the IHaskell language kernel.
-runKernel :: String -- ^ GHC libdir.
+runKernel :: Bool      -- ^ Spew debugging output?
+          -> String    -- ^ GHC libdir.
           -> String    -- ^ Filename of profile JSON file.
           -> InitInfo  -- ^ Initialization information from the invocation.
           -> IO ()
-runKernel libdir profileSrc initInfo = do
+runKernel debug libdir profileSrc initInfo = do
   setCurrentDirectory $ initDir initInfo
 
   -- Parse the profile file.
@@ -140,7 +141,7 @@ runKernel libdir profileSrc initInfo = do
   -- Create initial state in the directory the kernel *should* be in.
   state <- initialKernelState
   modifyMVar_ state $ \kernelState -> return $
-    kernelState { getFrontend = frontend initInfo }
+    kernelState { getFrontend = frontend initInfo, kernelDebug = debug }
 
   -- Receive and reply to all messages on the shell socket.
   interpret libdir True $ do
@@ -174,30 +175,31 @@ runKernel libdir profileSrc initInfo = do
       -- The normal ones are a standard request/response style, while comms
       -- can be anything, and don't necessarily require a response.
       if isCommMessage request
-      then liftIO $ do
-        oldState <- takeMVar state
-        let replier = writeChan (iopubChannel interface)
-        newState <- handleComm replier oldState request replyHeader
-        putMVar state newState
-        writeChan (shellReplyChannel interface) SendNothing
-      else do
-        -- Create the reply, possibly modifying kernel state.
-        oldState <- liftIO $ takeMVar state
-        (newState, reply) <- replyTo interface request replyHeader oldState
-        liftIO $ putMVar state newState
+        then liftIO $ do
+          oldState <- takeMVar state
+          let replier = writeChan (iopubChannel interface)
+          newState <- handleComm replier oldState request replyHeader
+          putMVar state newState
+          writeChan (shellReplyChannel interface) SendNothing
+        else do
+          -- Create the reply, possibly modifying kernel state.
+          oldState <- liftIO $ takeMVar state
+          (newState, reply) <- replyTo interface request replyHeader oldState
+          liftIO $ putMVar state newState
 
-        -- Write the reply to the reply channel.
-        liftIO $ writeChan (shellReplyChannel interface) reply
+          -- Write the reply to the reply channel.
+          liftIO $ writeChan (shellReplyChannel interface) reply
+
   where
     ignoreCtrlC =
-      installHandler keyboardSignal (CatchOnce $ putStrLn "Press Ctrl-C again to quit kernel.") Nothing
+      installHandler keyboardSignal (CatchOnce $ putStrLn "Press Ctrl-C again to quit kernel.")
+        Nothing
 
     isCommMessage req = msgType (header req) `elem` [CommDataMessage, CommCloseMessage]
 
 -- Initial kernel state.
 initialKernelState :: IO (MVar KernelState)
-initialKernelState =
-  newMVar defaultKernelState
+initialKernelState = newMVar defaultKernelState
 
 -- | Duplicate a message header, giving it a new UUID and message type.
 dupHeader :: MessageHeader -> MessageType -> IO MessageHeader
@@ -360,8 +362,8 @@ replyTo _ req@CompleteRequest{} replyHeader state = do
   let reply =  CompleteReply replyHeader (map pack completions) (pack matchedText) line True
   return (state,  reply)
 
--- | Reply to the object_info_request message. Given an object name, return
--- | the associated type calculated by GHC.
+-- Reply to the object_info_request message. Given an object name, return
+-- the associated type calculated by GHC.
 replyTo _ ObjectInfoRequest{objectName = oname} replyHeader state = do
   docs <- pack <$> info (unpack oname)
   let reply = ObjectInfoReply {
@@ -370,6 +372,14 @@ replyTo _ ObjectInfoRequest{objectName = oname} replyHeader state = do
                 objectFound = strip docs /= "",
                 objectTypeString = docs,
                 objectDocString  = docs
+              }
+  return (state, reply)
+
+-- TODO: Implement history_reply.
+replyTo _ HistoryRequest{} replyHeader state = do
+  let reply = HistoryReply {
+                header = replyHeader,
+                historyReply = [] -- FIXME
               }
   return (state, reply)
 

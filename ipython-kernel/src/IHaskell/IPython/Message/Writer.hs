@@ -103,6 +103,11 @@ instance ToJSON Message where
                             "data" .= commData req
                            ]
 
+  toJSON req@HistoryReply{} = object [ "history" .= map tuplify (historyReply req) ]
+    where tuplify (HistoryReplyElement sess linum res) = (sess, linum, case res of 
+            Left inp -> toJSON inp
+            Right (inp, out) -> toJSON out)
+
   toJSON body = error $ "Do not know how to convert to JSON for message " ++ show body
 
 
