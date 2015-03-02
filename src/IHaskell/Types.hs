@@ -29,6 +29,7 @@ module IHaskell.Types (
   IHaskellWidget(..),
   Widget(..),
   CommInfo(..),
+  KernelSpec(..),
   ) where
 
 import            ClassyPrelude

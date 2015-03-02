@@ -52,35 +52,21 @@ main = do
     Left errorMessage -> hPutStrLn stderr errorMessage
     Right args        -> ihaskell args
 
-chooseIPython [] = return DefaultIPython
-chooseIPython (IPythonFrom path:_) = ExplicitIPython <$> subHome path
-chooseIPython (_:xs) = chooseIPython xs
-
 ihaskell :: Args -> IO ()
--- If no mode is specified, print help text.
 ihaskell (Args (ShowHelp help) _) = putStrLn $ pack help
-
 ihaskell (Args ConvertLhs args) = showingHelp ConvertLhs args $ convert args
-
-ihaskell (Args Console flags) = showingHelp Console flags $ do
-  ipython <- chooseIPython flags
-  setupIPython ipython
-
+ihaskell (Args InstallKernelSpec _) = withIPython $ return ()
+ihaskell (Args Console flags) = showingHelp Console flags $ withIPython $ do
   flags <- addDefaultConfFile flags
   info <- initInfo IPythonConsole flags
-  runConsole ipython info
-
-ihaskell (Args mode@(View (Just fmt) (Just name)) args) = showingHelp mode args $ do
-  ipython <- chooseIPython args
-  nbconvert ipython fmt name
-
-ihaskell (Args Notebook flags) = showingHelp Notebook flags $ do
-  ipython <- chooseIPython flags
-  setupIPython ipython
-
-  let server = case mapMaybe serveDir flags of
-                 [] -> Nothing
-                 xs -> Just $ last xs
+  runConsole info
+ihaskell (Args mode@(View (Just fmt) (Just name)) args) = showingHelp mode args $ withIPython $
+  nbconvert fmt name
+ihaskell (Args Notebook flags) = showingHelp Notebook flags $ withIPython $ do
+  let server =
+        case mapMaybe serveDir flags of
+          [] -> Nothing
+          xs -> Just $ last xs
 
   flags <- addDefaultConfFile flags
 
@@ -88,20 +74,19 @@ ihaskell (Args Notebook flags) = showingHelp Notebook flags $ do
   curdir <- getCurrentDirectory
   let info = undirInfo { initDir = curdir }
 
-  runNotebook ipython info server
+  runNotebook info (pack <$> server)
   where
     serveDir (ServeFrom dir) = Just dir
     serveDir _ = Nothing
-
 ihaskell (Args (Kernel (Just filename)) flags) = do
   initInfo <- readInitInfo
   runKernel libdir filename initInfo
 
   where
-    libdir = case flags of
-      []              -> GHC.Paths.libdir
-      [GhcLibDir dir] -> dir
-
+    libdir =
+      case flags of
+        []              -> GHC.Paths.libdir
+        [GhcLibDir dir] -> dir
 
 -- | Add a conf file to the arguments if none exists.
 addDefaultConfFile :: [Argument] -> IO [Argument]

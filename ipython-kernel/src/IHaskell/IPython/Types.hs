@@ -8,6 +8,9 @@ module IHaskell.IPython.Types (
   Port(..),
   IP(..),
 
+  -- * IPython kernelspecs
+  KernelSpec(..),
+
   -- * IPython messaging protocol
   Message(..),
   MessageHeader(..),
@@ -99,6 +102,22 @@ instance FromJSON Transport where
 instance ToJSON Transport where
   toJSON TCP = String "tcp"
 
+
+-------------------- IPython Kernelspec Types ----------------------
+data KernelSpec = KernelSpec {
+    kernelDisplayName :: String, -- ^ Name shown to users to describe this kernel (e.g. "Haskell")
+    kernelLanguage :: String,    -- ^ Name for the kernel; unique kernel identifier (e.g. "haskell")
+    kernelCommand :: [String]    -- ^ Command to run to start the kernel. One of the strings may be 
+                                 -- @"{connection_file}"@, which will be replaced by the path to a
+                                 -- kernel profile file (see @Profile@) when the command is run.
+  } deriving (Eq, Show)
+
+instance ToJSON KernelSpec where
+  toJSON kernelspec = object
+                        [ "argv" .= kernelCommand kernelspec
+                        , "display_name" .= kernelDisplayName kernelspec
+                        , "language" .= kernelLanguage kernelspec
+                        ]
 
 -------------------- IPython Message Types ----------------------
 
