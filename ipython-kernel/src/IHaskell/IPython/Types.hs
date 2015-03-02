@@ -53,25 +53,24 @@ type Port = Int
 type IP = String
 
 -- | The transport mechanism used to communicate with the IPython frontend.
-data Transport
-     = TCP                 -- ^ Default transport mechanism via TCP.
-     deriving (Show, Read)
+data Transport = TCP -- ^ Default transport mechanism via TCP.
+  deriving (Show, Read)
 
 -- | A kernel profile, specifying how the kernel communicates.
-data Profile = Profile {
-  ip :: IP,               -- ^ The IP on which to listen.
-  transport :: Transport, -- ^ The transport mechanism.
-  stdinPort :: Port,      -- ^ The stdin channel port. 
-  controlPort :: Port,    -- ^ The control channel port.
-  hbPort :: Port,         -- ^ The heartbeat channel port.
-  shellPort :: Port,      -- ^ The shell command port.
-  iopubPort :: Port,      -- ^ The IOPub port.
-  key :: Text             -- ^ The HMAC encryption key.
-  } deriving (Show, Read)
+data Profile = Profile { ip :: IP                     -- ^ The IP on which to listen.
+                       , transport :: Transport       -- ^ The transport mechanism.
+                       , stdinPort :: Port            -- ^ The stdin channel port. 
+                       , controlPort :: Port          -- ^ The control channel port.
+                       , hbPort :: Port               -- ^ The heartbeat channel port.
+                       , shellPort :: Port            -- ^ The shell command port.
+                       , iopubPort :: Port            -- ^ The IOPub port.
+                       , signatureKey :: ByteString   -- ^ The HMAC encryption key.
+                       }
+  deriving (Show, Read)
 
 -- Convert the kernel profile to and from JSON.
 instance FromJSON Profile where
-  parseJSON (Object v) = 
+  parseJSON (Object v) =
     Profile <$> v .: "ip"
             <*> v .: "transport"
             <*> v .: "stdin_port"
@@ -79,20 +78,20 @@ instance FromJSON Profile where
             <*> v .: "hb_port"
             <*> v .: "shell_port"
             <*> v .: "iopub_port"
-            <*> v .: "key"
+            <*> (Text.encodeUtf8 <$> v .: "key")
   parseJSON _ = fail "Expecting JSON object."
 
 instance ToJSON Profile where
-  toJSON profile = object [
-                    "ip"          .= ip profile,
-                    "transport"   .= transport profile,
-                    "stdin_port"  .= stdinPort profile,
-                    "control_port".= controlPort profile,
-                    "hb_port"     .= hbPort profile,
-                    "shell_port"  .= shellPort profile,
-                    "iopub_port"  .= iopubPort profile,
-                    "key"         .= key profile
-                   ]
+  toJSON profile = object
+                     [ "ip"           .= ip profile
+                     , "transport"    .= transport profile
+                     , "stdin_port"   .= stdinPort profile
+                     , "control_port" .= controlPort profile
+                     , "hb_port"      .= hbPort profile
+                     , "shell_port"   .= shellPort profile
+                     , "iopub_port"   .= iopubPort profile
+                     , "key"          .= Text.decodeUtf8 (signatureKey profile)
+                     ]
 
 instance FromJSON Transport where
   parseJSON (String mech) =

@@ -11,30 +11,35 @@ module IHaskell.IPython.ZeroMQ (
   serveStdin,
   ) where
 
-import qualified  Data.ByteString.Lazy  as ByteString
-import            Data.ByteString       (ByteString)
-import            Control.Concurrent
-import            Control.Monad 
-import            System.IO.Unsafe
-import            Data.Aeson            (encode)
-import            System.ZMQ4           hiding (stdin)
+import qualified Data.ByteString.Lazy as LBS
+import           Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as Char
+import           Control.Concurrent
+import           Control.Monad
+import           System.IO.Unsafe
+import           Data.Aeson (encode)
+import           System.ZMQ4 hiding (stdin)
+import           Data.Digest.Pure.SHA as SHA
+import           Data.Monoid ((<>))
 
-import IHaskell.IPython.Types
-import IHaskell.IPython.Message.Parser
-import IHaskell.IPython.Message.Writer
+import           IHaskell.IPython.Types
+import           IHaskell.IPython.Message.Parser
+import           IHaskell.IPython.Message.Writer
 
 -- | The channel interface to the ZeroMQ sockets. All communication is done via
 -- Messages, which are encoded and decoded into a lower level form before being
 -- transmitted to IPython. These channels should functionally serve as
 -- high-level sockets which speak Messages instead of ByteStrings.
-data ZeroMQInterface = Channels {
-  shellRequestChannel :: Chan Message,    -- ^ A channel populated with requests from the frontend.
-  shellReplyChannel :: Chan Message,      -- ^ Writing to this channel causes a reply to be sent to the frontend.
-  controlRequestChannel :: Chan Message,  -- ^ This channel is a duplicate of the shell request channel,
-                                         -- ^ though using a different backend socket.
-  controlReplyChannel :: Chan Message,    -- ^ This channel is a duplicate of the shell reply channel,
-                                         -- ^ though using a different backend socket.
-  iopubChannel :: Chan Message           -- ^ Writing to this channel sends an iopub message to the frontend.
+data ZeroMQInterface = 
+  Channels {
+  shellRequestChannel :: Chan Message,   -- ^ A channel populated with requests from the frontend.
+  shellReplyChannel :: Chan Message,     -- ^ Writing to this channel causes a reply to be sent to the frontend.
+  controlRequestChannel :: Chan Message, -- ^ This channel is a duplicate of the shell request channel,
+                                         -- though using a different backend socket.
+  controlReplyChannel :: Chan Message,   -- ^ This channel is a duplicate of the shell reply channel,
+                                         -- though using a different backend socket.
+  iopubChannel :: Chan Message,          -- ^ Writing to this channel sends an iopub message to the frontend.
+  hmacKey :: ByteString                  -- ^ Key used to sign messages.
   }
 
 data ZeroMQStdin = StdinChannel {
@@ -54,7 +59,7 @@ serveProfile profile = do
   controlReqChan <- dupChan shellReqChan
   controlRepChan <- dupChan shellRepChan
   iopubChan <- newChan
-  let channels = Channels shellReqChan shellRepChan controlReqChan controlRepChan iopubChan
+  let channels = Channels shellReqChan shellRepChan controlReqChan controlRepChan iopubChan (signatureKey profile) 
 
   -- Create the context in a separate thread that never finishes. If
   -- withContext or withSocket complete, the context or socket become invalid.
@@ -83,7 +88,7 @@ serveStdin profile = do
     -- Serve on all sockets.
     serveSocket context Router (stdinPort profile) $ \socket -> do
       -- Read the request from the interface channel and send it.
-      readChan reqChannel >>= sendMessage socket
+      readChan reqChannel >>= sendMessage (signatureKey profile) socket
 
       -- Receive a response and write it to the interface channel.
       receiveMessage socket >>= writeChan repChannel
@@ -117,7 +122,7 @@ shell channels socket = do
   receiveMessage socket >>= writeChan requestChannel
 
   -- Read the reply from the interface channel and send it.
-  readChan replyChannel >>= sendMessage socket
+  readChan replyChannel >>= sendMessage (hmacKey channels) socket
 
   where
     requestChannel = shellRequestChannel channels
@@ -132,7 +137,7 @@ control channels socket = do
   receiveMessage socket >>= writeChan requestChannel
 
   -- Read the reply from the interface channel and send it.
-  readChan replyChannel >>= sendMessage socket
+  readChan replyChannel >>= sendMessage (hmacKey channels) socket
 
   where
     requestChannel = controlRequestChannel channels
@@ -143,7 +148,7 @@ control channels socket = do
 -- | and then writes the messages to the socket.
 iopub :: ZeroMQInterface -> Socket Pub -> IO ()
 iopub channels socket =
-  readChan (iopubChannel channels) >>= sendMessage socket
+  readChan (iopubChannel channels) >>= sendMessage (hmacKey channels) socket
 
 -- | Receive and parse a message from a socket.
 receiveMessage :: Receiver a => Socket a -> IO Message
@@ -177,21 +182,15 @@ receiveMessage socket = do
       else return []
   
 -- | Encode a message in the IPython ZeroMQ communication protocol 
--- | and send it through the provided socket.
-sendMessage :: Sender a => Socket a -> Message -> IO ()
-sendMessage _ SendNothing = return ()
-sendMessage socket message = do
-  let head = header message
-      parentHeaderStr = maybe "{}" encodeStrict $ parentHeader head
-      idents = identifiers head
-      metadata = "{}"
-      content = encodeStrict message
-      headStr = encodeStrict head
-
+-- and send it through the provided socket. Sign it using HMAC
+-- with SHA-256 using the provided key.
+sendMessage :: Sender a => ByteString -> Socket a -> Message -> IO ()
+sendMessage _ _ SendNothing = return ()
+sendMessage hmacKey socket message = do
   -- Send all pieces of the message.
   mapM_ sendPiece idents
   sendPiece "<IDS|MSG>"
-  sendPiece ""
+  sendPiece signature
   sendPiece headStr
   sendPiece parentHeaderStr
   sendPiece metadata
@@ -205,4 +204,20 @@ sendMessage socket message = do
 
     -- Encode to a strict bytestring.
     encodeStrict :: ToJSON a => a -> ByteString
-    encodeStrict = ByteString.toStrict . encode
+    encodeStrict = LBS.toStrict . encode
+
+    -- Signature for the message using HMAC SHA-256.
+    signature :: ByteString
+    signature = hmac $ headStr <> parentHeaderStr <> metadata <> content
+
+    -- Compute the HMAC SHA-256 signature of a bytestring message.
+    hmac :: ByteString -> ByteString
+    hmac = Char.pack . SHA.showDigest . SHA.hmacSha256 (LBS.fromStrict hmacKey) . LBS.fromStrict
+
+    -- Pieces of the message.
+    head = header message
+    parentHeaderStr = maybe "{}" encodeStrict $ parentHeader head
+    idents = identifiers head
+    metadata = "{}"
+    content = encodeStrict message
+    headStr = encodeStrict head
