@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, CPP, OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE NoImplicitPrelude, CPP, OverloadedStrings, ScopedTypeVariables, QuasiQuotes #-}
 -- | Description : Argument parsing and basic messaging loop, using Haskell
 --                 Chans to communicate with the ZeroMQ sockets.
 module Main where
@@ -17,6 +17,7 @@ import           System.Exit (exitSuccess)
 import           Text.Printf
 import           System.Posix.Signals
 import qualified Data.Map as Map
+import           Data.String.Here (hereFile)
 
 -- IHaskell imports.
 import           IHaskell.Convert (convert)
@@ -44,6 +45,9 @@ ghcVersionInts = map read . words . map dotToSpace $ VERSION_ghc
     dotToSpace '.' = ' '
     dotToSpace x = x
 
+ihaskellCSS :: String
+ihaskellCSS = [hereFile|html/custom.css|]
+
 consoleBanner :: Text
 consoleBanner =
   "Welcome to IHaskell! Run `IHaskell --help` for more information.\n" ++
@@ -65,7 +69,6 @@ ihaskell (Args Console flags) = showingHelp Console flags $ do
   withIPython $ do
     flags <- addDefaultConfFile flags
     info <- initInfo IPythonConsole flags
-    putStrLn "Noo"
     runConsole info
 ihaskell (Args mode@(View (Just fmt) (Just name)) args) = showingHelp mode args $ withIPython $
   nbconvert fmt name
@@ -286,11 +289,14 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
       sendOutput (ManyDisplay manyOuts) = mapM_ sendOutput manyOuts
       sendOutput (Display outs) = do
         header <- dupHeader replyHeader DisplayDataMessage
-        send $ PublishDisplayData header "haskell" $ map convertSvgToHtml outs
+        send $ PublishDisplayData header "haskell" $ map (convertSvgToHtml . prependCss) outs
 
       convertSvgToHtml (DisplayData MimeSvg svg) = html $ makeSvgImg $ base64 $ encodeUtf8 svg
       convertSvgToHtml x = x
       makeSvgImg base64data = unpack $ "<img src=\"data:image/svg+xml;base64," ++ base64data ++ "\"/>"
+
+      prependCss (DisplayData MimeHtml html) = DisplayData MimeHtml $ concat ["<style>", pack ihaskellCSS, "</style>", html]
+      prependCss x = x
 
       startComm :: CommInfo -> IO ()
       startComm (CommInfo widget uuid target) = do

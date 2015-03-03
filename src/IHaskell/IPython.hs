@@ -185,6 +185,10 @@ installKernelspec = void $ do
 
     mkdir_p kernelDir
     writefile filename $ toStrict $ toLazyText $ encodeToTextBuilder $ toJSON kernelSpec
+    let files = ["kernel.js", "logo-64x64.png"]
+    forM_ files $ \file -> do
+      src <- liftIO $ Paths.getDataFileName $ "html/" ++ file
+      cp (fpFromString src) (tmp </> kernelName </> fpFromString file)
 
     Just ipython <- which "ipython"
     silently $ run ipython ["kernelspec", "install", "--user", fpToText kernelDir]
