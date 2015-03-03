@@ -14,25 +14,14 @@ module IHaskell.Eval.Parser (
     PragmaType(..),
     ) where
 
--- Hide 'unlines' to use our own 'joinLines' instead.
-import ClassyPrelude hiding (head, tail, liftIO, unlines, maximumBy)
+import ClassyPrelude hiding (head, liftIO, maximumBy)
 
-import Data.List (findIndex, maximumBy, maximum, inits)
+import Data.List (maximumBy, inits)
 import Data.String.Utils (startswith, strip, split)
-import Data.List.Utils (subIndex)
-import Prelude (init, last, head, tail)
+import Prelude (head, tail)
 import Control.Monad (msum)
 
-import Bag
-import ErrUtils hiding (ErrMsg)
-import FastString
 import GHC hiding (Located)
-import GhcMonad
-import Lexer
-import OrdList
-import Outputable hiding ((<>))
-import SrcLoc hiding (Located)
-import StringBuffer
 
 import Language.Haskell.GHC.Parser
 import IHaskell.Eval.Util
@@ -93,8 +82,9 @@ parseString codeString = do
       -- Return to previous flags. When parsing, flags can be set to make
       -- sure parsing works properly. But we don't want those flags to be
       -- set during evaluation until the right time.
-      setSessionDynFlags flags
+      _ <- setSessionDynFlags flags
       return result
+    otherwise -> error "parseString failed, output was neither Parsed nor Failure"
   where
     parseChunk :: GhcMonad m => String -> LineNumber -> m (Located CodeBlock)
     parseChunk chunk line = Located line <$> handleChunk chunk line
@@ -123,10 +113,6 @@ parseString codeString = do
     -- Test if a chunk is a pragma.
     isPragma :: String -> Bool
     isPragma = startswith "{-#" . strip
-
-    -- Number of lines in this string.
-    nlines :: String -> Int
-    nlines = length . lines
 
 activateExtensions :: GhcMonad m => CodeBlock -> m ()
 activateExtensions (Directive SetExtension ext) = void $ setExtension ext
@@ -193,6 +179,7 @@ parseCodeChunk code startLine = do
     tryParser string (blockType, parser) = case parser string of
       Parsed res -> Parsed (blockType res)
       Failure err loc -> Failure err loc
+      otherwise -> error "tryParser failed, output was neither Parsed nor Failure"
 
     parsers :: DynFlags -> [(String -> CodeBlock, String -> ParseOutput String)]
     parsers flags =
@@ -297,7 +284,4 @@ getModuleName moduleSrc = do
       case unLoc <$> hsmodName (unLoc mod) of
         Nothing -> error "Module must have a name."
         Just name -> return $ split "." $ moduleNameString name
-
--- Not the same as 'unlines', due to trailing \n
-joinLines :: [String] -> String
-joinLines = intercalate "\n"
+    otherwise -> error "getModuleName failed, output was neither Parsed nor Failure"
