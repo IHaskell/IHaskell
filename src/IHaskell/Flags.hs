@@ -62,17 +62,20 @@ data IHaskellMode = ShowHelp String
 -- | Given a list of command-line arguments, return the IHaskell mode and
 -- arguments to process.
 parseFlags :: [String] -> Either String Args
-parseFlags flags = 
-  let modeIndex = findIndex (`elem` modeFlags) flags in
-    case modeIndex of
-      Nothing -> Left $ "No mode provided. Modes available are: " ++ show modeFlags ++ "\n" ++
-                       pack (showText (Wrap 100) $ helpText [] HelpFormatAll ihaskellArgs)
-      Just 0 -> process ihaskellArgs flags
+parseFlags flags =
+  let modeIndex = findIndex (`elem` modeFlags) flags
+  in case modeIndex of
+    Nothing ->
+      -- Treat no mode as 'console'.
+      if "--help" `elem` flags
+        then Left $ pack (showText (Wrap 100) $ helpText [] HelpFormatAll ihaskellArgs)
+        else process ihaskellArgs $ "console" : flags
+    Just 0 -> process ihaskellArgs flags
 
+    Just idx ->
       -- If mode not first, move it to be first.
-      Just idx -> 
-        let (start, first:end) = splitAt idx flags in
-          process ihaskellArgs $ first:start ++ end
+      let (start, first:end) = splitAt idx flags
+      in process ihaskellArgs $ first : start ++ end
   where
     modeFlags = concatMap modeNames allModes
 

@@ -1,4 +1,5 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DoAndIfThenElse #-}
 
 -- | Description : Shell scripting wrapper using @Shelly@ for the @notebook@, and
@@ -27,6 +28,7 @@ import qualified Filesystem.Path.CurrentOS as FS
 import           Data.List.Utils (split)
 import           Data.String.Utils (rstrip, endswith, strip, replace)
 import           Text.Printf
+import qualified Data.Text as T
 import           Data.Maybe (fromJust)
 import           System.Exit (exitFailure)
 import           Data.Aeson (toJSON)
@@ -55,7 +57,7 @@ ipython suppress args = do
   liftIO $ installHandler keyboardSignal (CatchOnce $ return ()) Nothing
 
   -- We have this because using `run` does not let us use stdin.
-  runHandles "ipython" (args ++ kernelArgs) handles doNothing
+  runHandles "ipython" args handles doNothing
 
   where
     handles = [InHandle Inherit, outHandle suppress, errorHandle suppress]
@@ -137,14 +139,15 @@ nbconvert fmt name = void . shelly $ do
 -- This ensures that an IHaskell kernelspec exists; if it doesn't, it creates it.
 -- Note that this exits with an error if IPython isn't installed properly.
 withIPython :: IO a -> IO a
-withIPython act = do
+withIPython act = shelly $ do
   verifyIPythonVersion
-  installKernelspec
-  act
+  kernelspecExists <- kernelSpecCreated
+  unless kernelspecExists installKernelspec
+  liftIO act
 
 -- | Verify that a proper version of IPython is installed and accessible.
-verifyIPythonVersion :: IO ()
-verifyIPythonVersion = shelly $ do
+verifyIPythonVersion :: Sh ()
+verifyIPythonVersion = do
   pathMay <- which "ipython"
   case pathMay of
     Nothing -> badIPython "No IPython detected -- install IPython 3.0+ before using IHaskell."
@@ -165,8 +168,8 @@ verifyIPythonVersion = shelly $ do
 
 -- | Install an IHaskell kernelspec into the right location.
 -- The right location is determined by using `ipython kernelspec install --user`.
-installKernelspec :: IO ()
-installKernelspec = void $ shelly $ do
+installKernelspec :: Sh ()
+installKernelspec = void $ do
   ihaskellPath <- getIHaskellPath
   let kernelSpec = KernelSpec {
         kernelDisplayName = "Haskell",
@@ -184,7 +187,14 @@ installKernelspec = void $ shelly $ do
     writefile filename $ toStrict $ toLazyText $ encodeToTextBuilder $ toJSON kernelSpec
 
     Just ipython <- which "ipython"
-    run ipython ["kernelspec", "install", "--user", fpToText kernelDir]
+    silently $ run ipython ["kernelspec", "install", "--user", fpToText kernelDir]
+
+kernelSpecCreated :: Sh Bool
+kernelSpecCreated = do
+    Just ipython <- which "ipython"
+    out <- silently $ run ipython ["kernelspec", "list"]
+    let kernelspecs = map T.strip $ lines out
+    return $ kernelName `elem` kernelspecs
 
 -- | Replace "~" with $HOME if $HOME is defined.
 -- Otherwise, do nothing.
@@ -223,7 +233,7 @@ parseVersion versionStr =
 runConsole :: InitInfo -> IO ()
 runConsole initInfo = void . shelly $ do
   writeInitInfo initInfo
-  ipython False ["console"]
+  ipython False $ "console" : "--no-banner" : kernelArgs
 
 runNotebook :: InitInfo -> Maybe Text -> IO ()
 runNotebook initInfo maybeServeDir = void . shelly $ do

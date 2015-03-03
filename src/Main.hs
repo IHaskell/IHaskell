@@ -44,6 +44,10 @@ ghcVersionInts = map read . words . map dotToSpace $ VERSION_ghc
     dotToSpace '.' = ' '
     dotToSpace x = x
 
+consoleBanner :: Text
+consoleBanner =
+  "Welcome to IHaskell! Run `IHaskell --help` for more information.\n" ++
+  "Enter `:help` to learn more about IHaskell built-ins."
 
 main :: IO ()
 main = do
@@ -56,10 +60,12 @@ ihaskell :: Args -> IO ()
 ihaskell (Args (ShowHelp help) _) = putStrLn $ pack help
 ihaskell (Args ConvertLhs args) = showingHelp ConvertLhs args $ convert args
 ihaskell (Args InstallKernelSpec _) = withIPython $ return ()
-ihaskell (Args Console flags) = showingHelp Console flags $ withIPython $ do
-  flags <- addDefaultConfFile flags
-  info <- initInfo IPythonConsole flags
-  runConsole info
+ihaskell (Args Console flags) = showingHelp Console flags $ do
+  putStrLn consoleBanner
+  withIPython $ do
+    flags <- addDefaultConfFile flags
+    info <- initInfo IPythonConsole flags
+    runConsole info
 ihaskell (Args mode@(View (Just fmt) (Just name)) args) = showingHelp mode args $ withIPython $
   nbconvert fmt name
 ihaskell (Args Notebook flags) = showingHelp Notebook flags $ withIPython $ do
