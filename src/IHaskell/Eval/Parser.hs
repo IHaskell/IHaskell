@@ -14,8 +14,7 @@ module IHaskell.Eval.Parser (
     PragmaType(..),
     ) where
 
--- Hide 'unlines' to use our own 'joinLines' instead.
-import ClassyPrelude hiding (head, liftIO, unlines, maximumBy)
+import ClassyPrelude hiding (head, liftIO, maximumBy)
 
 import Data.List (maximumBy, inits)
 import Data.String.Utils (startswith, strip, split)
