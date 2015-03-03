@@ -6,6 +6,7 @@
 --                 @console@ commands.
 module IHaskell.IPython (
     withIPython,
+    replaceIPythonKernelspec,
     runConsole,
     runNotebook,
     readInitInfo,
@@ -142,8 +143,13 @@ withIPython :: IO a -> IO a
 withIPython act = shelly $ do
   verifyIPythonVersion
   kernelspecExists <- kernelSpecCreated
-  unless kernelspecExists installKernelspec
+  unless kernelspecExists $ installKernelspec False
   liftIO act
+
+replaceIPythonKernelspec :: IO ()
+replaceIPythonKernelspec = shelly $ do
+  verifyIPythonVersion
+  installKernelspec True
 
 -- | Verify that a proper version of IPython is installed and accessible.
 verifyIPythonVersion :: Sh ()
@@ -168,8 +174,8 @@ verifyIPythonVersion = do
 
 -- | Install an IHaskell kernelspec into the right location.
 -- The right location is determined by using `ipython kernelspec install --user`.
-installKernelspec :: Sh ()
-installKernelspec = void $ do
+installKernelspec :: Bool -> Sh ()
+installKernelspec replace = void $ do
   ihaskellPath <- getIHaskellPath
   let kernelSpec = KernelSpec {
         kernelDisplayName = "Haskell",
@@ -191,7 +197,9 @@ installKernelspec = void $ do
       cp (fpFromString src) (tmp </> kernelName </> fpFromString file)
 
     Just ipython <- which "ipython"
-    silently $ run ipython ["kernelspec", "install", "--user", fpToText kernelDir]
+    let replaceFlag = ["--replace" | replace]
+        cmd = ["kernelspec", "install", "--user", fpToText kernelDir] ++ replaceFlag
+    silently $ run ipython cmd
 
 kernelSpecCreated :: Sh Bool
 kernelSpecCreated = do

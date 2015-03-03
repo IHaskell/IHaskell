@@ -63,7 +63,7 @@ main = do
 ihaskell :: Args -> IO ()
 ihaskell (Args (ShowHelp help) _) = putStrLn $ pack help
 ihaskell (Args ConvertLhs args) = showingHelp ConvertLhs args $ convert args
-ihaskell (Args InstallKernelSpec _) = withIPython $ return ()
+ihaskell (Args InstallKernelSpec args) = showingHelp InstallKernelSpec args replaceIPythonKernelspec
 ihaskell (Args Console flags) = showingHelp Console flags $ do
   putStrLn consoleBanner
   withIPython $ do
