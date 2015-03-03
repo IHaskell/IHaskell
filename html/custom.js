@@ -1,16 +1,3 @@
-$([IPython.events]).on('notebook_loaded.Notebook', function(){
-    // add here logic that should be run once per **notebook load**
-    // (!= page load), like restarting a checkpoint
-
-    var md = IPython.notebook.metadata;
-    if(md.language){
-        console.log('language already defined and is :', md.language);
-    } else {
-        md.language = 'haskell' ;
-        console.log('add metadata hint that language is haskell...');
-    }
-});
-
 $([IPython.events]).on('app_initialized.NotebookApp', function(){
     // add here logic that shoudl be run once per **page load**
     // like adding specific UI, or changing the default value
@@ -53,17 +40,12 @@ $([IPython.events]).on('app_initialized.NotebookApp', function(){
                 c.auto_highlight()
             }
         }
-
-        // We can only load the conceal scripts once all cells have mode 'haskell'
-        require(['/static/custom/conceal/conceal.js']);
     });
 
     // Prevent the pager from surrounding everything with a <pre>
     IPython.Pager.prototype.append_text = function (text) {
         this.pager_element.find(".container").append($('<div/>').html(IPython.utils.autoLinkUrls(text)));
     };
-
-    require(['/static/custom/hide_input.js']);
 });
 
 $([IPython.events]).on('shell_reply.Kernel', function() {

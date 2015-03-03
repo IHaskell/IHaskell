@@ -43,7 +43,9 @@ build-type:          Simple
 cabal-version:       >=1.16
 
 data-files: 
-    profile/profile.tar
+    html/custom.css
+    html/custom.js
+    html/logo-64x64.png
 
 library
   hs-source-dirs:      src

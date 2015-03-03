@@ -65,6 +65,7 @@ ihaskell (Args Console flags) = showingHelp Console flags $ do
   withIPython $ do
     flags <- addDefaultConfFile flags
     info <- initInfo IPythonConsole flags
+    putStrLn "Noo"
     runConsole info
 ihaskell (Args mode@(View (Just fmt) (Just name)) args) = showingHelp mode args $ withIPython $
   nbconvert fmt name
