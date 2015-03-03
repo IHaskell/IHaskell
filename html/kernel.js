@@ -1,12 +1,14 @@
-console.log('Kernel haskell kernel.js is loading.');
 
-require(['require',
+define(['require',
         'codemirror/lib/codemirror',
         'codemirror/addon/mode/loadmode',
         'base/js/namespace',
         'base/js/events',
         'base/js/utils'],
         function(require, CodeMirror, CodemirrorLoadmode, IPython, events, utils){
+
+            var onload = function(){
+            console.log('Kernel haskell kernel.js is loading.');
 
             events.on('app_initialized.NotebookApp', function(){
                 // add here logic that shoudl be run once per **page load**
@@ -80,4 +82,8 @@ require(['require',
                     });
                 });
             });
-        });
+        console.log('IHaskell kernel JS shoudl have been loaded.')
+        } // end def of onload
+        return {onload:onload};
+        }
+);
