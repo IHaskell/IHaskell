@@ -6,7 +6,7 @@ require(['require',
         'base/js/namespace',
         'base/js/events',
         'base/js/utils'],
-        function(require, CodeMirror, CodemirrorLoadmode, IPtyhon, events, utils){
+        function(require, CodeMirror, CodemirrorLoadmode, IPython, events, utils){
 
             events.on('app_initialized.NotebookApp', function(){
                 // add here logic that shoudl be run once per **page load**
