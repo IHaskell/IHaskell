@@ -1212,6 +1212,7 @@ formatErrorWithClass cls =
     replace "\n" "<br/>" .
     replace useDashV "" .
     replace "Ghci" "IHaskell" .
+    replace "‘interactive:" "‘" .
     fixDollarSigns .
     rstrip .
     typeCleaner
