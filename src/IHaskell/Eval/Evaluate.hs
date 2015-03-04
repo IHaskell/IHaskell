@@ -649,10 +649,11 @@ evalCommand _ (Directive GetHelp _) state = do
           ,"Any prefix of the commands will also suffice, e.g. use :ty for :type."
           ,""
           ,"Options:"
-          ,"  lint          - enable or disable linting."
-          ,"  svg           - use svg output (cannot be resized)."
-          ,"  show-types    - show types of all bound names"
-          ,"  show-errors   - display Show instance missing errors normally."
+          ,"  lint        – enable or disable linting."
+          ,"  svg         – use svg output (cannot be resized)."
+          ,"  show-types  – show types of all bound names"
+          ,"  show-errors – display Show instance missing errors normally."
+          ,"  pager       – use the pager to display results of :info, :doc, :hoogle, etc."
           ]
 
 -- This is taken largely from GHCi's info section in InteractiveUI.
@@ -801,9 +802,9 @@ evalCommand output (Expression expr) state = do
     isShowError (ManyDisplay _) = False
     isShowError (Display errs) =
         -- Note that we rely on this error message being 'type cleaned', so
-        -- that `Show` is not displayed as GHC.Show.Show.
+        -- that `Show` is not displayed as GHC.Show.Show. This is also very fragile!
         startswith "No instance for (Show" msg &&
-        isInfixOf " arising from a use of `print'" msg
+        isInfixOf "print it" msg
       where msg = extractPlain errs
 
     isSvg (DisplayData mime _) = mime == MimeSvg
@@ -879,7 +880,7 @@ evalCommand output (Expression expr) state = do
 
         postprocess (DisplayData MimeHtml _) = html $ printf fmt unshowableType (formatErrorWithClass "err-msg collapse" text) script
           where
-            fmt = "<div class='collapse-group'><span class='btn' href='#' id='unshowable'>Unshowable:<span class='show-type'>%s</span></span>%s</div><script>%s</script>"
+            fmt = "<div class='collapse-group'><span class='btn btn-default' href='#' id='unshowable'>Unshowable:<span class='show-type'>%s</span></span>%s</div><script>%s</script>"
             script = unlines [
                 "$('#unshowable').on('click', function(e) {",
                 "    e.preventDefault();",
