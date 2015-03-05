@@ -88,14 +88,21 @@ pprDynFlags :: Bool       -- ^ Whether to include flags which are on by default
             -> SDoc
 pprDynFlags show_all dflags =
   vcat [
+#if MIN_VERSION_ghc(7,8,0)
      text "GHCi-specific dynamic flag settings:" $$
          nest 2 (vcat (map (setting gopt) ghciFlags)),
-#if MIN_VERSION_ghc(7,8,0)
      text "other dynamic, non-language, flag settings:" $$
          nest 2 (vcat (map (setting gopt) others)),
-#endif
      text "warning settings:" $$
          nest 2 (vcat (map (setting wopt) DynFlags.fWarningFlags))
+#else
+     text "GHCi-specific dynamic flag settings:" $$
+         nest 2 (vcat (map (setting dopt) ghciFlags)),
+     text "other dynamic, non-language, flag settings:" $$
+         nest 2 (vcat (map (setting dopt) others)),
+     text "warning settings:" $$
+         nest 2 (vcat (map (setting wopt) DynFlags.fWarningFlags))
+#endif
   ]
   where
         setting test flag
