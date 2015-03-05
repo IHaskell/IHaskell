@@ -194,7 +194,7 @@ initializeImports = do
       importFmt = "import IHaskell.Display.%s"
 
       toImportStmt :: String -> String
-      toImportStmt = printf importFmt . capitalize . (!! 1) . split "-"
+      toImportStmt = printf importFmt . concat . map capitalize . (drop 1) . split "-"
 
       displayImports = map toImportStmt displayPackages
 
