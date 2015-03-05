@@ -122,11 +122,9 @@ pprDynFlags show_all dflags =
         (ghciFlags,others)  = partition (\f -> flagSpecFlag f `elem` flgs)
                                         DynFlags.fFlags
         flgs = [ 
-#if MIN_VERSION_ghc(7,8,0)
                  Opt_PrintExplicitForalls
+#if MIN_VERSION_ghc(7,8,0)
                , Opt_PrintExplicitKinds
-#else
-                 Opt_PrintExplicitKinds
 #endif
                , Opt_PrintBindResult
                , Opt_BreakOnException
