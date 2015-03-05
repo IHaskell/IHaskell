@@ -57,7 +57,12 @@ done
 
 # Stick a "./" before everything.
 INSTALL_DIRS=`echo $INSTALLS | tr ' ' '\n' | sed 's#^#./#' | tr ' ' '\n'`
-cabal install -j $INSTALL_DIRS --force-reinstalls
+
+if [ `uname` = Darwin ]; then
+  cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls
+else
+  cabal install -j $INSTALL_DIRS --force-reinstalls
+fi
 
 # Finish installing ihaskell-diagrams.
 if [ $# -gt 0 ]; then
