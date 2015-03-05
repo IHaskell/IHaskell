@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, TypeSynonymInstances, FlexibleInstances  #-}
-module IHaskell.Display.Diagrams (diagram) where
+module IHaskell.Display.Diagrams (diagram, animation) where
 
 import ClassyPrelude
 
@@ -11,6 +11,7 @@ import Diagrams.Prelude
 import Diagrams.Backend.Cairo
 
 import IHaskell.Display
+import IHaskell.Display.Diagrams.Animation
 
 instance IHaskellDisplay (QDiagram Cairo R2 Any) where
   display renderable = do

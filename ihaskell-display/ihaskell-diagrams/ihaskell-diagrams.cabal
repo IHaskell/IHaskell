@@ -51,7 +51,7 @@ library
   exposed-modules:     IHaskell.Display.Diagrams
   
   -- Modules included in this library but not exported.
-  -- other-modules:       
+  other-modules:       IHaskell.Display.Diagrams.Animation
   
   -- Language extensions.
   default-extensions: DoAndIfThenElse
@@ -66,8 +66,11 @@ library
                        diagrams==1.2.*,
                        diagrams-lib,
                        diagrams-cairo,
-                       ihaskell >= 0.5
-  
+                       ihaskell >= 0.5,
+
+                       -- The active package, used to represent animations
+                       active >= 0.1.0 && <0.1.1
+
   -- Directories containing source files.
   -- hs-source-dirs:      
   
