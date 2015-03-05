@@ -13,7 +13,7 @@ before_install:
  - travis_retry sudo add-apt-repository -y ppa:hvr/ghc
  - travis_retry sudo apt-get update
  - travis_retry sudo apt-get install cabal-install-$CABALVER ghc-$GHCVER # see note about happy/alex
- - travis_retry git clone git@github.com:zeromq/zeromq4-x.git libzmq
+ - travis_retry git clone http://www.github.com/zeromq/zeromq4-x.git libzmq
  - cd libzmq && travis_retry ./autogen.sh && travis_retry ./configure && make && travis_retry sudo make install && travis_retry sudo ldconfig
  - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$PATH
  - |
