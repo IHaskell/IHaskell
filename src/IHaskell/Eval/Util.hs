@@ -90,8 +90,10 @@ pprDynFlags show_all dflags =
   vcat [
      text "GHCi-specific dynamic flag settings:" $$
          nest 2 (vcat (map (setting gopt) ghciFlags)),
+#if MIN_VERSION_ghc(7,8,0)
      text "other dynamic, non-language, flag settings:" $$
          nest 2 (vcat (map (setting gopt) others)),
+#endif
      text "warning settings:" $$
          nest 2 (vcat (map (setting wopt) DynFlags.fWarningFlags))
   ]
