@@ -1,3 +1,6 @@
+### Status
+[![Build Status](https://travis-ci.org/gibiansky/IHaskell.png)](https://travis-ci.org/gibiansky/IHaskell)
+
 ![IHaskell](https://raw.github.com/gibiansky/IHaskell/master/images/ihaskell-logo.png)
 
 IHaskell
