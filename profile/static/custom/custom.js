@@ -1,4 +1,10 @@
-$([IPython.events]).on('notebook_loaded.Notebook', function(){
+console.warn('haskell custom js loading')
+require(['require', 'codemirror/lib/codemirror','codemirror/addon/mode/loadmode', 'base/js/namespace','base/js/events', 'base/js/utils'],function(require, CodeMirror, CodemirrorLoadmode, IPtyhon, events, utils){
+
+
+
+events.on('notebook_loaded.Notebook', function(){
+    console.warn('haskell custom js set metadata');
     // add here logic that should be run once per **notebook load**
     // (!= page load), like restarting a checkpoint
 
@@ -11,7 +17,9 @@ $([IPython.events]).on('notebook_loaded.Notebook', function(){
     }
 });
 
-$([IPython.events]).on('app_initialized.NotebookApp', function(){
+
+events.on('app_initialized.NotebookApp', function(){
+    console.warn('haskell custom js patches');
     // add here logic that shoudl be run once per **page load**
     // like adding specific UI, or changing the default value
     // of codecell highlight.
@@ -26,9 +34,10 @@ $([IPython.events]).on('app_initialized.NotebookApp', function(){
 
     IPython.CodeCell.options_default['cm_config']['mode'] = 'haskell';
     
-    CodeMirror.requireMode('haskell', function(){
+    utils.requireCodeMirrorMode('haskell', function(){
         // Create a multiplexing mode that uses Haskell highlighting by default but
         // doesn't highlight command-line directives.
+        console.warn('defining IHaskell mode');
         CodeMirror.defineMode("ihaskell", function(config) {
             return CodeMirror.multiplexingMode(
                 CodeMirror.getMode(config, "haskell"),
@@ -89,3 +98,5 @@ $([IPython.events]).on('shell_reply.Kernel', function() {
             });
     });
 });
+
+}); // end require
