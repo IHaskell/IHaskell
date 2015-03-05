@@ -32,8 +32,6 @@ instance ToJSON WidgetMessage where
 str :: String -> String
 str = id
 
-
-
 instance IHaskellDisplay Slider where
   display _ = return $ Display []
 

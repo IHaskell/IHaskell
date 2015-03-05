@@ -7,7 +7,6 @@ import Data.String.Here
 import Data.HashMap.Strict as Map
 
 import Text.Parsec (parse, sourceLine, sourceColumn)
---import Text.Parsec.Prim (Parser)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Error (errorPos, ParseError)
 
