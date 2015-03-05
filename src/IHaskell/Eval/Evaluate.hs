@@ -78,7 +78,7 @@ data ErrorOccurred = Success | Failure deriving (Show, Eq)
 
 -- | Enable debugging output
 debug :: Bool
-debug = False    
+debug = False
 
 -- | Set GHC's verbosity for debugging
 ghcVerbosity :: Maybe Int
@@ -193,8 +193,11 @@ initializeImports = do
 
       importFmt = "import IHaskell.Display.%s"
 
+      dropFirstAndLast :: [a] -> [a]
+      dropFirstAndLast = reverse . drop 1 . reverse . drop 1
+
       toImportStmt :: String -> String
-      toImportStmt = printf importFmt . concat . map capitalize . (drop 1) . split "-"
+      toImportStmt = printf importFmt . concat . map capitalize . dropFirstAndLast . split "-"
 
       displayImports = map toImportStmt displayPackages
 

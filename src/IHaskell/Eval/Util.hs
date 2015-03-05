@@ -318,8 +318,13 @@ cleanUpDuplicateInstances = modifySession $ \hscEnv ->
   where
     instEq :: ClsInst -> ClsInst -> Bool
     instEq ClsInst{is_tvs = tpl_tvs,is_tys = tpl_tys} ClsInst{is_tys = tpl_tys'} =
+#if MIN_VERSION_ghc(7,8,0)
+      -- Only support replacing instances on GHC 7.8 and up
       let tpl_tv_set = mkVarSet tpl_tvs
       in isJust $ tcMatchTys tpl_tv_set tpl_tys tpl_tys'
+#else
+      False
+#endif
 
 
 -- | Get the type of an expression and convert it to a string.
