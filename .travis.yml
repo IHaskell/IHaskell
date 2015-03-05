@@ -14,7 +14,7 @@ before_install:
  - travis_retry sudo apt-get update
  - travis_retry sudo apt-get install cabal-install-$CABALVER ghc-$GHCVER # see note about happy/alex
  - travis_retry git clone http://www.github.com/zeromq/zeromq4-x.git libzmq
- - cd libzmq && travis_retry ./autogen.sh && travis_retry ./configure && make && travis_retry sudo make install && travis_retry sudo ldconfig
+ - export OLDPWD=$(pwd) && cd libzmq && travis_retry ./autogen.sh && travis_retry ./configure && make && travis_retry sudo make install && travis_retry sudo ldconfig && cd $OLDPWD
  - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$PATH
  - |
    if [ $GHCVER = "head" ] || [ ${GHCVER%.*} = "7.8" ] || [ ${GHCVER%.*} = "7.10" ]; then
@@ -31,7 +31,6 @@ install:
 
 # Here starts the actual work to be performed for the package under test; any command which exits with a non-zero exit code causes the build to fail.
 script:
- - if [ -f configure.ac ]; then autoreconf -i; fi
  - cabal configure --enable-tests --enable-benchmarks -v2  # -v2 provides useful information for debugging
  - ./build.sh all
  - ./build.sh display
