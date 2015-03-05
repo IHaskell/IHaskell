@@ -51,3 +51,6 @@ script:
       echo "expected '$SRC_TGZ' not found";
       exit 1;
    fi
+# Build and run the test suite
+ - travis_retry ghc --make Hspec.hs
+ - ./Hspec
