@@ -17,12 +17,6 @@ module Language.Haskell.GHC.Parser (
   parserTypeSignature,
   parserModule,
   parserExpression,
-  partialStatement,
-  partialImport,
-  partialDeclaration,
-  partialTypeSignature,
-  partialModule,
-  partialExpression,
 
   -- Haskell string preprocessing.
   removeComments,
@@ -71,27 +65,20 @@ data Located a = Located {
   } deriving (Eq, Show, Functor)
 
 
-data ParserType = FullParser | PartialParser
-data Parser a = Parser ParserType (P a)
+data Parser a = Parser (P a)
 
 -- Our parsers.
-parserStatement      = Parser FullParser    Parse.fullStatement
-parserImport         = Parser FullParser    Parse.fullImport
-parserDeclaration    = Parser FullParser    Parse.fullDeclaration
-parserExpression     = Parser FullParser    Parse.fullExpression
-parserTypeSignature  = Parser FullParser    Parse.fullTypeSignature
-parserModule         = Parser FullParser    Parse.fullModule
-partialStatement     = Parser PartialParser Parse.partialStatement
-partialImport        = Parser PartialParser Parse.partialImport
-partialDeclaration   = Parser PartialParser Parse.partialDeclaration
-partialExpression    = Parser PartialParser Parse.partialExpression
-partialTypeSignature = Parser PartialParser Parse.partialTypeSignature
-partialModule        = Parser PartialParser Parse.partialModule
+parserStatement      = Parser Parse.fullStatement
+parserImport         = Parser Parse.fullImport
+parserDeclaration    = Parser Parse.fullDeclaration
+parserExpression     = Parser Parse.fullExpression
+parserTypeSignature  = Parser Parse.fullTypeSignature
+parserModule         = Parser Parse.fullModule
 
 -- | Run a GHC parser on a string. Return success or failure with
 -- associated information for both.
 runParser :: DynFlags -> Parser a -> String -> ParseOutput a
-runParser flags (Parser parserType parser) str =
+runParser flags (Parser parser) str =
   -- Create an initial parser state.
   let filename = "<interactive>"
       location = mkRealSrcLoc (mkFastString filename) 1 1
@@ -115,10 +102,8 @@ runParser flags (Parser parserType parser) str =
       let parseEnd = realSrcSpanStart $ last_loc parseState
           endLine = srcLocLine parseEnd
           endCol = srcLocCol parseEnd
-          (before, after) = splitAtLoc endLine endCol str in
-        case parserType of
-          PartialParser -> Partial result (before, after)
-          FullParser -> Parsed result
+          (before, after) = splitAtLoc endLine endCol str
+        in Parsed result
 
     -- Convert the bag of errors into an error string.
     printErrorBag bag = joinLines . map show $ bagToList bag

@@ -58,7 +58,7 @@ library
               OverloadedStrings
              
   -- Other library packages from which modules are imported.
-  build-depends:       base ==4.6.* || ==4.7.*,
+  build-depends:       base >=4.6 && <4.9,
                        aeson >=0.7 && <0.9,
                        unordered-containers,
                        classy-prelude,

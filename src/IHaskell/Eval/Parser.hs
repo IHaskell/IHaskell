@@ -73,8 +73,8 @@ parseString codeString = do
   flags <- getSessionDynFlags
   let output = runParser flags parserModule codeString
   case output of
-    Parsed {} -> return [Located 1 $ Module codeString]
-    Failure {} -> do
+    Parsed mod | Just _ <- hsmodName (unLoc mod) -> return [Located 1 $ Module codeString]
+    _ -> do
       -- Split input into chunks based on indentation.
       let chunks = layoutChunks $ removeComments codeString
       result <- joinFunctions <$> processChunks [] chunks

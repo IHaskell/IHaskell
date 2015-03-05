@@ -12,13 +12,13 @@ import Diagrams.Backend.Cairo
 
 import IHaskell.Display
 
-instance IHaskellDisplay (Diagram Cairo R2) where
+instance IHaskellDisplay (QDiagram Cairo V2 Double Any) where
   display renderable = do
     png <- diagramData renderable PNG
     svg <- diagramData renderable SVG
     return $ Display [png, svg]
 
-diagramData :: Diagram Cairo R2 -> OutputType -> IO DisplayData
+diagramData :: Diagram Cairo -> OutputType -> IO DisplayData
 diagramData renderable format = do
   switchToTmpDir
 
@@ -31,7 +31,7 @@ diagramData renderable format = do
 
   -- Write the image.
   let filename = ".ihaskell-diagram." ++ extension format
-  renderCairo filename (Height imgHeight) renderable
+  renderCairo filename (mkHeight imgHeight) renderable
 
   -- Convert to base64.
   imgData <- readFile $ fpFromString filename
@@ -45,5 +45,5 @@ diagramData renderable format = do
     extension PNG = "png"
 
 -- Rendering hint.
-diagram :: Diagram Cairo R2 -> Diagram Cairo R2
+diagram :: Diagram Cairo -> Diagram Cairo
 diagram = id
