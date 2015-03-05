@@ -214,6 +214,22 @@ as in `IHaskell notebook --conf=/home/user/.ihaskellrc.hs`.
 
 **Note**: You may have some trouble due to browser caches with the notebook interface if you also use IPython's notebook interface or have used it in the past. If something doesn't work or IPython says it can't connect to the notebook server, make sure to clear the browser cache in whatever browser you're using, or try another browser.
 
+**Problem**:
+
+Running `$ IHaskell console` or starting a kernel in `$ IHaskell notebook` gives an error:
+
+    [ZMQTerminalIPythonApp] ERROR | Exception while loading config file /Users/username/.ipython/profile_haskell/ipython_config.py
+    ...
+    c.KernelManager.kernel_cmd = [exe, 'kernel', '{connection_file}']
+    NameError: name 'exe' is not defined
+
+**Solution**:
+
+In the IPython profile config file for Haskell `~/.ipython/profile_haskell/ipython_config.py` write:
+```python
+exe = "/Users/username/.cabal/bin/IHaskell"  # or your custom path to IHaskell
+```
+
 Contributing
 ===
 
