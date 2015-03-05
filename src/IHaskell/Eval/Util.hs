@@ -313,7 +313,7 @@ evalDeclarations decl = do
 cleanUpDuplicateInstances :: GhcMonad m => m ()
 cleanUpDuplicateInstances = modifySession $ \hscEnv ->
   let 
-      -- Get all class instancesj
+      -- Get all class instances
       ic = hsc_IC hscEnv
       (clsInsts, famInsts) = ic_instances ic
       -- Remove duplicates
@@ -321,11 +321,11 @@ cleanUpDuplicateInstances = modifySession $ \hscEnv ->
   in hscEnv { hsc_IC = ic { ic_instances = (clsInsts', famInsts) } }
   where
     instEq :: ClsInst -> ClsInst -> Bool
-    instEq ClsInst{is_tvs = tpl_tvs,is_tys = tpl_tys} ClsInst{is_tys = tpl_tys'} =
+    instEq ClsInst{is_tvs = tpl_tvs,is_tys = tpl_tys, is_cls = cls} ClsInst{is_tys = tpl_tys', is_cls = cls'} =
 #if MIN_VERSION_ghc(7,8,0)
       -- Only support replacing instances on GHC 7.8 and up
       let tpl_tv_set = mkVarSet tpl_tvs
-      in isJust $ tcMatchTys tpl_tv_set tpl_tys tpl_tys'
+      in cls == cls' && isJust (tcMatchTys tpl_tv_set tpl_tys tpl_tys')
 #else
       False
 #endif
