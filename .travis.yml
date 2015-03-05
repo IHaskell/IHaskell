@@ -36,7 +36,9 @@ install:
 # Here starts the actual work to be performed for the package under test; any command which exits with a non-zero exit code causes the build to fail.
 script:
  - travis_retry ./build.sh all
- - travis_retry ./build.sh display
+ - if [ ${GHCVER%.*} = "7.8" ] || [ ${GHCVER%.*} = "7.10" ]; then
+     travis_retry ./build.sh display
+   fi
  - cabal sdist
 
 # The following scriptlet checks that the resulting source distribution can be built & installed
