@@ -5,8 +5,8 @@
 env:
  - CABALVER=1.18 GHCVER=7.6.3
  - CABALVER=1.18 GHCVER=7.8.4 # see note about Alex/Happy for GHC >= 7.8
- - CABALVER=1.22 GHCVER=7.10.1
- - CABALVER=head GHCVER=head   # see section about GHC HEAD snapshots
+# - CABALVER=1.22 GHCVER=7.10.1
+# - CABALVER=head GHCVER=head   # see section about GHC HEAD snapshots
 
 # Note: the distinction between `before_install` and `install` is not important.
 before_install:
@@ -28,6 +28,7 @@ install:
  - cabal --version
  - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
  - travis_retry cabal update
+ - travis_retry cabal install cpphs
 
 # Here starts the actual work to be performed for the package under test; any command which exits with a non-zero exit code causes the build to fail.
 script:
