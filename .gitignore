@@ -1,5 +1,6 @@
 *.hi
 notebooks/Test.ipynb
+notebooks/Untitled.ipynb
 *.o
 dist
 IHaskell/GHC
