@@ -40,6 +40,10 @@ script:
    if [ ${GHCVER%.*} = "7.8" ] || [ ${GHCVER%.*} = "7.10" ]; then
      travis_retry ./build.sh display;
    fi
+# Build and run the test suite
+ - travis_retry ghc --make Hspec.hs
+ - ./Hspec
+
  - cabal sdist
 
 # The following scriptlet checks that the resulting source distribution can be built & installed
@@ -51,6 +55,3 @@ script:
       echo "expected '$SRC_TGZ' not found";
       exit 1;
    fi
-# Build and run the test suite
- - travis_retry ghc --make Hspec.hs
- - ./Hspec
