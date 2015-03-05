@@ -336,7 +336,7 @@ evalTests = do
     it "evaluates directives" $ do
       ":typ 3" `becomes` ["3 :: forall a. Num a => a"]
       ":k Maybe" `becomes` ["Maybe :: * -> *"]
-      ":in String" `pages` ["type String = [Char] \t-- Defined in `GHC.Base'"]
+      ":in String" `pages` ["type String = [Char] \t-- Defined in \8216GHC.Base\8217"]
 
 parserTests = do
   layoutChunkerTests
