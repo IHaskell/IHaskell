@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings, NoImplicitPrelude, FlexibleContexts #-}
 module IHaskell.BrokenPackages (getBrokenPackages) where
 
 import ClassyPrelude hiding ((<|>))

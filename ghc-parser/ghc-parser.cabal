@@ -29,8 +29,8 @@ library
                        Language.Haskell.GHC.HappyParser
   -- other-modules:
   -- other-extensions:
-  build-depends:       base                 >=4.6 && <4.8,
-                       ghc                  >=7.6 && <7.10
+  build-depends:       base                 >=4.6 && <4.9,
+                       ghc                  >=7.6 && <7.11
 
   if   impl(ghc >= 7.6) && impl(ghc < 7.8)
     hs-source-dirs:      generic-src src-7.6
@@ -38,6 +38,9 @@ library
     if impl(ghc >= 7.8) && impl(ghc < 7.8.3)
       hs-source-dirs:    generic-src src-7.8.2
     else
-      hs-source-dirs:    generic-src src-7.8.3
+      if impl(ghc < 7.10)
+        hs-source-dirs:    generic-src src-7.8.3
+      else
+        hs-source-dirs:    generic-src src-7.10
 
   default-language:    Haskell2010

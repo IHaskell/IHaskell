@@ -1,4 +1,4 @@
-{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances, CPP #-}
+{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances, GADTs, CPP #-}
 
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
@@ -22,7 +22,10 @@ import Data.Typeable
 import qualified Data.Serialize as Serialize
 import System.Directory
 import Filesystem.Path.CurrentOS (encodeString)
-import System.Posix.IO
+#if !MIN_VERSION_base(4,8,0)
+import System.Posix.IO (createPipe)
+#endif
+import System.Posix.IO (fdToHandle)
 import System.IO (hGetChar, hFlush)
 import System.Random (getStdGen, randomRs)
 import Unsafe.Coerce
@@ -53,7 +56,7 @@ import GHC hiding (Stmt, TypeSig)
 import Exception hiding (evaluate)
 import Outputable hiding ((<>))
 import Packages
-import Module
+import Module hiding (Module)
 import qualified Pretty
 import FastString
 import Bag
@@ -157,6 +160,9 @@ initializeImports = do
   displayPackages <- liftIO $ do
     (dflags, _) <- initPackages dflags
     let Just db = pkgDatabase dflags
+#if MIN_VERSION_ghc(7,10,0)
+        packageIdString = packageKeyPackageIdString dflags
+#endif
         packageNames = map (packageIdString . packageConfigId) db
 
         initStr = "ihaskell-"
@@ -568,9 +574,13 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
       else
         return $ displayError $ printf "No such directory: '%s'" directory
     cmd -> liftIO $ do
+#if MIN_VERSION_base(4,8,0)
+      (pipe, handle) <- createPipe
+#else
       (readEnd, writeEnd) <- createPipe
       handle <- fdToHandle writeEnd
       pipe <- fdToHandle readEnd
+#endif
       let initProcSpec = shell $ unwords cmd
           procSpec = initProcSpec {
             std_in = Inherit,
