@@ -271,6 +271,7 @@ evaluate kernelState code output = do
   where
     noResults (Display res) = null res
     noResults (ManyDisplay res) = all noResults res
+    noResults ClearDisplay = True
 
     runUntilFailure :: KernelState -> [CodeBlock] -> Interpreter KernelState
     runUntilFailure state [] = return state

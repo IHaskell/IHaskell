@@ -293,6 +293,7 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
       sendOutput (Display outs) = do
         header <- dupHeader replyHeader DisplayDataMessage
         send $ PublishDisplayData header "haskell" $ map convertSvgToHtml outs
+      sendOutput ClearDisplay = clearOutput
 
       convertSvgToHtml (DisplayData MimeSvg svg) = html $ makeSvgImg $ base64 $ encodeUtf8 svg
       convertSvgToHtml x = x
