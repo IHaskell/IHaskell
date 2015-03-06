@@ -29,6 +29,7 @@ module IHaskell.Types (
   IHaskellWidget(..),
   Widget(..),
   CommInfo(..),
+  KernelSpec(..),
   ) where
 
 import            ClassyPrelude
@@ -141,29 +142,29 @@ instance Semigroup Display where
   a <> b = a `mappend` b
 
 -- | All state stored in the kernel between executions.
-data KernelState = KernelState
-  { getExecutionCounter :: Int,
-    getLintStatus :: LintStatus,  -- Whether to use hlint, and what arguments to pass it. 
-    getFrontend :: FrontendType,
-    useSvg :: Bool,
-    useShowErrors :: Bool,
-    useShowTypes :: Bool,
-    usePager :: Bool,
-    openComms :: Map UUID Widget
-  }
+data KernelState = KernelState { getExecutionCounter :: Int
+                               , getLintStatus :: LintStatus   -- Whether to use hlint, and what arguments to pass it. 
+                               , getFrontend :: FrontendType
+                               , useSvg :: Bool
+                               , useShowErrors :: Bool
+                               , useShowTypes :: Bool
+                               , usePager :: Bool
+                               , openComms :: Map UUID Widget
+                               , kernelDebug :: Bool
+                               }
   deriving Show
 
 defaultKernelState :: KernelState
-defaultKernelState = KernelState
-  { getExecutionCounter = 1,
-    getLintStatus = LintOn,
-    getFrontend = IPythonConsole,
-    useSvg = True,
-    useShowErrors = False,
-    useShowTypes = False,
-    usePager = True,
-    openComms = empty
-  }
+defaultKernelState = KernelState { getExecutionCounter = 1
+                                 , getLintStatus = LintOn
+                                 , getFrontend = IPythonConsole
+                                 , useSvg = True
+                                 , useShowErrors = False
+                                 , useShowTypes = False
+                                 , usePager = True
+                                 , openComms = empty
+                                 , kernelDebug = False
+                                 }
 
 data FrontendType
      = IPythonConsole

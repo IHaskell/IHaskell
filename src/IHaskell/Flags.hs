@@ -24,7 +24,6 @@ data Args = Args IHaskellMode [Argument]
 data Argument = ServeFrom String    -- ^ Which directory to serve notebooks from.
               | Extension String    -- ^ An extension to load at startup.
               | ConfFile String     -- ^ A file with commands to load at startup.
-              | IPythonFrom String  -- ^ Which executable to use for IPython.
               | OverwriteFiles      -- ^ Present when output should overwrite existing files. 
               | ConvertFrom String
               | ConvertTo String
@@ -32,6 +31,7 @@ data Argument = ServeFrom String    -- ^ Which directory to serve notebooks from
               | ConvertToFormat NotebookFormat
               | ConvertLhsStyle (LhsStyle String)
               | GhcLibDir String    -- ^ Where to find the GHC libraries.
+              | KernelDebug         -- ^ Spew debugging output from the kernel.
               | Help                -- ^ Display help text.
   deriving (Eq, Show)
 
@@ -51,6 +51,7 @@ data NotebookFormat = LhsMarkdown
 -- Which mode IHaskell is being invoked in.
 -- `None` means no mode was specified.
 data IHaskellMode = ShowHelp String
+                  | InstallKernelSpec
                   | Notebook
                   | Console
                   | ConvertLhs
@@ -61,37 +62,42 @@ data IHaskellMode = ShowHelp String
 -- | Given a list of command-line arguments, return the IHaskell mode and
 -- arguments to process.
 parseFlags :: [String] -> Either String Args
-parseFlags flags = 
-  let modeIndex = findIndex (`elem` modeFlags) flags in
-    case modeIndex of
-      Nothing -> Left $ "No mode provided. Modes available are: " ++ show modeFlags ++ "\n" ++
-                       pack (showText (Wrap 100) $ helpText [] HelpFormatAll ihaskellArgs)
-      Just 0 -> process ihaskellArgs flags
+parseFlags flags =
+  let modeIndex = findIndex (`elem` modeFlags) flags
+  in case modeIndex of
+    Nothing ->
+      -- Treat no mode as 'console'.
+      if "--help" `elem` flags
+        then Left $ pack (showText (Wrap 100) $ helpText [] HelpFormatAll ihaskellArgs)
+        else process ihaskellArgs $ "console" : flags
+    Just 0 -> process ihaskellArgs flags
 
+    Just idx ->
       -- If mode not first, move it to be first.
-      Just idx -> 
-        let (start, first:end) = splitAt idx flags in
-          process ihaskellArgs $ first:start ++ end
+      let (start, first:end) = splitAt idx flags
+      in process ihaskellArgs $ first : start ++ end
   where
     modeFlags = concatMap modeNames allModes
 
 allModes :: [Mode Args]
-allModes = [console, notebook, view, kernel, convert]
+allModes = [installKernelSpec, console, notebook, view, kernel, convert]
 
 -- | Get help text for a given IHaskell ode.
 help :: IHaskellMode -> String
 help mode = showText (Wrap 100) $ helpText [] HelpFormatAll $ chooseMode mode
   where
     chooseMode Console = console
+    chooseMode InstallKernelSpec = installKernelSpec
     chooseMode Notebook = notebook
     chooseMode (Kernel _) = kernel
     chooseMode ConvertLhs = convert
 
-ipythonFlag :: Flag Args
-ipythonFlag = flagReq ["ipython", "i"] (store IPythonFrom) "<path>" "Executable for IPython."
-
 ghcLibFlag :: Flag Args
 ghcLibFlag = flagReq ["ghclib", "l"] (store GhcLibDir) "<path>" "Library directory for GHC."
+
+kernelDebugFlag :: Flag Args
+kernelDebugFlag = flagNone ["debug"] addDebug "Print debugging output from the kernel."
+  where addDebug (Args mode prev) = Args mode (KernelDebug : prev)
 
 universalFlags :: [Flag Args]
 universalFlags = [ flagReq ["extension", "e", "X"] (store Extension) "<ghc-extension>"
@@ -109,14 +115,16 @@ store constructor str (Args mode prev) = Right $ Args mode $ constructor str : p
 notebook :: Mode Args
 notebook = mode "notebook" (Args Notebook []) "Browser-based notebook interface." noArgs $
   flagReq ["serve","s"] (store ServeFrom) "<dir>" "Directory to serve notebooks from.":
-  ipythonFlag:
   universalFlags
 
 console :: Mode Args
-console = mode "console" (Args Console []) "Console-based interactive repl." noArgs $ ipythonFlag : universalFlags
+console = mode "console" (Args Console []) "Console-based interactive repl." noArgs universalFlags
+
+installKernelSpec :: Mode Args
+installKernelSpec = mode "install" (Args InstallKernelSpec []) "Install the Jupyter kernelspec." noArgs []
 
 kernel :: Mode Args
-kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg [ghcLibFlag]
+kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg [ghcLibFlag, kernelDebugFlag]
   where
     kernelArg = flagArg update "<json-kernel-file>"
     update filename (Args _ flags) = Right $ Args (Kernel $ Just filename) flags
@@ -186,7 +194,7 @@ view =
                                                     
   }
   where
-    flags = [ipythonFlag, flagHelpSimple (add Help)]
+    flags = [flagHelpSimple (add Help)]
     formatArg = flagArg updateFmt "<format>"
     filenameArg = flagArg updateFile "<name>[.ipynb]"
     updateFmt fmtStr (Args (View _ s) flags) = 

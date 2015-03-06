@@ -14,7 +14,9 @@ import Network.HTTP.Client.TLS
 import Data.Aeson
 import Data.String.Utils
 import Data.List (elemIndex, (!!), last)
+import Data.Char (isAscii, isAlphaNum)
 import qualified Data.ByteString.Lazy.Char8 as Char
+import qualified Prelude as P
 
 
 import IHaskell.IPython
@@ -58,7 +60,7 @@ instance FromJSON HoogleResponse where
 -- message or the successful JSON result.
 query :: String -> IO (Either String String)
 query str = do
-  request <- parseUrl $ queryUrl str
+  request <- parseUrl $ queryUrl $ urlEncode str
   response <- try $ withManager tlsManagerSettings $ httpLbs request
   return $ case response of
     Left err -> Left $ show (err :: SomeException)
@@ -66,6 +68,30 @@ query str = do
   where
     queryUrl :: String -> String
     queryUrl = printf "https://www.haskell.org/hoogle/?hoogle=%s&mode=json"
+
+-- | Copied from the HTTP package.
+urlEncode :: String -> String
+urlEncode     [] = []
+urlEncode (ch:t)
+  | (isAscii ch && isAlphaNum ch) || ch `P.elem` "-_.~" = ch : urlEncode t
+  | not (isAscii ch) = P.foldr escape (urlEncode t) (eightBs [] (P.fromEnum ch))
+  | otherwise = escape (P.fromEnum ch) (urlEncode t)
+    where
+     escape :: Int -> String -> String
+     escape b rs = '%':showH (b `P.div` 16) (showH (b `mod` 16) rs)
+     
+     showH :: Int -> String -> String
+     showH x xs
+       | x <= 9    = toEnum (o_0 + x) : xs
+       | otherwise = toEnum (o_A + (x-10)) : xs
+      where
+       o_0 = P.fromEnum '0'
+       o_A = P.fromEnum 'A'
+
+     eightBs :: [Int]  -> Int -> [Int]
+     eightBs acc x
+      | x <= 0xff = (x:acc)
+      | otherwise = eightBs ((x `mod` 256) : acc) (x `P.div` 256)
 
 -- | Search for a query on Hoogle.
 -- Return all search results.

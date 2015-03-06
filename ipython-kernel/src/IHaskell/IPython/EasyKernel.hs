@@ -173,7 +173,7 @@ easyKernel :: (MonadIO m)
            -> m ()
 easyKernel profileFile config = do
   prof <- liftIO $ getProfile profileFile
-  zmq@(Channels shellReqChan shellRepChan ctrlReqChan ctrlRepChan iopubChan) <-
+  zmq@(Channels shellReqChan shellRepChan ctrlReqChan ctrlRepChan iopubChan _) <-
     liftIO $ serveProfile prof
   execCount <- liftIO $ newMVar 0
   forever $ do

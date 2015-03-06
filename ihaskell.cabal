@@ -43,10 +43,8 @@ build-type:          Simple
 cabal-version:       >=1.16
 
 data-files: 
-    installation/ipython.sh
-    installation/virtualenv.sh
-    installation/run.sh
-    profile/profile.tar
+    html/kernel.js
+    html/logo-64x64.png
 
 flag binPkgDb
   default:             True
@@ -145,6 +143,7 @@ executable IHaskell
                        ghc                  >=7.6 && < 7.11,
                        ihaskell             -any,
                        MissingH             >=1.2,
+                       here                 ==1.2.*,
                        text                 -any,
                        ipython-kernel       >= 0.2,
                        unix                 >= 2.6

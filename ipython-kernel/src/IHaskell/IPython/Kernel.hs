@@ -2,15 +2,11 @@
 -- IPython language kernel that supports the @ipython console@ and @ipython
 -- notebook@ frontends. 
 module IHaskell.IPython.Kernel (
-  module IHaskell.IPython.Types,
-  module IHaskell.IPython.Message.Writer,
-  module IHaskell.IPython.Message.Parser,
-  module IHaskell.IPython.Message.UUID,
-  module IHaskell.IPython.ZeroMQ,
+  module X,
   ) where
 
-import IHaskell.IPython.Types
-import IHaskell.IPython.Message.Writer
-import IHaskell.IPython.Message.Parser
-import IHaskell.IPython.Message.UUID
-import IHaskell.IPython.ZeroMQ
+import IHaskell.IPython.Types as X
+import IHaskell.IPython.Message.Writer as X
+import IHaskell.IPython.Message.Parser as X
+import IHaskell.IPython.Message.UUID as X
+import IHaskell.IPython.ZeroMQ as X
