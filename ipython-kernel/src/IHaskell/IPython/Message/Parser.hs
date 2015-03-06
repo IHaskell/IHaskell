@@ -15,6 +15,8 @@ import           Data.Text (Text)
 import qualified Data.ByteString.Lazy as Lazy
 import           IHaskell.IPython.Types
 
+import Debug.Trace (traceShow)
+
 type LByteString = Lazy.ByteString
 
 ----- External interface -----
@@ -118,7 +120,7 @@ executeRequestParser content =
 
 requestParser parser content = parsed
   where
-    Success parsed = parse parser decoded
+    Success parsed = traceShow decoded $ parse parser decoded
     Just decoded = decode content
 
 historyRequestParser :: LByteString -> Message
@@ -137,7 +139,7 @@ historyRequestParser = requestParser $ \obj ->
 
 completeRequestParser :: LByteString -> Message
 completeRequestParser = requestParser $ \obj -> do
-  code <- obj .: "code" <|> return ""
+  code <- obj .: "code"
   pos <- obj .: "cursor_pos"
   return $ CompleteRequest noHeader code pos
 

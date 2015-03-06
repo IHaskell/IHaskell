@@ -60,11 +60,12 @@ instance ToJSON Message where
                              "execution_count" .= execCount,
                              "code" .= code
                            ]
-  toJSON (CompleteReply _ m mt t s) = object [
-                             "matches" .= m,
-                             "matched_text" .= mt,
-                             "text" .= t,
-                             "status" .= if s then string "ok" else "error"
+  toJSON (CompleteReply _ matches start end metadata status) = object [
+                             "matches" .= matches,
+                             "cursor_start" .= start,
+                             "cursor_end" .= end,
+                             "metadata" .= metadata,
+                             "status" .= if status then string "ok" else "error"
                            ]
   toJSON o@ObjectInfoReply{} = object [
                             "oname" .= objectName o,

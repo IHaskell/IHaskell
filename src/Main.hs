@@ -334,7 +334,7 @@ replyTo _ req@CompleteRequest{} replyHeader state = do
 
   let start = pos - length matchedText
       end = pos
-      reply =  CompleteReply replyHeader (map pack completions) start end empty True
+      reply =  CompleteReply replyHeader (map pack completions) start end Map.empty True
   return (state,  reply)
 
 -- Reply to the object_info_request message. Given an object name, return

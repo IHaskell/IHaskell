@@ -16,9 +16,9 @@ import ClassyPrelude hiding (init, last, head, liftIO)
 --import Prelude
 
 import Control.Applicative ((<$>))
-import Data.ByteString.UTF8 hiding (drop, take)
+import Data.ByteString.UTF8 hiding (drop, take, lines, length)
 import Data.Char
-import Data.List (nub, init, last, head, elemIndex, find)
+import Data.List (nub, init, last, head, elemIndex)
 import Data.List.Split
 import Data.List.Split.Internals
 import Data.Maybe (fromJust)
@@ -67,7 +67,7 @@ complete code posOffset = do
         if offset <= length first
         then (offset, first)
         else findLine (offset - length first - 1) rest
-      findLine _ [] = error "Could not find line"
+      findLine _ [] = error $ "Could not find line: " ++ show (map length $ lines code, posOffset)
       (pos, line) = findLine posOffset (lines code)
   
 
