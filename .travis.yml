@@ -32,7 +32,6 @@ install:
  - travis_retry cabal install cpphs
  - travis_retry cabal install gtk2hs-buildtools
  - travis_retry cabal install arithmoi==0.4.* -fllvm
- - sudo `which ghc-pkg` expose ghc
 
 # Here starts the actual work to be performed for the package under test; any command which exits with a non-zero exit code causes the build to fail.
 script:
@@ -42,8 +41,8 @@ script:
      travis_retry ./build.sh display;
    fi
 # Build and run the test suite
- - travis_retry ghc --make Hspec.hs
- - ./Hspec
+ - travis_retry cabal install --dependencies-only --enable-tests
+ - travis_retry cabal test --show-details=streaming
 
  - cabal sdist
 
