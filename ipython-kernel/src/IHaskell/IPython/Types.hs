@@ -70,15 +70,19 @@ data Profile = Profile { ip :: IP                     -- ^ The IP on which to li
 
 -- Convert the kernel profile to and from JSON.
 instance FromJSON Profile where
-  parseJSON (Object v) =
-    Profile <$> v .: "ip"
-            <*> v .: "transport"
-            <*> v .: "stdin_port"
-            <*> v .: "control_port"
-            <*> v .: "hb_port"
-            <*> v .: "shell_port"
-            <*> v .: "iopub_port"
-            <*> (Text.encodeUtf8 <$> v .: "key")
+  parseJSON (Object v) = do
+    signatureScheme <- v .: "signature_scheme"
+    case signatureScheme of
+      "hmac-sha256" ->
+        Profile <$> v .: "ip"
+                <*> v .: "transport"
+                <*> v .: "stdin_port"
+                <*> v .: "control_port"
+                <*> v .: "hb_port"
+                <*> v .: "shell_port"
+                <*> v .: "iopub_port"
+                <*> (Text.encodeUtf8 <$> v .: "key")
+      sig -> error $ "Unexpected signature scheme: " ++ sig
   parseJSON _ = fail "Expecting JSON object."
 
 instance ToJSON Profile where
