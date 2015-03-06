@@ -79,10 +79,6 @@ import Data.Version (versionBranch)
 
 data ErrorOccurred = Success | Failure deriving (Show, Eq)
 
--- | Enable debugging output
-debug :: Bool
-debug = False
-
 -- | Set GHC's verbosity for debugging
 ghcVerbosity :: Maybe Int
 ghcVerbosity = Nothing -- Just 5
@@ -257,12 +253,27 @@ evaluate kernelState code output = do
   cmds <- parseString (cleanString code)
   let execCount = getExecutionCounter kernelState
 
-  when (getLintStatus kernelState /= LintOff) $ liftIO $ do
-    lintSuggestions <- lint cmds
-    unless (noResults lintSuggestions) $
-      output $ FinalResult lintSuggestions "" []
+  -- Extract all parse errors.
+  let justError x@ParseError{} = Just x
+      justError _ = Nothing
+      errs = mapMaybe (justError . unloc) cmds
 
-  updated <- runUntilFailure kernelState (map unloc cmds ++ [storeItCommand execCount])
+  updated <- case errs of
+      -- Only run things if there are no parse errors.
+      [] -> do
+        when (getLintStatus kernelState /= LintOff) $ liftIO $ do
+          lintSuggestions <- lint cmds
+          unless (noResults lintSuggestions) $
+            output $ FinalResult lintSuggestions "" []
+
+        runUntilFailure kernelState (map unloc cmds ++ [storeItCommand execCount])
+      -- Print all parse errors.
+      errs -> do
+        forM_ errs $ \err -> do
+          out <- evalCommand output err kernelState
+          liftIO $ output $ FinalResult (evalResult out) "" []
+        return kernelState
+
   return updated {
     getExecutionCounter = execCount + 1
   }
