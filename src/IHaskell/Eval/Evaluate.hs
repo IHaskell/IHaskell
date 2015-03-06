@@ -408,7 +408,7 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
     Nothing -> doLoadModule modName modName
 
 -- | Directives set via `:set`.
-evalCommand output (Directive SetDynFlag flags) state =
+evalCommand output (Directive SetDynFlag flags) state = safely state $
   case words flags of
     [] -> do
       flags <- getSessionDynFlags
