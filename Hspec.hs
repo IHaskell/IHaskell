@@ -336,7 +336,11 @@ evalTests = do
     it "evaluates directives" $ do
       ":typ 3" `becomes` ["3 :: forall a. Num a => a"]
       ":k Maybe" `becomes` ["Maybe :: * -> *"]
+#if MIN_VERSION_ghc(7, 8, 0)
       ":in String" `pages` ["type String = [Char] \t-- Defined in \8216GHC.Base\8217"]
+#else
+      ":in String" `pages` ["type String = [Char] \t-- Defined in `GHC.Base'"]
+#endif
 
 parserTests = do
   layoutChunkerTests
@@ -500,7 +504,11 @@ parseStringTests = describe "Parser" $ do
 
   it "breaks without data kinds" $
     parses "data X = 3" `like` [
+#if MIN_VERSION_ghc(7, 8, 0)
       ParseError (Loc 1 10) "Illegal literal in type (use DataKinds to enable): 3"
+#else
+      ParseError (Loc 1 10) "Illegal literal in type (use -XDataKinds to enable): 3"
+#endif
     ]
 
   it "parses statements after imports" $ do
