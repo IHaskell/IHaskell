@@ -44,6 +44,7 @@ cabal-version:       >=1.16
 
 data-files: 
     html/kernel.js
+    html/custom.css
     html/logo-64x64.png
 
 flag binPkgDb
