@@ -42,6 +42,7 @@ script:
    fi
 # Build and run the test suite
  - travis_retry cabal install --dependencies-only --enable-tests --force-reinstalls
+ - travis_retry cabal configure --enable-tests
  - travis_retry cabal test --show-details=always
 
  - cabal sdist
