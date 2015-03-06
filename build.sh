@@ -55,12 +55,12 @@ INSTALL_DIRS=`echo $INSTALLS | tr ' ' '\n' | sed 's#^#./#' | tr ' ' '\n'`
 if [ `uname` = Darwin ]; then
   cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls
 else
-  cabal install -j $INSTALL_DIRS --force-reinstalls
+  cabal install -j $INSTALL_DIRS --force-reinstalls --constraint "arithmoi==0.4.*"
 fi
 
 # Finish installing ihaskell-diagrams.
 if [ $# -gt 0 ]; then
   if [ $1 = "display" ]; then
-      cabal install -j ihaskell-display/ihaskell-diagrams --force-reinstalls
+      cabal install -j ihaskell-display/ihaskell-diagrams --force-reinstalls --constraint "arithmoi==0.4.*"
     fi
 fi
