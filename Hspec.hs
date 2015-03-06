@@ -6,7 +6,7 @@ import GHC
 import GHC.Paths
 import Data.IORef
 import Control.Monad
-import Control.Monad.Trans ( MonadIO, liftIO )
+import Control.Monad.IO.Class ( MonadIO, liftIO )
 import Data.List
 import System.Directory
 import Shelly (Sh, shelly, cmd, (</>), toTextIgnore, cd, withTmpDir, mkdir_p,
