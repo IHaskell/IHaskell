@@ -18,7 +18,7 @@ import ClassyPrelude hiding (init, last, head, liftIO)
 import Control.Applicative ((<$>))
 import Data.ByteString.UTF8 hiding (drop, take)
 import Data.Char
-import Data.List (nub, init, last, head, elemIndex)
+import Data.List (nub, init, last, head, elemIndex, find)
 import Data.List.Split
 import Data.List.Split.Internals
 import Data.Maybe (fromJust)
@@ -60,7 +60,17 @@ data CompletionType
      deriving (Show, Eq)
 
 complete :: String -> Int -> Interpreter (String, [String])
-complete line pos = do
+complete code posOffset = do
+
+  -- Get the line of code which is being completed and offset within that line
+  let findLine offset (first:rest) = 
+        if offset <= length first
+        then (offset, first)
+        else findLine (offset - length first - 1) rest
+      findLine _ [] = error "Could not find line"
+      (pos, line) = findLine posOffset (lines code)
+  
+
   flags <- getSessionDynFlags
   rdrNames <- map (showPpr flags) <$> getRdrNamesInScope
   scopeNames <- nub <$> map (showPpr flags) <$> getNamesInScope

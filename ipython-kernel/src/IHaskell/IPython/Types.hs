@@ -298,20 +298,20 @@ data Message
   | CompleteRequest {
       header :: MessageHeader,
       getCode :: Text, {- ^
-            The entire block of text where the line is.  This may be useful in the
+            The entire block of text where the line is. This may be useful in the
             case of multiline completions where more context may be needed.  Note: if
             in practice this field proves unnecessary, remove it to lighten the
-            messages. json field @block@  -}
-      getCodeLine :: Text, -- ^ just the line with the cursor. json field @line@
-      getCursorPos :: Int -- ^ position of the cursor (index into the line?). json field @cursor_pos@
+            messages. json field @code@  -}
+      getCursorPos :: Int -- ^ Position of the cursor in unicode characters. json field @cursor_pos@
 
     }
 
   | CompleteReply {
      header :: MessageHeader,
      completionMatches :: [Text],
-     completionMatchedText :: Text,
-     completionText :: Text,
+     completionCursorStart :: Int,
+     completionCursorEnd :: Int,
+     completionMetadata :: Metadata,
      completionStatus :: Bool
   }
 

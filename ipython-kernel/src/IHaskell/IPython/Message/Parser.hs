@@ -137,10 +137,9 @@ historyRequestParser = requestParser $ \obj ->
 
 completeRequestParser :: LByteString -> Message
 completeRequestParser = requestParser $ \obj -> do
-  code <- obj .: "block" <|> return ""
-  codeLine <- obj .: "line"
+  code <- obj .: "code" <|> return ""
   pos <- obj .: "cursor_pos"
-  return $ CompleteRequest noHeader code codeLine pos
+  return $ CompleteRequest noHeader code pos
 
 objectInfoRequestParser :: LByteString -> Message
 objectInfoRequestParser = requestParser $ \obj -> do
