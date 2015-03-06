@@ -41,8 +41,8 @@ script:
      travis_retry ./build.sh display;
    fi
 # Build and run the test suite
- - travis_retry cabal install --dependencies-only --enable-tests
- - travis_retry cabal test --show-details=streaming
+ - travis_retry cabal install --dependencies-only --enable-tests --force-reinstalls
+ - travis_retry cabal test --show-details=always
 
  - cabal sdist
 
