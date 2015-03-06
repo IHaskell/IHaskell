@@ -31,13 +31,16 @@ install:
  - travis_retry cabal update
  - travis_retry cabal install cpphs
  - travis_retry cabal install gtk2hs-buildtools
- - travis_retry cabal install arithmoi==0.4.* -fllvm
+ - |
+   if [ ${GHCVER%.*} = "7.8" ]; then
+     travis_retry cabal install arithmoi==0.4.* -fllvm
+   fi
 
 # Here starts the actual work to be performed for the package under test; any command which exits with a non-zero exit code causes the build to fail.
 script:
  - travis_retry ./build.sh all
  - |
-   if [ ${GHCVER%.*} = "7.8" ] || [ ${GHCVER%.*} = "7.10" ]; then
+   if [ ${GHCVER%.*} = "7.8" ]; then
      travis_retry ./build.sh display;
    fi
 # Build and run the test suite
