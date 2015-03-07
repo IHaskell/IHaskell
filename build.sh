@@ -1,6 +1,5 @@
 #!/bin/sh
 set -e
-set -x
 
 function print_help {
   echo "Run build.sh from inside the IHaskell directory to install packages in this repository:"
@@ -70,7 +69,9 @@ done
 INSTALL_DIRS=`echo $INSTALLS | tr ' ' '\n' | sed 's#^#./#' | tr ' ' '\n'`
 
 if [ `uname` = Darwin ]; then
+  echo CMD: cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls
   cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls
 else
+  echo CMD: cabal install -j $INSTALL_DIRS --force-reinstalls --constraint "arithmoi==0.4.*"
   cabal install -j $INSTALL_DIRS --force-reinstalls --constraint "arithmoi==0.4.*"
 fi
