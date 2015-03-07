@@ -23,7 +23,7 @@ if [ $# -lt 1 ]; then
     exit 1
 fi
 
-if [ ! $1 = "all" ] || [ ! $1 = "ihaskell" ] || [ ! $1 = "display" ] || [ ! $1 = "quick" ]; then
+if [ ! $1 = "all" ] && [ ! $1 = "ihaskell" ] && [ ! $1 = "display" ] && [ ! $1 = "quick" ]; then
     print_help;
     exit 1;
 fi
