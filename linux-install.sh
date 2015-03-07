@@ -40,4 +40,3 @@ sudo apt-get install -y libcairo2-dev
 sudo apt-get install -y libpango1.0-dev
 
 ./build.sh all
-./build.sh display
