@@ -3,31 +3,36 @@
 # Installation for Linux (tested on Ubuntu 14.10) from IHaskell repo directory.
 # TODO Split out setup for installation from Hackage released versions.
 
+ghc --version >& /dev/null
+if [ $? ]; then
+    true
+else
+    echo "Please install ghc."
+fi
+
+cabal --version >& /dev/null
+if [ $? ]; then
+    true
+else
+    echo "Please install Cabal."
+fi
+
 # Install IPython.
-# python-pip is out of date, causes problems, so we get the latest version.
+# python-pip is out of date, causes problems, so we get the latest version
+# using easy_install instead.
 #sudo apt-get install python-pip
+sudo apt-get install -y python-dev
+
 easy_install -U pip
 pip install -U 'ipython[all]'
 
-# Install GHC, Cabal, Alex, Happy
+# Make sure to have basic tools installed.
+cabal update
+cabal install happy alex
+cabal install cpphs
+cabal install gtk2hs-buildtools
 
-# Adjust these as you desire.
-CABALVER=1.22
-GHCVER=7.8.4
-# You will want to add this to your shell startup to pick up
-# what gets installed by Cabal.
-export PATH=~/.cabal/bin:/opt/cabal/$CABALVER/bin:/opt/ghc/$GHCVER/bin:$PATH
-
-sudo apt-get update
-sudo apt-get install -y software-properties-common
-sudo add-apt-repository -y ppa:hvr/ghc
-sudo apt-get update
-sudo apt-get install -y cabal-install-$CABALVER ghc-$GHCVER
-
-cabal install alex happy
-
-sudo apt-get install -y python-dev
-
+# C libraries
 sudo apt-get install -y libtinfo-dev
 sudo apt-get install -y libzmq3-dev
 
