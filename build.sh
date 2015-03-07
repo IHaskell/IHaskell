@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-function print_help {
+print_help () {
   echo "Run build.sh from inside the IHaskell directory to install packages in this repository:"
   echo "  ./build.sh ihaskell # Install IHaskell and its dependencies"
   echo "  ./build.sh quick    # Install IHaskell, but not its dependencies"
