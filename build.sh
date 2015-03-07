@@ -48,9 +48,8 @@ INSTALLS="$INSTALLS ."
 if [ $# -gt 0 ]; then
   if [ $1 = "display" ] || [ $1 = "all" ]; then
         # Install all the display libraries
-        # However, install ihaskell-diagrams separately...
         cd ihaskell-display
-        for dir in `ls | grep -v diagrams`
+        for dir in `ls`
         do
             INSTALLS="$INSTALLS ihaskell-display/$dir"
         done
@@ -74,12 +73,4 @@ if [ `uname` = Darwin ]; then
   cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls
 else
   cabal install -j $INSTALL_DIRS --force-reinstalls --constraint "arithmoi==0.4.*"
-fi
-
-# Finish installing ihaskell-diagrams.
-if [ $# -gt 0 ]; then
-  if [ $1 = "display" ] || [ $1 = "all" ]; then
-      echo 'Installing IHaskell diagrams support.'
-      cabal install -j ihaskell-display/ihaskell-diagrams --force-reinstalls --constraint "arithmoi==0.4.*"
-    fi
 fi
