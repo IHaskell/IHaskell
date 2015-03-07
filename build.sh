@@ -69,9 +69,9 @@ done
 INSTALL_DIRS=`echo $INSTALLS | tr ' ' '\n' | sed 's#^#./#' | tr ' ' '\n'`
 
 if [ `uname` = Darwin ]; then
-  echo CMD: cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls
-  cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls
+  echo CMD: cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
+  cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
 else
-  echo CMD: cabal install -j $INSTALL_DIRS --force-reinstalls --constraint "arithmoi==0.4.*"
-  cabal install -j $INSTALL_DIRS --force-reinstalls --constraint "arithmoi==0.4.*"
+  echo CMD: cabal install -j $INSTALL_DIRS --force-reinstalls --constraint "arithmoi==0.4.*" --max-backjumps=-1 --reorder-goals
+  cabal install -j $INSTALL_DIRS --force-reinstalls --constraint "arithmoi==0.4.*" --max-backjumps=-1 --reorder-goals
 fi
