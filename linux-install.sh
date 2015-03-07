@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Installation for Linux (tested on Ubuntu 14.10) from IHaskell repo directory.
 # TODO Split out setup for installation from Hackage released versions.
@@ -23,8 +23,10 @@ fi
 #sudo apt-get install python-pip
 sudo apt-get install -y python-dev
 
-easy_install -U pip
-pip install -U 'ipython[all]'
+sudo easy_install -U pip
+
+# -H to use .cache in /root
+sudo -H pip install -U 'ipython[all]'
 
 # Make sure to have basic tools installed.
 cabal update
