@@ -1,6 +1,7 @@
 #!/bin/sh
 
-# Installation for Mac OS X.
+# Installation for Mac OS X from IHaskell repo directory.
+# TODO Split out setup for installation from Hackage released versions.
 #
 # This script assumes use of Homebrew.
 # It is assumed you already have GHC and Cabal installed through Homebrew
@@ -16,6 +17,19 @@ if [ $? ]; then
 else
     echo "Homebrew needs to be installed."
     echo "  Download from http://brew.sh/"
+    exit 1
+fi
+
+brew update
+
+# Install IPython.
+pip --version >& /dev/null
+if [ $? ]; then
+    pip install -U 'ipython[all]'
+else
+    echo "Python pip needs to be installed."
+    echo "  One way is to install Homebrew Python:"
+    echo "  $ brew install python"
     exit 1
 fi
 
@@ -36,7 +50,7 @@ cabal --version >& /dev/null
 if [ $? ]; then
     true
 else
-    echo "Please install ghc."
+    echo "Please install Cabal."
     echo "  $ brew install cabal-install"
 fi
 
