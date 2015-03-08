@@ -3,12 +3,12 @@
 module IHaskell.Convert.LhsToIpynb (lhsToIpynb) where
 
 import Control.Applicative ((<$>))
-import Data.Aeson ((.=), encode, object, Value(Array, Bool, Number, String))
+import Data.Aeson ((.=), encode, object, Value(Array, Bool, Number, String, Null))
 import qualified Data.ByteString.Lazy as L (writeFile)
 import Data.Char (isSpace)
 import Data.Monoid (Monoid(mempty))
 import qualified Data.Text as TS (Text)
-import qualified Data.Text.Lazy as T (dropWhile, lines, stripPrefix, Text, toStrict)
+import qualified Data.Text.Lazy as T (dropWhile, lines, stripPrefix, Text, toStrict, snoc)
 import qualified Data.Text.Lazy.IO as T (readFile)
 import qualified Data.Vector as V (fromList, singleton)
 import IHaskell.Flags (LhsStyle(LhsStyle))
@@ -54,11 +54,10 @@ encodeCells xs = object $
 cellToVal :: Cell [T.Text] -> Value
 cellToVal (Code i o) = object $
   [ "cell_type" .= String "code",
-    "collapsed" .= Bool False,
-    "language" .= String "python", -- is what it IPython gives us
-    "metadata" .= object [],
-     "source" .= arrayFromTxt i,
-     "outputs" .= Array
+    "execution_count" .= Null,
+    "metadata" .= object [ "collapsed" .= Bool False ],
+    "source" .= arrayFromTxt i,
+    "outputs" .= Array
         (V.fromList (
            [ object ["text" .= arrayFromTxt o,
              "metadata" .= object [],
@@ -67,12 +66,14 @@ cellToVal (Code i o) = object $
 
 cellToVal (Markdown txt) = object $
   [ "cell_type" .= String "markdown",
-    "metadata" .= object [],
+    "metadata" .= object [ "hidden" .= Bool False ],
     "source" .= arrayFromTxt txt ]
 
 -- | arrayFromTxt makes a JSON array of string s
 arrayFromTxt ::  [T.Text] -> Value
-arrayFromTxt i = Array (V.fromList (map (String . T.toStrict) i))
+arrayFromTxt i = Array (V.fromList $ map stringify i)
+    where
+        stringify = String . T.toStrict . flip T.snoc '\n'
 
 -- | ihaskell needs this boilerplate at the upper level to interpret the
 -- json describing cells and output correctly.
