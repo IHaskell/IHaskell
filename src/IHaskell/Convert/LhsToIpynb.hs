@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP #-}
 module IHaskell.Convert.LhsToIpynb (lhsToIpynb) where
 
 import Control.Applicative ((<$>))
@@ -47,9 +48,8 @@ data Cell a = Code a a | Markdown a
 
 encodeCells :: [Cell [T.Text]] -> Value
 encodeCells xs = object $
-  [ "worksheets" .= Array (V.singleton (object
-    [ "cells" .= Array (V.fromList (map cellToVal xs)) ] ))
-  ] ++ boilerplate
+   [ "cells" .= Array (V.fromList (map cellToVal xs)) ]
+   ++ boilerplate
 
 cellToVal :: Cell [T.Text] -> Value
 cellToVal (Code i o) = object $
@@ -57,8 +57,8 @@ cellToVal (Code i o) = object $
     "collapsed" .= Bool False,
     "language" .= String "python", -- is what it IPython gives us
     "metadata" .= object [],
-     "input" .= arrayFromTxt i,
-     "outputs" .= Array 
+     "source" .= arrayFromTxt i,
+     "outputs" .= Array
         (V.fromList (
            [ object ["text" .= arrayFromTxt o,
              "metadata" .= object [],
@@ -78,9 +78,20 @@ arrayFromTxt i = Array (V.fromList (map (String . T.toStrict) i))
 -- json describing cells and output correctly.
 boilerplate :: [(TS.Text, Value)]
 boilerplate =
-  [ "metadata" .= object [ "language" .= String "haskell", "name" .= String ""],
-    "nbformat" .= Number 3,
-    "nbformat_minor" .= Number 0 ]
+  [ "metadata" .= object [ kernelspec, lang ]
+  , "nbformat" .= Number 4
+  , "nbformat_minor" .= Number 0
+  ]
+  where
+    kernelspec = "kernelspec" .= object [
+        "display_name" .= String "Haskell"
+      , "language" .= String "haskell"
+      , "name" .= String "haskell"
+      ]
+    lang = "language_info" .= object [
+        "name" .= String "haskell"
+      , "version" .= String VERSION_ghc
+      ]
 
 groupClassified :: [CellLine T.Text] -> [Cell [T.Text]]
 groupClassified (CodeLine a : x)
@@ -99,5 +110,5 @@ classifyLines sty@(LhsStyle c o _ _ _ _) (l:ls) = case (sp c, sp o) of
     (Nothing,Nothing) -> MarkdownLine l : classifyLines sty ls
     _ -> error "IHaskell.Convert.classifyLines"
   where sp c = T.stripPrefix (T.dropWhile isSpace c) (T.dropWhile isSpace l)
-classifyLines _ [] = []    
+classifyLines _ [] = []
 
