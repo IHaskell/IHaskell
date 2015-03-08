@@ -20,13 +20,11 @@ ipynbToLhs :: LhsStyle T.Text
   -> IO ()
 ipynbToLhs sty from to = do
   Just (js :: Object) <- decode <$> L.readFile from
-  case M.lookup "worksheets" js of
-    Just (Array worksheets)
-      | [ Object worksheet ] <- V.toList worksheets,
-        Just (Array cells) <- M.lookup "cells" worksheet ->
-            T.writeFile to $ T.unlines $ V.toList
-              $ V.map (\(Object y) -> convCell sty y) cells
-    _ -> error "IHaskell.Convert.ipynbTolhs: json does not follow expected schema"  
+  case M.lookup "cells" js of
+    Just (Array cells) ->
+      T.writeFile to $ T.unlines $ V.toList
+        $ V.map (\(Object y) -> convCell sty y) cells
+    _ -> error "IHaskell.Convert.ipynbTolhs: json does not follow expected schema"
 
 concatWithPrefix :: T.Text -- ^ the prefix to add to every line
   -> Vector Value          -- ^ a json array of text lines
@@ -46,7 +44,7 @@ convCell _sty object
     ~ (Just s) <- concatWithPrefix "" xs = s
 convCell sty object
     | Just (String "code") <- M.lookup "cell_type" object,
-      Just (Array i)       <- M.lookup "input" object,
+      Just (Array i)       <- M.lookup "source" object,
       Just (Array o)       <- M.lookup "outputs" object,
      ~ (Just i) <- concatWithPrefix (lhsCodePrefix sty) i,
       o <- fromMaybe mempty (convOutputs sty o) = "\n" <>

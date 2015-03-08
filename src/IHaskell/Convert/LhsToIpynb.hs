@@ -1,13 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP #-}
 module IHaskell.Convert.LhsToIpynb (lhsToIpynb) where
 
 import Control.Applicative ((<$>))
-import Data.Aeson ((.=), encode, object, Value(Array, Bool, Number, String))
+import Data.Aeson ((.=), encode, object, Value(Array, Bool, Number, String, Null))
 import qualified Data.ByteString.Lazy as L (writeFile)
 import Data.Char (isSpace)
 import Data.Monoid (Monoid(mempty))
 import qualified Data.Text as TS (Text)
-import qualified Data.Text.Lazy as T (dropWhile, lines, stripPrefix, Text, toStrict)
+import qualified Data.Text.Lazy as T (dropWhile, lines, stripPrefix, Text, toStrict, snoc)
 import qualified Data.Text.Lazy.IO as T (readFile)
 import qualified Data.Vector as V (fromList, singleton)
 import IHaskell.Flags (LhsStyle(LhsStyle))
@@ -47,18 +48,16 @@ data Cell a = Code a a | Markdown a
 
 encodeCells :: [Cell [T.Text]] -> Value
 encodeCells xs = object $
-  [ "worksheets" .= Array (V.singleton (object
-    [ "cells" .= Array (V.fromList (map cellToVal xs)) ] ))
-  ] ++ boilerplate
+   [ "cells" .= Array (V.fromList (map cellToVal xs)) ]
+   ++ boilerplate
 
 cellToVal :: Cell [T.Text] -> Value
 cellToVal (Code i o) = object $
   [ "cell_type" .= String "code",
-    "collapsed" .= Bool False,
-    "language" .= String "python", -- is what it IPython gives us
-    "metadata" .= object [],
-     "input" .= arrayFromTxt i,
-     "outputs" .= Array 
+    "execution_count" .= Null,
+    "metadata" .= object [ "collapsed" .= Bool False ],
+    "source" .= arrayFromTxt i,
+    "outputs" .= Array
         (V.fromList (
            [ object ["text" .= arrayFromTxt o,
              "metadata" .= object [],
@@ -67,20 +66,33 @@ cellToVal (Code i o) = object $
 
 cellToVal (Markdown txt) = object $
   [ "cell_type" .= String "markdown",
-    "metadata" .= object [],
+    "metadata" .= object [ "hidden" .= Bool False ],
     "source" .= arrayFromTxt txt ]
 
 -- | arrayFromTxt makes a JSON array of string s
 arrayFromTxt ::  [T.Text] -> Value
-arrayFromTxt i = Array (V.fromList (map (String . T.toStrict) i))
+arrayFromTxt i = Array (V.fromList $ map stringify i)
+    where
+        stringify = String . T.toStrict . flip T.snoc '\n'
 
 -- | ihaskell needs this boilerplate at the upper level to interpret the
 -- json describing cells and output correctly.
 boilerplate :: [(TS.Text, Value)]
 boilerplate =
-  [ "metadata" .= object [ "language" .= String "haskell", "name" .= String ""],
-    "nbformat" .= Number 3,
-    "nbformat_minor" .= Number 0 ]
+  [ "metadata" .= object [ kernelspec, lang ]
+  , "nbformat" .= Number 4
+  , "nbformat_minor" .= Number 0
+  ]
+  where
+    kernelspec = "kernelspec" .= object [
+        "display_name" .= String "Haskell"
+      , "language" .= String "haskell"
+      , "name" .= String "haskell"
+      ]
+    lang = "language_info" .= object [
+        "name" .= String "haskell"
+      , "version" .= String VERSION_ghc
+      ]
 
 groupClassified :: [CellLine T.Text] -> [Cell [T.Text]]
 groupClassified (CodeLine a : x)
@@ -99,5 +111,5 @@ classifyLines sty@(LhsStyle c o _ _ _ _) (l:ls) = case (sp c, sp o) of
     (Nothing,Nothing) -> MarkdownLine l : classifyLines sty ls
     _ -> error "IHaskell.Convert.classifyLines"
   where sp c = T.stripPrefix (T.dropWhile isSpace c) (T.dropWhile isSpace l)
-classifyLines _ [] = []    
+classifyLines _ [] = []
 
