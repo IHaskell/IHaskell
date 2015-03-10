@@ -3,12 +3,13 @@
 module IHaskell.Convert.LhsToIpynb (lhsToIpynb) where
 
 import Control.Applicative ((<$>))
+import Control.Monad (mplus)
 import Data.Aeson ((.=), encode, object, Value(Array, Bool, Number, String, Null))
 import qualified Data.ByteString.Lazy as L (writeFile)
 import Data.Char (isSpace)
 import Data.Monoid (Monoid(mempty))
 import qualified Data.Text as TS (Text)
-import qualified Data.Text.Lazy as T (dropWhile, lines, stripPrefix, Text, toStrict, snoc)
+import qualified Data.Text.Lazy as T (dropWhile, lines, stripPrefix, Text, toStrict, snoc, strip)
 import qualified Data.Text.Lazy.IO as T (readFile)
 import qualified Data.Vector as V (fromList, singleton)
 import IHaskell.Flags (LhsStyle(LhsStyle))
@@ -110,6 +111,9 @@ classifyLines sty@(LhsStyle c o _ _ _ _) (l:ls) = case (sp c, sp o) of
     (Nothing, Just a) -> OutputLine a : classifyLines sty ls
     (Nothing,Nothing) -> MarkdownLine l : classifyLines sty ls
     _ -> error "IHaskell.Convert.classifyLines"
-  where sp c = T.stripPrefix (T.dropWhile isSpace c) (T.dropWhile isSpace l)
+  where
+    sp x = T.stripPrefix (dropSpace x) (dropSpace l) `mplus` blankCodeLine x
+    blankCodeLine x = if T.strip x == T.strip l then Just "" else Nothing
+    dropSpace = T.dropWhile isSpace
 classifyLines _ [] = []
 
