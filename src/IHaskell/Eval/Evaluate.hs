@@ -13,7 +13,7 @@ import ClassyPrelude hiding (init, last, liftIO, head, hGetContents, tail, try)
 import Control.Concurrent (forkIO, threadDelay)
 import Prelude (putChar, head, tail, last, init, (!!))
 import Data.List.Utils
-import Data.List (findIndex, and)
+import Data.List (findIndex, and, foldl1)
 import Data.String.Utils
 import Text.Printf
 import Data.Char as Char
@@ -419,9 +419,20 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
     Nothing -> doLoadModule modName modName
 
 -- | Directives set via `:set`.
-evalCommand output (Directive SetDynFlag flags) state = safely state $
-  case words flags of
-    [] -> do
+evalCommand output (Directive SetDynFlag flagsStr) state = safely state $ do
+  write state $ "DynFlags: " ++ flagsStr
+
+  -- Find which flags are IHaskell flags, and which are GHC flags
+  let flags = words flagsStr
+
+      -- Get the kernel state updater for any IHaskell flag; Nothing for things that aren't IHaskell flags.
+      ihaskellFlagUpdater :: String -> Maybe (KernelState -> KernelState)
+      ihaskellFlagUpdater flag = getUpdateKernelState <$> find (elem flag . getSetName) kernelOpts
+
+      (ihaskellFlags, ghcFlags) = partition (isJust . ihaskellFlagUpdater) flags
+
+  if null flags
+  then do
       flags <- getSessionDynFlags
       return EvalOut {
           evalStatus = Success,
@@ -430,62 +441,32 @@ evalCommand output (Directive SetDynFlag flags) state = safely state $
           evalPager = "",
           evalComms = []
       }
+  else do
+    -- Apply all IHaskell flag updaters to the state to get the new state
+    let state' = (foldl1 (.) (map (fromJust . ihaskellFlagUpdater) ihaskellFlags)) state
+    errs <- setFlags flags
+    let display = case errs of
+          [] -> mempty
+          _ -> displayError $ intercalate "\n" errs
 
-    -- For a single flag.
-    [flag] -> do
-      write state $ "DynFlags: " ++ flags
+    -- For -XNoImplicitPrelude, remove the Prelude import.
+    -- For -XImplicitPrelude, add it back in.
+    if "-XNoImplicitPrelude" `elem` flags
+    then evalImport "import qualified Prelude as Prelude"
+    else 
+      when ("-XImplicitPrelude" `elem` flags) $ do
+        importDecl <- parseImportDecl "import Prelude"
+        let implicitPrelude = importDecl { ideclImplicit = True }
+        imports <- getContext
+        setContext $ IIDecl implicitPrelude : imports
 
-      -- Check if this is setting kernel options.
-      case find (elem flag . getSetName) kernelOpts of
-        -- If this is a kernel option, just set it.
-        Just (KernelOpt _ _ updater) ->
-            return EvalOut {
-              evalStatus = Success,
-              evalResult = mempty,
-              evalState = updater state,
-              evalPager = "",
-              evalComms = []
-            }
-
-        -- If not a kernel option, must be a dyn flag.
-        Nothing -> do
-          errs <- setFlags [flag]
-          let display = case errs of
-                [] -> mempty
-                _ -> displayError $ intercalate "\n" errs
-
-          -- For -XNoImplicitPrelude, remove the Prelude import.
-          -- For -XImplicitPrelude, add it back in.
-          case flag of
-            "-XNoImplicitPrelude" ->
-              evalImport "import qualified Prelude as Prelude"
-            "-XImplicitPrelude" -> do
-              importDecl <- parseImportDecl "import Prelude"
-              let implicitPrelude = importDecl { ideclImplicit = True }
-              imports <- getContext
-              setContext $ IIDecl implicitPrelude : imports
-            _ -> return ()
-
-          return EvalOut {
-            evalStatus = Success,
-            evalResult = display,
-            evalState = state,
-            evalPager = "",
-            evalComms = []
-          }
-
-    -- Apply many flags.
-    flag:manyFlags -> do
-      firstEval <- evalCommand output (Directive SetDynFlag flag) state
-      case evalStatus firstEval of
-        Failure -> return firstEval
-        Success -> do
-          let newState = evalState firstEval
-              results  = evalResult firstEval
-          restEval <- evalCommand output (Directive SetDynFlag $ unwords manyFlags) newState
-          return restEval {
-            evalResult = results ++ evalResult restEval
-          }
+    return EvalOut {
+      evalStatus = Success,
+      evalResult = display,
+      evalState = state',
+      evalPager = "",
+      evalComms = []
+    }
 
 evalCommand output (Directive SetExtension opts) state = do
   write state $ "Extension: " ++ opts
