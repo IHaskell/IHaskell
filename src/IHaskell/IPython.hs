@@ -232,9 +232,9 @@ getIHaskellPath = do
     -- variable to find where IHaskell lives.
     if FS.filename f == f
       then do
-        ihaskellPath <- which "IHaskell"
+        ihaskellPath <- which "ihaskell"
         case ihaskellPath of
-          Nothing   -> error "IHaskell not on $PATH and not referenced relative to directory."
+          Nothing   -> error "ihaskell not on $PATH and not referenced relative to directory."
           Just path -> return $ FS.encodeString path
       else do
         -- If it's actually a relative path, make it absolute.
