@@ -36,7 +36,6 @@ import qualified IHaskell.IPython.Stdin as Stdin
 
 -- GHC API imports.
 import           GHC hiding (extensions, language)
-import qualified GHC.Paths
 
 -- | Compute the GHC API version number using the dist/build/autogen/cabal_macros.h
 ghcVersionInts :: [Int]
@@ -63,51 +62,12 @@ main = do
 ihaskell :: Args -> IO ()
 ihaskell (Args (ShowHelp help) _) = putStrLn $ pack help
 ihaskell (Args ConvertLhs args) = showingHelp ConvertLhs args $ convert args
-ihaskell (Args InstallKernelSpec args) = showingHelp InstallKernelSpec args replaceIPythonKernelspec
-ihaskell (Args Console flags) = showingHelp Console flags $ do
-  putStrLn consoleBanner
-  withIPython $ do
-    flags <- addDefaultConfFile flags
-    info <- initInfo IPythonConsole flags
-    runConsole info
-ihaskell (Args mode@(View (Just fmt) (Just name)) args) = showingHelp mode args $ withIPython $
-  nbconvert fmt name
-ihaskell (Args Notebook flags) = showingHelp Notebook flags $ withIPython $ do
-  let server =
-        case mapMaybe serveDir flags of
-          [] -> Nothing
-          xs -> Just $ last xs
-
-  flags <- addDefaultConfFile flags
-
-  undirInfo <- initInfo IPythonNotebook flags
-  curdir <- getCurrentDirectory
-  let info = undirInfo { initDir = curdir }
-
-  runNotebook info (pack <$> server)
-  where
-    serveDir (ServeFrom dir) = Just dir
-    serveDir _ = Nothing
-ihaskell (Args (Kernel (Just filename)) flags) = do
-  initInfo <- readInitInfo
-  runKernel debug libdir filename initInfo
-
-  where
-    (debug, libdir) = foldl' processFlag (False, GHC.Paths.libdir) flags
-    processFlag (debug, libdir) (GhcLibDir libdir') = (debug, libdir')
-    processFlag (debug, libdir) KernelDebug = (True, libdir)
-    processFlag x _ = x
-
--- | Add a conf file to the arguments if none exists.
-addDefaultConfFile :: [Argument] -> IO [Argument]
-addDefaultConfFile flags = do
-  def <- defaultConfFile
-  case (find isConfFile flags, def) of
-    (Nothing, Just file) -> return $ ConfFile file : flags
-    _ -> return flags
-  where
-    isConfFile (ConfFile _) = True
-    isConfFile _ = False
+ihaskell (Args InstallKernelSpec args) = showingHelp InstallKernelSpec args $ do
+  let kernelSpecOpts = parseKernelArgs args
+  replaceIPythonKernelspec kernelSpecOpts
+ihaskell (Args (Kernel (Just filename)) args) = do
+  let kernelSpecOpts = parseKernelArgs args
+  runKernel kernelSpecOpts filename
 
 showingHelp :: IHaskellMode -> [Argument] -> IO () -> IO ()
 showingHelp mode flags act =
@@ -118,25 +78,24 @@ showingHelp mode flags act =
       act
 
 -- | Parse initialization information from the flags.
-initInfo :: FrontendType -> [Argument] -> IO InitInfo
-initInfo front [] = return InitInfo { extensions = [], initCells = [], initDir = ".", frontend = front }
-initInfo front (flag:flags) = do
-  info <- initInfo front flags
-  case flag of
-    Extension ext -> return info { extensions = ext:extensions info }
-    ConfFile filename -> do
-      cell <- readFile (fpFromText $ pack filename)
-      return info { initCells = cell:initCells info }
-    _ -> return info
+parseKernelArgs :: [Argument] -> KernelSpecOptions
+parseKernelArgs = foldl' addFlag defaultKernelSpecOptions
+  where
+    addFlag kernelSpecOpts (ConfFile filename) =
+      kernelSpecOpts { kernelSpecConfFile = return (Just filename) }
+    addFlag kernelSpecOpts KernelDebug =
+      kernelSpecOpts { kernelSpecDebug = True }
+    addFlag kernelSpecOpts (GhcLibDir libdir) =
+      kernelSpecOpts { kernelSpecGhcLibdir = libdir }
+    addFlag kernelSpecOpts flag = error $ "Unknown flag" ++ show flag
 
 -- | Run the IHaskell language kernel.
-runKernel :: Bool      -- ^ Spew debugging output?
-          -> String    -- ^ GHC libdir.
-          -> String    -- ^ Filename of profile JSON file.
-          -> InitInfo  -- ^ Initialization information from the invocation.
+runKernel :: KernelSpecOptions -- ^ Various options from when the kernel was installed.
+          -> String            -- ^ File with kernel profile JSON (ports, etc).
           -> IO ()
-runKernel debug libdir profileSrc initInfo = do
-  setCurrentDirectory $ initDir initInfo
+runKernel kernelOpts profileSrc = do
+  let debug = kernelSpecDebug kernelOpts
+      libdir = kernelSpecGhcLibdir kernelOpts
 
   -- Parse the profile file.
   Just profile <- liftM decode . readFile . fpFromText $ pack profileSrc
@@ -151,7 +110,7 @@ runKernel debug libdir profileSrc initInfo = do
   -- Create initial state in the directory the kernel *should* be in.
   state <- initialKernelState
   modifyMVar_ state $ \kernelState -> return $
-    kernelState { getFrontend = frontend initInfo, kernelDebug = debug }
+    kernelState { kernelDebug = debug }
 
   -- Receive and reply to all messages on the shell socket.
   interpret libdir True $ do
@@ -161,18 +120,18 @@ runKernel debug libdir profileSrc initInfo = do
     liftIO ignoreCtrlC
 
     -- Initialize the context by evaluating everything we got from the
-    -- command line flags. This includes enabling some extensions and also
-    -- running some code.
-    let extLines = map (":extension " ++) $ extensions initInfo
-        noPublish _ = return ()
+    -- command line flags.
+    let noPublish _ = return ()
         evaluator line = void $ do
           -- Create a new state each time.
           stateVar <- liftIO initialKernelState
           state <- liftIO $ takeMVar stateVar
           evaluate state line noPublish
 
-    mapM_ evaluator extLines
-    mapM_ evaluator $ initCells initInfo
+    confFile <- liftIO $ kernelSpecConfFile kernelOpts
+    case confFile of
+      Just filename -> liftIO (readFile $ fpFromString filename) >>= evaluator
+      Nothing -> return ()
 
     forever $ do
       -- Read the request from the request channel.

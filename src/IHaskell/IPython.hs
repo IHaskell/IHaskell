@@ -5,18 +5,14 @@
 -- | Description : Shell scripting wrapper using @Shelly@ for the @notebook@, and
 --                 @console@ commands.
 module IHaskell.IPython (
-    withIPython,
     replaceIPythonKernelspec,
-    runConsole,
-    runNotebook,
-    readInitInfo,
     defaultConfFile,
     getIHaskellDir,
     getSandboxPackageConf,
-    nbconvert,
     subHome,
     kernelName,
-    ViewFormat(..),
+    KernelSpecOptions(..),
+    defaultKernelSpecOptions,
     ) where
 
 import           ClassyPrelude
@@ -40,9 +36,21 @@ import qualified System.IO.Strict as StrictIO
 import qualified Paths_ihaskell as Paths
 import qualified Codec.Archive.Tar as Tar
 
+import qualified GHC.Paths
 import           IHaskell.Types
 import           System.Posix.Signals
 
+
+data KernelSpecOptions = KernelSpecOptions { kernelSpecGhcLibdir :: String           -- ^ GHC libdir.
+                                           , kernelSpecDebug :: Bool                 -- ^ Spew debugging output?
+                                           , kernelSpecConfFile :: IO (Maybe String) -- ^ Filename of profile JSON file.
+                                           }
+
+defaultKernelSpecOptions :: KernelSpecOptions
+defaultKernelSpecOptions = KernelSpecOptions { kernelSpecGhcLibdir = GHC.Paths.libdir
+                                             , kernelSpecDebug = False
+                                             , kernelSpecConfFile = defaultConfFile
+                                             }
 -- | The IPython kernel name.
 kernelName :: IsString a => a
 kernelName = "haskell"
@@ -106,50 +114,10 @@ defaultConfFile = shelly $ do
              then Just $ fpToString filename
              else Nothing
 
--- | Find a notebook and then convert it into the provided format.
--- Notebooks are searched in the current directory as well as the IHaskell
--- notebook directory (in that order).
-nbconvert :: ViewFormat -> String -> IO ()
-nbconvert fmt name = void . shelly $ do
-  curdir <- pwd
-  nbdir <- notebookDir
-
-  -- Find which of the options is available. 
-  let notebookOptions = [ curdir </> fpFromString name
-                        , curdir </> fpFromString (name ++ ".ipynb")
-                        , nbdir </> fpFromString name
-                        , nbdir </> fpFromString (name ++ ".ipynb")
-                        ]
-  maybeNb <- headMay <$> filterM test_f notebookOptions
-  case maybeNb of
-    Nothing -> do
-      putStrLn $ "Cannot find notebook: " ++ pack name
-      putStrLn "Tried:"
-      mapM_ (putStrLn . ("  " ++) . fpToText) notebookOptions
-
-    Just notebook ->
-      let viewArgs =
-            case fmt of
-              Pdf  -> ["--to=latex", "--post=pdf"]
-              Html -> ["--to=html", "--template=ihaskell"]
-              fmt  -> ["--to=" ++ pack (show fmt)]
-          args = "nbconvert" : fpToText notebook : viewArgs
-      in void $ ipython False args
-
--- | Run an action after having verified that a proper IPython installation exists.
--- This ensures that an IHaskell kernelspec exists; if it doesn't, it creates it.
--- Note that this exits with an error if IPython isn't installed properly.
-withIPython :: IO a -> IO a
-withIPython act = shelly $ do
+replaceIPythonKernelspec :: KernelSpecOptions -> IO ()
+replaceIPythonKernelspec kernelSpecOpts = shelly $ do
   verifyIPythonVersion
-  kernelspecExists <- kernelSpecCreated
-  unless kernelspecExists $ installKernelspec False
-  liftIO act
-
-replaceIPythonKernelspec :: IO ()
-replaceIPythonKernelspec = shelly $ do
-  verifyIPythonVersion
-  installKernelspec True
+  installKernelspec True kernelSpecOpts
 
 -- | Verify that a proper version of IPython is installed and accessible.
 verifyIPythonVersion :: Sh ()
@@ -174,14 +142,21 @@ verifyIPythonVersion = do
 
 -- | Install an IHaskell kernelspec into the right location.
 -- The right location is determined by using `ipython kernelspec install --user`.
-installKernelspec :: Bool -> Sh ()
-installKernelspec replace = void $ do
+installKernelspec :: Bool -> KernelSpecOptions -> Sh ()
+installKernelspec replace opts = void $ do
   ihaskellPath <- getIHaskellPath
-  let kernelSpec = KernelSpec {
-        kernelDisplayName = "Haskell",
-        kernelLanguage = kernelName,
-        kernelCommand = [ihaskellPath, "kernel", "{connection_file}"]
-      }
+  confFile <- liftIO $ kernelSpecConfFile opts
+
+  let kernelFlags :: [String]
+      kernelFlags =
+        ["--debug" | kernelSpecDebug opts] ++
+        ["--conf"] ++ maybe [] singleton confFile ++
+        ["--ghclib", kernelSpecGhcLibdir opts]
+
+  let kernelSpec = KernelSpec { kernelDisplayName = "Haskell"
+                              , kernelLanguage = kernelName
+                              , kernelCommand = [ihaskellPath, "kernel", "{connection_file}"] ++ kernelFlags
+                              }
 
   -- Create a temporary directory. Use this temporary directory to make a kernelspec
   -- directory; then, shell out to IPython to install this kernelspec directory.
@@ -241,37 +216,6 @@ parseVersion versionStr =
       case reads x of
         [(n, _)] -> Just n
         _        -> Nothing
-
-runConsole :: InitInfo -> IO ()
-runConsole initInfo = void . shelly $ do
-  writeInitInfo initInfo
-  ipython False $ "console" : "--no-banner" : kernelArgs
-
-runNotebook :: InitInfo -> Maybe Text -> IO ()
-runNotebook initInfo maybeServeDir = void . shelly $ do
-  notebookDirStr <- fpToText <$> notebookDir
-  let args =
-        case maybeServeDir of
-          Nothing  -> ["--notebook-dir", notebookDirStr]
-          Just dir -> ["--notebook-dir", dir]
-
-  writeInitInfo initInfo
-  ipython False $ "notebook" : args
-
-writeInitInfo :: InitInfo -> Sh ()
-writeInitInfo info = do
-  filename <- (</> ".last-arguments") <$> ihaskellDir
-  liftIO $ writeFile filename $ show info
-
-readInitInfo :: IO InitInfo
-readInitInfo = shelly $ do
-  filename <- (</> ".last-arguments") <$> ihaskellDir
-  exists <- test_f filename
-  if exists
-    then read <$> liftIO (readFile filename)
-    else do
-      dir <- fromMaybe "." <$> fmap unpack <$> get_env "HOME"
-      return InitInfo { extensions = [], initCells = [], initDir = dir, frontend = IPythonNotebook }
 
 -- | Get the absolute path to this IHaskell executable.
 getIHaskellPath :: Sh String

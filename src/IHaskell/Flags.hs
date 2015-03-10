@@ -4,6 +4,7 @@ module IHaskell.Flags (
     Argument(..),
     Args(..),
     LhsStyle(..),
+    NotebookFormat(..),
     lhsStyleBird,
     parseFlags,
     help,
@@ -25,6 +26,10 @@ data Argument = ConfFile String     -- ^ A file with commands to load at startup
               | GhcLibDir String    -- ^ Where to find the GHC libraries.
               | KernelDebug         -- ^ Spew debugging output from the kernel.
               | Help                -- ^ Display help text.
+              | ConvertFrom String
+              | ConvertTo String
+              | ConvertFromFormat NotebookFormat
+              | ConvertToFormat NotebookFormat
               | ConvertLhsStyle (LhsStyle String)
   deriving (Eq, Show)
 
@@ -36,6 +41,11 @@ data LhsStyle string = LhsStyle { lhsCodePrefix :: string  -- ^ @>@
                                 , lhsEndOutput :: string  -- ^ @\\end{verbatim}@
                                 }
   deriving (Eq, Functor, Show)
+
+
+data NotebookFormat = LhsMarkdown
+                    | IpynbFile
+  deriving (Eq, Show)
 
 -- Which mode IHaskell is being invoked in.
 -- `None` means no mode was specified.
@@ -66,15 +76,13 @@ parseFlags flags =
     modeFlags = concatMap modeNames allModes
 
 allModes :: [Mode Args]
-allModes = [installKernelSpec, console, notebook, view, kernel, convert]
+allModes = [installKernelSpec, kernel, convert]
 
 -- | Get help text for a given IHaskell ode.
 help :: IHaskellMode -> String
 help mode = showText (Wrap 100) $ helpText [] HelpFormatAll $ chooseMode mode
   where
-    chooseMode Console = console
     chooseMode InstallKernelSpec = installKernelSpec
-    chooseMode Notebook = notebook
     chooseMode (Kernel _) = kernel
     chooseMode ConvertLhs = convert
 
