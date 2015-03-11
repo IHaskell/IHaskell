@@ -420,7 +420,7 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
 
 -- | Directives set via `:set`.
 evalCommand output (Directive SetDynFlag flagsStr) state = safely state $ do
-  write state $ "DynFlags: " ++ flagsStr
+  write state $ "All Flags: " ++ flagsStr
 
   -- Find which flags are IHaskell flags, and which are GHC flags
   let flags = words flagsStr
@@ -430,6 +430,9 @@ evalCommand output (Directive SetDynFlag flagsStr) state = safely state $ do
       ihaskellFlagUpdater flag = getUpdateKernelState <$> find (elem flag . getSetName) kernelOpts
 
       (ihaskellFlags, ghcFlags) = partition (isJust . ihaskellFlagUpdater) flags
+
+  write state $ "IHaskell Flags: " ++ unwords ihaskellFlags
+  write state $ "GHC Flags: " ++ unwords ghcFlags
 
   if null flags
   then do
@@ -443,8 +446,8 @@ evalCommand output (Directive SetDynFlag flagsStr) state = safely state $ do
       }
   else do
     -- Apply all IHaskell flag updaters to the state to get the new state
-    let state' = (foldl1 (.) (map (fromJust . ihaskellFlagUpdater) ihaskellFlags)) state
-    errs <- setFlags flags
+    let state' = (foldl' (.) id (map (fromJust . ihaskellFlagUpdater) ihaskellFlags)) state
+    errs <- setFlags ghcFlags
     let display = case errs of
           [] -> mempty
           _ -> displayError $ intercalate "\n" errs
