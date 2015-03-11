@@ -89,7 +89,24 @@ becomes string expected = evaluationComparing comparison string
 pages string expected = evaluationComparing comparison string
   where
     comparison (results, pageOut) =
-      strip pageOut `shouldBe` strip (unlines expected)
+      strip (stripHtml pageOut) `shouldBe` strip (unlines expected)
+
+    -- A very, very hacky method for removing HTML
+    stripHtml str = go str
+      where
+        go ('<':str) = case stripPrefix "script" str of
+          Nothing -> go' str
+          Just str -> dropScriptTag str
+        go (x:xs) = x : go xs
+        go [] = []
+
+        go' ('>':str) = go str
+        go' (x:xs) = go' xs
+        go' [] = error $ "Unending bracket html tag in string " ++ str
+
+        dropScriptTag str = case stripPrefix "</script>" str of
+          Just str -> go str
+          Nothing -> dropScriptTag $ tail str
 
 readCompletePrompt :: String -> (String, Int)
 -- | @readCompletePrompt "xs*ys"@ return @(xs, i)@ where i is the location of

@@ -2,16 +2,16 @@
 set -e
 
 print_help () {
-  echo "Run build.sh from inside the IHaskell directory to install packages in this repository:"
-  echo "  ./build.sh ihaskell # Install IHaskell and its dependencies"
-  echo "  ./build.sh quick    # Install IHaskell, but not its dependencies"
-  echo "  ./build.sh all      # Install IHaskell, dependencies, and all display packages"
-  echo "  ./build.sh display  # Install IHaskell and display libraries"
+  echo "Run build.sh from inside the ihaskell directory to install packages in this repository:"
+  echo "  ./build.sh ihaskell # Install ihaskell and its dependencies"
+  echo "  ./build.sh quick    # Install ihaskell, but not its dependencies"
+  echo "  ./build.sh all      # Install ihaskell, dependencies, and all display packages"
+  echo "  ./build.sh display  # Install ihaskell and display libraries"
   echo
-  echo "If this is your first time installing IHaskell, run './build.sh ihaskell'."
+  echo "If this is your first time installing ihaskell, run './build.sh ihaskell'."
 }
 
-# Verify that we're in the IHaskell directory.
+# Verify that we're in the ihaskell directory.
 if [ ! -e ihaskell.cabal ]; then
   print_help;
   exit 1

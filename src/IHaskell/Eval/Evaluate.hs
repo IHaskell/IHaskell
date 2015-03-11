@@ -686,9 +686,8 @@ evalCommand _ (Directive GetInfo str) state = safely state $ do
   -- Get all the info for all the names we're given.
   strings <- getDescription str
 
-  let output = case getFrontend state of
-        IPythonConsole -> unlines strings
-        IPythonNotebook -> unlines (map htmlify strings)
+  -- TODO: Make pager work without html by porting to newer architecture
+  let output = unlines (map htmlify strings)
       htmlify str =
         printf "<div style='background: rgb(247, 247, 247);'><form><textarea id='code'>%s</textarea></form></div>" str
         ++ script
@@ -980,10 +979,8 @@ hoogleResults state results = EvalOut {
     evalComms = []
   }
   where
-    fmt =
-        case getFrontend state of
-          IPythonNotebook -> Hoogle.HTML
-          IPythonConsole -> Hoogle.Plain
+    -- TODO: Make pager work with plaintext
+    fmt = Hoogle.HTML
     output = unlines $ map (Hoogle.render fmt) results
 
 -- Read from a file handle until we hit a delimiter or until we've read
