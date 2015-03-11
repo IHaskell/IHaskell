@@ -111,7 +111,7 @@ installKernelSpec =
     [ghcLibFlag, kernelDebugFlag, confFlag, helpFlag]
 
 kernel :: Mode Args
-kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg []
+kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg [ghcLibFlag, kernelDebugFlag, confFlag]
   where
     kernelArg = flagArg update "<json-kernel-file>"
     update filename (Args _ flags) = Right $ Args (Kernel $ Just filename) flags
