@@ -150,8 +150,10 @@ installKernelspec replace opts = void $ do
   let kernelFlags :: [String]
       kernelFlags =
         ["--debug" | kernelSpecDebug opts] ++
-        ["--conf"] ++ maybe [] singleton confFile ++
-        ["--ghclib", kernelSpecGhcLibdir opts]
+        (case confFile of
+           Nothing   -> []
+           Just file -> ["--conf", file])
+        ++ ["--ghclib", kernelSpecGhcLibdir opts]
 
   let kernelSpec = KernelSpec { kernelDisplayName = "Haskell"
                               , kernelLanguage = kernelName
