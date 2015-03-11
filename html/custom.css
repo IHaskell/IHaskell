@@ -44,7 +44,7 @@ Custom IHaskell CSS.
     font-weight: bold;
     font-family: monospace;
     display: block;
-    white-space: pre;
+    white-space: pre-wrap;
 }
 
 .show-type {
