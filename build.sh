@@ -75,3 +75,7 @@ else
   echo CMD: cabal install -j $INSTALL_DIRS --force-reinstalls --constraint "arithmoi==0.4.*" --max-backjumps=-1 --reorder-goals
   cabal install -j $INSTALL_DIRS --force-reinstalls --constraint "arithmoi==0.4.*" --max-backjumps=-1 --reorder-goals
 fi
+
+which ihaskell
+if [ $? -eq 0 ]; then ihaskell install; else echo "tip: don't forget run: ihaskell install"; fi
+
