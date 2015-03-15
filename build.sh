@@ -76,6 +76,4 @@ else
   cabal install -j $INSTALL_DIRS --force-reinstalls --constraint "arithmoi==0.4.*" --max-backjumps=-1 --reorder-goals
 fi
 
-which ihaskell
-if [ $? -eq 0 ]; then ihaskell install; else echo "tip: don't forget run: ihaskell install"; fi
-
+if hash ihaskell 2>/dev/null; then ihaskell install; else echo "tip, don't forget run: ihaskell install"; fi
