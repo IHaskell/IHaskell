@@ -1,40 +1,38 @@
 {-# LANGUAGE OverloadedStrings, NoImplicitPrelude, FlexibleContexts #-}
+
 module IHaskell.BrokenPackages (getBrokenPackages) where
 
-import ClassyPrelude hiding ((<|>))
+import           ClassyPrelude hiding ((<|>))
 
-import Text.Parsec
-import Text.Parsec.String
-import Control.Applicative hiding ((<|>), many)
+import           Text.Parsec
+import           Text.Parsec.String
+import           Control.Applicative hiding ((<|>), many)
 
-import Data.String.Utils (startswith)
+import           Data.String.Utils (startswith)
 
-import Shelly
+import           Shelly
 
-data BrokenPackage = BrokenPackage {
-        packageID :: String,
-        brokenDeps :: [String]
-      }
+data BrokenPackage = BrokenPackage { packageID :: String, brokenDeps :: [String] }
 
 instance Show BrokenPackage where
   show = packageID
 
--- | Get a list of broken packages.
--- This function internally shells out to `ghc-pkg`, and parses the output
--- in order to determine what packages are broken.
+-- | Get a list of broken packages. This function internally shells out to `ghc-pkg`, and parses
+-- the output in order to determine what packages are broken.
 getBrokenPackages :: IO [String]
 getBrokenPackages = shelly $ do
   silently $ errExit False $ run "ghc-pkg" ["check"]
   checkOut <- lastStderr
-  
+
   -- Get rid of extraneous things
-  let rightStart str = startswith "There are problems" str || 
-                       startswith "  dependency" str 
+  let rightStart str = startswith "There are problems" str ||
+                       startswith "  dependency" str
       ghcPkgOutput = unlines . filter rightStart . lines $ unpack checkOut
 
-  return $ case parse (many check) "ghc-pkg output" ghcPkgOutput of
-    Left err -> []
-    Right pkgs -> map show pkgs
+  return $
+    case parse (many check) "ghc-pkg output" ghcPkgOutput of
+      Left err   -> []
+      Right pkgs -> map show pkgs
 
 check :: Parser BrokenPackage
 check = string "There are problems in package "

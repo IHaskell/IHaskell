@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP, NoImplicitPrelude, OverloadedStrings, DoAndIfThenElse #-}
 {-# LANGUAGE TypeFamilies, FlexibleContexts #-}
+
 {- |
 Description:    Generates tab completion options.
 
@@ -12,52 +13,54 @@ This has a limited amount of context sensitivity. It distinguishes between four 
 -}
 module IHaskell.Eval.Completion (complete, completionTarget, completionType, CompletionType(..)) where
 
-import ClassyPrelude hiding (init, last, head, liftIO)
---import Prelude
+import           ClassyPrelude hiding (init, last, head, liftIO)
 
-import Control.Applicative ((<$>))
-import Data.ByteString.UTF8 hiding (drop, take)
-import Data.Char
-import Data.List (nub, init, last, head, elemIndex)
-import Data.List.Split
-import Data.List.Split.Internals
-import Data.Maybe (fromJust)
-import Data.String.Utils (strip, startswith, endswith, replace)
+import           Control.Applicative ((<$>))
+import           Data.ByteString.UTF8 hiding (drop, take)
+import           Data.Char
+import           Data.List (nub, init, last, head, elemIndex)
+import           Data.List.Split
+import           Data.List.Split.Internals
+import           Data.Maybe (fromJust)
+import           Data.String.Utils (strip, startswith, endswith, replace)
 import qualified Data.String.Utils as StringUtils
-import System.Environment (getEnv)
+import           System.Environment (getEnv)
 
-import GHC hiding (Qualified)
+import           GHC hiding (Qualified)
 #if MIN_VERSION_ghc(7,10,0)
-import GHC.PackageDb (ExposedModule(exposedName))
+import           GHC.PackageDb (ExposedModule(exposedName))
 #endif
-import DynFlags
-import GhcMonad
-import PackageConfig
-import Outputable (showPpr)
+import           DynFlags
+import           GhcMonad
+import           PackageConfig
+import           Outputable (showPpr)
 
+import           System.Directory
+import           System.FilePath
+import           MonadUtils (MonadIO)
 
-import System.Directory
-import System.FilePath
-import MonadUtils (MonadIO)
+import           System.Console.Haskeline.Completion
 
-import System.Console.Haskeline.Completion
+import           IHaskell.Types
+import           IHaskell.Eval.Evaluate (Interpreter)
+import           IHaskell.Eval.ParseShell (parseShell)
 
-import IHaskell.Types
-import IHaskell.Eval.Evaluate (Interpreter)
-import IHaskell.Eval.ParseShell (parseShell)
-
-
-data CompletionType
-     = Empty
-     | Identifier String
-     | DynFlag String
-     | Qualified String String
-     | ModuleName String String
-     | HsFilePath String String
-     | FilePath   String String
-     | KernelOption String
-     | Extension String
-     deriving (Show, Eq)
+data CompletionType = Empty
+                    | Identifier String
+                    | DynFlag String
+                    | Qualified String String
+                    | ModuleName String String
+                    | HsFilePath String String
+                    | FilePath String String
+                    | KernelOption String
+                    | Extension String
+  deriving (Show, Eq)
+#if !MIN_VERSION_ghc(7,10,0)
+exposedName = id
+extName (name, _, _) = name
+#else
+extName (FlagSpec { flagSpecName = name }) = name
+#endif
 
 complete :: String -> Int -> Interpreter (String, [String])
 complete line pos = do
@@ -68,10 +71,6 @@ complete line pos = do
       unqualNames = nub $ filter (not . isQualified) rdrNames
       qualNames = nub $ scopeNames ++ filter isQualified rdrNames
 
-#if !MIN_VERSION_ghc(7,10,0)
-  let exposedName = id
-#endif
-
   let Just db = pkgDatabase flags
       getNames = map (moduleNameString . exposedName) . exposedModules
       moduleNames = nub $ concatMap getNames db
@@ -79,69 +78,61 @@ complete line pos = do
   let target = completionTarget line pos
       completion = completionType line pos target
 
-  let matchedText = case completion of
-        HsFilePath _ match ->  match
-        FilePath   _ match ->  match
-        otherwise       -> intercalate "." target
-
-#if MIN_VERSION_ghc(7,10,0)
-  let extName (FlagSpec {flagSpecName=name}) = name
-#else
-  let extName (name, _, _) = name
-#endif
-
-  options <-
+  let matchedText =
         case completion of
-          Empty -> return []
+          HsFilePath _ match -> match
+          FilePath _ match   -> match
+          otherwise          -> intercalate "." target
 
-          Identifier candidate ->
-            return $ filter (candidate `isPrefixOf`) unqualNames
+  options <- case completion of
+               Empty -> return []
 
-          Qualified moduleName candidate -> do
-            trueName <- getTrueModuleName moduleName
-            let prefix = intercalate "." [trueName, candidate]
-                completions = filter (prefix `isPrefixOf`)  qualNames
-                falsifyName = replace trueName moduleName
-            return $ map falsifyName completions
+               Identifier candidate ->
+                 return $ filter (candidate `isPrefixOf`) unqualNames
 
-          ModuleName previous candidate -> do
-            let prefix = if null previous
-                         then candidate
-                         else intercalate "." [previous, candidate]
-            return $ filter (prefix `isPrefixOf`) moduleNames
+               Qualified moduleName candidate -> do
+                 trueName <- getTrueModuleName moduleName
+                 let prefix = intercalate "." [trueName, candidate]
+                     completions = filter (prefix `isPrefixOf`) qualNames
+                     falsifyName = replace trueName moduleName
+                 return $ map falsifyName completions
 
-          DynFlag ext -> do
-            -- Possibly leave out the fLangFlags? The
-            -- -XUndecidableInstances vs. obsolete
-            -- -fallow-undecidable-instances.
-            let kernelOptNames = concatMap getSetName kernelOpts
-                otherNames = ["-package","-Wall","-w"]
+               ModuleName previous candidate -> do
+                 let prefix = if null previous
+                                then candidate
+                                else intercalate "." [previous, candidate]
+                 return $ filter (prefix `isPrefixOf`) moduleNames
 
-                fNames = map extName fFlags ++
-                         map extName fWarningFlags ++
-                         map extName fLangFlags
-                fNoNames = map ("no"++) fNames
-                fAllNames = map ("-f"++) (fNames ++ fNoNames)
+               DynFlag ext -> do
+                 -- Possibly leave out the fLangFlags? The
+                 -- -XUndecidableInstances vs. obsolete
+                 -- -fallow-undecidable-instances.
+                 let kernelOptNames = concatMap getSetName kernelOpts
+                     otherNames = ["-package", "-Wall", "-w"]
+                     fNames = map extName fFlags ++
+                              map extName fWarningFlags ++
+                              map extName fLangFlags
+                     fNoNames = map ("no" ++) fNames
+                     fAllNames = map ("-f" ++) (fNames ++ fNoNames)
+                     xNames = map extName xFlags
+                     xNoNames = map ("No" ++) xNames
+                     xAllNames = map ("-X" ++) (xNames ++ xNoNames)
+                     allNames = xAllNames ++ otherNames ++ fAllNames
 
-                xNames = map extName xFlags
-                xNoNames = map ("No" ++) xNames
-                xAllNames = map ("-X"++) (xNames ++ xNoNames)
+                 return $ filter (ext `isPrefixOf`) allNames
 
-                allNames = xAllNames ++ otherNames ++ fAllNames
+               Extension ext -> do
+                 let xNames = map extName xFlags
+                     xNoNames = map ("No" ++) xNames
+                 return $ filter (ext `isPrefixOf`) $ xNames ++ xNoNames
 
-            return $ filter (ext `isPrefixOf`) allNames
+               HsFilePath lineUpToCursor match -> completePathWithExtensions [".hs", ".lhs"]
+                                                    lineUpToCursor
 
-          Extension ext -> do
-            let xNames = map extName xFlags
-                xNoNames = map ("No" ++) xNames
-            return $ filter (ext `isPrefixOf`) $ xNames ++ xNoNames
+               FilePath lineUpToCursor match -> completePath lineUpToCursor
 
-          HsFilePath lineUpToCursor match -> completePathWithExtensions [".hs", ".lhs"] lineUpToCursor
-
-          FilePath   lineUpToCursor match  -> completePath lineUpToCursor
-
-          KernelOption str -> return $
-                    filter (str `isPrefixOf`) (concatMap getOptionName kernelOpts)
+               KernelOption str -> return $
+                 filter (str `isPrefixOf`) (concatMap getOptionName kernelOpts)
 
   return (matchedText, options)
 
@@ -160,7 +151,7 @@ getTrueModuleName name = do
   let qualifiedImports = filter (isJust . ideclAs) imports
       hasName imp = name == (showPpr flags . fromJust . ideclAs) imp
   case find hasName qualifiedImports of
-    Nothing -> return name
+    Nothing      -> return name
     Just trueImp -> return $ showPpr flags $ unLoc $ ideclName trueImp
 
 -- | Get which type of completion this is from the surrounding context.
@@ -242,25 +233,25 @@ completionTarget :: String -> Int -> [String]
 completionTarget code cursor = expandCompletionPiece pieceToComplete
   where
     pieceToComplete = map fst <$> find (elem cursor . map snd) pieces
-    pieces = splitAlongCursor $ split splitter $ zip code [1 .. ]
-    splitter = defaultSplitter {
-      -- Split using only the characters, which are the first elements of
-      -- the (char, index) tuple
-      delimiter = Delimiter [uncurry isDelim],
-      -- Condense multiple delimiters into one and then drop them.
-      condensePolicy = Condense,
-      delimPolicy = Drop
-    }
+    pieces = splitAlongCursor $ split splitter $ zip code [1 ..]
+    -- Split using only the characters, which are the first elements of
+    -- the (char, index) tuple.
+    -- Also condense multiple delimiters into one and then drop them.
+    splitter = defaultSplitter
+      { delimiter = Delimiter [uncurry isDelim]
+      , condensePolicy = Condense
+      , delimPolicy = Drop
+      }
 
     isDelim :: Char -> Int -> Bool
-    isDelim char idx = char `elem` neverIdent  || isSymbol char
+    isDelim char idx = char `elem` neverIdent || isSymbol char
 
     splitAlongCursor :: [[(Char, Int)]] -> [[(Char, Int)]]
     splitAlongCursor [] = []
     splitAlongCursor (x:xs) =
-      case elemIndex cursor $  map snd x of
-        Nothing -> x:splitAlongCursor xs
-        Just idx -> take (idx + 1) x:drop (idx + 1) x:splitAlongCursor xs
+      case elemIndex cursor $ map snd x of
+        Nothing  -> x : splitAlongCursor xs
+        Just idx -> take (idx + 1) x : drop (idx + 1) x : splitAlongCursor xs
 
     -- These are never part of an identifier.
     neverIdent :: String
@@ -271,10 +262,11 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
 
 getHome :: IO String
 getHome = do
-  homeEither <- try  $ getEnv "HOME" :: IO (Either SomeException String)
-  return $ case homeEither of
-    Left _ -> "~"
-    Right home -> home
+  homeEither <- try $ getEnv "HOME" :: IO (Either SomeException String)
+  return $
+    case homeEither of
+      Left _     -> "~"
+      Right home -> home
 
 dirExpand :: String -> IO String
 dirExpand str = do
@@ -288,7 +280,8 @@ unDirExpand str = do
 
 completePath :: String -> Interpreter [String]
 completePath line = completePathFilter acceptAll acceptAll line ""
-  where acceptAll = const True
+  where
+    acceptAll = const True
 
 completePathWithExtensions :: [String] -> String -> Interpreter [String]
 completePathWithExtensions extensions line =
@@ -296,7 +289,8 @@ completePathWithExtensions extensions line =
   where
     acceptAll = const True
     extensionIsOneOf exts str = any correctEnding exts
-      where correctEnding ext = endswith ext str
+      where
+        correctEnding ext = endswith ext str
 
 completePathFilter :: (String -> Bool)      -- ^ File filter: test whether to include this file.
                    -> (String -> Bool)      -- ^ Directory filter: test whether to include this directory.
@@ -311,8 +305,8 @@ completePathFilter includeFile includeDirectory left right = liftIO $ do
   -- Split up into files and directories.
   -- Filter out ones we don't want.
   areDirs <- mapM doesDirectoryExist completions
-  let dirs  = filter includeDirectory $ map fst $ filter snd         $ zip completions areDirs
-      files = filter includeFile      $ map fst $ filter (not . snd) $ zip completions areDirs
+  let dirs = filter includeDirectory $ map fst $ filter snd $ zip completions areDirs
+      files = filter includeFile $ map fst $ filter (not . snd) $ zip completions areDirs
 
   -- Return directories before files. However, stick everything that starts
   -- with a dot after everything else.  If we wanted to keep original
@@ -321,8 +315,8 @@ completePathFilter includeFile includeDirectory left right = liftIO $ do
   suggestions <- mapM unDirExpand $ dirs ++ files
   let isHidden str = startswith "." . last . StringUtils.split "/" $
         if endswith "/" str
-        then init str
-        else str
+          then init str
+          else str
       visible = filter (not . isHidden) suggestions
-      hidden  = filter isHidden suggestions
+      hidden = filter isHidden suggestions
   return $ visible ++ hidden
