@@ -6,87 +6,101 @@
 This module exports all functions used for evaluation of IHaskell input.
 -}
 module IHaskell.Eval.Evaluate (
-  interpret, evaluate, Interpreter, liftIO, typeCleaner, globalImports
-  ) where
+    interpret,
+    evaluate,
+    Interpreter,
+    liftIO,
+    typeCleaner,
+    globalImports,
+    ) where
 
-import ClassyPrelude hiding (init, last, liftIO, head, hGetContents, tail, try)
-import Control.Concurrent (forkIO, threadDelay)
-import Prelude (putChar, head, tail, last, init, (!!))
-import Data.List.Utils
-import Data.List (findIndex, and)
-import Data.String.Utils
-import Text.Printf
-import Data.Char as Char
-import Data.Dynamic
-import Data.Typeable
+import           ClassyPrelude hiding (init, last, liftIO, head, hGetContents, tail, try)
+import           Control.Concurrent (forkIO, threadDelay)
+import           Prelude (putChar, head, tail, last, init, (!!))
+import           Data.List.Utils
+import           Data.List (findIndex, and)
+import           Data.String.Utils
+import           Text.Printf
+import           Data.Char as Char
+import           Data.Dynamic
+import           Data.Typeable
 import qualified Data.Serialize as Serialize
-import System.Directory
-import Filesystem.Path.CurrentOS (encodeString)
+import           System.Directory
+import           Filesystem.Path.CurrentOS (encodeString)
 #if !MIN_VERSION_base(4,8,0)
-import System.Posix.IO (createPipe)
+import           System.Posix.IO (createPipe)
 #endif
-import System.Posix.IO (fdToHandle)
-import System.IO (hGetChar, hFlush)
-import System.Random (getStdGen, randomRs)
-import Unsafe.Coerce
-import Control.Monad (guard)
-import System.Process
-import System.Exit
-import Data.Maybe (fromJust)
+import           System.Posix.IO (fdToHandle)
+import           System.IO (hGetChar, hFlush)
+import           System.Random (getStdGen, randomRs)
+import           Unsafe.Coerce
+import           Control.Monad (guard)
+import           System.Process
+import           System.Exit
+import           Data.Maybe (fromJust)
 import qualified Control.Monad.IO.Class as MonadIO (MonadIO, liftIO)
 import qualified MonadUtils (MonadIO, liftIO)
-import System.Environment (getEnv)
+import           System.Environment (getEnv)
 import qualified Data.Map as Map
 
-import NameSet
-import Name
-import PprTyThing
-import InteractiveEval
-import DynFlags
-import Type
-import Exception (gtry)
-import HscTypes
-import HscMain
+import           NameSet
+import           Name
+import           PprTyThing
+import           InteractiveEval
+import           DynFlags
+import           Type
+import           Exception (gtry)
+import           HscTypes
+import           HscMain
 import qualified Linker
-import TcType
-import Unify
-import InstEnv
-import GhcMonad (liftIO, withSession)
-import GHC hiding (Stmt, TypeSig)
-import Exception hiding (evaluate)
-import Outputable hiding ((<>))
-import Packages
-import Module hiding (Module)
+import           TcType
+import           Unify
+import           InstEnv
+import           GhcMonad (liftIO, withSession)
+import           GHC hiding (Stmt, TypeSig)
+import           Exception hiding (evaluate)
+import           Outputable hiding ((<>))
+import           Packages
+import           Module hiding (Module)
 import qualified Pretty
-import FastString
-import Bag
-import ErrUtils (errMsgShortDoc, errMsgExtraInfo)
+import           FastString
+import           Bag
+import           ErrUtils (errMsgShortDoc, errMsgExtraInfo)
 
 import qualified System.IO.Strict as StrictIO
 
-import IHaskell.Types
-import IHaskell.IPython
-import IHaskell.Eval.Parser
-import IHaskell.Eval.Lint
-import IHaskell.Display
+import           IHaskell.Types
+import           IHaskell.IPython
+import           IHaskell.Eval.Parser
+import           IHaskell.Eval.Lint
+import           IHaskell.Display
 import qualified IHaskell.Eval.Hoogle as Hoogle
-import IHaskell.Eval.Util
-import IHaskell.BrokenPackages
-import qualified  IHaskell.IPython.Message.UUID      as UUID
+import           IHaskell.Eval.Util
+import           IHaskell.BrokenPackages
+import qualified IHaskell.IPython.Message.UUID as UUID
 
-import Paths_ihaskell (version)
-import Data.Version (versionBranch)
+import           Paths_ihaskell (version)
+import           Data.Version (versionBranch)
 
-data ErrorOccurred = Success | Failure deriving (Show, Eq)
+data ErrorOccurred = Success
+                   | Failure
+  deriving (Show, Eq)
 
 -- | Set GHC's verbosity for debugging
 ghcVerbosity :: Maybe Int
 ghcVerbosity = Nothing -- Just 5
 
 ignoreTypePrefixes :: [String]
-ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",
-                      "GHC.Float", ":Interactive", "GHC.Num", "GHC.IO",
-                      "GHC.Integer.Type"]
+ignoreTypePrefixes = [ "GHC.Types"
+                     , "GHC.Base"
+                     , "GHC.Show"
+                     , "System.IO"
+                     , "GHC.Float"
+                     , ":Interactive"
+                     , "GHC.Num"
+                     , "GHC.IO"
+                     , "GHC.Integer.Type"
+                     ]
 
 typeCleaner :: String -> String
 typeCleaner = useStringType . foldl' (.) id (map (`replace` "") fullPrefixes)
@@ -100,10 +114,10 @@ write state x = when (kernelDebug state) $ liftIO $ hPutStrLn stderr $ "DEBUG: "
 type Interpreter = Ghc
 
 #if MIN_VERSION_ghc(7, 8, 0)
-   -- GHC 7.8 exports a MonadIO instance for Ghc
+-- GHC 7.8 exports a MonadIO instance for Ghc
 #else
 instance MonadIO.MonadIO Interpreter where
-    liftIO = MonadUtils.liftIO
+  liftIO = MonadUtils.liftIO
 #endif
 
 globalImports :: [String]
@@ -127,9 +141,10 @@ interpret libdir allowedStdin action = runGhc (Just libdir) $ do
   sandboxPackages <- liftIO getSandboxPackageConf
   initGhci sandboxPackages
   case ghcVerbosity of
-    Just verb -> do dflags <- getSessionDynFlags
-                    void $ setSessionDynFlags $ dflags { verbosity = verb }
-    Nothing   -> return ()
+    Just verb -> do
+      dflags <- getSessionDynFlags
+      void $ setSessionDynFlags $ dflags { verbosity = verb }
+    Nothing -> return ()
 
   initializeImports
 
@@ -145,6 +160,12 @@ interpret libdir allowedStdin action = runGhc (Just libdir) $ do
   -- Run the rest of the interpreter
   action
 
+#if MIN_VERSION_ghc(7,10,0)
+packageIdString' dflags = packageKeyPackageIdString dflags
+#else
+packageIdString' dflags = packageIdString
+#endif
+
 -- | Initialize our GHC session with imports and a value for 'it'.
 initializeImports :: Interpreter ()
 initializeImports = do
@@ -156,10 +177,7 @@ initializeImports = do
   displayPackages <- liftIO $ do
     (dflags, _) <- initPackages dflags
     let Just db = pkgDatabase dflags
-#if MIN_VERSION_ghc(7,10,0)
-        packageIdString = packageKeyPackageIdString dflags
-#endif
-        packageNames = map (packageIdString . packageConfigId) db
+        packageNames = map (packageIdString' dflags . packageConfigId) db
 
         initStr = "ihaskell-"
 
@@ -223,13 +241,14 @@ initializeItVariable = do
 type Publisher = (EvaluationResult -> IO ())
 
 -- | Output of a command evaluation.
-data EvalOut = EvalOut {
-    evalStatus :: ErrorOccurred,
-    evalResult :: Display,
-    evalState :: KernelState,
-    evalPager :: String,
-    evalComms :: [CommInfo]
-  }
+data EvalOut =
+       EvalOut
+         { evalStatus :: ErrorOccurred
+         , evalResult :: Display
+         , evalState :: KernelState
+         , evalPager :: String
+         , evalComms :: [CommInfo]
+         }
 
 cleanString :: String -> String
 cleanString x =  if allBrackets then clean else str
@@ -259,24 +278,23 @@ evaluate kernelState code output = do
       errs = mapMaybe (justError . unloc) cmds
 
   updated <- case errs of
-      -- Only run things if there are no parse errors.
-      [] -> do
-        when (getLintStatus kernelState /= LintOff) $ liftIO $ do
-          lintSuggestions <- lint cmds
-          unless (noResults lintSuggestions) $
-            output $ FinalResult lintSuggestions "" []
+               -- Only run things if there are no parse errors.
+               [] -> do
+                 when (getLintStatus kernelState /= LintOff) $ liftIO $ do
+                   lintSuggestions <- lint cmds
+                   unless (noResults lintSuggestions) $
+                     output $ FinalResult lintSuggestions "" []
 
-        runUntilFailure kernelState (map unloc cmds ++ [storeItCommand execCount])
-      -- Print all parse errors.
-      errs -> do
-        forM_ errs $ \err -> do
-          out <- evalCommand output err kernelState
-          liftIO $ output $ FinalResult (evalResult out) "" []
-        return kernelState
+                 runUntilFailure kernelState (map unloc cmds ++ [storeItCommand execCount])
+               -- Print all parse errors.
+               errs -> do
+                 forM_ errs $ \err -> do
+                   out <- evalCommand output err kernelState
+                   liftIO $ output $ FinalResult (evalResult out) "" []
+                 return kernelState
 
-  return updated {
-    getExecutionCounter = execCount + 1
-  }
+  return updated { getExecutionCounter = execCount + 1 }
+
   where
     noResults (Display res) = null res
     noResults (ManyDisplay res) = all noResults res
@@ -292,7 +310,7 @@ evaluate kernelState code output = do
       dispsMay <- liftIO dispsIO
       let result =
             case dispsMay of
-              Nothing -> evalResult evalOut
+              Nothing    -> evalResult evalOut
               Just disps -> evalResult evalOut <> disps
           helpStr = evalPager evalOut
 
@@ -314,7 +332,7 @@ evaluate kernelState code output = do
     extractValue expr = do
       compiled <- dynCompileExpr expr
       case fromDynamic compiled of
-        Nothing -> error "Expecting value!"
+        Nothing     -> error "Expecting value!"
         Just result -> return result
 
 safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
@@ -322,43 +340,47 @@ safely state = ghandle handler . ghandle sourceErrorHandler
   where
     handler :: SomeException -> Interpreter EvalOut
     handler exception =
-      return EvalOut {
-        evalStatus = Failure,
-        evalResult = displayError $ show exception,
-        evalState = state,
-        evalPager = "",
-        evalComms = []
-      }
+      return
+        EvalOut
+          { evalStatus = Failure
+          , evalResult = displayError $ show exception
+          , evalState = state
+          , evalPager = ""
+          , evalComms = []
+          }
 
     sourceErrorHandler :: SourceError -> Interpreter EvalOut
     sourceErrorHandler srcerr = do
       let msgs = bagToList $ srcErrorMessages srcerr
       errStrs <- forM msgs $ \msg -> do
-        shortStr <- doc $ errMsgShortDoc msg
-        contextStr <- doc $ errMsgExtraInfo msg
-        return $ unlines [shortStr, contextStr]
+                   shortStr <- doc $ errMsgShortDoc msg
+                   contextStr <- doc $ errMsgExtraInfo msg
+                   return $ unlines [shortStr, contextStr]
 
       let fullErr = unlines errStrs
 
-      return EvalOut {
-        evalStatus = Failure,
-        evalResult = displayError fullErr,
-        evalState = state,
-        evalPager = "",
-        evalComms = []
-      }
+      return
+        EvalOut
+          { evalStatus = Failure
+          , evalResult = displayError fullErr
+          , evalState = state
+          , evalPager = ""
+          , evalComms = []
+          }
 
 wrapExecution :: KernelState
               -> Interpreter Display
               -> Interpreter EvalOut
-wrapExecution state exec = safely state $ exec >>= \res ->
-    return EvalOut {
-      evalStatus = Success,
-      evalResult = res,
-      evalState = state,
-      evalPager = "",
-      evalComms = []
-    }
+wrapExecution state exec = safely state $ do
+  res <- exec
+  return
+    EvalOut
+      { evalStatus = Success
+      , evalResult = res
+      , evalState = state
+      , evalPager = ""
+      , evalComms = []
+      }
 
 -- | Return the display data for this command, as well as whether it
 -- resulted in an error.
@@ -393,18 +415,18 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
   -- Remember which modules we've loaded before.
   importedModules <- getContext
 
-  let -- Get the dot-delimited pieces of the module name.
+  let 
+      -- Get the dot-delimited pieces of the module name.
       moduleNameOf :: InteractiveImport -> [String]
       moduleNameOf (IIDecl decl) = split "." . moduleNameString . unLoc . ideclName $ decl
       moduleNameOf (IIModule imp) = split "." . moduleNameString $ imp
-
       -- Return whether this module prevents the loading of the one we're
       -- trying to load. If a module B exist, we cannot load A.B. All
       -- modules must have unique last names (where A.B has last name B).
       -- However, we *can* just reload a module.
       preventsLoading mod =
-        let pieces = moduleNameOf mod in
-            last namePieces == last pieces && namePieces /= pieces
+        let pieces = moduleNameOf mod
+        in last namePieces == last pieces && namePieces /= pieces
 
   -- If we've loaded anything with the same last name, we can't use this.
   -- Otherwise, GHC tries to load the original *.hs fails and then fails.
@@ -423,13 +445,19 @@ evalCommand output (Directive SetDynFlag flags) state = safely state $
   case words flags of
     [] -> do
       flags <- getSessionDynFlags
-      return EvalOut {
-          evalStatus = Success,
-          evalResult = Display [plain $ showSDoc flags $ vcat [pprDynFlags False flags, pprLanguages False flags]],
-          evalState = state,
-          evalPager = "",
-          evalComms = []
-      }
+      return
+        EvalOut
+          { evalStatus = Success
+          , evalResult = Display
+                           [ plain $ showSDoc flags $ vcat
+                                                        [ pprDynFlags False flags
+                                                        , pprLanguages False flags
+                                                        ]
+                           ]
+          , evalState = state
+          , evalPager = ""
+          , evalComms = []
+          }
 
     -- For a single flag.
     [flag] -> do
@@ -439,20 +467,22 @@ evalCommand output (Directive SetDynFlag flags) state = safely state $
       case find (elem flag . getSetName) kernelOpts of
         -- If this is a kernel option, just set it.
         Just (KernelOpt _ _ updater) ->
-            return EvalOut {
-              evalStatus = Success,
-              evalResult = mempty,
-              evalState = updater state,
-              evalPager = "",
-              evalComms = []
-            }
+          return
+            EvalOut
+              { evalStatus = Success
+              , evalResult = mempty
+              , evalState = updater state
+              , evalPager = ""
+              , evalComms = []
+              }
 
         -- If not a kernel option, must be a dyn flag.
         Nothing -> do
           errs <- setFlags [flag]
-          let display = case errs of
-                [] -> mempty
-                _ -> displayError $ intercalate "\n" errs
+          let display =
+                case errs of
+                  [] -> mempty
+                  _  -> displayError $ intercalate "\n" errs
 
           -- For -XNoImplicitPrelude, remove the Prelude import.
           -- For -XImplicitPrelude, add it back in.
@@ -466,13 +496,14 @@ evalCommand output (Directive SetDynFlag flags) state = safely state $
               setContext $ IIDecl implicitPrelude : imports
             _ -> return ()
 
-          return EvalOut {
-            evalStatus = Success,
-            evalResult = display,
-            evalState = state,
-            evalPager = "",
-            evalComms = []
-          }
+          return
+            EvalOut
+              { evalStatus = Success
+              , evalResult = display
+              , evalState = state
+              , evalPager = ""
+              , evalComms = []
+              }
 
     -- Apply many flags.
     flag:manyFlags -> do
@@ -481,11 +512,9 @@ evalCommand output (Directive SetDynFlag flags) state = safely state $
         Failure -> return firstEval
         Success -> do
           let newState = evalState firstEval
-              results  = evalResult firstEval
+              results = evalResult firstEval
           restEval <- evalCommand output (Directive SetDynFlag $ unwords manyFlags) newState
-          return restEval {
-            evalResult = results ++ evalResult restEval
-          }
+          return restEval { evalResult = results ++ evalResult restEval }
 
 evalCommand output (Directive SetExtension opts) state = do
   write state $ "Extension: " ++ opts
@@ -499,12 +528,11 @@ evalCommand output (Directive LoadModule mods) state = wrapExecution state $ do
         case firstChar of
           '+' -> (words remainder, False)
           '-' -> (words remainder, True)
-          _ -> (words stripped, False)
+          _   -> (words stripped, False)
 
-  forM_ modules $ \modl ->
-    if removeModule
-    then removeImport modl
-    else evalImport $ "import " ++ modl
+  forM_ modules $ \modl -> if removeModule
+                             then removeImport modl
+                             else evalImport $ "import " ++ modl
 
   return mempty
 
@@ -512,25 +540,26 @@ evalCommand a (Directive SetOption opts) state = do
   write state $ "Option: " ++ opts
   let (existing, nonExisting) = partition optionExists $ words opts
   if not $ null nonExisting
-  then
-    let err = "No such options: " ++ intercalate ", " nonExisting in
-    return EvalOut {
-      evalStatus = Failure,
-      evalResult = displayError err,
-      evalState = state,
-      evalPager = "",
-      evalComms = []
-    }
-  else
-    let options = mapMaybe findOption $ words opts
-        updater = foldl' (.) id $ map getUpdateKernelState options in
-      return EvalOut {
-        evalStatus = Success,
-        evalResult = mempty,
-        evalState = updater state,
-        evalPager = "",
-        evalComms = []
-      }
+    then let err = "No such options: " ++ intercalate ", " nonExisting
+         in return
+              EvalOut
+                { evalStatus = Failure
+                , evalResult = displayError err
+                , evalState = state
+                , evalPager = ""
+                , evalComms = []
+                }
+    else let options = mapMaybe findOption $ words opts
+             updater = foldl' (.) id $ map getUpdateKernelState options
+         in return
+              EvalOut
+                { evalStatus = Success
+                , evalResult = mempty
+                , evalState = updater state
+                , evalPager = ""
+                , evalComms = []
+                }
+
   where
     optionExists = isJust . findOption
     findOption opt =
@@ -538,7 +567,7 @@ evalCommand a (Directive SetOption opts) state = do
 
 evalCommand _ (Directive GetType expr) state = wrapExecution state $ do
   write state $ "Type: " ++ expr
-  formatType <$> ((expr ++ " :: ") ++ ) <$> getType expr
+  formatType <$> ((expr ++ " :: ") ++) <$> getType expr
 
 evalCommand _ (Directive GetKind expr) state = wrapExecution state $ do
   write state $ "Kind: " ++ expr
@@ -551,8 +580,8 @@ evalCommand _ (Directive LoadFile name) state = wrapExecution state $ do
   write state $ "Load: " ++ name
 
   let filename = if endswith ".hs" name
-                 then name
-                 else name ++ ".hs"
+                   then name
+                   else name ++ ".hs"
   contents <- readFile $ fpFromString filename
   modName <- intercalate "." <$> getModuleName contents
   doLoadModule filename modName
