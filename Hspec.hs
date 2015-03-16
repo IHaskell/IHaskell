@@ -312,6 +312,10 @@ evalTests = do
           x+z
       |] `becomes` ["21"]
 
+    it "evaluates flags" $  do
+      ":set -package hello" `becomes` ["Warning: -package not supported yet"]
+      ":set -XNoImplicitPrelude" `becomes` []
+
     it "evaluates multiline expressions" $  do
       [hereLit|
         import Control.Monad
