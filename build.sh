@@ -76,4 +76,8 @@ else
   cabal install -j $INSTALL_DIRS --force-reinstalls --constraint "arithmoi==0.4.*" --max-backjumps=-1 --reorder-goals
 fi
 
-if hash ihaskell 2>/dev/null; then ihaskell install; else echo "tip, don't forget run: ihaskell install"; fi
+if hash ihaskell 2>/dev/null; then
+    ihaskell install 2>/dev/null || echo "\"ihaskell install\" - failed, pls check your ipython --version required 3.0.0 but is $(ipython --version)"
+else
+  echo "tip, don't forget run: ihaskell install"
+fi
