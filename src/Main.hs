@@ -105,7 +105,7 @@ runKernel kernelOpts profileSrc = do
   Stdin.recordKernelProfile dir profile
 
   -- Serve on all sockets and ports defined in the profile.
-  interface <- serveProfile profile
+  interface <- serveProfile profile debug
 
   -- Create initial state in the directory the kernel *should* be in.
   state <- initialKernelState

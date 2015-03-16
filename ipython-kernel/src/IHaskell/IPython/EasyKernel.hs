@@ -174,7 +174,7 @@ easyKernel :: (MonadIO m)
 easyKernel profileFile config = do
   prof <- liftIO $ getProfile profileFile
   zmq@(Channels shellReqChan shellRepChan ctrlReqChan ctrlRepChan iopubChan _) <-
-    liftIO $ serveProfile prof
+    liftIO $ serveProfile prof False
   execCount <- liftIO $ newMVar 0
   forever $ do
     req <- liftIO $ readChan shellReqChan
