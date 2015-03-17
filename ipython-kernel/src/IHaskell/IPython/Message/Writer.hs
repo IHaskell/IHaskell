@@ -20,7 +20,7 @@ import IHaskell.IPython.Types
 -- Convert message bodies into JSON.
 instance ToJSON Message where
   toJSON KernelInfoReply{ versionList = vers, language = language } = object [
-                             "protocol_version" .= ints [4, 0], -- current protocol version, major and minor
+                             "protocol_version" .= string "5.0", -- current protocol version, major and minor
                              "language_version" .= vers,
                              "language" .= language
                            ]

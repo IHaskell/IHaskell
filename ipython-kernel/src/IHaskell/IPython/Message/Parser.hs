@@ -15,8 +15,6 @@ import           Data.Text (Text)
 import qualified Data.ByteString.Lazy as Lazy
 import           IHaskell.IPython.Types
 
-import Debug.Trace (traceShow)
-
 type LByteString = Lazy.ByteString
 
 ----- External interface -----
@@ -120,7 +118,7 @@ executeRequestParser content =
 
 requestParser parser content = parsed
   where
-    Success parsed = traceShow decoded $ parse parser decoded
+    Success parsed = parse parser decoded
     Just decoded = decode content
 
 historyRequestParser :: LByteString -> Message

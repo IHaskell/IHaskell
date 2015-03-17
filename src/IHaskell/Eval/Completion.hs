@@ -217,7 +217,10 @@ completionType line loc target
                   | otherwise = last target
         dots = intercalate "." . init
         isModName = all isCapitalized (init target)
-        isCapitalized = isUpper . head
+
+        isCapitalized [] = False
+        isCapitalized (x:_) = isUpper x
+
         lineUpToCursor = take loc line
         fileComplete filePath = case parseShell lineUpToCursor of
           Right xs -> filePath lineUpToCursor $

@@ -144,6 +144,7 @@ instance ToJSON MessageHeader where
                     "msg_id"  .= messageId header,
                     "session" .= sessionId header,
                     "username" .= username header,
+                    "version" .= ("5.0" :: String),
                     "msg_type" .= showMessageType (msgType header)
                   ]
 
