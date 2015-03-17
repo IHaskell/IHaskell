@@ -51,29 +51,31 @@ data ZeroMQStdin = StdinChannel {
 -- | via the provided profile. Return a set of channels which can be used to
 -- | communicate with IPython in a more structured manner. 
 serveProfile :: Profile            -- ^ The profile specifying which ports and transport mechanisms to use.
+             -> Bool               -- ^ Print debug output
              -> IO ZeroMQInterface -- ^ The Message-channel based interface to the sockets.
-serveProfile profile = do
+serveProfile profile debug = do
   -- Create all channels which will be used for higher level communication.
   shellReqChan <- newChan
   shellRepChan <- newChan
   controlReqChan <- dupChan shellReqChan
   controlRepChan <- dupChan shellRepChan
   iopubChan <- newChan
-  let channels = Channels shellReqChan shellRepChan controlReqChan controlRepChan iopubChan (signatureKey profile) 
+  let channels = Channels shellReqChan shellRepChan controlReqChan controlRepChan iopubChan
+                   (signatureKey profile)
 
   -- Create the context in a separate thread that never finishes. If
   -- withContext or withSocket complete, the context or socket become invalid.
   forkIO $ withContext $ \context -> do
     -- Serve on all sockets.
-    forkIO $ serveSocket context Rep    (hbPort profile)      $ heartbeat channels
-    forkIO $ serveSocket context Router (controlPort profile) $ control   channels
-    forkIO $ serveSocket context Router (shellPort profile)   $ shell     channels
+    forkIO $ serveSocket context Rep (hbPort profile) $ heartbeat channels
+    forkIO $ serveSocket context Router (controlPort profile) $ control debug channels
+    forkIO $ serveSocket context Router (shellPort profile) $ shell debug channels
 
     -- The context is reference counted in this thread only. Thus, the last
     -- serveSocket cannot be asynchronous, because otherwise context would
     -- be garbage collectable - since it would only be used in other
     -- threads. Thus, keep the last serveSocket in this thread.
-    serveSocket context Pub    (iopubPort profile)   $ iopub     channels
+    serveSocket context Pub (iopubPort profile) $ iopub debug channels
 
   return channels
 
@@ -88,10 +90,10 @@ serveStdin profile = do
     -- Serve on all sockets.
     serveSocket context Router (stdinPort profile) $ \socket -> do
       -- Read the request from the interface channel and send it.
-      readChan reqChannel >>= sendMessage (signatureKey profile) socket
+      readChan reqChannel >>= sendMessage False (signatureKey profile) socket
 
       -- Receive a response and write it to the interface channel.
-      receiveMessage socket >>= writeChan repChannel
+      receiveMessage False socket >>= writeChan repChannel
 
   return $ StdinChannel reqChannel repChannel
 
@@ -116,13 +118,13 @@ heartbeat _ socket = do
 -- | Listener on the shell port. Reads messages and writes them to
 -- | the shell request channel. For each message, reads a response from the
 -- | shell reply channel of the interface and sends it back to the frontend. 
-shell :: ZeroMQInterface -> Socket Router -> IO ()
-shell channels socket = do
+shell :: Bool -> ZeroMQInterface -> Socket Router -> IO ()
+shell debug channels socket = do
   -- Receive a message and write it to the interface channel.
-  receiveMessage socket >>= writeChan requestChannel
+  receiveMessage debug socket >>= writeChan requestChannel
 
   -- Read the reply from the interface channel and send it.
-  readChan replyChannel >>= sendMessage (hmacKey channels) socket
+  readChan replyChannel >>= sendMessage debug (hmacKey channels) socket
 
   where
     requestChannel = shellRequestChannel channels
@@ -131,13 +133,13 @@ shell channels socket = do
 -- | Listener on the shell port. Reads messages and writes them to
 -- | the shell request channel. For each message, reads a response from the
 -- | shell reply channel of the interface and sends it back to the frontend. 
-control :: ZeroMQInterface -> Socket Router -> IO ()
-control channels socket = do
+control :: Bool -> ZeroMQInterface -> Socket Router -> IO ()
+control debug channels socket = do
   -- Receive a message and write it to the interface channel.
-  receiveMessage socket >>= writeChan requestChannel
+  receiveMessage debug socket >>= writeChan requestChannel
 
   -- Read the reply from the interface channel and send it.
-  readChan replyChannel >>= sendMessage (hmacKey channels) socket
+  readChan replyChannel >>= sendMessage debug (hmacKey channels) socket
 
   where
     requestChannel = controlRequestChannel channels
@@ -146,13 +148,13 @@ control channels socket = do
 -- | Send messages via the iopub channel.
 -- | This reads messages from the ZeroMQ iopub interface channel 
 -- | and then writes the messages to the socket.
-iopub :: ZeroMQInterface -> Socket Pub -> IO ()
-iopub channels socket =
-  readChan (iopubChannel channels) >>= sendMessage (hmacKey channels) socket
+iopub :: Bool -> ZeroMQInterface -> Socket Pub -> IO ()
+iopub debug channels socket =
+  readChan (iopubChannel channels) >>= sendMessage debug (hmacKey channels) socket
 
 -- | Receive and parse a message from a socket.
-receiveMessage :: Receiver a => Socket a -> IO Message
-receiveMessage socket = do
+receiveMessage :: Receiver a => Bool -> Socket a -> IO Message
+receiveMessage debug socket = do
   -- Read all identifiers until the identifier/message delimiter.
   idents <- readUntil "<IDS|MSG>"
 
@@ -163,6 +165,12 @@ receiveMessage socket = do
   parentHeader <- next
   metadata <- next
   content <- next
+
+  when debug $ do
+    putStr "Header: "
+    Char.putStrLn headerData
+    putStr "Content: "
+    Char.putStrLn content
 
   let message = parseMessage idents headerData parentHeader metadata content
   return message
@@ -184,9 +192,11 @@ receiveMessage socket = do
 -- | Encode a message in the IPython ZeroMQ communication protocol 
 -- and send it through the provided socket. Sign it using HMAC
 -- with SHA-256 using the provided key.
-sendMessage :: Sender a => ByteString -> Socket a -> Message -> IO ()
-sendMessage _ _ SendNothing = return ()
-sendMessage hmacKey socket message = do
+sendMessage :: Sender a => Bool -> ByteString -> Socket a -> Message -> IO ()
+sendMessage _ _ _ SendNothing = return ()
+sendMessage debug hmacKey socket message = do
+  when debug $ print message
+
   -- Send all pieces of the message.
   mapM_ sendPiece idents
   sendPiece "<IDS|MSG>"
