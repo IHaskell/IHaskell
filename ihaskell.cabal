@@ -80,6 +80,7 @@ library
                        MissingH             >=1.2,
                        mtl                  >=2.1,
                        parsec               -any,
+                       pretty-show          -any,
                        process              >=1.1,
                        random               >=1.0,
                        shelly               >=1.5,

@@ -19,7 +19,8 @@ module IHaskell.Eval.Util (
   -- * Pretty printing
   doc,
   pprDynFlags,
-  pprLanguages
+  pprLanguages,
+  prettyShow
   ) where
 
 import           ClassyPrelude hiding ((<>))
@@ -48,6 +49,7 @@ import           Control.Monad (void)
 import           Data.Function (on)
 import           Data.String.Utils (replace)
 import           Data.List (nubBy)
+import           Text.Show.Pretty
 
 -- | A extension flag that can be set or unset.
 data ExtFlag
@@ -250,6 +252,23 @@ initGhci sandboxPackages = do
                                        ghcLink = LinkInMemory,
                                        pprCols = 300,
                                        extraPkgConfs = pkgConfs }
+
+  installInteractivePrint
+
+-- Reconfigurable pretty-printing Ticket #5461
+prettyShow :: Show a => a -> IO ()
+prettyShow x = putStrLn $ pack $ Text.Show.Pretty.ppShow x
+
+installInteractivePrint :: GhcMonad m => m ()
+installInteractivePrint = do
+  importDecl <- parseImportDecl "import qualified IHaskell.Eval.Util"
+  let pretty = importDecl { ideclImplicit = True }
+  imports <- getContext
+  setContext $ IIDecl pretty : imports
+
+  (name:_) <- GHC.parseName "IHaskell.Eval.Util.prettyShow"
+  modifySession (\he -> let new_ic = setInteractivePrintName (hsc_IC he) name
+                        in he{hsc_IC = new_ic})
 
 -- | Evaluate a single import statement.
 -- If this import statement is importing a module which was previously
