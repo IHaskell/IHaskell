@@ -328,10 +328,13 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
 
 
 replyTo _ req@CompleteRequest{} replyHeader state = do
-  let line = getCodeLine req
-  (matchedText, completions) <- complete (unpack line) (getCursorPos req)
+  let code = getCode req
+      pos = getCursorPos req
+  (matchedText, completions) <- complete (unpack code) pos
 
-  let reply =  CompleteReply replyHeader (map pack completions) (pack matchedText) line True
+  let start = pos - length matchedText
+      end = pos
+      reply =  CompleteReply replyHeader (map pack completions) start end Map.empty True
   return (state,  reply)
 
 -- Reply to the object_info_request message. Given an object name, return

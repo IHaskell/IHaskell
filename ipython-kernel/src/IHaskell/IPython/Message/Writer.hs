@@ -20,7 +20,7 @@ import IHaskell.IPython.Types
 -- Convert message bodies into JSON.
 instance ToJSON Message where
   toJSON KernelInfoReply{ versionList = vers, language = language } = object [
-                             "protocol_version" .= ints [4, 0], -- current protocol version, major and minor
+                             "protocol_version" .= string "5.0", -- current protocol version, major and minor
                              "language_version" .= vers,
                              "language" .= language
                            ]
@@ -60,11 +60,12 @@ instance ToJSON Message where
                              "execution_count" .= execCount,
                              "code" .= code
                            ]
-  toJSON (CompleteReply _ m mt t s) = object [
-                             "matches" .= m,
-                             "matched_text" .= mt,
-                             "text" .= t,
-                             "status" .= if s then string "ok" else "error"
+  toJSON (CompleteReply _ matches start end metadata status) = object [
+                             "matches" .= matches,
+                             "cursor_start" .= start,
+                             "cursor_end" .= end,
+                             "metadata" .= metadata,
+                             "status" .= if status then string "ok" else "error"
                            ]
   toJSON o@ObjectInfoReply{} = object [
                             "oname" .= objectName o,

@@ -16,7 +16,7 @@ import ClassyPrelude hiding (init, last, head, liftIO)
 --import Prelude
 
 import Control.Applicative ((<$>))
-import Data.ByteString.UTF8 hiding (drop, take)
+import Data.ByteString.UTF8 hiding (drop, take, lines, length)
 import Data.Char
 import Data.List (nub, init, last, head, elemIndex)
 import Data.List.Split
@@ -60,7 +60,17 @@ data CompletionType
      deriving (Show, Eq)
 
 complete :: String -> Int -> Interpreter (String, [String])
-complete line pos = do
+complete code posOffset = do
+
+  -- Get the line of code which is being completed and offset within that line
+  let findLine offset (first:rest) = 
+        if offset <= length first
+        then (offset, first)
+        else findLine (offset - length first - 1) rest
+      findLine _ [] = error $ "Could not find line: " ++ show (map length $ lines code, posOffset)
+      (pos, line) = findLine posOffset (lines code)
+  
+
   flags <- getSessionDynFlags
   rdrNames <- map (showPpr flags) <$> getRdrNamesInScope
   scopeNames <- nub <$> map (showPpr flags) <$> getNamesInScope
@@ -207,7 +217,10 @@ completionType line loc target
                   | otherwise = last target
         dots = intercalate "." . init
         isModName = all isCapitalized (init target)
-        isCapitalized = isUpper . head
+
+        isCapitalized [] = False
+        isCapitalized (x:_) = isUpper x
+
         lineUpToCursor = take loc line
         fileComplete filePath = case parseShell lineUpToCursor of
           Right xs -> filePath lineUpToCursor $

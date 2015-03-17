@@ -65,7 +65,7 @@ parseFlags flags =
       -- Treat no mode as 'console'.
       if "--help" `elem` flags
         then Left $ pack (showText (Wrap 100) $ helpText [] HelpFormatAll ihaskellArgs)
-        else process ihaskellArgs $ "console" : flags
+        else process ihaskellArgs flags
     Just 0 -> process ihaskellArgs flags
 
     Just idx ->

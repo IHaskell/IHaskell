@@ -233,6 +233,9 @@ replyTo config execCount interface req@ExecuteRequest { getCode = code } replyHe
            }
 
 replyTo config _ _ req@CompleteRequest{} replyHeader = do
+  -- TODO: FIX
+  error "Unimplemented in IPython 3.0"
+  {-
   let code = getCode req
       line = getCodeLine req
       col = getCursorPos req
@@ -254,6 +257,7 @@ replyTo config _ _ req@CompleteRequest{} replyHeader = do
                  , completionText = cmplText
                  , completionStatus = True
                  }
+        -}
 
 replyTo config _ _ ObjectInfoRequest { objectName = obj } replyHeader =
   return $ case objectInfo config obj of
