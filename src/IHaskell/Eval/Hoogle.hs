@@ -1,43 +1,38 @@
 {-# LANGUAGE NoImplicitPrelude, FlexibleInstances, OverloadedStrings #-}
-module IHaskell.Eval.Hoogle (
-  search,
-  document,
-  render,
-  OutputFormat(..),
-  HoogleResult
-  ) where
 
-import ClassyPrelude hiding (last, span, div)
-import Text.Printf
-import Network.HTTP.Client
-import Network.HTTP.Client.TLS
-import Data.Aeson
-import Data.String.Utils
-import Data.List (elemIndex, (!!), last)
-import Data.Char (isAscii, isAlphaNum)
+module IHaskell.Eval.Hoogle (
+    search,
+    document,
+    render,
+    OutputFormat(..),
+    HoogleResult,
+    ) where
+
+import           ClassyPrelude hiding (last, span, div)
+import           Text.Printf
+import           Network.HTTP.Client
+import           Network.HTTP.Client.TLS
+import           Data.Aeson
+import           Data.String.Utils
+import           Data.List (elemIndex, (!!), last)
+import           Data.Char (isAscii, isAlphaNum)
 import qualified Data.ByteString.Lazy.Char8 as Char
 import qualified Prelude as P
 
 
-import IHaskell.IPython
+import           IHaskell.IPython
 
 -- | Types of formats to render output to.
-data OutputFormat
-     = Plain      -- ^ Render to plain text.
-     | HTML       -- ^ Render to HTML.
+data OutputFormat = Plain      -- ^ Render to plain text.
+                  | HTML       -- ^ Render to HTML.
 
-data HoogleResponse = HoogleResponse {
-    location :: String,
-    self :: String,
-    docs :: String
-  }
+data HoogleResponse = HoogleResponse { location :: String, self :: String, docs :: String }
   deriving (Eq, Show)
 
-data HoogleResult
-     = SearchResult HoogleResponse
-     | DocResult HoogleResponse
-     | NoResult String
-     deriving Show
+data HoogleResult = SearchResult HoogleResponse
+                  | DocResult HoogleResponse
+                  | NoResult String
+  deriving Show
 
 instance FromJSON [HoogleResponse] where
   parseJSON (Object obj) = do
@@ -48,23 +43,21 @@ instance FromJSON [HoogleResponse] where
 
 instance FromJSON HoogleResponse where
   parseJSON (Object obj) =
-    HoogleResponse      <$>
-    obj .: "location" <*>
-    obj .: "self"     <*>
-    obj .: "docs"
+    HoogleResponse <$> obj .: "location" <*> obj .: "self" <*> obj .: "docs"
 
   parseJSON _ = fail "Expected object with fields: location, self, docs"
 
--- | Query Hoogle for the given string.
--- This searches Hoogle using the internet. It returns either an error
--- message or the successful JSON result.
+-- | Query Hoogle for the given string. This searches Hoogle using the internet. It returns either
+-- an error message or the successful JSON result.
 query :: String -> IO (Either String String)
 query str = do
   request <- parseUrl $ queryUrl $ urlEncode str
   response <- try $ withManager tlsManagerSettings $ httpLbs request
-  return $ case response of
-    Left err -> Left $ show (err :: SomeException)
-    Right resp -> Right $ Char.unpack $ responseBody resp
+  return $
+    case response of
+      Left err   -> Left $ show (err :: SomeException)
+      Right resp -> Right $ Char.unpack $ responseBody resp
+
   where
     queryUrl :: String -> String
     queryUrl = printf "https://www.haskell.org/hoogle/?hoogle=%s&mode=json"
@@ -76,53 +69,54 @@ urlEncode (ch:t)
   | (isAscii ch && isAlphaNum ch) || ch `P.elem` "-_.~" = ch : urlEncode t
   | not (isAscii ch) = P.foldr escape (urlEncode t) (eightBs [] (P.fromEnum ch))
   | otherwise = escape (P.fromEnum ch) (urlEncode t)
-    where
-     escape :: Int -> String -> String
-     escape b rs = '%':showH (b `P.div` 16) (showH (b `mod` 16) rs)
-     
-     showH :: Int -> String -> String
-     showH x xs
-       | x <= 9    = toEnum (o_0 + x) : xs
-       | otherwise = toEnum (o_A + (x-10)) : xs
-      where
-       o_0 = P.fromEnum '0'
-       o_A = P.fromEnum 'A'
+  where
+    escape :: Int -> String -> String
+    escape b rs = '%' : showH (b `P.div` 16) (showH (b `mod` 16) rs)
 
-     eightBs :: [Int]  -> Int -> [Int]
-     eightBs acc x
-      | x <= 0xff = (x:acc)
+    showH :: Int -> String -> String
+    showH x xs
+      | x <= 9 = toEnum (o_0 + x) : xs
+      | otherwise = toEnum (o_A + (x - 10)) : xs
+      where
+        o_0 = P.fromEnum '0'
+        o_A = P.fromEnum 'A'
+
+    eightBs :: [Int] -> Int -> [Int]
+    eightBs acc x
+      | x <= 255 = x : acc
       | otherwise = eightBs ((x `mod` 256) : acc) (x `P.div` 256)
 
--- | Search for a query on Hoogle.
--- Return all search results.
+-- | Search for a query on Hoogle. Return all search results.
 search :: String -> IO [HoogleResult]
 search string = do
   response <- query string
-  return $ case response of
-    Left err -> [NoResult err]
-    Right json ->
-      case eitherDecode $ Char.pack json of
-        Left err -> [NoResult err]
-        Right results ->
-          case map SearchResult results of
-            [] -> [NoResult "no matching identifiers found."]
-            res -> res
+  return $
+    case response of
+      Left err -> [NoResult err]
+      Right json ->
+        case eitherDecode $ Char.pack json of
+          Left err -> [NoResult err]
+          Right results ->
+            case map SearchResult results of
+              []  -> [NoResult "no matching identifiers found."]
+              res -> res
 
--- | Look up an identifier on Hoogle.
--- Return documentation for that identifier. If there are many
+-- | Look up an identifier on Hoogle. Return documentation for that identifier. If there are many
 -- identifiers, include documentation for all of them.
 document :: String -> IO [HoogleResult]
 document string = do
   matchingResults <- filter matches <$> search string
   let results = map toDocResult matchingResults
-  return $ case results of
-    [] -> [NoResult "no matching identifiers found."]
-    res -> res
+  return $
+    case results of
+      []  -> [NoResult "no matching identifiers found."]
+      res -> res
+
   where
     matches (SearchResult resp) =
       case split " " $ self resp of
         name:_ -> strip string == strip name
-        _ -> False
+        _      -> False
     matches _ = False
 
     toDocResult (SearchResult resp) = DocResult resp
@@ -130,7 +124,7 @@ document string = do
 -- | Render a Hoogle search result into an output format.
 render :: OutputFormat -> HoogleResult -> String
 render Plain = renderPlain
-render HTML  = renderHtml
+render HTML = renderHtml
 
 -- | Render a Hoogle result to plain text.
 renderPlain :: HoogleResult -> String
@@ -139,16 +133,10 @@ renderPlain (NoResult res) =
   "No response available: " ++ res
 
 renderPlain (SearchResult resp) =
-  printf "%s\nURL: %s\n%s"
-  (self resp)
-  (location resp)
-  (docs resp)
+  printf "%s\nURL: %s\n%s" (self resp) (location resp) (docs resp)
 
 renderPlain (DocResult resp) =
-  printf "%s\nURL: %s\n%s"
-  (self resp)
-  (location resp)
-  (docs resp)
+  printf "%s\nURL: %s\n%s" (self resp) (location resp) (docs resp)
 
 -- | Render a Hoogle result to HTML.
 renderHtml :: HoogleResult -> String
@@ -167,37 +155,37 @@ renderHtml (SearchResult resp) =
 
 renderSelf :: String -> String -> String
 renderSelf string loc
-  | startswith "package" string
-    = pkg ++ " " ++ span "hoogle-package" (link loc $ extractPackage string)
+  | startswith "package" string =
+      pkg ++ " " ++ span "hoogle-package" (link loc $ extractPackage string)
 
-  | startswith "module" string
-    = let package = extractPackageName loc in
-        mod ++ " " ++
-        span "hoogle-module" (link loc $ extractModule string) ++
-        packageSub package
+  | startswith "module" string =
+      let package = extractPackageName loc
+      in mod ++ " " ++
+                span "hoogle-module" (link loc $ extractModule string) ++
+                packageSub package
 
-  | startswith "class" string
-    = let package = extractPackageName loc in
-        cls ++ " " ++
-        span "hoogle-class" (link loc $ extractClass string) ++
-        packageSub package
+  | startswith "class" string =
+      let package = extractPackageName loc
+      in cls ++ " " ++
+                span "hoogle-class" (link loc $ extractClass string) ++
+                packageSub package
 
-  | startswith "data" string
-    = let package = extractPackageName loc in
-        dat ++ " " ++
-        span "hoogle-class" (link loc $ extractData string) ++
-        packageSub package
+  | startswith "data" string =
+      let package = extractPackageName loc
+      in dat ++ " " ++
+                span "hoogle-class" (link loc $ extractData string) ++
+                packageSub package
 
-  | otherwise
-    = let [name, args] = split "::" string
+  | otherwise =
+      let [name, args] = split "::" string
           package = extractPackageName loc
-          modname = extractModuleName loc in
-        span "hoogle-name" (unicodeReplace $
-          link loc (strip name) ++
-          " :: " ++
-          strip args)
-        ++ packageAndModuleSub package modname
-
+          modname = extractModuleName loc
+      in span "hoogle-name"
+           (unicodeReplace $
+              link loc (strip name) ++
+              " :: " ++
+              strip args)
+         ++ packageAndModuleSub package modname
   where
     extractPackage = strip . replace "package" ""
     extractModule = strip . replace "module" ""
@@ -210,10 +198,10 @@ renderSelf string loc
 
     unicodeReplace :: String -> String
     unicodeReplace =
-     replace "forall" "&#x2200;" .
-     replace "=>"     "&#x21D2;" .
-     replace "->"     "&#x2192;" .
-     replace "::"     "&#x2237;"
+      replace "forall" "&#x2200;" .
+      replace "=>" "&#x21D2;" .
+      replace "->" "&#x2192;" .
+      replace "::" "&#x2237;"
 
     packageSub Nothing = ""
     packageSub (Just package) =
@@ -223,9 +211,9 @@ renderSelf string loc
     packageAndModuleSub Nothing _ = ""
     packageAndModuleSub (Just package) Nothing = packageSub (Just package)
     packageAndModuleSub (Just package) (Just modname) =
-        span "hoogle-sub" $
-          "(" ++ pkg ++ " " ++ span "hoogle-package" package ++
-           ", " ++ mod ++ " " ++ span "hoogle-module" modname ++ ")"
+      span "hoogle-sub" $
+        "(" ++ pkg ++ " " ++ span "hoogle-package" package ++
+                             ", " ++ mod ++ " " ++ span "hoogle-module" modname ++ ")"
 
 renderDocs :: String -> String
 renderDocs doc =
@@ -237,12 +225,11 @@ renderDocs doc =
       isCode (s:_) = startswith ">" $ strip s
       makeBlock lines =
         if isCode lines
-        then div "hoogle-code" $ unlines $ nonull lines
-        else div "hoogle-text" $ unlines $ nonull lines
-      in
-    div "hoogle-doc" $ unlines $ map makeBlock groups
+          then div "hoogle-code" $ unlines $ nonull lines
+          else div "hoogle-text" $ unlines $ nonull lines
+  in div "hoogle-doc" $ unlines $ map makeBlock groups
 
-extractPackageName :: String ->  Maybe String
+extractPackageName :: String -> Maybe String
 extractPackageName link = do
   let pieces = split "/" link
   archiveLoc <- elemIndex "archive" pieces
@@ -250,7 +237,7 @@ extractPackageName link = do
   guard $ latestLoc - archiveLoc == 2
   return $ pieces !! (latestLoc - 1)
 
-extractModuleName :: String ->  Maybe String
+extractModuleName :: String -> Maybe String
 extractModuleName link = do
   let pieces = split "/" link
   guard $ not $ null pieces

@@ -16,3 +16,5 @@ todo
 profile/profile.tar
 .cabal-sandbox
 cabal.sandbox.config
+.tmp1
+.tmp2

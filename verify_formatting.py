@@ -8,8 +8,9 @@ import subprocess
 
 
 def hindent(contents):
-    return subprocess.check_output(["hindent", "--style", "gibiansky"],
-                                   input=bytes(contents, 'utf-8'))
+    output = subprocess.check_output(["hindent", "--style", "gibiansky"],
+                                     input=bytes(contents, 'utf-8'))
+    return output.decode('utf-8')
 
 
 def diff(src1, src2):
@@ -20,7 +21,11 @@ def diff(src1, src2):
     with open(".tmp2", "w") as f2:
         f2.write(src2)
 
-    return subprocess.check_output(["diff", ".tmp1", ".tmp2"])
+    try:
+        output = subprocess.check_output(["diff", ".tmp1", ".tmp2"])
+        return output.decode('utf-8')
+    except subprocess.CalledProcessError as e:
+        return e.output.decode('utf-8')
 
 # Verify that we're in the right directory
 try:
@@ -35,6 +40,8 @@ for root, dirnames, filenames in os.walk("src"):
     for filename in filenames:
         if filename.endswith(".hs"):
             sources.append(os.path.join(root, filename))
+            break
+    break
 
 
 hindent_outputs = {}
@@ -47,9 +54,15 @@ for source_file in sources:
     hindent_outputs[source_file] = (original_source, formatted_source)
 
 diffs = {filename: diff(original, formatted)
-         for (filename, (original, formatted)) in hindent_outputs.values()}
+         for (filename, (original, formatted)) in hindent_outputs.items()}
 
+incorrect_formatting = False
 for filename, diff in diffs.items():
-    print(filename)
-    print('=' * 10)
-    print(diff)
+    if diff:
+        incorrect_formatting = True
+        print('Incorrect formatting in', filename)
+        print('=' * 10)
+        print(diff)
+
+if incorrect_formatting:
+    sys.exit(1)

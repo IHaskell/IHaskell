@@ -1,23 +1,21 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
-{- | Description : Inspect type and function information and documentation.
--}
-module IHaskell.Eval.Info (
-  info
-  ) where
 
-import ClassyPrelude hiding (liftIO)
+{- | Description : Inspect type and function information and documentation.  -}
+module IHaskell.Eval.Info (info) where
 
-import IHaskell.Eval.Evaluate (typeCleaner, Interpreter)
+import           ClassyPrelude hiding (liftIO)
 
-import GHC
-import Outputable
-import Exception
+import           IHaskell.Eval.Evaluate (typeCleaner, Interpreter)
+
+import           GHC
+import           Outputable
+import           Exception
 
 info :: String -> Interpreter String
 info name = ghandle handler $ do
   dflags <- getSessionDynFlags
   result <- exprType name
-  return $ typeCleaner $ showPpr dflags result 
-  where 
+  return $ typeCleaner $ showPpr dflags result
+  where
     handler :: SomeException -> Interpreter String
     handler _ = return ""
