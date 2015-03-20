@@ -6,87 +6,101 @@
 This module exports all functions used for evaluation of IHaskell input.
 -}
 module IHaskell.Eval.Evaluate (
-  interpret, evaluate, Interpreter, liftIO, typeCleaner, globalImports
-  ) where
+    interpret,
+    evaluate,
+    Interpreter,
+    liftIO,
+    typeCleaner,
+    globalImports,
+    ) where
 
-import ClassyPrelude hiding (init, last, liftIO, head, hGetContents, tail, try)
-import Control.Concurrent (forkIO, threadDelay)
-import Prelude (putChar, head, tail, last, init, (!!))
-import Data.List.Utils
-import Data.List (findIndex, and, foldl1)
-import Data.String.Utils
-import Text.Printf
-import Data.Char as Char
-import Data.Dynamic
-import Data.Typeable
+import           ClassyPrelude hiding (init, last, liftIO, head, hGetContents, tail, try)
+import           Control.Concurrent (forkIO, threadDelay)
+import           Prelude (putChar, head, tail, last, init, (!!))
+import           Data.List.Utils
+import           Data.List (findIndex, and, foldl1)
+import           Data.String.Utils
+import           Text.Printf
+import           Data.Char as Char
+import           Data.Dynamic
+import           Data.Typeable
 import qualified Data.Serialize as Serialize
-import System.Directory
-import Filesystem.Path.CurrentOS (encodeString)
+import           System.Directory
+import           Filesystem.Path.CurrentOS (encodeString)
 #if !MIN_VERSION_base(4,8,0)
-import System.Posix.IO (createPipe)
+import           System.Posix.IO (createPipe)
 #endif
-import System.Posix.IO (fdToHandle)
-import System.IO (hGetChar, hFlush)
-import System.Random (getStdGen, randomRs)
-import Unsafe.Coerce
-import Control.Monad (guard)
-import System.Process
-import System.Exit
-import Data.Maybe (fromJust)
+import           System.Posix.IO (fdToHandle)
+import           System.IO (hGetChar, hFlush)
+import           System.Random (getStdGen, randomRs)
+import           Unsafe.Coerce
+import           Control.Monad (guard)
+import           System.Process
+import           System.Exit
+import           Data.Maybe (fromJust)
 import qualified Control.Monad.IO.Class as MonadIO (MonadIO, liftIO)
 import qualified MonadUtils (MonadIO, liftIO)
-import System.Environment (getEnv)
+import           System.Environment (getEnv)
 import qualified Data.Map as Map
 
-import NameSet
-import Name
-import PprTyThing
-import InteractiveEval
-import DynFlags
-import Type
-import Exception (gtry)
-import HscTypes
-import HscMain
+import           NameSet
+import           Name
+import           PprTyThing
+import           InteractiveEval
+import           DynFlags
+import           Type
+import           Exception (gtry)
+import           HscTypes
+import           HscMain
 import qualified Linker
-import TcType
-import Unify
-import InstEnv
-import GhcMonad (liftIO, withSession)
-import GHC hiding (Stmt, TypeSig)
-import Exception hiding (evaluate)
-import Outputable hiding ((<>))
-import Packages
-import Module hiding (Module)
+import           TcType
+import           Unify
+import           InstEnv
+import           GhcMonad (liftIO, withSession)
+import           GHC hiding (Stmt, TypeSig)
+import           Exception hiding (evaluate)
+import           Outputable hiding ((<>))
+import           Packages
+import           Module hiding (Module)
 import qualified Pretty
-import FastString
-import Bag
-import ErrUtils (errMsgShortDoc, errMsgExtraInfo)
+import           FastString
+import           Bag
+import           ErrUtils (errMsgShortDoc, errMsgExtraInfo)
 
 import qualified System.IO.Strict as StrictIO
 
-import IHaskell.Types
-import IHaskell.IPython
-import IHaskell.Eval.Parser
-import IHaskell.Eval.Lint
-import IHaskell.Display
+import           IHaskell.Types
+import           IHaskell.IPython
+import           IHaskell.Eval.Parser
+import           IHaskell.Eval.Lint
+import           IHaskell.Display
 import qualified IHaskell.Eval.Hoogle as Hoogle
-import IHaskell.Eval.Util
-import IHaskell.BrokenPackages
-import qualified  IHaskell.IPython.Message.UUID      as UUID
+import           IHaskell.Eval.Util
+import           IHaskell.BrokenPackages
+import qualified IHaskell.IPython.Message.UUID as UUID
 
-import Paths_ihaskell (version)
-import Data.Version (versionBranch)
+import           Paths_ihaskell (version)
+import           Data.Version (versionBranch)
 
-data ErrorOccurred = Success | Failure deriving (Show, Eq)
+data ErrorOccurred = Success
+                   | Failure
+  deriving (Show, Eq)
 
 -- | Set GHC's verbosity for debugging
 ghcVerbosity :: Maybe Int
 ghcVerbosity = Nothing -- Just 5
 
 ignoreTypePrefixes :: [String]
-ignoreTypePrefixes = ["GHC.Types", "GHC.Base", "GHC.Show", "System.IO",
-                      "GHC.Float", ":Interactive", "GHC.Num", "GHC.IO",
-                      "GHC.Integer.Type"]
+ignoreTypePrefixes = [ "GHC.Types"
+                     , "GHC.Base"
+                     , "GHC.Show"
+                     , "System.IO"
+                     , "GHC.Float"
+                     , ":Interactive"
+                     , "GHC.Num"
+                     , "GHC.IO"
+                     , "GHC.Integer.Type"
+                     ]
 
 typeCleaner :: String -> String
 typeCleaner = useStringType . foldl' (.) id (map (`replace` "") fullPrefixes)
@@ -98,14 +112,12 @@ write :: GhcMonad m => KernelState -> String -> m ()
 write state x = when (kernelDebug state) $ liftIO $ hPutStrLn stderr $ "DEBUG: " ++ x
 
 type Interpreter = Ghc
-
 #if MIN_VERSION_ghc(7, 8, 0)
    -- GHC 7.8 exports a MonadIO instance for Ghc
 #else
 instance MonadIO.MonadIO Interpreter where
-    liftIO = MonadUtils.liftIO
+  liftIO = MonadUtils.liftIO
 #endif
-
 globalImports :: [String]
 globalImports =
   [ "import IHaskell.Display()"
@@ -118,23 +130,23 @@ globalImports =
   , "import qualified Language.Haskell.TH as IHaskellTH"
   ]
 
--- | Run an interpreting action. This is effectively runGhc with
--- initialization and importing. First argument indicates whether `stdin`
--- is handled specially, which cannot be done in a testing environment.
+-- | Run an interpreting action. This is effectively runGhc with initialization and importing. First
+-- argument indicates whether `stdin` is handled specially, which cannot be done in a testing
+-- environment.
 interpret :: String -> Bool -> Interpreter a -> IO a
 interpret libdir allowedStdin action = runGhc (Just libdir) $ do
   -- If we're in a sandbox, add the relevant package database
   sandboxPackages <- liftIO getSandboxPackageConf
   initGhci sandboxPackages
   case ghcVerbosity of
-    Just verb -> do dflags <- getSessionDynFlags
-                    void $ setSessionDynFlags $ dflags { verbosity = verb }
-    Nothing   -> return ()
+    Just verb -> do
+      dflags <- getSessionDynFlags
+      void $ setSessionDynFlags $ dflags { verbosity = verb }
+    Nothing -> return ()
 
   initializeImports
 
-  -- Close stdin so it can't be used.
-  -- Otherwise it'll block the kernel forever.
+  -- Close stdin so it can't be used. Otherwise it'll block the kernel forever.
   dir <- liftIO getIHaskellDir
   let cmd = printf "IHaskell.IPython.Stdin.fixStdin \"%s\"" dir
   when allowedStdin $ void $
@@ -144,13 +156,11 @@ interpret libdir allowedStdin action = runGhc (Just libdir) $ do
 
   -- Run the rest of the interpreter
   action
-
 #if MIN_VERSION_ghc(7,10,0)
 packageIdString' dflags = packageKeyPackageIdString dflags
 #else
 packageIdString' dflags = packageIdString
 #endif
-
 -- | Initialize our GHC session with imports and a value for 'it'.
 initializeImports :: Interpreter ()
 initializeImports = do
@@ -219,8 +229,8 @@ initializeImports = do
 -- | Give a value for the `it` variable.
 initializeItVariable :: Interpreter ()
 initializeItVariable = do
-  -- This is required due to the way we handle `it` in the wrapper
-  -- statements - if it doesn't exist, the first statement will fail.
+  -- This is required due to the way we handle `it` in the wrapper statements - if it doesn't exist,
+  -- the first statement will fail.
   void $ runStmt "let it = ()" RunToCompletion
 
 -- | Publisher for IHaskell outputs. The first argument indicates whether this output is final
@@ -499,12 +509,11 @@ evalCommand output (Directive LoadModule mods) state = wrapExecution state $ do
         case firstChar of
           '+' -> (words remainder, False)
           '-' -> (words remainder, True)
-          _ -> (words stripped, False)
+          _   -> (words stripped, False)
 
-  forM_ modules $ \modl ->
-    if removeModule
-    then removeImport modl
-    else evalImport $ "import " ++ modl
+  forM_ modules $ \modl -> if removeModule
+                             then removeImport modl
+                             else evalImport $ "import " ++ modl
 
   return mempty
 
@@ -512,25 +521,26 @@ evalCommand a (Directive SetOption opts) state = do
   write state $ "Option: " ++ opts
   let (existing, nonExisting) = partition optionExists $ words opts
   if not $ null nonExisting
-  then
-    let err = "No such options: " ++ intercalate ", " nonExisting in
-    return EvalOut {
-      evalStatus = Failure,
-      evalResult = displayError err,
-      evalState = state,
-      evalPager = "",
-      evalComms = []
-    }
-  else
-    let options = mapMaybe findOption $ words opts
-        updater = foldl' (.) id $ map getUpdateKernelState options in
-      return EvalOut {
-        evalStatus = Success,
-        evalResult = mempty,
-        evalState = updater state,
-        evalPager = "",
-        evalComms = []
-      }
+    then let err = "No such options: " ++ intercalate ", " nonExisting
+         in return
+              EvalOut
+                { evalStatus = Failure
+                , evalResult = displayError err
+                , evalState = state
+                , evalPager = ""
+                , evalComms = []
+                }
+    else let options = mapMaybe findOption $ words opts
+             updater = foldl' (.) id $ map getUpdateKernelState options
+         in return
+              EvalOut
+                { evalStatus = Success
+                , evalResult = mempty
+                , evalState = updater state
+                , evalPager = ""
+                , evalComms = []
+                }
+
   where
     optionExists = isJust . findOption
     findOption opt =
@@ -538,7 +548,7 @@ evalCommand a (Directive SetOption opts) state = do
 
 evalCommand _ (Directive GetType expr) state = wrapExecution state $ do
   write state $ "Type: " ++ expr
-  formatType <$> ((expr ++ " :: ") ++ ) <$> getType expr
+  formatType <$> ((expr ++ " :: ") ++) <$> getType expr
 
 evalCommand _ (Directive GetKind expr) state = wrapExecution state $ do
   write state $ "Kind: " ++ expr
@@ -551,8 +561,8 @@ evalCommand _ (Directive LoadFile name) state = wrapExecution state $ do
   write state $ "Load: " ++ name
 
   let filename = if endswith ".hs" name
-                 then name
-                 else name ++ ".hs"
+                   then name
+                   else name ++ ".hs"
   contents <- readFile $ fpFromString filename
   modName <- intercalate "." <$> getModuleName contents
   doLoadModule filename modName
@@ -651,8 +661,6 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
           pipe <- fdToHandle readEnd
           return (pipe, handle)
 #endif
-
-
 -- This is taken largely from GHCi's info section in InteractiveUI.
 evalCommand _ (Directive GetHelp _) state = do
   write state "Help via :help or :?."
@@ -842,7 +850,7 @@ evalCommand output (Expression expr) state = do
         msg = extractPlain errs
 
     isSvg (DisplayData mime _) = mime == MimeSvg
-    
+
     removeSvg :: Display -> Display
     removeSvg (Display disps) = Display $ filter (not . isSvg) disps
     removeSvg (ManyDisplay disps) = ManyDisplay $ map removeSvg disps
@@ -865,7 +873,7 @@ evalCommand output (Expression expr) state = do
           -- Compile the display data into a bytestring.
           let compileExpr = "fmap IHaskell.Display.serializeDisplay (IHaskell.Display.display it)"
           displayedBytestring <- dynCompileExpr compileExpr
-    
+
           -- Convert from the bytestring into a display.
           case fromDynamic displayedBytestring of
             Nothing -> error "Expecting lazy Bytestring"
@@ -895,13 +903,9 @@ evalCommand output (Expression expr) state = do
                   state' = state { openComms = newComms }
 
               -- Store the fact that we should start this comm.
-              return evalOut
-                  { evalComms = CommInfo
-                                  widget
-                                  uuid
-                                  (targetName
-                                    widget) : evalComms
-                                                evalOut
+              return
+                evalOut
+                  { evalComms = CommInfo widget uuid (targetName widget) : evalComms evalOut
                   , evalState = state'
                   }
 
@@ -912,11 +916,12 @@ evalCommand output (Expression expr) state = do
       where
         Display disps = evalResult evalOut
         text = extractPlain disps
-    
+
         postprocess (DisplayData MimeHtml _) = html $ printf
                                                         fmt
                                                         unshowableType
-                                                        (formatErrorWithClass "err-msg collapse" text)
+                                                        (formatErrorWithClass "err-msg collapse"
+                                                           text)
                                                         script
           where
             fmt = "<div class='collapse-group'><span class='btn btn-default' href='#' id='unshowable'>Unshowable:<span class='show-type'>%s</span></span>%s</div><script>%s</script>"
@@ -935,7 +940,7 @@ evalCommand output (Expression expr) state = do
           let pieces = words text
               before = takeWhile (/= "arising") pieces
               after = init $ unwords $ tail $ dropWhile (/= "(Show") before
-        
+
           firstChar <- headMay after
           return $ if firstChar == '('
                      then init $ tail after
@@ -999,7 +1004,6 @@ hoogleResults state results =
 -- Read from a file handle until we hit a delimiter or until we've read as many characters as
 -- requested
 readChars :: Handle -> String -> Int -> IO String
-
 -- If we're done reading, return nothing.
 readChars handle delims 0 = return []
 
@@ -1016,7 +1020,6 @@ readChars handle delims nchars = do
           return $ char : next
     -- An error occurs at the end of the stream, so just stop reading.
     Left _ -> return []
-
 
 doLoadModule :: String -> String -> Ghc Display
 doLoadModule name modName = do
@@ -1054,12 +1057,6 @@ doLoadModule name modName = do
       Failed    -> return $ displayError $ "Failed to load module " ++ modName
 
   where
-#if MIN_VERSION_ghc(7,8,0)
-    objTarget flags = defaultObjectTarget $ targetPlatform flags
-#else
-    objTarget flags = defaultObjectTarget
-#endif
-
     unload :: [InteractiveImport] -> SomeException -> Ghc Display
     unload imported exception = do
       print $ show exception
@@ -1069,14 +1066,18 @@ doLoadModule name modName = do
 
       -- Switch to interpreted mode!
       flags <- getSessionDynFlags
-      setSessionDynFlags flags{ hscTarget = HscInterpreted }
+      setSessionDynFlags flags { hscTarget = HscInterpreted }
 
       -- Return to old context, make sure we have `it`.
       setContext imported
       initializeItVariable
 
       return $ displayError $ "Failed to load module " ++ modName ++ ": " ++ show exception
-
+#if MIN_VERSION_ghc(7,8,0)
+objTarget flags = defaultObjectTarget $ targetPlatform flags
+#else
+objTarget flags = defaultObjectTarget
+#endif
 keepingItVariable :: Interpreter a -> Interpreter a
 keepingItVariable act = do
   -- Generate the it variable temp name
@@ -1095,89 +1096,84 @@ capturedStatement :: (String -> IO ())         -- ^ Function used to publish int
                   -> String                            -- ^ Statement to evaluate.
                   -> Interpreter (String, RunResult)   -- ^ Return the output and result.
 capturedStatement output stmt = do
-  -- Generate random variable names to use so that we cannot accidentally
-  -- override the variables by using the right names in the terminal.
+  -- Generate random variable names to use so that we cannot accidentally override the variables by
+  -- using the right names in the terminal.
   gen <- liftIO getStdGen
-  let
-    -- Variable names generation.
-    rand = take 20 $ randomRs ('0', '9') gen
-    var name = name ++ rand
+  let 
+      -- Variable names generation.
+      rand = take 20 $ randomRs ('0', '9') gen
+      var name = name ++ rand
 
-    -- Variables for the pipe input and outputs.
-    readVariable = var "file_read_var_"
-    writeVariable = var "file_write_var_"
+      -- Variables for the pipe input and outputs.
+      readVariable = var "file_read_var_"
+      writeVariable = var "file_write_var_"
 
-    -- Variable where to store old stdout.
-    oldVariable = var "old_var_"
+      -- Variable where to store old stdout.
+      oldVariable = var "old_var_"
 
-    -- Variable used to store true `it` value.
-    itVariable = var "it_var_"
+      -- Variable used to store true `it` value.
+      itVariable = var "it_var_"
 
-    voidpf str = printf $ str ++ " IHaskellPrelude.>> IHaskellPrelude.return ()"
+      voidpf str = printf $ str ++ " IHaskellPrelude.>> IHaskellPrelude.return ()"
 
-    -- Statements run before the thing we're evaluating.
-    initStmts =
-      [ printf "let %s = it" itVariable
-      , printf "(%s, %s) <- IHaskellIO.createPipe" readVariable writeVariable
-      , printf "%s <- IHaskellIO.dup IHaskellIO.stdOutput" oldVariable
-      , voidpf "IHaskellIO.dupTo %s IHaskellIO.stdOutput" writeVariable
-      , voidpf "IHaskellSysIO.hSetBuffering IHaskellSysIO.stdout IHaskellSysIO.NoBuffering"
-      , printf "let it = %s" itVariable
-      ]
+      -- Statements run before the thing we're evaluating.
+      initStmts =
+        [ printf "let %s = it" itVariable
+        , printf "(%s, %s) <- IHaskellIO.createPipe" readVariable writeVariable
+        , printf "%s <- IHaskellIO.dup IHaskellIO.stdOutput" oldVariable
+        , voidpf "IHaskellIO.dupTo %s IHaskellIO.stdOutput" writeVariable
+        , voidpf "IHaskellSysIO.hSetBuffering IHaskellSysIO.stdout IHaskellSysIO.NoBuffering"
+        , printf "let it = %s" itVariable
+        ]
 
-    -- Statements run after evaluation.
-    postStmts =
-      [ printf "let %s = it" itVariable
-      , voidpf "IHaskellSysIO.hFlush IHaskellSysIO.stdout"
-      , voidpf "IHaskellIO.dupTo %s IHaskellIO.stdOutput" oldVariable
-      , voidpf "IHaskellIO.closeFd %s" writeVariable
-      , printf "let it = %s" itVariable
-      ]
-    pipeExpr = printf "let %s = %s" (var "pipe_var_") readVariable
+      -- Statements run after evaluation.
+      postStmts =
+        [ printf "let %s = it" itVariable
+        , voidpf "IHaskellSysIO.hFlush IHaskellSysIO.stdout"
+        , voidpf "IHaskellIO.dupTo %s IHaskellIO.stdOutput" oldVariable
+        , voidpf "IHaskellIO.closeFd %s" writeVariable
+        , printf "let it = %s" itVariable
+        ]
+      pipeExpr = printf "let %s = %s" (var "pipe_var_") readVariable
 
-    goStmt :: String -> Ghc RunResult
-    goStmt s = runStmt s RunToCompletion
+      goStmt :: String -> Ghc RunResult
+      goStmt s = runStmt s RunToCompletion
 
   -- Initialize evaluation context.
   void $ forM initStmts goStmt
 
-  -- Get the pipe to read printed output from.
-  -- This is effectively the source code of dynCompileExpr from GHC API's
-  -- InteractiveEval. However, instead of using a `Dynamic` as an
-  -- intermediary, it just directly reads the value. This is incredibly
-  -- unsafe! However, for some reason the `getContext` and `setContext`
-  -- required by dynCompileExpr (to import and clear Data.Dynamic) cause
-  -- issues with data declarations being updated (e.g. it drops newer
-  -- versions of data declarations for older ones for unknown reasons).
-  -- First, compile down to an HValue.
+  -- Get the pipe to read printed output from. This is effectively the source code of dynCompileExpr
+  -- from GHC API's InteractiveEval. However, instead of using a `Dynamic` as an intermediary, it just
+  -- directly reads the value. This is incredibly unsafe! However, for some reason the `getContext`
+  -- and `setContext` required by dynCompileExpr (to import and clear Data.Dynamic) cause issues with
+  -- data declarations being updated (e.g. it drops newer versions of data declarations for older ones
+  -- for unknown reasons). First, compile down to an HValue.
   Just (_, hValues, _) <- withSession $ liftIO . flip hscStmt pipeExpr
   -- Then convert the HValue into an executable bit, and read the value.
   pipe <- liftIO $ do
-    fd <- head <$> unsafeCoerce hValues
-    fdToHandle fd
+            fd <- head <$> unsafeCoerce hValues
+            fdToHandle fd
 
-  -- Read from a file handle until we hit a delimiter or until we've read
-  -- as many characters as requested
-  let
-    readChars :: Handle -> String -> Int -> IO String
+  -- Read from a file handle until we hit a delimiter or until we've read as many characters as
+  -- requested
+  let readChars :: Handle -> String -> Int -> IO String
 
-    -- If we're done reading, return nothing.
-    readChars handle delims 0 = return []
+      -- If we're done reading, return nothing.
+      readChars handle delims 0 = return []
 
-    readChars handle delims nchars = do
-      -- Try reading a single character. It will throw an exception if the
-      -- handle is already closed.
-      tryRead <- gtry $ hGetChar handle :: IO (Either SomeException Char)
-      case tryRead of
-        Right char ->
-          -- If this is a delimiter, stop reading.
-          if char `elem` delims
-          then return [char]
-          else do
-            next <- readChars handle delims (nchars - 1)
-            return $ char:next
-        -- An error occurs at the end of the stream, so just stop reading.
-        Left _ -> return []
+      readChars handle delims nchars = do
+        -- Try reading a single character. It will throw an exception if the handle is already closed.
+        tryRead <- gtry $ hGetChar handle :: IO (Either SomeException Char)
+        case tryRead of
+          Right char ->
+            -- If this is a delimiter, stop reading.
+            if char `elem` delims
+              then return [char]
+              else do
+                next <- readChars handle delims (nchars - 1)
+                return $ char : next
+          -- An error occurs at the end of the stream, so just stop reading.
+          Left _ -> return []
 
 
   -- Keep track of whether execution has completed.
@@ -1186,53 +1182,52 @@ capturedStatement output stmt = do
   outputAccum <- liftIO $ newMVar ""
 
   -- Start a loop to publish intermediate results.
-  let
-    -- Compute how long to wait between reading pieces of the output.
-    -- `threadDelay` takes an argument of microseconds.
-    ms = 1000
-    delay = 100 * ms
+  let 
+      -- Compute how long to wait between reading pieces of the output. `threadDelay` takes an
+      -- argument of microseconds.
+      ms = 1000
+      delay = 100 * ms
 
-    -- How much to read each time.
-    chunkSize = 100
+      -- How much to read each time.
+      chunkSize = 100
 
-    -- Maximum size of the output (after which we truncate).
-    maxSize = 100 * 1000
+      -- Maximum size of the output (after which we truncate).
+      maxSize = 100 * 1000
 
-    loop = do
-      -- Wait and then check if the computation is done.
-      threadDelay delay
-      computationDone <- readMVar completed
+      loop = do
+        -- Wait and then check if the computation is done.
+        threadDelay delay
+        computationDone <- readMVar completed
 
-      if not computationDone
-      then do
-        -- Read next chunk and append to accumulator.
-        nextChunk <- readChars pipe "\n" 100
-        modifyMVar_ outputAccum (return . (++ nextChunk))
+        if not computationDone
+          then do
+            -- Read next chunk and append to accumulator.
+            nextChunk <- readChars pipe "\n" 100
+            modifyMVar_ outputAccum (return . (++ nextChunk))
 
-        -- Write to frontend and repeat.
-        readMVar outputAccum >>= output
-        loop
-      else do
-        -- Read remainder of output and accumulate it.
-        nextChunk <- readChars pipe "" maxSize
-        modifyMVar_ outputAccum (return . (++ nextChunk))
+            -- Write to frontend and repeat.
+            readMVar outputAccum >>= output
+            loop
+          else do
+            -- Read remainder of output and accumulate it.
+            nextChunk <- readChars pipe "" maxSize
+            modifyMVar_ outputAccum (return . (++ nextChunk))
 
-        -- We're done reading.
-        putMVar finishedReading True
+            -- We're done reading.
+            putMVar finishedReading True
 
   liftIO $ forkIO loop
 
   result <- gfinally (goStmt stmt) $ do
-    -- Execution is done.
-    liftIO $ modifyMVar_ completed (const $ return True)
+              -- Execution is done.
+              liftIO $ modifyMVar_ completed (const $ return True)
 
-    -- Finalize evaluation context.
-    void $ forM postStmts goStmt
+              -- Finalize evaluation context.
+              void $ forM postStmts goStmt
 
-    -- Once context is finalized, reading can finish.
-    -- Wait for reading to finish to that the output accumulator is
-    -- completely filled.
-    liftIO $ takeMVar finishedReading
+              -- Once context is finalized, reading can finish. Wait for reading to finish to that the output
+              -- accumulator is completely filled.
+              liftIO $ takeMVar finishedReading
 
   printedOutput <- liftIO $ readMVar outputAccum
   return (printedOutput, result)
@@ -1256,7 +1251,6 @@ formatErrorWithClass cls =
     isShowError err =
       startswith "No instance for (Show" err &&
       isInfixOf " arising from a use of `print'" err
-
 
 formatParseError :: StringLoc -> String -> ErrMsg
 formatParseError (Loc line col) =

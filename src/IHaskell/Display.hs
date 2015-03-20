@@ -86,8 +86,6 @@ instance IHaskellDisplay a => IHaskellDisplay [a] where
     displays <- mapM display disps
     return $ ManyDisplay displays
 
-
-
 -- | Encode many displays into a single one. All will be output.
 many :: [Display] -> Display
 many = ManyDisplay

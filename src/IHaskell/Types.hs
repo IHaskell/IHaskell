@@ -41,8 +41,8 @@ import           IHaskell.IPython.Kernel
 
 -- | A class for displayable Haskell types.
 --
--- IHaskell's displaying of results behaves as if these two
--- overlapping/undecidable instances also existed:
+-- IHaskell's displaying of results behaves as if these two overlapping/undecidable instances also
+-- existed:
 -- 
 -- > instance (Show a) => IHaskellDisplay a
 -- > instance Show a where shows _ = id
@@ -51,12 +51,10 @@ class IHaskellDisplay a where
 
 -- | Display as an interactive widget.
 class IHaskellDisplay a => IHaskellWidget a where
-  -- | Output target name for this widget.
-  -- The actual input parameter should be ignored.
+  -- | Output target name for this widget. The actual input parameter should be ignored.
   targetName :: a -> String
 
-  -- | Called when the comm is opened. Allows additional messages to be sent
-  -- after comm open.
+  -- | Called when the comm is opened. Allows additional messages to be sent after comm open.
   open :: a               -- ^ Widget to open a comm port with.
        -> (Value -> IO ()) -- ^ Way to respond to the message.
        -> IO ()
@@ -76,7 +74,7 @@ class IHaskellDisplay a => IHaskellWidget a where
   close _ _ = return ()
 
 data Widget = forall a. IHaskellWidget a => Widget a
-            deriving Typeable
+  deriving Typeable
 
 instance IHaskellDisplay Widget where
   display (Widget widget) = display widget
@@ -90,20 +88,20 @@ instance IHaskellWidget Widget where
 instance Show Widget where
   show _ = "<Widget>"
 
-
 -- | Wrapper for ipython-kernel's DisplayData which allows sending multiple results from the same
 -- expression.
 data Display = Display [DisplayData]
              | ManyDisplay [Display]
   deriving (Show, Typeable, Generic)
+
 instance Serialize Display
 
 instance Monoid Display where
-    mempty = Display []
-    ManyDisplay a `mappend` ManyDisplay b = ManyDisplay (a ++ b)
-    ManyDisplay a `mappend` b             = ManyDisplay (a ++ [b])
-    a             `mappend` ManyDisplay b = ManyDisplay (a : b)
-    a             `mappend` b             = ManyDisplay [a,b]
+  mempty = Display []
+  ManyDisplay a `mappend` ManyDisplay b = ManyDisplay (a ++ b)
+  ManyDisplay a `mappend` b = ManyDisplay (a ++ [b])
+  a `mappend` ManyDisplay b = ManyDisplay (a : b)
+  a `mappend` b = ManyDisplay [a, b]
 
 instance Semigroup Display where
   a <> b = a `mappend` b

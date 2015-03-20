@@ -194,7 +194,6 @@ htmlSuggestions = concatMap toHtml
     floating :: String -> String -> String
     floating dir thing = [i| <div class="suggestion-row" style="float: ${dir};">${thing}</div> |]
 
-
 showSuggestion :: String -> String
 showSuggestion = remove lintIdent . dropDo
   where

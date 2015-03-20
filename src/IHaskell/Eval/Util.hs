@@ -72,12 +72,11 @@ extensionFlag ext =
 
     -- Check if a FlagSpec matches "No<ExtensionName>". In that case, we disable the extension.
     flagMatchesNo ext fs = ext == "No" ++ flagSpecName fs
-
 #if !MIN_VERSION_ghc(7,10,0)
 flagSpecName (name, _, _) = name
+
 flagSpecFlag (_, flag, _) = flag
 #endif
-
 -- | Pretty-print dynamic flags (taken from 'InteractiveUI' module of `ghc-bin`)
 pprDynFlags :: Bool       -- ^ Whether to include flags which are on by default
             -> DynFlags
@@ -111,17 +110,20 @@ pprDynFlags show_all dflags =
     default_dflags = defaultDynFlags (settings dflags)
     
     fstr str = text "-f" <> text str
+    
     fnostr str = text "-fno-" <> text str
     
     (ghciFlags, others) = partition (\f -> flagSpecFlag f `elem` flgs) DynFlags.fFlags
+    
     flgs = concat [flgs1, flgs2, flgs3]
+    
     flgs1 = [Opt_PrintExplicitForalls]
 #if MIN_VERSION_ghc(7,8,0)
     flgs2 = [Opt_PrintExplicitKinds]
 #else
     flgs2 = []
 #endif
-    flgs3 = [Opt_PrintBindResult, Opt_BreakOnException, Opt_BreakOnError, Opt_PrintEvldWithShow]
+flgs3 = [Opt_PrintBindResult, Opt_BreakOnException, Opt_BreakOnError, Opt_PrintEvldWithShow]
 
 -- | Pretty-print the base language and active options (taken from `InteractiveUI` module of
 -- `ghc-bin`)
@@ -319,7 +321,6 @@ cleanUpDuplicateInstances = modifySession $ \hscEnv ->
 #else
     instEq _ _ = False
 #endif
-
 -- | Get the type of an expression and convert it to a string.
 getType :: GhcMonad m => String -> m String
 getType expr = do

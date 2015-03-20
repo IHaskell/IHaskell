@@ -41,7 +41,6 @@ isEmptyMD :: (Eq a, Monoid a) => CellLine a -> Bool
 isEmptyMD (MarkdownLine a) = a == mempty
 isEmptyMD _ = False
 
-
 untag :: CellLine t -> t
 untag (CodeLine a) = a
 untag (OutputLine a) = a

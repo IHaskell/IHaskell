@@ -14,6 +14,11 @@ def hindent(contents):
 
 
 def diff(src1, src2):
+    # Ignore trailing newlines
+    if src1[-1] == "\n":
+        src1 = src1[:-1]
+    if src2[-1] == "\n":
+        src2 = src2[:-1]
 
     with open(".tmp1", "w") as f1:
         f1.write(src1)
@@ -40,8 +45,6 @@ for root, dirnames, filenames in os.walk("src"):
     for filename in filenames:
         if filename.endswith(".hs"):
             sources.append(os.path.join(root, filename))
-            break
-    break
 
 
 hindent_outputs = {}

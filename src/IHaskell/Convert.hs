@@ -2,7 +2,7 @@
 module IHaskell.Convert (convert) where
 
 import           Control.Monad.Identity (Identity(Identity), unless, when)
-import           IHaskell.Convert.Args (ConvertSpec(ConvertSpec, convertInput, convertLhsStyle, convertOutput, convertOverwriteFiles, convertToIpynb), fromJustConvertSpec, toConvertSpec)
+import           IHaskell.Convert.Args (ConvertSpec(..), fromJustConvertSpec, toConvertSpec)
 import           IHaskell.Convert.IpynbToLhs (ipynbToLhs)
 import           IHaskell.Convert.LhsToIpynb (lhsToIpynb)
 import           IHaskell.Flags (Argument)

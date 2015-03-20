@@ -64,7 +64,7 @@ query str = do
 
 -- | Copied from the HTTP package.
 urlEncode :: String -> String
-urlEncode     [] = []
+urlEncode [] = []
 urlEncode (ch:t)
   | (isAscii ch && isAlphaNum ch) || ch `P.elem` "-_.~" = ch : urlEncode t
   | not (isAscii ch) = P.foldr escape (urlEncode t) (eightBs [] (P.fromEnum ch))
@@ -128,7 +128,6 @@ render HTML = renderHtml
 
 -- | Render a Hoogle result to plain text.
 renderPlain :: HoogleResult -> String
-
 renderPlain (NoResult res) =
   "No response available: " ++ res
 
@@ -220,13 +219,13 @@ renderDocs doc =
   let groups = groupBy bothAreCode $ lines doc
       nonull = filter (not . null . strip)
       bothAreCode s1 s2 =
-        startswith ">" (strip s1) &&
-        startswith ">" (strip s2)
+                           startswith ">" (strip s1) &&
+                           startswith ">" (strip s2)
       isCode (s:_) = startswith ">" $ strip s
       makeBlock lines =
-        if isCode lines
-          then div "hoogle-code" $ unlines $ nonull lines
-          else div "hoogle-text" $ unlines $ nonull lines
+                         if isCode lines
+                           then div "hoogle-code" $ unlines $ nonull lines
+                           else div "hoogle-text" $ unlines $ nonull lines
   in div "hoogle-doc" $ unlines $ map makeBlock groups
 
 extractPackageName :: String -> Maybe String

@@ -196,7 +196,6 @@ createReplyHeader parent = do
 
 -- | Compute a reply to a message.
 replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> Interpreter (KernelState, Message)
-
 -- Reply to kernel info requests with a kernel info reply. No computation needs to be done, as a
 -- kernel info reply is a static object (all info is hard coded into the representation of that
 -- message type).
@@ -214,32 +213,29 @@ replyTo interface ShutdownRequest { restartPending = restartPending } replyHeade
   writeChan (shellReplyChannel interface) $ ShutdownReply replyHeader restartPending
   exitSuccess
 
--- Reply to an execution request. The reply itself does not require
--- computation, but this causes messages to be sent to the IOPub socket
--- with the output of the code in the execution request.
-replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
- -- Convenience function to send a message to the IOPub socket.
+-- Reply to an execution request. The reply itself does not require computation, but this causes
+-- messages to be sent to the IOPub socket with the output of the code in the execution request.
+replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
+  -- Convenience function to send a message to the IOPub socket.
   let send msg = liftIO $ writeChan (iopubChannel interface) msg
 
   -- Log things so that we can use stdin.
   dir <- liftIO getIHaskellDir
   liftIO $ Stdin.recordParentHeader dir $ header req
 
-  -- Notify the frontend that the kernel is busy computing.
-  -- All the headers are copies of the reply header with a different
-  -- message type, because this preserves the session ID, parent header,
-  -- and other important information.
+  -- Notify the frontend that the kernel is busy computing. All the headers are copies of the reply
+  -- header with a different message type, because this preserves the session ID, parent header, and
+  -- other important information.
   busyHeader <- liftIO $ dupHeader replyHeader StatusMessage
   send $ PublishStatus busyHeader Busy
 
-  -- Construct a function for publishing output as this is going.
-  -- This function accepts a boolean indicating whether this is the final
-  -- output and the thing to display. Store the final outputs in a list so
-  -- that when we receive an updated non-final output, we can clear the
-  -- entire output and re-display with the updated output.
-  displayed    <- liftIO $ newMVar []
+  -- Construct a function for publishing output as this is going. This function accepts a boolean
+  -- indicating whether this is the final output and the thing to display. Store the final outputs in
+  -- a list so that when we receive an updated non-final output, we can clear the entire output and
+  -- re-display with the updated output.
+  displayed <- liftIO $ newMVar []
   updateNeeded <- liftIO $ newMVar False
-  pagerOutput  <- liftIO $ newMVar ""
+  pagerOutput <- liftIO $ newMVar ""
   let clearOutput = do
         header <- dupHeader replyHeader ClearOutputMessage
         send $ ClearOutput header True
@@ -253,7 +249,7 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
       convertSvgToHtml x = x
       makeSvgImg base64data = unpack $ "<img src=\"data:image/svg+xml;base64," ++ base64data ++ "\"/>"
 
-      prependCss (DisplayData MimeHtml html) = 
+      prependCss (DisplayData MimeHtml html) =
         DisplayData MimeHtml $concat ["<style>", pack ihaskellCSS, "</style>", html]
       prependCss x = x
 
@@ -271,9 +267,10 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
 
       publish :: EvaluationResult -> IO ()
       publish result = do
-        let final = case result of
-                      IntermediateResult {} -> False
-                      FinalResult {} -> True
+        let final =
+              case result of
+                IntermediateResult{} -> False
+                FinalResult{}        -> True
             outs = outputs result
 
         -- If necessary, clear all previous output and redraw.
@@ -286,12 +283,11 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
         -- Draw this message.
         sendOutput outs
 
-        -- If this is the final message, add it to the list of completed
-        -- messages. If it isn't, make sure we clear it later by marking
-        -- update needed as true.
+        -- If this is the final message, add it to the list of completed messages. If it isn't, make sure we
+        -- clear it later by marking update needed as true.
         modifyMVar_ updateNeeded (const $ return $ not final)
         when final $ do
-          modifyMVar_ displayed (return . (outs:))
+          modifyMVar_ displayed (return . (outs :))
 
           -- Start all comms that need to be started.
           mapM_ startComm $ startComms result
@@ -300,8 +296,8 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
           let pager = pagerOut result
           unless (null pager) $
             if usePager state
-            then modifyMVar_ pagerOutput (return . (++ pager ++ "\n"))
-            else sendOutput $ Display [html pager]
+              then modifyMVar_ pagerOutput (return . (++ pager ++ "\n"))
+              else sendOutput $ Display [html pager]
 
   let execCount = getExecutionCounter state
   -- Let all frontends know the execution count and code that's about to run
@@ -317,14 +313,15 @@ replyTo interface req@ExecuteRequest{ getCode = code } replyHeader state = do
 
   -- Take pager output if we're using the pager.
   pager <- if usePager state
-          then liftIO $ readMVar pagerOutput
-          else return ""
-  return (updatedState, ExecuteReply {
-    header = replyHeader,
-    pagerOutput = pager,
-    executionCounter = execCount,
-    status = Ok
-  })
+             then liftIO $ readMVar pagerOutput
+             else return ""
+  return
+    (updatedState, ExecuteReply
+                     { header = replyHeader
+                     , pagerOutput = pager
+                     , executionCounter = execCount
+                     , status = Ok
+                     })
 
 
 replyTo _ req@CompleteRequest{} replyHeader state = do
@@ -352,11 +349,11 @@ replyTo _ ObjectInfoRequest { objectName = oname } replyHeader state = do
 
 -- TODO: Implement history_reply.
 replyTo _ HistoryRequest{} replyHeader state = do
-  let reply = HistoryReply {
-                header = replyHeader,
-                -- FIXME
-                historyReply = []
-              }
+  let reply = HistoryReply
+        { header = replyHeader
+        -- FIXME
+        , historyReply = []
+        }
   return (state, reply)
 
 handleComm :: (Message -> IO ()) -> KernelState -> Message -> MessageHeader -> IO KernelState

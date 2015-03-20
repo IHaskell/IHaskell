@@ -225,7 +225,6 @@ joinFunctions blocks =
     conjoin :: [CodeBlock] -> CodeBlock
     conjoin = Declaration . intercalate "\n" . map str
 
-
 -- | Parse a pragma of the form {-# LANGUAGE ... #-}
 parsePragma :: String       -- ^ Pragma string.
             -> Int          -- ^ Line number at which the directive appears.
@@ -245,7 +244,6 @@ parsePragma ('{':'-':'#':pragma) line =
 parseDirective :: String       -- ^ Directive string.
                -> Int          -- ^ Line number at which the directive appears.
                -> CodeBlock    -- ^ Directive code block or a parse error.
-
 parseDirective (':':'!':directive) line = Directive ShellCmd $ '!' : directive
 parseDirective (':':directive) line =
   case find rightDirective directives of
@@ -254,9 +252,9 @@ parseDirective (':':directive) line =
             _:restLine = words directive
     Nothing ->
       let directiveStart =
-            case words directive of
-              []      -> ""
-              first:_ -> first
+                            case words directive of
+                              []      -> ""
+                              first:_ -> first
       in ParseError (Loc line 1) $ "Unknown directive: '" ++ directiveStart ++ "'."
   where
     rightDirective (_, dirname) =

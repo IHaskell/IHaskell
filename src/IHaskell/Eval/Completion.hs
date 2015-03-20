@@ -60,6 +60,7 @@ data CompletionType = Empty
 extName (FlagSpec { flagSpecName = name }) = name
 #else
 extName (name, _, _) = name
+
 exposedName = id
 #endif
 complete :: String -> Int -> Interpreter (String, [String])
@@ -250,13 +251,14 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
   where
     pieceToComplete = map fst <$> find (elem cursor . map snd) pieces
     pieces = splitAlongCursor $ split splitter $ zip code [1 ..]
-    splitter = defaultSplitter { 
-    -- Split using only the characters, which are the first elements of
-    -- the (char, index) tuple
-    delimiter = Delimiter [uncurry isDelim], 
-                                             -- Condense multiple delimiters into one and then drop
-                                             -- them.
-                                             condensePolicy = Condense, delimPolicy = Drop }
+    splitter = defaultSplitter
+      { 
+      -- Split using only the characters, which are the first elements of the (char, index) tuple
+      delimiter = Delimiter [uncurry isDelim]
+      -- Condense multiple delimiters into one and then drop them.
+      , condensePolicy = Condense
+      , delimPolicy = Drop
+      }
 
     isDelim :: Char -> Int -> Bool
     isDelim char idx = char `elem` neverIdent || isSymbol char

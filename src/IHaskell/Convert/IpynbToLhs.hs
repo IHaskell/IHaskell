@@ -13,8 +13,7 @@ import qualified Data.Text.Lazy as T (concat, fromStrict, Text, unlines)
 import qualified Data.Text.Lazy.IO as T (writeFile)
 import           Data.Vector (Vector)
 import qualified Data.Vector as V (map, mapM, toList)
-import           IHaskell.Flags (LhsStyle(lhsBeginCode, lhsBeginOutput, lhsCodePrefix, lhsEndCode,
-          lhsEndOutput, lhsOutputPrefix))
+import           IHaskell.Flags (LhsStyle(..))
 
 ipynbToLhs :: LhsStyle T.Text
            -> FilePath -- ^ the filename of an ipython notebook

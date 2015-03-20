@@ -50,7 +50,6 @@ isFormatSpec (ConvertToFormat _) = True
 isFormatSpec (ConvertFromFormat _) = True
 isFormatSpec _ = False
 
-
 toConvertSpec :: [Argument] -> ConvertSpec Maybe
 toConvertSpec args = mergeArgs otherArgs (mergeArgs formatSpecArgs initialConvertSpec)
   where

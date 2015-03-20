@@ -196,7 +196,6 @@ subHome path = shelly $ do
   home <- unpack <$> fromMaybe "~" <$> get_env "HOME"
   return $ replace "~" home path
 
-
 -- | Get the path to an executable. If it doensn't exist, fail with an error message complaining
 -- about it.
 path :: Text -> Sh FilePath

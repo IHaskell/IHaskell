@@ -48,6 +48,7 @@ script:
  - travis_retry cabal configure --enable-tests
  - travis_retry cabal test --show-details=always
 
+ - ./verify_formatting.py
  - cabal sdist
 
 # The following scriptlet checks that the resulting source distribution can be built & installed

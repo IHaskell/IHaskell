@@ -44,7 +44,6 @@ data LhsStyle string =
          }
   deriving (Eq, Functor, Show)
 
-
 data NotebookFormat = LhsMarkdown
                     | IpynbFile
   deriving (Eq, Show)
@@ -155,6 +154,7 @@ convert = mode "convert" (Args ConvertLhs []) description unnamedArg convertFlag
 
 lhsStyleBird, lhsStyleTex :: LhsStyle String
 lhsStyleBird = LhsStyle "> " "\n<< " "" "" "" ""
+
 lhsStyleTex = LhsStyle "" "" "\\begin{code}" "\\end{code}" "\\begin{verbatim}" "\\end{verbatim}"
 
 ihaskellArgs :: Mode Args
