@@ -48,7 +48,7 @@ import qualified Codec.Archive.Tar as Tar
 
 import           Control.Concurrent (MVar, readChan, writeChan, newMVar, readMVar, modifyMVar_)
 import           Control.Monad.IO.Class (MonadIO(..))
-import           Control.Monad (forever, when)
+import           Control.Monad (forever, when, unless)
 
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
