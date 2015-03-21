@@ -1,26 +1,23 @@
 -- | Description : UUID generator and data structure
 --
 -- Generate, parse, and pretty print UUIDs for use with IPython.
-module IHaskell.IPython.Message.UUID (
-  UUID,
-  random, randoms,
-  ) where
+module IHaskell.IPython.Message.UUID (UUID, random, randoms) where
 
-import Control.Monad (mzero, replicateM)
-import Control.Applicative ((<$>))
-import Data.Text (pack)
-import Data.Aeson
-import Data.UUID.V4 (nextRandom)
-
--- We use an internal string representation because for the purposes of
--- IPython, it matters whether the letters are uppercase or lowercase and
--- whether the dashes are present in the correct locations. For the
--- purposes of new UUIDs, it does not matter, but IPython expects UUIDs
--- passed to kernels to be returned unchanged, so we cannot actually parse
--- them.
+import           Control.Monad (mzero, replicateM)
+import           Control.Applicative ((<$>))
+import           Data.Text (pack)
+import           Data.Aeson
+import           Data.UUID.V4 (nextRandom)
 
 -- | A UUID (universally unique identifier).
-data UUID = UUID String deriving (Show, Read, Eq, Ord)
+data UUID =
+     -- We use an internal string representation because for the purposes of IPython, it
+     -- matters whether the letters are uppercase or lowercase and whether the dashes are
+     -- present in the correct locations. For the purposes of new UUIDs, it does not matter,
+     -- but IPython expects UUIDs passed to kernels to be returned unchanged, so we cannot
+     -- actually parse them.
+      UUID String
+  deriving (Show, Read, Eq, Ord)
 
 -- | Generate a list of random UUIDs.
 randoms :: Int      -- ^ Number of UUIDs to generate.
