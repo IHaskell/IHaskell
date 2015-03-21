@@ -8,8 +8,11 @@ import subprocess
 
 
 def hindent(contents):
-    output = subprocess.check_output(["hindent", "--style", "gibiansky"],
-                                     input=bytes(contents, 'utf-8'))
+    with open(".tmp3", "w") as f:
+        f.write(contents)
+    with open(".tmp3", "r") as f:
+        output = subprocess.check_output(["hindent", "--style", "gibiansky"],
+                                         stdin=f)
     return output.decode('utf-8')
 
 
