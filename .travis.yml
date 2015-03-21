@@ -36,7 +36,7 @@ install:
    if [ ${GHCVER%.*} = "7.8" ]; then
      travis_retry cabal install arithmoi==0.4.* -fllvm
      travis_retry git clone http://www.github.com/gibiansky/hindent
-     cd hindent && cabal install && cd ..
+     cd hindent && travis_retry cabal install && cd ..
    fi
 
 # Here starts the actual work to be performed for the package under test; any command which exits with a non-zero exit code causes the build to fail.
