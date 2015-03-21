@@ -14,6 +14,7 @@ before_install:
  - travis_retry sudo apt-get update
  - travis_retry sudo apt-get install cabal-install-$CABALVER ghc-$GHCVER # see note about happy/alex
  - travis_retry sudo apt-get install libmagic-dev
+ - travis_retry sudo apt-get install python3
  - travis_retry git clone http://www.github.com/zeromq/zeromq4-x.git libzmq
  - export OLDPWD=$(pwd) && cd libzmq && travis_retry ./autogen.sh && travis_retry ./configure && make && travis_retry sudo make install && travis_retry sudo ldconfig && cd $OLDPWD
  - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$HOME/.cabal/bin:$PATH
@@ -34,6 +35,8 @@ install:
  - |
    if [ ${GHCVER%.*} = "7.8" ]; then
      travis_retry cabal install arithmoi==0.4.* -fllvm
+     travis_retry git clone http://www.github.com/gibiansky/hindent
+     cd hindent && cabal install && cd ..
    fi
 
 # Here starts the actual work to be performed for the package under test; any command which exits with a non-zero exit code causes the build to fail.
@@ -47,7 +50,10 @@ script:
 # Build and run the test suite
  - travis_retry cabal configure --enable-tests
  - travis_retry cabal test --show-details=always
-
+ - |
+   if [ ${GHCVER%.*} = "7.8" ]; then
+    ./verify_formatting.py
+   fi
  - cabal sdist
 
 # The following scriptlet checks that the resulting source distribution can be built & installed

@@ -40,17 +40,20 @@ import qualified GHC.Paths
 import           IHaskell.Types
 import           System.Posix.Signals
 
-
-data KernelSpecOptions = KernelSpecOptions { kernelSpecGhcLibdir :: String           -- ^ GHC libdir.
-                                           , kernelSpecDebug :: Bool                 -- ^ Spew debugging output?
-                                           , kernelSpecConfFile :: IO (Maybe String) -- ^ Filename of profile JSON file.
-                                           }
+data KernelSpecOptions =
+       KernelSpecOptions
+         { kernelSpecGhcLibdir :: String           -- ^ GHC libdir.
+         , kernelSpecDebug :: Bool                 -- ^ Spew debugging output?
+         , kernelSpecConfFile :: IO (Maybe String) -- ^ Filename of profile JSON file.
+         }
 
 defaultKernelSpecOptions :: KernelSpecOptions
-defaultKernelSpecOptions = KernelSpecOptions { kernelSpecGhcLibdir = GHC.Paths.libdir
-                                             , kernelSpecDebug = False
-                                             , kernelSpecConfFile = defaultConfFile
-                                             }
+defaultKernelSpecOptions = KernelSpecOptions
+  { kernelSpecGhcLibdir = GHC.Paths.libdir
+  , kernelSpecDebug = False
+  , kernelSpecConfFile = defaultConfFile
+  }
+
 -- | The IPython kernel name.
 kernelName :: IsString a => a
 kernelName = "haskell"
@@ -133,6 +136,7 @@ verifyIPythonVersion = do
         Just (1:_) -> oldIPython
         Just (0:_) -> oldIPython
         _          -> badIPython "Detected IPython, but could not parse version number."
+
   where
     badIPython :: Text -> Sh ()
     badIPython message = liftIO $ do
@@ -140,8 +144,8 @@ verifyIPythonVersion = do
       exitFailure
     oldIPython = badIPython "Detected old version of IPython. IHaskell requires 3.0.0 or up."
 
--- | Install an IHaskell kernelspec into the right location.
--- The right location is determined by using `ipython kernelspec install --user`.
+-- | Install an IHaskell kernelspec into the right location. The right location is determined by
+-- using `ipython kernelspec install --user`.
 installKernelspec :: Bool -> KernelSpecOptions -> Sh ()
 installKernelspec replace opts = void $ do
   ihaskellPath <- getIHaskellPath
@@ -155,13 +159,14 @@ installKernelspec replace opts = void $ do
            Just file -> ["--conf", file])
         ++ ["--ghclib", kernelSpecGhcLibdir opts]
 
-  let kernelSpec = KernelSpec { kernelDisplayName = "Haskell"
-                              , kernelLanguage = kernelName
-                              , kernelCommand = [ihaskellPath, "kernel", "{connection_file}"] ++ kernelFlags
-                              }
+  let kernelSpec = KernelSpec
+        { kernelDisplayName = "Haskell"
+        , kernelLanguage = kernelName
+        , kernelCommand = [ihaskellPath, "kernel", "{connection_file}"] ++ kernelFlags
+        }
 
-  -- Create a temporary directory. Use this temporary directory to make a kernelspec
-  -- directory; then, shell out to IPython to install this kernelspec directory.
+  -- Create a temporary directory. Use this temporary directory to make a kernelspec directory; then,
+  -- shell out to IPython to install this kernelspec directory.
   withTmpDir $ \tmp -> do
     let kernelDir = tmp </> kernelName
     let filename = kernelDir </> "kernel.json"
@@ -180,21 +185,19 @@ installKernelspec replace opts = void $ do
 
 kernelSpecCreated :: Sh Bool
 kernelSpecCreated = do
-    Just ipython <- which "ipython"
-    out <- silently $ run ipython ["kernelspec", "list"]
-    let kernelspecs = map T.strip $ lines out
-    return $ kernelName `elem` kernelspecs
+  Just ipython <- which "ipython"
+  out <- silently $ run ipython ["kernelspec", "list"]
+  let kernelspecs = map T.strip $ lines out
+  return $ kernelName `elem` kernelspecs
 
--- | Replace "~" with $HOME if $HOME is defined.
--- Otherwise, do nothing.
+-- | Replace "~" with $HOME if $HOME is defined. Otherwise, do nothing.
 subHome :: String -> IO String
 subHome path = shelly $ do
   home <- unpack <$> fromMaybe "~" <$> get_env "HOME"
   return $ replace "~" home path
 
-
--- | Get the path to an executable. If it doensn't exist, fail with an
--- error message complaining about it.
+-- | Get the path to an executable. If it doensn't exist, fail with an error message complaining
+-- about it.
 path :: Text -> Sh FilePath
 path exe = do
   path <- which $ fromText exe
@@ -229,9 +232,8 @@ getIHaskellPath = do
   if FS.absolute f
     then return $ FS.encodeString f
     else 
-    -- Check whether this is a relative path, or just 'IHaskell' with $PATH
-    -- resolution done by the shell. If it's just 'IHaskell', use the $PATH
-    -- variable to find where IHaskell lives.
+    -- Check whether this is a relative path, or just 'IHaskell' with $PATH resolution done by
+    -- the shell. If it's just 'IHaskell', use the $PATH variable to find where IHaskell lives.
     if FS.filename f == f
       then do
         ihaskellPath <- which "ihaskell"

@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, DeriveFunctor #-}
+
 module IHaskell.Flags (
     IHaskellMode(..),
     Argument(..),
@@ -16,8 +17,7 @@ import           System.Console.CmdArgs.Text
 import           Data.List (findIndex)
 import           IHaskell.Types
 
--- Command line arguments to IHaskell.  A set of aruments is annotated with
--- the mode being invoked.
+-- Command line arguments to IHaskell. A set of arguments is annotated with the mode being invoked.
 data Args = Args IHaskellMode [Argument]
   deriving Show
 
@@ -33,30 +33,29 @@ data Argument = ConfFile String     -- ^ A file with commands to load at startup
               | ConvertLhsStyle (LhsStyle String)
   deriving (Eq, Show)
 
-data LhsStyle string = LhsStyle { lhsCodePrefix :: string  -- ^ @>@
-                                , lhsOutputPrefix :: string  -- ^ @<<@
-                                , lhsBeginCode :: string  -- ^ @\\begin{code}@
-                                , lhsEndCode :: string  -- ^ @\\end{code}@
-                                , lhsBeginOutput :: string  -- ^ @\\begin{verbatim}@
-                                , lhsEndOutput :: string  -- ^ @\\end{verbatim}@
-                                }
+data LhsStyle string =
+       LhsStyle
+         { lhsCodePrefix :: string  -- ^ @>@
+         , lhsOutputPrefix :: string  -- ^ @<<@
+         , lhsBeginCode :: string  -- ^ @\\begin{code}@
+         , lhsEndCode :: string  -- ^ @\\end{code}@
+         , lhsBeginOutput :: string  -- ^ @\\begin{verbatim}@
+         , lhsEndOutput :: string  -- ^ @\\end{verbatim}@
+         }
   deriving (Eq, Functor, Show)
-
 
 data NotebookFormat = LhsMarkdown
                     | IpynbFile
   deriving (Eq, Show)
 
 -- Which mode IHaskell is being invoked in.
--- `None` means no mode was specified.
 data IHaskellMode = ShowHelp String
                   | InstallKernelSpec
                   | ConvertLhs
                   | Kernel (Maybe String)
   deriving (Eq, Show)
 
--- | Given a list of command-line arguments, return the IHaskell mode and
--- arguments to process.
+-- | Given a list of command-line arguments, return the IHaskell mode and arguments to process.
 parseFlags :: [String] -> Either String Args
 parseFlags flags =
   let modeIndex = findIndex (`elem` modeFlags) flags
@@ -111,7 +110,8 @@ installKernelSpec =
     [ghcLibFlag, kernelDebugFlag, confFlag, helpFlag]
 
 kernel :: Mode Args
-kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg [ghcLibFlag, kernelDebugFlag, confFlag]
+kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg
+           [ghcLibFlag, kernelDebugFlag, confFlag]
   where
     kernelArg = flagArg update "<json-kernel-file>"
     update filename (Args _ flags) = Right $ Args (Kernel $ Just filename) flags
@@ -154,16 +154,17 @@ convert = mode "convert" (Args ConvertLhs []) description unnamedArg convertFlag
 
 lhsStyleBird, lhsStyleTex :: LhsStyle String
 lhsStyleBird = LhsStyle "> " "\n<< " "" "" "" ""
-lhsStyleTex  = LhsStyle "" "" "\\begin{code}" "\\end{code}" "\\begin{verbatim}" "\\end{verbatim}"
+
+lhsStyleTex = LhsStyle "" "" "\\begin{code}" "\\end{code}" "\\begin{verbatim}" "\\end{verbatim}"
 
 ihaskellArgs :: Mode Args
 ihaskellArgs =
-  let descr = "Haskell for Interactive Computing." 
+  let descr = "Haskell for Interactive Computing."
       helpStr = showText (Wrap 100) $ helpText [] HelpFormatAll ihaskellArgs
       onlyHelp = [flagHelpSimple (add Help)]
-      noMode = mode "IHaskell" (Args (ShowHelp helpStr) []) descr noArgs onlyHelp in
-    noMode { modeGroupModes = toGroup allModes }
-  where 
+      noMode = mode "IHaskell" (Args (ShowHelp helpStr) []) descr noArgs onlyHelp
+  in noMode { modeGroupModes = toGroup allModes }
+  where
     add flag (Args mode flags) = Args mode $ flag : flags
 
 noArgs = flagArg unexpected ""
