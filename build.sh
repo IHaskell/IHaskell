@@ -68,13 +68,8 @@ done
 # Stick a "./" before everything.
 INSTALL_DIRS=`echo $INSTALLS | tr ' ' '\n' | sed 's#^#./#' | tr ' ' '\n'`
 
-if [ `uname` = Darwin ]; then
-  echo CMD: cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
+echo CMD: cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
   cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
-else
-  echo CMD: cabal install -j $INSTALL_DIRS --force-reinstalls --constraint "arithmoi==0.4.*" --max-backjumps=-1 --reorder-goals
-  cabal install -j $INSTALL_DIRS --force-reinstalls --constraint "arithmoi==0.4.*" --max-backjumps=-1 --reorder-goals
-fi
 
 if hash ihaskell 2>/dev/null; then
     ihaskell install 2>/dev/null || echo "\"ihaskell install\" - failed, pls check your ipython --version required 3.0.0 but is $(ipython --version)"
