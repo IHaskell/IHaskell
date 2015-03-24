@@ -1,9 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 -- | Description : Parsing messages received from IPython
 --
--- This module is responsible for converting from low-level ByteStrings
--- obtained from the 0MQ sockets into Messages. The only exposed function is
--- `parseMessage`, which should only be used in the low-level 0MQ interface.
+-- This module is responsible for converting from low-level ByteStrings obtained from the 0MQ
+-- sockets into Messages. The only exposed function is `parseMessage`, which should only be used in
+-- the low-level 0MQ interface.
 module IHaskell.IPython.Message.Parser (parseMessage) where
 
 import           Data.Aeson ((.:), decode, Result(..), Object)
@@ -17,9 +18,7 @@ import           IHaskell.IPython.Types
 
 type LByteString = Lazy.ByteString
 
------ External interface -----
-
--- | Parse a message from its ByteString components into a Message.
+-- --- External interface ----- | Parse a message from its ByteString components into a Message.
 parseMessage :: [ByteString] -- ^ The list of identifiers sent with the message.
              -> ByteString   -- ^ The header data.
              -> ByteString   -- ^ The parent header, which is just "{}" if there is no header.
@@ -32,26 +31,25 @@ parseMessage idents headerData parentHeader metadata content =
       messageWithoutHeader = parser messageType $ Lazy.fromStrict content
   in messageWithoutHeader { header = header }
 
------ Module internals -----
-
--- | Parse a header from its ByteString components into a MessageHeader.
+-- --- Module internals ----- | Parse a header from its ByteString components into a MessageHeader.
 parseHeader :: [ByteString]  -- ^ The list of identifiers.
             -> ByteString    -- ^ The header data.
             -> ByteString    -- ^ The parent header, or "{}" for Nothing.
             -> ByteString    -- ^ The metadata, or "{}" for an empty map.
             -> MessageHeader -- The resulting message header.
 parseHeader idents headerData parentHeader metadata =
-  MessageHeader { identifiers = idents
-                , parentHeader = parentResult
-                , metadata = metadataMap
-                , messageId = messageUUID
-                , sessionId = sessionUUID
-                , username = username
-                , msgType = messageType
-                }
+  MessageHeader
+    { identifiers = idents
+    , parentHeader = parentResult
+    , metadata = metadataMap
+    , messageId = messageUUID
+    , sessionId = sessionUUID
+    , username = username
+    , msgType = messageType
+    }
   where
-    -- Decode the header data and the parent header data into JSON objects.
-    -- If the parent header data is absent, just have Nothing instead.
+    -- Decode the header data and the parent header data into JSON objects. If the parent header data is
+    -- absent, just have Nothing instead.
     Just result = decode $ Lazy.fromStrict headerData :: Maybe Object
     parentResult = if parentHeader == "{}"
                      then Nothing
@@ -71,27 +69,26 @@ noHeader :: MessageHeader
 noHeader = error "No header created"
 
 parser :: MessageType            -- ^ The message type being parsed.
-       -> LByteString -> Message -- ^ The parser that converts the body into a message.
-                                 -- This message should have an undefined header.
+       -> LByteString -> Message -- ^ The parser that converts the body into a message. This message
+                                 -- should have an undefined header.
 parser KernelInfoRequestMessage = kernelInfoRequestParser
-parser ExecuteRequestMessage    = executeRequestParser
-parser CompleteRequestMessage   = completeRequestParser
+parser ExecuteRequestMessage = executeRequestParser
+parser CompleteRequestMessage = completeRequestParser
 parser ObjectInfoRequestMessage = objectInfoRequestParser
-parser ShutdownRequestMessage   = shutdownRequestParser
-parser InputReplyMessage        = inputReplyParser
-parser CommOpenMessage          = commOpenParser
-parser CommDataMessage          = commDataParser
-parser CommCloseMessage         = commCloseParser
-parser HistoryRequestMessage    = historyRequestParser
-parser other                    = error $ "Unknown message type " ++ show other
+parser ShutdownRequestMessage = shutdownRequestParser
+parser InputReplyMessage = inputReplyParser
+parser CommOpenMessage = commOpenParser
+parser CommDataMessage = commDataParser
+parser CommCloseMessage = commCloseParser
+parser HistoryRequestMessage = historyRequestParser
+parser other = error $ "Unknown message type " ++ show other
 
--- | Parse a kernel info request.
--- A kernel info request has no auxiliary information, so ignore the body.
+-- | Parse a kernel info request. A kernel info request has no auxiliary information, so ignore the
+-- body.
 kernelInfoRequestParser :: LByteString -> Message
 kernelInfoRequestParser _ = KernelInfoRequest { header = noHeader }
 
--- | Parse an execute request.
--- Fields used are:
+-- | Parse an execute request. Fields used are:
 --  1. "code": the code to execute.
 --  2. "silent": whether to execute silently.
 --  3. "store_history": whether to include this in history.
@@ -99,22 +96,23 @@ kernelInfoRequestParser _ = KernelInfoRequest { header = noHeader }
 executeRequestParser :: LByteString -> Message
 executeRequestParser content =
   let parser obj = do
-        code <- obj .: "code"
-        silent <- obj .: "silent"
-        storeHistory <- obj .: "store_history"
-        allowStdin <- obj .: "allow_stdin"
+                     code <- obj .: "code"
+                     silent <- obj .: "silent"
+                     storeHistory <- obj .: "store_history"
+                     allowStdin <- obj .: "allow_stdin"
 
-        return (code, silent, storeHistory, allowStdin)
+                     return (code, silent, storeHistory, allowStdin)
       Just decoded = decode content
       Success (code, silent, storeHistory, allowStdin) = parse parser decoded
-  in ExecuteRequest { header = noHeader
-                    , getCode = code
-                    , getSilent = silent
-                    , getAllowStdin = allowStdin
-                    , getStoreHistory = storeHistory
-                    , getUserVariables = []
-                    , getUserExpressions = []
-                    }
+  in ExecuteRequest
+    { header = noHeader
+    , getCode = code
+    , getSilent = silent
+    , getAllowStdin = allowStdin
+    , getStoreHistory = storeHistory
+    , getUserVariables = []
+    , getUserExpressions = []
+    }
 
 requestParser parser content = parsed
   where
@@ -146,7 +144,6 @@ objectInfoRequestParser = requestParser $ \obj -> do
   oname <- obj .: "oname"
   dlevel <- obj .: "detail_level"
   return $ ObjectInfoRequest noHeader oname dlevel
-
 
 shutdownRequestParser :: LByteString -> Message
 shutdownRequestParser = requestParser $ \obj -> do

@@ -1,17 +1,18 @@
-{-# LANGUAGE NoImplicitPrelude, TypeSynonymInstances, FlexibleInstances  #-}
+{-# LANGUAGE NoImplicitPrelude, TypeSynonymInstances, FlexibleInstances #-}
+
 module IHaskell.Display.Diagrams (diagram, animation) where
 
-import ClassyPrelude
+import           ClassyPrelude
 
-import System.Directory
+import           System.Directory
 import qualified Data.ByteString.Char8 as Char
-import System.IO.Unsafe
+import           System.IO.Unsafe
 
-import Diagrams.Prelude
-import Diagrams.Backend.Cairo
+import           Diagrams.Prelude
+import           Diagrams.Backend.Cairo
 
-import IHaskell.Display
-import IHaskell.Display.Diagrams.Animation
+import           IHaskell.Display
+import           IHaskell.Display.Diagrams.Animation
 
 instance IHaskellDisplay (QDiagram Cairo R2 Any) where
   display renderable = do
@@ -36,11 +37,13 @@ diagramData renderable format = do
 
   -- Convert to base64.
   imgData <- readFile $ fpFromString filename
-  let value = case format of
-        PNG -> png (floor imgWidth) (floor imgHeight) $ base64 imgData
-        SVG -> svg $ Char.unpack imgData
+  let value =
+        case format of
+          PNG -> png (floor imgWidth) (floor imgHeight) $ base64 imgData
+          SVG -> svg $ Char.unpack imgData
 
   return value
+
   where
     extension SVG = "svg"
     extension PNG = "png"

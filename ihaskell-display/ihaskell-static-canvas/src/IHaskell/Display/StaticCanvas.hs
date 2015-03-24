@@ -23,10 +23,7 @@ getUniqueName = do
   putMVar uniqueCounter val'
   return $ pack $ "ihaskellStaticCanvasUniqueID" ++ show val
 
-data Canvas = Canvas { width :: Int
-                     , height :: Int
-                     , canvas :: CanvasFree ()
-                     }
+data Canvas = Canvas { width :: Int, height :: Int, canvas :: CanvasFree () }
 
 instance IHaskellDisplay Canvas where
   display cnv = do

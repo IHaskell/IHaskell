@@ -1,20 +1,21 @@
-{-# LANGUAGE NoImplicitPrelude, TypeSynonymInstances, FlexibleInstances  #-}
+{-# LANGUAGE NoImplicitPrelude, TypeSynonymInstances, FlexibleInstances #-}
+
 module IHaskell.Display.Diagrams.Animation (animation) where
 
-import ClassyPrelude hiding (filename)
+import           ClassyPrelude hiding (filename)
 
-import Diagrams.Prelude
-import Diagrams.Backend.Cairo
-import Diagrams.Backend.Cairo.CmdLine (GifOpts (..))
-import Diagrams.Backend.CmdLine (DiagramOpts (..), mainRender)
+import           Diagrams.Prelude
+import           Diagrams.Backend.Cairo
+import           Diagrams.Backend.Cairo.CmdLine (GifOpts(..))
+import           Diagrams.Backend.CmdLine (DiagramOpts(..), mainRender)
 
-import IHaskell.Display
+import           IHaskell.Display
 
 instance IHaskellDisplay (QAnimation Cairo R2 Any) where
   display renderable = do
     gif <- animationData renderable
     return $ Display [html $ "<img src=\"data:image/gif;base64,"
-                               ++ gif ++ "\" />"]
+                             ++ gif ++ "\" />"]
 
 animationData :: Animation Cairo R2 -> IO String
 animationData renderable = do
@@ -37,16 +38,12 @@ animationData renderable = do
 
   -- Write the image.
   let filename = ".ihaskell-diagram.gif"
-      diagOpts = DiagramOpts {
-                             _width = Just . ceiling $ imgWidth
-                           , _height = Just . ceiling $ imgHeight
-                           , _output = filename
-                           }
-      gifOpts = GifOpts {
-                  _dither = True
-                , _noLooping = False
-                , _loopRepeat = Nothing
-                }
+      diagOpts = DiagramOpts
+        { _width = Just . ceiling $ imgWidth
+        , _height = Just . ceiling $ imgHeight
+        , _output = filename
+        }
+      gifOpts = GifOpts { _dither = True, _noLooping = False, _loopRepeat = Nothing }
   mainRender (diagOpts, gifOpts) frameSet
 
   -- Convert to ascii represented base64 encoding

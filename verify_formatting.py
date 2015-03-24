@@ -44,10 +44,16 @@ except:
 
 # Find all the source files
 sources = []
-for root, dirnames, filenames in os.walk("src"):
-    for filename in filenames:
-        if filename.endswith(".hs"):
-            sources.append(os.path.join(root, filename))
+for source_dir in ["src", "ipython-kernel", "ihaskell-display"]:
+    for root, dirnames, filenames in os.walk(source_dir):
+        # Skip cabal dist directories
+        if "dist" in root:
+            continue
+
+        for filename in filenames:
+            # Take Haskell files, but ignore the Cabal Setup.hs
+            if filename.endswith(".hs") and filename != "Setup.hs":
+                sources.append(os.path.join(root, filename))
 
 
 hindent_outputs = {}
