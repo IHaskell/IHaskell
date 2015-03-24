@@ -23,6 +23,9 @@ fi
 #sudo apt-get install python-pip
 sudo apt-get install -y python-dev
 
+# To get easy_install
+sudo apt-get install -y python-setuptools
+
 sudo easy_install -U pip
 
 # -H to use .cache in /root
@@ -40,5 +43,7 @@ sudo apt-get install -y libzmq3-dev
 
 sudo apt-get install -y libcairo2-dev
 sudo apt-get install -y libpango1.0-dev
+
+sudo apt-get install -y libmagic-dev
 
 ./build.sh all
