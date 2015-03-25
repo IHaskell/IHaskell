@@ -18,7 +18,7 @@ import           ClassyPrelude hiding (init, last, liftIO, head, hGetContents, t
 import           Control.Concurrent (forkIO, threadDelay)
 import           Prelude (putChar, head, tail, last, init, (!!))
 import           Data.List.Utils
-import           Data.List (findIndex, and, foldl1)
+import           Data.List (findIndex, and, foldl1, nubBy)
 import           Data.String.Utils
 import           Text.Printf
 import           Data.Char as Char
@@ -559,13 +559,14 @@ evalCommand _ (Directive GetKind expr) state = wrapExecution state $ do
 evalCommand _ (Directive LoadFile names) state = wrapExecution state $ do
   write state $ "Load: " ++ names
 
-  forM_ (words names) $ \name -> do
-    let filename = if endswith ".hs" name
-                     then name
-                     else name ++ ".hs"
-    contents <- readFile $ fpFromString filename
-    modName <- intercalate "." <$> getModuleName contents
-    doLoadModule filename modName
+  displays <- forM (words names) $ \name -> do
+                let filename = if endswith ".hs" name
+                                 then name
+                                 else name ++ ".hs"
+                contents <- readFile $ fpFromString filename
+                modName <- intercalate "." <$> getModuleName contents
+                doLoadModule filename modName
+  return (ManyDisplay displays)
 
 evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
   case words cmd of
@@ -1019,7 +1020,9 @@ doLoadModule name modName = do
     -- Load the new target.
     target <- guessTarget name Nothing
     oldTargets <- getTargets
+    -- Add a target, but make sure targets are unique!
     addTarget target
+    getTargets >>= return . (nubBy ((==) `on` targetId)) >>= setTargets
     result <- load LoadAllTargets
 
     -- Reset the context, since loading things screws it up.
