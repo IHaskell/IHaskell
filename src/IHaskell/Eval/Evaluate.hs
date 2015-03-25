@@ -556,15 +556,16 @@ evalCommand _ (Directive GetKind expr) state = wrapExecution state $ do
   let typeStr = showSDocUnqual flags $ ppr kind
   return $ formatType $ expr ++ " :: " ++ typeStr
 
-evalCommand _ (Directive LoadFile name) state = wrapExecution state $ do
-  write state $ "Load: " ++ name
+evalCommand _ (Directive LoadFile names) state = wrapExecution state $ do
+  write state $ "Load: " ++ names
 
-  let filename = if endswith ".hs" name
-                   then name
-                   else name ++ ".hs"
-  contents <- readFile $ fpFromString filename
-  modName <- intercalate "." <$> getModuleName contents
-  doLoadModule filename modName
+  forM_ (words names) $ \name -> do
+    let filename = if endswith ".hs" name
+                     then name
+                     else name ++ ".hs"
+    contents <- readFile $ fpFromString filename
+    modName <- intercalate "." <$> getModuleName contents
+    doLoadModule filename modName
 
 evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
   case words cmd of
