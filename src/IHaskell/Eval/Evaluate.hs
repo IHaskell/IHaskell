@@ -397,7 +397,6 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
 
   -- Write the module contents to a temporary file in our work directory
   namePieces <- getModuleName contents
-  liftIO (print namePieces)
   let directory = "./" ++ intercalate "/" (init namePieces) ++ "/"
       filename = last namePieces ++ ".hs"
   liftIO $ do
@@ -1001,26 +1000,6 @@ hoogleResults state results =
     fmt = Hoogle.HTML
     output = unlines $ map (Hoogle.render fmt) results
 
--- Read from a file handle until we hit a delimiter or until we've read as many characters as
--- requested
-readChars :: Handle -> String -> Int -> IO String
--- If we're done reading, return nothing.
-readChars handle delims 0 = return []
-
-readChars handle delims nchars = do
-  -- Try reading a single character. It will throw an exception if the handle is already closed.
-  tryRead <- gtry $ hGetChar handle :: IO (Either SomeException Char)
-  case tryRead of
-    Right char ->
-      -- If this is a delimiter, stop reading.
-      if char `elem` delims
-        then return [char]
-        else do
-          next <- readChars handle delims (nchars - 1)
-          return $ char : next
-    -- An error occurs at the end of the stream, so just stop reading.
-    Left _ -> return []
-
 doLoadModule :: String -> String -> Ghc Display
 doLoadModule name modName = do
   -- Remember which modules we've loaded before.
@@ -1029,32 +1008,41 @@ doLoadModule name modName = do
   flip gcatch (unload importedModules) $ do
     -- Compile loaded modules.
     flags <- getSessionDynFlags
-    setSessionDynFlags flags { hscTarget = objTarget flags }
-
-    -- Clear old targets to be sure.
-    setTargets []
-    load LoadAllTargets
+    errRef <- liftIO $ newIORef []
+    setSessionDynFlags
+      flags
+        { hscTarget = objTarget flags
+        , log_action = \dflags sev srcspan ppr msg -> modifyIORef errRef (showSDoc flags msg :)
+        }
 
     -- Load the new target.
     target <- guessTarget name Nothing
+    oldTargets <- getTargets
     addTarget target
     result <- load LoadAllTargets
 
     -- Reset the context, since loading things screws it up.
     initializeItVariable
 
+    -- Reset targets if we failed.
+    case result of
+      Failed      -> setTargets oldTargets
+      Succeeded{} -> return ()
+
     -- Add imports
-    importDecl <- parseImportDecl $ "import " ++ modName
-    let implicitImport = importDecl { ideclImplicit = True }
-    setContext $ IIDecl implicitImport : importedModules
+    setContext $
+      case result of
+        Failed    -> importedModules
+        Succeeded -> IIDecl (simpleImportDecl $ mkModuleName modName) : importedModules
 
     -- Switch back to interpreted mode.
-    flags <- getSessionDynFlags
-    setSessionDynFlags flags { hscTarget = HscInterpreted }
+    setSessionDynFlags flags
 
     case result of
       Succeeded -> return mempty
-      Failed    -> return $ displayError $ "Failed to load module " ++ modName
+      Failed -> do
+        errorStrs <- unlines <$> reverse <$> liftIO (readIORef errRef)
+        return $ displayError $ "Failed to load module " ++ modName ++ "\n" ++ errorStrs
 
   where
     unload :: [InteractiveImport] -> SomeException -> Ghc Display
@@ -1154,27 +1142,6 @@ capturedStatement output stmt = do
             fd <- head <$> unsafeCoerce hValues
             fdToHandle fd
 
-  -- Read from a file handle until we hit a delimiter or until we've read as many characters as
-  -- requested
-  let readChars :: Handle -> String -> Int -> IO String
-
-      -- If we're done reading, return nothing.
-      readChars handle delims 0 = return []
-
-      readChars handle delims nchars = do
-        -- Try reading a single character. It will throw an exception if the handle is already closed.
-        tryRead <- gtry $ hGetChar handle :: IO (Either SomeException Char)
-        case tryRead of
-          Right char ->
-            -- If this is a delimiter, stop reading.
-            if char `elem` delims
-              then return [char]
-              else do
-                next <- readChars handle delims (nchars - 1)
-                return $ char : next
-          -- An error occurs at the end of the stream, so just stop reading.
-          Left _ -> return []
-
 
   -- Keep track of whether execution has completed.
   completed <- liftIO $ newMVar False
@@ -1231,6 +1198,26 @@ capturedStatement output stmt = do
 
   printedOutput <- liftIO $ readMVar outputAccum
   return (printedOutput, result)
+
+-- Read from a file handle until we hit a delimiter or until we've read as many characters as
+-- requested
+readChars :: Handle -> String -> Int -> IO String
+readChars handle delims 0 =
+  -- If we're done reading, return nothing.
+  return []
+readChars handle delims nchars = do
+  -- Try reading a single character. It will throw an exception if the handle is already closed.
+  tryRead <- gtry $ hGetChar handle :: IO (Either SomeException Char)
+  case tryRead of
+    Right char ->
+      -- If this is a delimiter, stop reading.
+      if char `elem` delims
+        then return [char]
+        else do
+          next <- readChars handle delims (nchars - 1)
+          return $ char : next
+    -- An error occurs at the end of the stream, so just stop reading.
+    Left _ -> return []
 
 formatError :: ErrMsg -> String
 formatError = formatErrorWithClass "err-msg"
