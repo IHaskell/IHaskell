@@ -38,7 +38,7 @@ figureData figure format = do
           SVG -> svg $ Char.unpack imgData
 
   return value
+
   where
     extension SVG = "svg"
     extension PNG = "png"
-
