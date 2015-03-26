@@ -3,8 +3,9 @@
 [![Join the chat at https://gitter.im/gibiansky/IHaskell](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/gibiansky/IHaskell?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/gibiansky/IHaskell.svg?branch=master)](https://travis-ci.org/gibiansky/IHaskell)
 
+![IHaskell](https://raw.github.com/gibiansky/IHaskell/master/html/logo-64x64.png)
 
-# IHaskell ![IHaskell](https://raw.github.com/gibiansky/IHaskell/master/html/logo-64x64.png)
+# IHaskell
 IHaskell is a kernel for the [Jupyter project](http://ipython.org), which allows you to use Haskell inside Jupyter frontends (including the console and notebook).
 
 For a tour of some IHaskell features, check out the [demo Notebook](http://gibiansky.github.io/IHaskell/demo.html). More example notebooks are available on the [wiki](https://github.com/gibiansky/IHaskell/wiki).
@@ -23,18 +24,22 @@ The [wiki](https://github.com/gibiansky/IHaskell/wiki) also has more extensive d
 Virtualbox, install Ubuntu or another Linux distribution, and proceed with the
 install instructions.
 
-**How to get help:** Feel free to open an issue [on Github](https://github.com/gibiansky/IHaskell/issues?direction=desc&sort=updated&state=open) or join the [Gitter channel]((https://gitter.im/gibiansky/IHaskell?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)).
+**How to get help:** Feel free to open an issue [on Github](https://github.com/gibiansky/IHaskell/issues?direction=desc&sort=updated&state=open) or join the [Gitter channel](https://gitter.im/gibiansky/IHaskell?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).
 
 ### Install Using Installation Scripts
 
-- **Ubuntu:** If you are using a modern version of Ubuntu, clone the repository and then run the `linux-install.sh` script:
+#### Ubuntu:
+
+If you are using a modern version of Ubuntu, clone the repository and then run the `linux-install.sh` script:
 ```bash
 git clone http://www.github.com/gibiansky/IHaskell
 cd IHaskell
 ./linux-install.sh
 ```
 This script will ask you for `sudo` permissions in order to install IHaskell dependencies. The script is readable and easy to inspect if you wish to know what it does before giving it root permissions.
-- **Mac OS X:** On Mac OS X, clone the repository and then run the `macosx-install.sh` script:
+#### Mac OS X:
+
+On Mac OS X, clone the repository and then run the `macosx-install.sh` script:
 ```bash
 git clone http://www.github.com/gibiansky/IHaskell
 cd IHaskell
@@ -42,23 +47,26 @@ cd IHaskell
 ```
 Note that you must have [Homebrew](http://brew.sh/) installed for this script to work.
 
-### From Source
+### Manually
 
-1. Install IPython 3.0 or above:
+#### IPython
+Install IPython 3.0 or above:
 ```bash
 pip install ipython[all]
 ```
 This may require root permissions on some systems, in which case put a `sudo` before that command before running it.
 Once this is done, running `ipython --version` should print out `3.0` or above.
 
-2. Install GHC and Cabal. You must have appropriate versions of both:
+#### Haskell
+Install GHC and Cabal. You must have appropriate versions of both:
 ```bash
 ghc --numeric-version # Should be 7.6.* or 7.8.*
 cabal --version       # Should be 1.18.* or newer
 ```
 These may be installed in a number of ways, including the [Haskell Platform](http://www.haskell.org/platform/), as a [standalone Mac app](https://github.com/ghcformacosx/ghc-dot-app), via Homebrew with `brew install ghc cabal-install`, and so on.
 
-3. Install ZeroMQ, a library IHaskell uses for asynchronous communication.
+#### ZeroMQ
+Install ZeroMQ, a library IHaskell uses for asynchronous communication.
 
   - **Mac OS X**: With [Homebrew](http://brew.sh/) installed, run `brew install zeromq`. (If using 32-bit Haskell Platform, you *may* need to use `brew install zeromq --universal`. YMMV.)
   - **Ubuntu**: Run `sudo apt-get install libzmq3-dev`.
@@ -73,7 +81,8 @@ sudo ldconfig
 ```
 If your own platform has a package and I haven't included instructions for it, feel free to send me an email or a PR on this README.
 
-4.  Make sure that executables installed by `cabal` are on your shell `PATH`:
+#### Haskell Tools
+First, make sure that executables installed by `cabal` are on your shell `PATH`:
 ```bash
 # If you have a ~/.cabal/bin folder:
 export PATH=~/.cabal/bin:$PATH
@@ -82,12 +91,13 @@ export PATH=~/.cabal/bin:$PATH
 export PATH=~/Library/Haskell/bin:$PATH
 ```
 
-5.  Install the `happy` parser generator tool and `cpphs` preprocessor:
+Then, install the `happy` parser generator tool and `cpphs` preprocessor:
 ```bash
 cabal install happy cpphs
 ```
 
-6. Install IHaskell. You may install it from Hackage via `cabal install`:
+#### Build IHaskell
+Install IHaskell! You may install it from Hackage via `cabal install`:
 ```bash
 cabal install ihaskell --reorder-goals
 ```
@@ -98,18 +108,7 @@ cd IHaskell
 ./build.sh ihaskell # Build and install IHaskell
 ```
 
-7. Run IHaskell:
-  - `ihaskell install` to install the IHaskell kernel into Jupyter.
-  - `ipython notebook` for the browser-based interactive notebook.
-  - `ipython console --kernel haskell` for a REPL.
-
-
-Some of the IHaskell packages depend on `cairo`, such as `ihaskell-diagrams`, where `cairo` is used for drawing the displays. If you are using Mac OS X 10.9 (Mavericks) you will need to compile
-cairo with gcc, not clang. This can be done as follows:
-
-### Build Script
-
-This repository comes with a convenient `build.sh` script for building IHaskell and dependencies. It has the following modes:
+The build script, `build.sh`, is a script for building IHaskell and dependencies. It has the following modes:
 - `ihaskell`: Build and install `ihaskell` and the two dependencies from this repository, `ipython-kernel` and `ghc-parser`.
 - `quick`: Just install `ihaskell`, do not bother recompiling and reinstalling its dependencies (`ipython-kernel` and `ghc-parser`).
 - `display`: Install `ihaskell` and all the support libraries in `ihaskell-display/`.
@@ -124,7 +123,13 @@ cabal sandbox add-source ihaskell-display/* ghc-parser ipython-kernel
 cabal install IHaskell $(basename ihaskell-display/*)
 ```
 
-## Installing Support Libraries
+#### Run IHaskell
+Run IHaskell:
+  - `ihaskell install` to install the IHaskell kernel into Jupyter.
+  - `ipython notebook` for the browser-based interactive notebook.
+  - `ipython console --kernel haskell` for a REPL.
+
+### Installing Support Libraries
 
 IHaskell comes with many support libraries, such as `ihaskell-diagrams`, `ihaskell-parsec`, and so on, which add rich and interactive displays for common libraries.
 You can install these with `cabal install`. To install all of them, clone this repository and run `./build.sh all` to install IHaskell and all of its display support libraries.
@@ -135,7 +140,7 @@ brew install gcc49
 cabal install cairo --with-gcc=gcc-4.9
 ```
 
-#### Gotchas
+### Gotchas
 
 These are simply some problems have had and solutions to them.
 
@@ -158,15 +163,13 @@ export ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future
 
 **Note**: You may have some trouble due to browser caches with the notebook interface if you also use IPython's notebook interface or have used it in the past. If something doesn't work or IPython says it can't connect to the notebook server, make sure to clear the browser cache in whatever browser you're using, or try another browser.
 
-Contributing
-===
+# Contributing
 
 IHaskell is a young project, and I'd love your help getting it to a stable and useful point. There's a lot to do, and if you'd like to contribute, feel free to get in touch with me via my email at andrew period gibiansky at gmail - although browsing the code should be enough to get you started, I'm more than happy to answer any questions myself.
 
 **For package maintainers:** IHaskell has an ability to display data types it knows about with a rich format based on images or HTML. In order to do so, an external package `ihaskell-something` must be created and installed. Writing these packages is simply - they must just contain instance of the `IHaskellDisplay` typeclass, defined in `IHaskell.Display`, and for a package `ihaskell-something` should have a single module `IHaskell.Display.Something`. If you have a package with interesting data types that would benefit from a rich display format, please get in contact with me (andrew dot gibiansky at gmail) to write one of these packages! A sample package is available [here](https://github.com/gibiansky/IHaskell/tree/master/ihaskell-display/ihaskell-basic).
 
-Developer Notes
----
+# Developer Notes
 
 Before diving in, you should read the [brief description of IPython kernel architectures](http://andrew.gibiansky.com/blog/ipython/ipython-kernels/)
 and read the [complete messaging protocol specification](http://ipython.org/ipython-doc/dev/development/messaging.html).
