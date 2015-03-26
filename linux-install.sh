@@ -46,4 +46,7 @@ sudo apt-get install -y libpango1.0-dev
 
 sudo apt-get install -y libmagic-dev
 
+sudo apt-get install -y libblas-dev
+sudo apt-get install -y liblapack-dev
+
 ./build.sh all
