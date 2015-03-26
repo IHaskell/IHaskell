@@ -30,11 +30,11 @@ install instructions.
 
 #### Ubuntu:
 
-If you are using a modern version of Ubuntu, clone the repository and then run the `linux-install.sh` script:
+If you are using a modern version of Ubuntu, clone the repository and then run the `ubuntu-install.sh` script:
 ```bash
 git clone http://www.github.com/gibiansky/IHaskell
 cd IHaskell
-./linux-install.sh
+./ubuntu-install.sh
 ```
 This script will ask you for `sudo` permissions in order to install IHaskell dependencies. The script is readable and easy to inspect if you wish to know what it does before giving it root permissions.
 #### Mac OS X:
