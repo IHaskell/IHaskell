@@ -127,7 +127,7 @@ defaultKernelState = KernelState
   , useSvg = True
   , useShowErrors = False
   , useShowTypes = False
-  , usePager = True
+  , usePager = False
   , openComms = empty
   , kernelDebug = False
   }
