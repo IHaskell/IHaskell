@@ -3,87 +3,66 @@
 [![Join the chat at https://gitter.im/gibiansky/IHaskell](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/gibiansky/IHaskell?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/gibiansky/IHaskell.svg?branch=master)](https://travis-ci.org/gibiansky/IHaskell)
 
-![IHaskell](https://raw.github.com/gibiansky/IHaskell/master/images/ihaskell-logo.png)
 
-IHaskell
-===
-IHaskell is an implementation of the [IPython](http://ipython.org) kernel protocol which allows you to use Haskell inside IPython frontends such as `qtconsole` and `notebook`.
+# IHaskell ![IHaskell](https://raw.github.com/gibiansky/IHaskell/master/html/logo-64x64.png)
+IHaskell is a kernel for the [Jupyter project](http://ipython.org), which allows you to use Haskell inside Jupyter frontends (including the console and notebook).
 
-[Demo Notebook](http://gibiansky.github.io/IHaskell/demo.html) (more example notebooks on the [wiki](https://github.com/gibiansky/IHaskell/wiki))
+For a tour of some IHaskell features, check out the [demo Notebook](http://gibiansky.github.io/IHaskell/demo.html). More example notebooks are available on the [wiki](https://github.com/gibiansky/IHaskell/wiki).
+The [wiki](https://github.com/gibiansky/IHaskell/wiki) also has more extensive documentation of IHaskell features.
 
-**_Please_ run `cabal update` before installing - IHaskell updates _very_ regularly!**
-
----
-
-The project works with the IPython shell:
-
+### Shell Usage
 ![IPython Console](https://raw.github.com/gibiansky/IHaskell/master/images/ihaskell-console.png)
 
-As well as the IPython browser-based notebook interface:
-
+### Interactive In-Browser Notebook
 ![IPython Notebook](https://raw.github.com/gibiansky/IHaskell/master/images/ihaskell-notebook.png)
 
-# More usage information on the [wiki](https://github.com/gibiansky/IHaskell/wiki).
 
-Kronos Haskell
-===
-For Mac OS X 10.9 and higher, you can install IHaskell via [Kronos Haskell](http://www.kronosnotebook.com/static/html/haskell.html).
-Kronos Haskell is a packaged interface for IHaskell, downloadable as a Mac app
-– download it, put it in /Applications, and run it as any other Mac app.
+# Source Installation
 
-Docker Installation (Linux, Mac and Windows)
-===
+**Note:** IHaskell does not support Windows. To use on Windows, install
+Virtualbox, install Ubuntu or another Linux distribution, and proceed with the
+install instructions.
 
-There is a Docker container for IHaskell.  It can be run in Linux, Mac OS as well as Windows, although Mac OS and Windows users will need to install [boot2docker](https://github.com/boot2docker/boot2docker). Instructions for installing on your platform can be found on [docker.com](https://docs.docker.com/installation/).
+**How to get help:** Feel free to open an issue [on Github](https://github.com/gibiansky/IHaskell/issues?direction=desc&sort=updated&state=open) or join the [Gitter channel]((https://gitter.im/gibiansky/IHaskell?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)).
 
-After installing docker, type the following to run IHaskell in your browser.
+### Install Using Installation Scripts
 
+- **Ubuntu:** If you are using a modern version of Ubuntu, clone the repository and then run the `linux-install.sh` script:
 ```bash
-docker run -p 8778:8778 -v $(pwd):/home/haskell/.ihaskell/notebooks gregweber/ihaskell
+git clone http://www.github.com/gibiansky/IHaskell
+cd IHaskell
+./linux-install.sh
 ```
-
-This will share the current working directory with the Docker container.
-
-Visit [http://0.0.0.0:8778/](http://0.0.0.0:8778/) to start using IHaskell.
-
-If you are using boot2docker you may need to visit [http://192.168.59.103:8778/](http://192.168.59.103:8778/) instead.
-
-You can also run the IHaskell in the console with
-
+This script will ask you for `sudo` permissions in order to install IHaskell dependencies. The script is readable and easy to inspect if you wish to know what it does before giving it root permissions.
+- **Mac OS X:** On Mac OS X, clone the repository and then run the `macosx-install.sh` script:
 ```bash
-docker run --rm -i -t gregweber/ihaskell console
+git clone http://www.github.com/gibiansky/IHaskell
+cd IHaskell
+./macosx-install.sh
 ```
+Note that you must have [Homebrew](http://brew.sh/) installed for this script to work.
 
-*Note*: Linux users might need to type `sudo` before this command, unless they have added themselves to the `docker` group.  Please see this [stackexchange](http://askubuntu.com/a/477554) answer for more information.
+### From Source
 
-Windows Installation
-===
-
-Install Virtualbox. Load a Linux distro and install Docker, then run the Docker package.
-This also works on Mac, but Mac users may prefer installing from source.
-
-Source Installation (Mac and Linux)
-===
-
-If you have any trouble with installation or have other questions about IHaskell, feel free to open an issue [on Github](https://github.com/gibiansky/IHaskell/issues?direction=desc&sort=updated&state=open) or join our IRC at #ihaskell on chat.freenode.net.
-
-IHaskell is built on top of IPython, which provides the frontends and the entire infrastructure. By default, IHaskell will attempt to use the system IPython installation. If it fails to find one, it will create its own virtualenv and install all its own Python dependencies (this happens on the first run). However, if you want to provide your own IPython to override the automatic behaviour, you can instead pass IHaskell the `--ipython /path/to/exec/ipython` flag, in which case the installation will not happen and it'll just use the IPython you passed it. You *must* have IPython 2.0, though; older versions will *not* work properly!  Installing IPython 2.0 from PyPI is recommended (as this is how the automatic installer does it).
-
-*Note that since the default install  uses virtualenv, your system must be virtualenv compatibile. Mac users have run into [this issue](http://stackoverflow.com/questions/5904319/problem-with-virtualenv-in-mac-os-x) before, for example.*
-
-ZeroMQ
----
-IHaskell uses a library known as ZeroMQ for asynchronous communication. Make sure that ZeroMQ 4 is installed - it is a relatively recent library and thus you may have older versions installed.
-
-For Macs, you can easily install it with [Homebrew](http://brew.sh/):
+1. Install IPython 3.0 or above:
 ```bash
-# For Macs with Homebrew:
-brew update
-brew install zeromq
+pip install ipython[all]
 ```
-(If using 32-bit Haskell Platform, you *may* need to use `brew install zeromq --universal`. YMMV.)
+This may require root permissions on some systems, in which case put a `sudo` before that command before running it.
+Once this is done, running `ipython --version` should print out `3.0` or above.
 
-On other platforms, you can easily install from source:
+2. Install GHC and Cabal. You must have appropriate versions of both:
+```bash
+ghc --numeric-version # Should be 7.6.* or 7.8.*
+cabal --version       # Should be 1.18.* or newer
+```
+These may be installed in a number of ways, including the [Haskell Platform](http://www.haskell.org/platform/), as a [standalone Mac app](https://github.com/ghcformacosx/ghc-dot-app), via Homebrew with `brew install ghc cabal-install`, and so on.
+
+3. Install ZeroMQ, a library IHaskell uses for asynchronous communication.
+
+  - **Mac OS X**: With [Homebrew](http://brew.sh/) installed, run `brew install zeromq`. (If using 32-bit Haskell Platform, you *may* need to use `brew install zeromq --universal`. YMMV.)
+  - **Ubuntu**: Run `sudo apt-get install libzmq3-dev`.
+  - **Other**: You can install ZeroMQ from source or use another package manager:
 ```bash
 # Compiling from source:
 git clone git@github.com:zeromq/zeromq4-x.git libzmq
@@ -92,28 +71,9 @@ cd libzmq
 sudo make install
 sudo ldconfig
 ```
-
 If your own platform has a package and I haven't included instructions for it, feel free to send me an email or a PR on this README.
 
-Haskell and Cabal
----
-You should also have GHC and modern Cabal:
-```bash
-ghc --numeric-version # Should be 7.6.3, 7.8.2, or 7.8.3
-cabal --version       # Should be 1.18.* or newer
-```
-Since IHaskell uses the GHC API for evaluation and parsing, other versions of GHC may not work.
-
-If you do not have GHC or Cabal, you should be able to install both via the 
-[Haskell Platform](http://www.haskell.org/platform/). On Macs with Homebrew, you can do this via
-```bash
-# Macs with Homebrew only, if you don't have GHC or Cabal
-brew install ghc cabal-install
-cabal update && cabal install cabal-install
-```
-Use `cabal install cabal-install` to update Cabal if you still have version 1.16 instead of 1.18.
-
-Also, in order to use executables which `cabal` installs, they must be in your path. Execute this in your shell or add it to your `~/.bashrc`:
+4.  Make sure that executables installed by `cabal` are on your shell `PATH`:
 ```bash
 # If you have a ~/.cabal/bin folder:
 export PATH=~/.cabal/bin:$PATH
@@ -122,53 +82,57 @@ export PATH=~/.cabal/bin:$PATH
 export PATH=~/Library/Haskell/bin:$PATH
 ```
 
-Some of the IHaskell packages depend on `cairo`, such as `ihaskell-diagrams`, where `cairo` is used for drawing the displays. If you are using Mac OS X 10.9 (Mavericks) you will need to compile
-cairo with gcc, not clang. This can be done as follows:
-
-```bash
-brew install gcc48
-cabal install cairo --with-gcc=gcc-4.8
-```
-Note that this is only necessary if you want to use the `ihaskell-display` packages provided.
-
-Compilation Tools
----
-Install the `happy` parser generator tool and `cpphs` preprocessor:
+5.  Install the `happy` parser generator tool and `cpphs` preprocessor:
 ```bash
 cabal install happy cpphs
 ```
 
-Python Installation
----
-
-IHaskell will automatically install python tools itself.
-If you already have ipython installed you can use the --ipython flag.
-
-On Linux make sure you also have `python-dev` (or equivalent) installed, which is needed to install `pyzmq`
-
-IHaskell Installation
----
-
-Install the IHaskell package from Hackage:
+6. Install IHaskell. You may install it from Hackage via `cabal install`:
 ```bash
-cabal update # Please do this! IHaskell updates *very* frequently.
 cabal install ihaskell --reorder-goals
 ```
-The `--reorder-goals` flag is necessary due to a bug in `cabal-install`. The `--solver=topdown` also seems to do the trick.
-
-If you have trouble with this installation, please make sure to try the Github version first. IHaskell is in rapid development, so Hackage may not always be the most recent. In order to install from Github, pull from the repository, and then install with
+As IHaskell updates frequently, you may also want to clone the repository and install from there:
 ```bash
-./build.sh all
+git clone http://www.github.com/gibiansky/IHaskell
+cd IHaskell
+./build.sh ihaskell # Build and install IHaskell
 ```
-Note that you should *not* use `cabal install`, as you want to also install dependencies from the Github source, and not Hackage. `build.sh` is a simple included script which manages this for you.
 
-Running IHaskell
----
+7. Run IHaskell:
+  - `ihaskell install` to install the IHaskell kernel into Jupyter.
+  - `ipython notebook` for the browser-based interactive notebook.
+  - `ipython console --kernel haskell` for a REPL.
 
-Finally, run the notebook or console interface:
+
+Some of the IHaskell packages depend on `cairo`, such as `ihaskell-diagrams`, where `cairo` is used for drawing the displays. If you are using Mac OS X 10.9 (Mavericks) you will need to compile
+cairo with gcc, not clang. This can be done as follows:
+
+### Build Script
+
+This repository comes with a convenient `build.sh` script for building IHaskell and dependencies. It has the following modes:
+- `ihaskell`: Build and install `ihaskell` and the two dependencies from this repository, `ipython-kernel` and `ghc-parser`.
+- `quick`: Just install `ihaskell`, do not bother recompiling and reinstalling its dependencies (`ipython-kernel` and `ghc-parser`).
+- `display`: Install `ihaskell` and all the support libraries in `ihaskell-display/`.
+- `all`: Install everything, including `ihaskell`, the dependencies, and all the support libraries in `ihaskell-display/`.
+It is run via `./build.sh all` or equivalent.
+
+IHaskell may also be built in a sandbox, via something like:
 ```bash
-IHaskell notebook # Should open a browser window!
-IHaskell console
+cd IHaskell
+cabal sandbox init
+cabal sandbox add-source ihaskell-display/* ghc-parser ipython-kernel
+cabal install IHaskell $(basename ihaskell-display/*)
+```
+
+## Installing Support Libraries
+
+IHaskell comes with many support libraries, such as `ihaskell-diagrams`, `ihaskell-parsec`, and so on, which add rich and interactive displays for common libraries.
+You can install these with `cabal install`. To install all of them, clone this repository and run `./build.sh all` to install IHaskell and all of its display support libraries.
+
+You may run into some issues with installing the `cairo` dependency on Macs. To fix this, you can install `gcc` via `brew` and then use it to install `cairo`:
+```bash
+brew install gcc49
+cabal install cairo --with-gcc=gcc-4.9
 ```
 
 #### Gotchas
@@ -188,31 +152,9 @@ cc1: error: -Werror=unused-command-line-argument-hard-error-in-future: No option
 export ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future
 ```
 
-If you want to pass specific options to the underlying IPython, you can do it like this:
-```bash
-# Expose the notebook on all ports!
-IHASKELL_IPYTHON_ARGS="--ip=*" ihaskell notebook
-```
-Anything in `IHASKELL_IPYTHON_ARGS` will be passed to the underlying `ipython` instance as an argument when you run IHaskell.
-
-There is a test notebook in the `IHaskell` directory. To try it, run IHaskell with `IHaskell notebook --serve=IHaskell`.
-
-If you get a pip error while IHaskell is installing Python
-dependencies on the first run (it will look like
-`EOFError: EOF when reading a line`), then you can do the following
-after ensuring that pip >= 1.5 is installed:
-```bash
-env PIP_EXISTS_ACTION=w IHaskell notebook
-```
-
-If it *still* doesn't work and you are using Mac OS X then
-`brew upgrade python`. Some older versions of Homebrew's Python have a
-broken version of distutils. Homebrew's version of Python 2.7.6 *does* work.
-
 **Problem**: You'd like to have IHaskell run some code every time it starts up, like `~/.ghci` or `~/.bashrc`.
 
-**Solution**: IHaskell uses `~/.ihaskell/rc.hs` as its default configuration file; if you put code into that file (it may or may not exist), it will be loaded on startup. You can substitute a different file by passing the `--conf=myfile.hs` argument to IHaskell,
-as in `IHaskell notebook --conf=/home/user/.ihaskellrc.hs`.
+**Solution**: IHaskell uses `~/.ihaskell/rc.hs` as its default configuration file; if you put code into that file (it may or may not exist), it will be loaded on startup. You can substitute a different file by passing the `--conf=myfile.hs` argument to `ihaskell install` to reconfigure the kernel.
 
 **Note**: You may have some trouble due to browser caches with the notebook interface if you also use IPython's notebook interface or have used it in the past. If something doesn't work or IPython says it can't connect to the notebook server, make sure to clear the browser cache in whatever browser you're using, or try another browser.
 
@@ -229,24 +171,8 @@ Developer Notes
 Before diving in, you should read the [brief description of IPython kernel architectures](http://andrew.gibiansky.com/blog/ipython/ipython-kernels/)
 and read the [complete messaging protocol specification](http://ipython.org/ipython-doc/dev/development/messaging.html).
 
-Skim the rather-lacking [Haddock documentation](http://gibiansky.github.io/IHaskell/IHaskell/).
 
-First steps:
-
-- Fork the repository on Github and clone your fork for editing. 
-
-**option 1** 
-```bash 
-cd /path/to/IHaskell
-./build.sh
-```
-**option 2**
-```bash
-cd /path/to/IHaskell
-cabal sandbox init
-cabal sandbox add-source ihaskell-display/* ghc-parser
-cabal install IHaskell $(basename ihaskell-display/*)
-```
+Please format your code with `hindent --style gibiansky` before submitting it; Travis CI automatically checks for code style before merging!
 
 **Loading IHaskell into GHCi for testing:**
 
