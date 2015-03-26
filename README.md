@@ -39,11 +39,11 @@ cd IHaskell
 This script will ask you for `sudo` permissions in order to install IHaskell dependencies. The script is readable and easy to inspect if you wish to know what it does before giving it root permissions.
 #### Mac OS X:
 
-On Mac OS X, clone the repository and then run the `macosx-install.sh` script:
+On Mac OS X, clone the repository and then run the `macos-install.sh` script:
 ```bash
 git clone http://www.github.com/gibiansky/IHaskell
 cd IHaskell
-./macosx-install.sh
+./macos-install.sh
 ```
 Note that you must have [Homebrew](http://brew.sh/) installed for this script to work.
 
