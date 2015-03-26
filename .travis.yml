@@ -49,6 +49,7 @@ script:
      travis_retry ./build.sh ihaskell
    fi
 # Build and run the test suite
+ - travis_retry cabal install --only-dependencies --enable-tests
  - travis_retry cabal configure --enable-tests
  - travis_retry cabal test --show-details=always
  - |
