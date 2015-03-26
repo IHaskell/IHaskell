@@ -47,9 +47,9 @@ cd IHaskell
 ```
 Note that you must have [Homebrew](http://brew.sh/) installed for this script to work.
 
-### Manually
+### Installing Manually
 
-#### IPython
+#### Install IPython
 Install IPython 3.0 or above:
 ```bash
 pip install ipython[all]
@@ -57,7 +57,9 @@ pip install ipython[all]
 This may require root permissions on some systems, in which case put a `sudo` before that command before running it.
 Once this is done, running `ipython --version` should print out `3.0` or above.
 
-#### Haskell
+Note that IHaskell *requires* 3.0 or above; IHaskell *will not work* with IPython 2 or earlier.
+
+#### Install Haskell
 Install GHC and Cabal. You must have appropriate versions of both:
 ```bash
 ghc --numeric-version # Should be 7.6.* or 7.8.*
@@ -65,7 +67,7 @@ cabal --version       # Should be 1.18.* or newer
 ```
 These may be installed in a number of ways, including the [Haskell Platform](http://www.haskell.org/platform/), as a [standalone Mac app](https://github.com/ghcformacosx/ghc-dot-app), via Homebrew with `brew install ghc cabal-install`, and so on.
 
-#### ZeroMQ
+#### Install ZeroMQ
 Install ZeroMQ, a library IHaskell uses for asynchronous communication.
 
   - **Mac OS X**: With [Homebrew](http://brew.sh/) installed, run `brew install zeromq`. (If using 32-bit Haskell Platform, you *may* need to use `brew install zeromq --universal`. YMMV.)
@@ -81,7 +83,7 @@ sudo ldconfig
 ```
 If your own platform has a package and I haven't included instructions for it, feel free to send me an email or a PR on this README.
 
-#### Haskell Tools
+#### Install Haskell Tools
 First, make sure that executables installed by `cabal` are on your shell `PATH`:
 ```bash
 # If you have a ~/.cabal/bin folder:
@@ -129,7 +131,7 @@ Run IHaskell:
   - `ipython notebook` for the browser-based interactive notebook.
   - `ipython console --kernel haskell` for a REPL.
 
-### Installing Support Libraries
+#### (Optional) Install Support Libraries
 
 IHaskell comes with many support libraries, such as `ihaskell-diagrams`, `ihaskell-parsec`, and so on, which add rich and interactive displays for common libraries.
 You can install these with `cabal install`. To install all of them, clone this repository and run `./build.sh all` to install IHaskell and all of its display support libraries.
