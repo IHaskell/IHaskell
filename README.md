@@ -8,7 +8,7 @@
 # IHaskell
 IHaskell is a kernel for the [Jupyter project](http://ipython.org), which allows you to use Haskell inside Jupyter frontends (including the console and notebook).
 
-For a tour of some IHaskell features, check out the [demo Notebook](http://gibiansky.github.io/IHaskell/demo.html). More example notebooks are available on the [wiki](https://github.com/gibiansky/IHaskell/wiki).
+For a tour of some IHaskell features, check out the [demo Notebook](http://nbviewer.ipython.org/github/gibiansky/IHaskell/blob/master/notebooks/IHaskell.ipynb). More example notebooks are available on the [wiki](https://github.com/gibiansky/IHaskell/wiki).
 The [wiki](https://github.com/gibiansky/IHaskell/wiki) also has more extensive documentation of IHaskell features.
 
 ### Shell Usage
