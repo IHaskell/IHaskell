@@ -3,13 +3,13 @@
 
 module IHaskell.Display.Plot where
 
-import ClassyPrelude
+import           ClassyPrelude
 
 import qualified Data.ByteString.Char8 as Char
 
-import Graphics.Rendering.Plot
+import           Graphics.Rendering.Plot
 
-import IHaskell.Display
+import           IHaskell.Display
 
 instance IHaskellDisplay (Figure ()) where
   display figure = do
@@ -32,11 +32,13 @@ figureData figure format = do
 
   -- Read back, and convert to base64.
   imgData <- readFile $ fpFromString fname
-  let value = case format of
-               PNG -> png w h $ base64 imgData
-               SVG -> svg $ Char.unpack imgData
+  let value =
+        case format of
+          PNG -> png w h $ base64 imgData
+          SVG -> svg $ Char.unpack imgData
 
   return value
   where
     extension SVG = "svg"
     extension PNG = "png"
+
