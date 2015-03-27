@@ -1,5 +1,4 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleInstances #-}
 
 module IHaskell.Display.Plot where
 
@@ -11,8 +10,9 @@ import           Graphics.Rendering.Plot
 
 import           IHaskell.Display
 
-instance IHaskellDisplay (Figure ()) where
-  display figure = do
+instance IHaskellDisplay (Figure a) where
+  display fig = do
+    let figure = fig >> return ()
     pngDisp <- figureData figure PNG
     svgDisp <- figureData figure SVG
     return $ Display [pngDisp, svgDisp]
@@ -36,9 +36,11 @@ figureData figure format = do
         case format of
           PNG -> png w h $ base64 imgData
           SVG -> svg $ Char.unpack imgData
+          _   -> error "Unsupported format for display"
 
   return value
 
   where
     extension SVG = "svg"
     extension PNG = "png"
+    extension _ = ""
