@@ -114,6 +114,7 @@ library
                    IHaskell.Eval.ParseShell
                    IHaskell.Eval.Util
                    IHaskell.IPython
+                   IHaskell.IPython.Stdin
                    IHaskell.Flags
                    IHaskell.Types
                    IHaskell.BrokenPackages
