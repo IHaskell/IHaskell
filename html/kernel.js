@@ -47,7 +47,7 @@ define(['require',
                             // This is necessary, otherwise sometimes highlighting just doesn't happen.
                             // This may be an IPython bug.
                             c.code_mirror.setOption('mode', 'ihaskell');
-                            c.auto_highlight();
+                            c.force_highlight('ihaskell');
                         }
                     }
                 });
