@@ -64,7 +64,7 @@ library
                        data-default-class,
                        directory,
                        Chart,
-                       Chart-cairo,
+                       Chart-cairo >=1.2,
                        ihaskell >= 0.5
   
   -- Directories containing source files.
