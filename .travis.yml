@@ -5,7 +5,7 @@
 env:
  - CABALVER=1.18 GHCVER=7.6.3
  - CABALVER=1.18 GHCVER=7.8.4 # see note about Alex/Happy for GHC >= 7.8
-# - CABALVER=1.22 GHCVER=7.10.1
+ - CABALVER=1.22 GHCVER=7.10.1
 # - CABALVER=head GHCVER=head   # see section about GHC HEAD snapshots
 
 # Note: the distinction between `before_install` and `install` is not important.
@@ -51,7 +51,10 @@ script:
 # Build and run the test suite
  - travis_retry cabal install --only-dependencies --enable-tests
  - travis_retry cabal configure --enable-tests
- - travis_retry cabal test --show-details=always
+ - |
+   if [ ${GHCVER%.*} = "7.8" ]; then
+    travis_retry cabal test --show-details=always
+   fi
  - |
    if [ ${GHCVER%.*} = "7.8" ]; then
     ./verify_formatting.py

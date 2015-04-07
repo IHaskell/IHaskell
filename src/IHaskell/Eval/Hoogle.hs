@@ -66,7 +66,7 @@ query str = do
 urlEncode :: String -> String
 urlEncode [] = []
 urlEncode (ch:t)
-  | (isAscii ch && isAlphaNum ch) || ch `P.elem` "-_.~" = ch : urlEncode t
+  | (isAscii ch && isAlphaNum ch) || ch `P.elem` ("-_.~" :: String) = ch : urlEncode t
   | not (isAscii ch) = P.foldr escape (urlEncode t) (eightBs [] (P.fromEnum ch))
   | otherwise = escape (P.fromEnum ch) (urlEncode t)
   where
