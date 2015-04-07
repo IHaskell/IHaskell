@@ -10,7 +10,7 @@ define(['require',
             var onload = function(){
                 console.log('Kernel haskell kernel.js is loading.');
 
-                // add here logic that shoudl be run once per **page load**
+                // add here logic that should be run once per **page load**
                 // like adding specific UI, or changing the default value
                 // of codecell highlight.
 
@@ -51,6 +51,12 @@ define(['require',
                         }
                     }
                 });
+                if(IPython.notebook.set_codemirror_mode){
+                    // this first one will not be necessary in the future
+                    // neither should the loop on all cells above
+                    IPython.notebook.set_codemirror_mode('null')
+                    IPython.notebook.set_codemirror_mode('ihaskell')
+                }
 
                 // Prevent the pager from surrounding everything with a <pre>
                 IPython.Pager.prototype.append_text = function (text) {
