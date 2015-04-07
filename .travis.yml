@@ -51,7 +51,10 @@ script:
 # Build and run the test suite
  - travis_retry cabal install --only-dependencies --enable-tests
  - travis_retry cabal configure --enable-tests
- - travis_retry cabal test --show-details=always
+ - |
+   if [ ${GHCVER%.*} = "7.8" ]; then
+    travis_retry cabal test --show-details=always
+   fi
  - |
    if [ ${GHCVER%.*} = "7.8" ]; then
     ./verify_formatting.py
