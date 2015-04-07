@@ -183,8 +183,9 @@ initializeImports = do
                              pkg <- db
                              depId <- depends pkg
                              dep <- filter ((== depId) . installedPackageId) db
-                             guard
-                               (iHaskellPkgName `isPrefixOf` packageIdString (packageConfigId dep))
+                             let idString = packageIdString' dflags (packageConfigId dep)
+                             guard (iHaskellPkgName `isPrefixOf` idString)
+                                    
 
                            -- ideally the Paths_ihaskell module could provide a way to get the hash too
                            -- (ihaskell-0.2.0.5-f2bce922fa881611f72dfc4a854353b9), for now. Things will end badly if you also
