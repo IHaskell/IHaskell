@@ -2,7 +2,7 @@
 -- Keep all the language pragmas here so it can be compiled separately.
 module Main where
 import Prelude
-import GHC
+import GHC hiding (Qualified)
 import GHC.Paths
 import Data.IORef
 import Control.Monad
