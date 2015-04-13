@@ -235,7 +235,7 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
   -- re-display with the updated output.
   displayed <- liftIO $ newMVar []
   updateNeeded <- liftIO $ newMVar False
-  pagerOutput <- liftIO $ newMVar ""
+  pagerOutput <- liftIO $ newMVar []
   let clearOutput = do
         header <- dupHeader replyHeader ClearOutputMessage
         send $ ClearOutput header True
@@ -296,8 +296,8 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
           let pager = pagerOut result
           unless (null pager) $
             if usePager state
-              then modifyMVar_ pagerOutput (return . (++ pager ++ "\n"))
-              else sendOutput $ Display [html pager]
+              then modifyMVar_ pagerOutput (return . (++ pager))
+              else sendOutput $ Display pager
 
   let execCount = getExecutionCounter state
   -- Let all frontends know the execution count and code that's about to run
@@ -314,7 +314,7 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
   -- Take pager output if we're using the pager.
   pager <- if usePager state
              then liftIO $ readMVar pagerOutput
-             else return ""
+             else return []
   return
     (updatedState, ExecuteReply
                      { header = replyHeader

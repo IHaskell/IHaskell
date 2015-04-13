@@ -29,25 +29,30 @@ instance ToJSON Message where
       , "payload" .=
         if null pager
           then []
-          else [object ["source" .= string "page", "text" .= pager]]
+          else map mkObj pager
       , "user_variables" .= emptyMap
       , "user_expressions" .= emptyMap
       ]
+    where
+      mkObj o = object
+                  [ "source" .= string "page"
+                  , "line" .= Number 0
+                  , "data" .= object [displayDataToJson o]
+                  ]
   toJSON PublishStatus { executionState = executionState } =
     object ["execution_state" .= executionState]
   toJSON PublishStream { streamType = streamType, streamContent = content } =
     object ["data" .= content, "name" .= streamType]
   toJSON PublishDisplayData { source = src, displayData = datas } =
     object
-      ["source" .= src, "metadata" .=
-                        object [], "data" .=
-                                   object (map displayDataToJson datas)]
+      ["source" .= src, "metadata" .= object [], "data" .= object (map displayDataToJson datas)]
 
   toJSON PublishOutput { executionCount = execCount, reprText = reprText } =
     object
-      ["data" .=
-       object ["text/plain" .= reprText], "execution_count" .= execCount, "metadata" .=
-                                                                          object []]
+      [ "data" .= object ["text/plain" .= reprText]
+      , "execution_count" .= execCount
+      , "metadata" .= object []
+      ]
   toJSON PublishInput { executionCount = execCount, inCode = code } =
     object ["execution_count" .= execCount, "code" .= code]
   toJSON (CompleteReply _ matches start end metadata status) =
