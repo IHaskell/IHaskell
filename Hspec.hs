@@ -62,7 +62,7 @@ eval string = do
   interpret libdir False $ Eval.evaluate state string publish
   out <- readIORef outputAccum
   pagerOut <- readIORef pagerAccum
-  return (reverse out, unlines $ reverse pagerOut)
+  return (reverse out, unlines . map extractPlain . reverse $ pagerOut)
 
 evaluationComparing comparison string = do
     let indent (' ':x) = 1 + indent x

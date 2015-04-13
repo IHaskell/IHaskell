@@ -283,14 +283,14 @@ evaluate kernelState code output = do
                  when (getLintStatus kernelState /= LintOff) $ liftIO $ do
                    lintSuggestions <- lint cmds
                    unless (noResults lintSuggestions) $
-                     output $ FinalResult lintSuggestions "" []
+                     output $ FinalResult lintSuggestions [] []
 
                  runUntilFailure kernelState (map unloc cmds ++ [storeItCommand execCount])
                -- Print all parse errors.
                errs -> do
                  forM_ errs $ \err -> do
                    out <- evalCommand output err kernelState
-                   liftIO $ output $ FinalResult (evalResult out) "" []
+                   liftIO $ output $ FinalResult (evalResult out) [] []
                  return kernelState
 
   return updated { getExecutionCounter = execCount + 1 }
@@ -316,7 +316,7 @@ evaluate kernelState code output = do
       -- Output things only if they are non-empty.
       let empty = noResults result && null helpStr && null (evalComms evalOut)
       unless empty $
-        liftIO $ output $ FinalResult result helpStr (evalComms evalOut)
+        liftIO $ output $ FinalResult result [plain helpStr] (evalComms evalOut)
 
       -- Make sure to clear all comms we've started.
       let newState = evalState evalOut { evalComms = [] }

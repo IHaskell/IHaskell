@@ -38,6 +38,7 @@ import           Data.ByteString (ByteString)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import           Data.Text (Text)
+import qualified Data.String as S
 import           Data.Serialize
 import           IHaskell.IPython.Message.UUID
 import           GHC.Generics (Generic)
@@ -272,7 +273,7 @@ data Message =
                ExecuteReply
                  { header :: MessageHeader
                  , status :: ExecuteReplyStatus          -- ^ The status of the output.
-                 , pagerOutput :: String                 -- ^ The help string to show in the pager.
+                 , pagerOutput :: [DisplayData]          -- ^ The mimebundles to display in the pager.
                  , executionCounter :: Int               -- ^ The execution count, i.e. which output this is.
                  }
              |
@@ -429,6 +430,9 @@ replyType _ = Nothing
 -- | Data for display: a string with associated MIME type.
 data DisplayData = DisplayData MimeType Text
   deriving (Typeable, Generic)
+
+instance S.IsString DisplayData where
+  fromString = DisplayData PlainText . Text.strip . Text.pack
 
 -- We can't print the actual data, otherwise this will be printed every time it gets computed
 -- because of the way the evaluator is structured. See how `displayExpr` is computed.

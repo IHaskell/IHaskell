@@ -127,7 +127,7 @@ defaultKernelState = KernelState
   , useSvg = True
   , useShowErrors = False
   , useShowTypes = False
-  , usePager = False
+  , usePager = True
   , openComms = empty
   , kernelDebug = False
   }
@@ -173,7 +173,8 @@ data EvaluationResult =
                       |
                         FinalResult
                           { outputs :: Display        -- ^ Display outputs.
-                          , pagerOut :: String        -- ^ Text to display in the IPython pager.
+                          , pagerOut :: [DisplayData] -- ^ Mimebundles to display in the IPython
+                                                      -- pager.
                           , startComms :: [CommInfo]  -- ^ Comms to start.
                           }
   deriving Show
