@@ -53,10 +53,10 @@ import           Control.Monad (forever, when, unless)
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
 import qualified Data.Text as T
-import           Data.String (IsString(..))
 
 import           IHaskell.IPython.Kernel
 import           IHaskell.IPython.Message.UUID as UUID
+import           IHaskell.IPython.Types
 
 import           System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist,
                                    getHomeDirectory)
@@ -156,7 +156,7 @@ createReplyHeader parent = do
 
 -- | Execute an IPython kernel for a config. Your 'main' action should call this as the last thing
 -- it does.
-easyKernel :: (MonadIO m, IsString output)
+easyKernel :: MonadIO m
            => FilePath -- ^ The connection file provided by the IPython frontend
            -> KernelConfig m output result -- ^ The kernel configuration specifying how to react to
                                            -- messages
@@ -174,7 +174,7 @@ easyKernel profileFile config = do
     reply <- replyTo config execCount zmq req repHeader
     liftIO $ writeChan shellRepChan reply
 
-replyTo :: (MonadIO m, IsString output)
+replyTo :: MonadIO m
         => KernelConfig m output result
         -> MVar Integer
         -> ZeroMQInterface
@@ -221,7 +221,7 @@ replyTo config execCount interface req@ExecuteRequest { getCode = code } replyHe
   return
     ExecuteReply
       { header = replyHeader
-      , pagerOutput = [fromString pagerOut]
+      , pagerOutput = [DisplayData PlainText $ T.pack pagerOut]
       , executionCounter = fromIntegral counter
       , status = replyStatus
       }

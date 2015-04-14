@@ -431,9 +431,6 @@ replyType _ = Nothing
 data DisplayData = DisplayData MimeType Text
   deriving (Typeable, Generic)
 
-instance S.IsString DisplayData where
-  fromString = DisplayData PlainText . Text.strip . Text.pack
-
 -- We can't print the actual data, otherwise this will be printed every time it gets computed
 -- because of the way the evaluator is structured. See how `displayExpr` is computed.
 instance Show DisplayData where
