@@ -22,7 +22,7 @@ fi
 
 # If ipython is installed, and has a major version >= 3, then use the
 # installed version. Otherwise we install from scratch.
-if [ -n "$(which ipython)" ] && { [ $(ipython --version | tr '.' ' ' | cut -f 1 -d ' ') -ge 3 ]; } then
+if [ -n "$(which ipython)" ] && { [ $(ipython --version | cut -f 1 -d '.') -ge 3 ]; } then
     echo "Using ipython already installed: $(which ipython)"
 else
     # Install IPython.
