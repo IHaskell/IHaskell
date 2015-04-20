@@ -7,7 +7,7 @@
 --     http://ghc.haskell.org/trac/ghc/wiki/Commentary/CodingStyle#Warnings
 -- for details
 
-module Language.Haskell.GHC.HappyParser (
+module Language.Haskell.GHC.HappyParser_782 (
   fullModule,
   fullTypeSignature,
   fullStatement,
@@ -26762,9 +26762,9 @@ happyReduction_410 ((HappyAbsSyn157  happy_var_6) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn157
-		 (sL (comb2 happy_var_1 happy_var_6) $ HsLam (mkMatchGroup FromSource [sL (comb2 happy_var_1 happy_var_6) $ Match (happy_var_2:happy_var_3) happy_var_4
+		 (sL (comb2 happy_var_1 happy_var_6) $ HsLam (mkMatchGroup [sL (comb2 happy_var_1 happy_var_6) $ Match (happy_var_2:happy_var_3) happy_var_4
                                                                 (unguardedGRHSs happy_var_6)
-                                                              ])
+                                                            ])
 	) `HappyStk` happyRest
 
 happyReduce_411 = happyReduce 4 159 happyReduction_411
@@ -26782,7 +26782,7 @@ happyReduction_412 (HappyAbsSyn185  happy_var_3)
 	_
 	(HappyTerminal happy_var_1)
 	 =  HappyAbsSyn157
-		 (sL (comb2 happy_var_1 happy_var_3) $ HsLamCase placeHolderType (mkMatchGroup FromSource (unLoc happy_var_3))
+		 (sL (comb2 happy_var_1 happy_var_3) $ HsLamCase placeHolderType (mkMatchGroup (unLoc happy_var_3))
 	)
 happyReduction_412 _ _ _  = notHappyAtAll 
 
@@ -26815,7 +26815,7 @@ happyReduction_415 ((HappyAbsSyn185  happy_var_4) `HappyStk`
 	(HappyTerminal happy_var_1) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn157
-		 (sL (comb2 happy_var_1 happy_var_4) $ HsCase happy_var_2 (mkMatchGroup FromSource (unLoc happy_var_4))
+		 (sL (comb2 happy_var_1 happy_var_4) $ HsCase happy_var_2 (mkMatchGroup (unLoc happy_var_4))
 	) `HappyStk` happyRest
 
 happyReduce_416 = happySpecReduce_2  159 happyReduction_416

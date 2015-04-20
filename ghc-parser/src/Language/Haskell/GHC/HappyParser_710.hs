@@ -1,4 +1,4 @@
-module Language.Haskell.GHC.HappyParser
+module Language.Haskell.GHC.HappyParser_710
     ( fullStatement
     , fullImport
     , fullDeclaration
