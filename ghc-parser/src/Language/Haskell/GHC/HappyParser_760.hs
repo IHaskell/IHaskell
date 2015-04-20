@@ -15,7 +15,7 @@ to inline certain key external functions, so we instruct GHC not to
 throw away inlinings as it would normally do in -O0 mode.
 -}
 
-module Language.Haskell.GHC.HappyParser (
+module Language.Haskell.GHC.HappyParser_760 (
   fullModule,
   fullTypeSignature,
   fullStatement,

@@ -27,20 +27,14 @@ library
   build-tools:         happy, cpphs
   exposed-modules:     Language.Haskell.GHC.Parser,
                        Language.Haskell.GHC.HappyParser
-  -- other-modules:
+  other-modules:       Language.Haskell.GHC.HappyParser_760
+                     , Language.Haskell.GHC.HappyParser_782
+                     , Language.Haskell.GHC.HappyParser_783
+                     , Language.Haskell.GHC.HappyParser_710
   -- other-extensions:
   build-depends:       base                 >=4.6 && <4.9,
                        ghc                  >=7.6 && <7.11
 
-  if   impl(ghc >= 7.6) && impl(ghc < 7.8)
-    hs-source-dirs:      generic-src src-7.6
-  else
-    if impl(ghc >= 7.8) && impl(ghc < 7.8.3)
-      hs-source-dirs:    generic-src src-7.8.2
-    else
-      if impl(ghc < 7.10)
-        hs-source-dirs:    generic-src src-7.8.3
-      else
-        hs-source-dirs:    generic-src src-7.10
+  hs-source-dirs:      generic-src src
 
   default-language:    Haskell2010
