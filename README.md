@@ -122,7 +122,13 @@ IHaskell may also be built in a sandbox, via something like:
 cd IHaskell
 cabal sandbox init
 cabal sandbox add-source ihaskell-display/* ghc-parser ipython-kernel
-cabal install IHaskell $(basename ihaskell-display/*)
+cabal install . ihaskell-display/*
+```
+
+You may also need to use `--extra-lib-dirs` and `--extra-include-dirs`, if
+`cabal` cannot find relevant libraries. For example:
+```bash
+cabal install . ihaskell-display/* --extra-lib-dirs=`brew --prefix libmagic`/lib --extra-include-dirs=`brew --prefix libmagic`/include
 ```
 
 #### Run IHaskell
