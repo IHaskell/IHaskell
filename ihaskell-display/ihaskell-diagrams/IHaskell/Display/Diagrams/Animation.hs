@@ -11,13 +11,13 @@ import           Diagrams.Backend.CmdLine (DiagramOpts(..), mainRender)
 
 import           IHaskell.Display
 
-instance IHaskellDisplay (QAnimation Cairo R2 Any) where
+instance IHaskellDisplay (QAnimation Cairo V2 Double Any) where
   display renderable = do
     gif <- animationData renderable
     return $ Display [html $ "<img src=\"data:image/gif;base64,"
                              ++ gif ++ "\" />"]
 
-animationData :: Animation Cairo R2 -> IO String
+animationData :: Animation Cairo V2 Double -> IO String
 animationData renderable = do
   switchToTmpDir
 
@@ -51,5 +51,5 @@ animationData renderable = do
   return . unpack . base64 $ imgData
 
 -- Rendering hint.
-animation :: Animation Cairo R2 -> Animation Cairo R2
+animation :: Animation Cairo V2 Double -> Animation Cairo V2 Double
 animation = id
