@@ -19,6 +19,7 @@ import           Text.Printf
 import           System.Posix.Signals
 import qualified Data.Map as Map
 import           Data.String.Here (hereFile)
+import qualified Data.Text as T
 
 -- IHaskell imports.
 import           IHaskell.Convert (convert)
@@ -334,17 +335,10 @@ replyTo _ req@CompleteRequest{} replyHeader state = do
       reply = CompleteReply replyHeader (map pack completions) start end Map.empty True
   return (state, reply)
 
--- Reply to the object_info_request message. Given an object name, return the associated type
--- calculated by GHC.
-replyTo _ ObjectInfoRequest { objectName = oname } replyHeader state = do
-  docs <- pack <$> info (unpack oname)
-  let reply = ObjectInfoReply
-        { header = replyHeader
-        , objectName = oname
-        , objectFound = strip docs /= ""
-        , objectTypeString = docs
-        , objectDocString = docs
-        }
+-- TODO: Implement inspect_reply
+replyTo _ InspectRequest{} replyHeader state = do
+  -- FIXME
+  let reply = InspectReply { header = replyHeader, inspectStatus = False, inspectData = [] }
   return (state, reply)
 
 -- TODO: Implement history_reply.

@@ -90,7 +90,7 @@ data KernelConfig m output result =
          , completion :: T.Text -> T.Text -> Int -> Maybe ([T.Text], T.Text, T.Text)
          -- | Return the information or documentation for its argument. The returned tuple consists of the
          -- name, the documentation, and the type, respectively.
-         , objectInfo :: T.Text -> Maybe (T.Text, T.Text, T.Text)
+         , inspectInfo :: T.Text -> Maybe (T.Text, T.Text, T.Text)
          -- | Execute a cell. The arguments are the contents of the cell, an IO action that will clear the
          -- current intermediate output, and an IO action that will add a new item to the intermediate
          -- output. The result consists of the actual result, the status to be sent to IPython, and the
@@ -228,25 +228,10 @@ replyTo config execCount interface req@ExecuteRequest { getCode = code } replyHe
 
 replyTo config _ _ req@CompleteRequest{} replyHeader =
   -- TODO: FIX
-  error "Unimplemented in IPython 3.0"
+  error "Completion: Unimplemented for IPython 3.0"
 
-replyTo config _ _ ObjectInfoRequest { objectName = obj } replyHeader =
-  return $
-    case objectInfo config obj of
-      Just (name, docs, ty) -> ObjectInfoReply
-        { header = replyHeader
-        , objectName = obj
-        , objectFound = True
-        , objectTypeString = ty
-        , objectDocString = docs
-        }
-      Nothing -> ObjectInfoReply
-        { header = replyHeader
-        , objectName = obj
-        , objectFound = False
-        , objectTypeString = ""
-        , objectDocString = ""
-        }
+replyTo _ _ _ InspectRequest{} _ = do
+  error $ "Inspection: Unimplemented for IPython 3.0"
 
 replyTo _ _ _ msg _ = do
   liftIO $ putStrLn "Unknown message: "

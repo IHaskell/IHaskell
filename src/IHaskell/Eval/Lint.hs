@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, QuasiQuotes, ViewPatterns #-}
+{-# LANGUAGE FlexibleContexts, NoImplicitPrelude, QuasiQuotes, ViewPatterns #-}
 
 module IHaskell.Eval.Lint (lint) where
 
