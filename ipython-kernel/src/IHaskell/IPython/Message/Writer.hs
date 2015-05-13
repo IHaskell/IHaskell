@@ -65,15 +65,13 @@ instance ToJSON Message where
                       then string "ok"
                       else "error"
       ]
-  toJSON o@ObjectInfoReply{} =
+  toJSON i@InspectReply{} =
     object
-      [ "oname" .=
-        objectName o
-      , "found" .= objectFound o
-      , "ismagic" .= False
-      , "isalias" .= False
-      , "type_name" .= objectTypeString o
-      , "docstring" .= objectDocString o
+      [ "status" .= if inspectStatus i
+                      then string "ok"
+                      else "error"
+      , "data" .= object (map displayDataToJson . inspectData $ i)
+      , "metadata" .= object []
       ]
 
   toJSON ShutdownReply { restartPending = restart } =

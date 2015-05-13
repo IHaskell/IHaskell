@@ -176,8 +176,8 @@ data MessageType = KernelInfoReplyMessage
                  | InputMessage
                  | CompleteRequestMessage
                  | CompleteReplyMessage
-                 | ObjectInfoRequestMessage
-                 | ObjectInfoReplyMessage
+                 | InspectRequestMessage
+                 | InspectReplyMessage
                  | ShutdownRequestMessage
                  | ShutdownReplyMessage
                  | ClearOutputMessage
@@ -202,8 +202,8 @@ showMessageType OutputMessage = "pyout"
 showMessageType InputMessage = "pyin"
 showMessageType CompleteRequestMessage = "complete_request"
 showMessageType CompleteReplyMessage = "complete_reply"
-showMessageType ObjectInfoRequestMessage = "object_info_request"
-showMessageType ObjectInfoReplyMessage = "object_info_reply"
+showMessageType InspectRequestMessage = "inspect_request"
+showMessageType InspectReplyMessage = "inspect_reply"
 showMessageType ShutdownRequestMessage = "shutdown_request"
 showMessageType ShutdownReplyMessage = "shutdown_reply"
 showMessageType ClearOutputMessage = "clear_output"
@@ -229,8 +229,8 @@ instance FromJSON MessageType where
       "pyin"                -> return InputMessage
       "complete_request"    -> return CompleteRequestMessage
       "complete_reply"      -> return CompleteReplyMessage
-      "object_info_request" -> return ObjectInfoRequestMessage
-      "object_info_reply"   -> return ObjectInfoReplyMessage
+      "inspect_request"     -> return InspectRequestMessage
+      "inspect_reply"       -> return InspectReplyMessage
       "shutdown_request"    -> return ShutdownRequestMessage
       "shutdown_reply"      -> return ShutdownReplyMessage
       "clear_output"        -> return ClearOutputMessage
@@ -326,20 +326,22 @@ data Message =
                  , completionStatus :: Bool
                  }
              |
-               ObjectInfoRequest
+               InspectRequest
                  { header :: MessageHeader
-                 -- | Name of object being searched for.
-                 , objectName :: Text
+                 -- | The code context in which introspection is requested
+                 , inspectCode :: Text
+                 -- | Position of the cursor in unicode characters. json field @cursor_pos@
+                 , inspectCursorPos :: Int
                  -- | Level of detail desired (defaults to 0). 0 is equivalent to foo?, 1 is equivalent to foo??.
                  , detailLevel :: Int
                  }
              |
-               ObjectInfoReply
+               InspectReply
                  { header :: MessageHeader
-                 , objectName :: Text           -- ^ Name of object which was searched for.
-                 , objectFound :: Bool          -- ^ Whether the object was found.
-                 , objectTypeString :: Text     -- ^ Object type.
-                 , objectDocString :: Text
+                 -- | whether the request succeeded or failed
+                 , inspectStatus :: Bool
+                 -- | @inspectData@ can be empty if nothing is found
+                 , inspectData :: [DisplayData]
                  }
              |
                ShutdownRequest
@@ -422,7 +424,7 @@ replyType :: MessageType -> Maybe MessageType
 replyType KernelInfoRequestMessage = Just KernelInfoReplyMessage
 replyType ExecuteRequestMessage = Just ExecuteReplyMessage
 replyType CompleteRequestMessage = Just CompleteReplyMessage
-replyType ObjectInfoRequestMessage = Just ObjectInfoReplyMessage
+replyType InspectRequestMessage = Just InspectReplyMessage
 replyType ShutdownRequestMessage = Just ShutdownReplyMessage
 replyType HistoryRequestMessage = Just HistoryReplyMessage
 replyType _ = Nothing

@@ -74,7 +74,7 @@ parser :: MessageType            -- ^ The message type being parsed.
 parser KernelInfoRequestMessage = kernelInfoRequestParser
 parser ExecuteRequestMessage = executeRequestParser
 parser CompleteRequestMessage = completeRequestParser
-parser ObjectInfoRequestMessage = objectInfoRequestParser
+parser InspectRequestMessage = inspectRequestParser
 parser ShutdownRequestMessage = shutdownRequestParser
 parser InputReplyMessage = inputReplyParser
 parser CommOpenMessage = commOpenParser
@@ -139,11 +139,12 @@ completeRequestParser = requestParser $ \obj -> do
   pos <- obj .: "cursor_pos"
   return $ CompleteRequest noHeader code pos
 
-objectInfoRequestParser :: LByteString -> Message
-objectInfoRequestParser = requestParser $ \obj -> do
-  oname <- obj .: "oname"
+inspectRequestParser :: LByteString -> Message
+inspectRequestParser = requestParser $ \obj -> do
+  code <- obj .: "code"
+  pos <- obj .: "cursor_pos"
   dlevel <- obj .: "detail_level"
-  return $ ObjectInfoRequest noHeader oname dlevel
+  return $ InspectRequest noHeader code pos dlevel
 
 shutdownRequestParser :: LByteString -> Message
 shutdownRequestParser = requestParser $ \obj -> do
