@@ -72,6 +72,7 @@ instance ToJSON Message where
                       else "error"
       , "data" .= object (map displayDataToJson . inspectData $ i)
       , "metadata" .= object []
+      , "found" .= inspectStatus i
       ]
 
   toJSON ShutdownReply { restartPending = restart } =

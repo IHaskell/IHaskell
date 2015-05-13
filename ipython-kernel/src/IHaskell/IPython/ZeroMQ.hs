@@ -194,7 +194,11 @@ receiveMessage debug socket = do
 sendMessage :: Sender a => Bool -> ByteString -> Socket a -> Message -> IO ()
 sendMessage _ _ _ SendNothing = return ()
 sendMessage debug hmacKey socket message = do
-  when debug $ print message
+  when debug $ do
+    putStr "Message: "
+    print message
+    putStr "Sent: "
+    print content
 
   -- Send all pieces of the message.
   mapM_ sendPiece idents

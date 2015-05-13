@@ -12,6 +12,7 @@ module IHaskell.Eval.Evaluate (
     liftIO,
     typeCleaner,
     globalImports,
+    formatType,
     ) where
 
 import           ClassyPrelude hiding (init, last, liftIO, head, hGetContents, tail, try)

@@ -106,6 +106,7 @@ library
                    IHaskell.Convert.IpynbToLhs
                    IHaskell.Convert.LhsToIpynb
                    IHaskell.Eval.Completion
+                   IHaskell.Eval.Inspect
                    IHaskell.Eval.Evaluate
                    IHaskell.Eval.Info
                    IHaskell.Eval.Lint

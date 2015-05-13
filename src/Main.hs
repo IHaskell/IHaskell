@@ -24,6 +24,7 @@ import qualified Data.Text as T
 -- IHaskell imports.
 import           IHaskell.Convert (convert)
 import           IHaskell.Eval.Completion (complete)
+import           IHaskell.Eval.Inspect (inspect)
 import           IHaskell.Eval.Evaluate
 import           IHaskell.Display
 import           IHaskell.Eval.Info
@@ -335,10 +336,16 @@ replyTo _ req@CompleteRequest{} replyHeader state = do
       reply = CompleteReply replyHeader (map pack completions) start end Map.empty True
   return (state, reply)
 
--- TODO: Implement inspect_reply
-replyTo _ InspectRequest{} replyHeader state = do
-  -- FIXME
-  let reply = InspectReply { header = replyHeader, inspectStatus = False, inspectData = [] }
+replyTo _ req@InspectRequest{} replyHeader state = do
+  result <- inspect (unpack $ inspectCode req) (inspectCursorPos req)
+  let reply =
+        case result of
+          Just (Display datas) -> InspectReply
+            { header = replyHeader
+            , inspectStatus = True
+            , inspectData = datas
+            }
+          _ -> InspectReply { header = replyHeader, inspectStatus = False, inspectData = [] }
   return (state, reply)
 
 -- TODO: Implement history_reply.
