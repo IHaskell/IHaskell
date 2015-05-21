@@ -403,7 +403,7 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
       filename = last namePieces ++ ".hs"
   liftIO $ do
     createDirectoryIfMissing True directory
-    writeFile (fpFromString $ directory ++ filename) contents
+    writeFile (directory ++ filename) contents
 
   -- Clear old modules of this name
   let modName = intercalate "." namePieces
@@ -565,7 +565,7 @@ evalCommand _ (Directive LoadFile names) state = wrapExecution state $ do
                 let filename = if endswith ".hs" name
                                  then name
                                  else name ++ ".hs"
-                contents <- readFile $ fpFromString filename
+                contents <- readFile filename
                 modName <- intercalate "." <$> getModuleName contents
                 doLoadModule filename modName
   return (ManyDisplay displays)

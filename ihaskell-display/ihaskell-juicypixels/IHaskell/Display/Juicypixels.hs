@@ -60,7 +60,7 @@ displayImageAsJpg renderable = do
   -- Write the image
   saveJpgImage 95 filename renderable
   -- Convert to base64.
-  imgData <- readFile $ fpFromString filename
+  imgData <- readFile filename
   return $ Display [jpg (imWidth renderable) (imHeight renderable) $ base64 imgData]
 
 -- The type DynamicImage does not have a function to extract width and height

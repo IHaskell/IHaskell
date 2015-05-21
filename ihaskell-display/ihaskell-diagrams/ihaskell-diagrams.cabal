@@ -7,7 +7,7 @@ name:                ihaskell-diagrams
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.2.0.0
+version:             0.2.1.0
 
 -- A short (one-line) description of the package.
 synopsis:            IHaskell display instances for diagram types
@@ -59,7 +59,7 @@ library
              
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.6 && <4.9,
-                       classy-prelude >=0.6,
+                       classy-prelude >=0.10.5,
                        bytestring,
                        directory,
                        -- Use diagrams wrapper package to ensure all same versions of subpackages
