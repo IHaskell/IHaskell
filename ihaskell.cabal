@@ -7,7 +7,7 @@ name:                ihaskell
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.6.2.0
+version:             0.6.3.0
 
 -- A short (one-line) description of the package.
 synopsis:            A Haskell backend kernel for the IPython project.
@@ -67,7 +67,7 @@ library
                        directory            -any,
                        filepath             -any,
                        ghc                  >=7.6 || < 7.11,
-                       ghc-parser           >=0.1.6,
+                       ghc-parser           >=0.1.7,
                        ghc-paths            ==0.1.*,
                        haskeline            -any,
                        here                 ==1.2.*,
@@ -168,7 +168,7 @@ Test-Suite hspec
         directory -any,
         filepath -any,
         ghc >=7.6 && < 7.11,
-        ghc-parser >=0.1.6,
+        ghc-parser >=0.1.7,
         ghc-paths ==0.1.*,
         haskeline -any,
         here ==1.2.*,

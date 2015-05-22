@@ -7,7 +7,7 @@ name:                ihaskell-charts
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.2.0.0
+version:             0.2.1.0
 
 -- A short (one-line) description of the package.
 synopsis:            IHaskell display instances for charts types
@@ -65,7 +65,7 @@ library
                        directory,
                        Chart,
                        Chart-cairo >=1.2,
-                       ihaskell >= 0.5
+                       ihaskell >= 0.6.2
   
   -- Directories containing source files.
   -- hs-source-dirs:      
