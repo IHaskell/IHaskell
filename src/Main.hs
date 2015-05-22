@@ -101,7 +101,7 @@ runKernel kernelOpts profileSrc = do
       libdir = kernelSpecGhcLibdir kernelOpts
 
   -- Parse the profile file.
-  Just profile <- liftM decode . readFile . fpFromText $ profileSrc
+  Just profile <- liftM decode . readFile . fpFromString $ profileSrc
 
   -- Necessary for `getLine` and their ilk to work.
   dir <- getIHaskellDir
