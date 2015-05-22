@@ -47,7 +47,7 @@ animationData renderable = do
   mainRender (diagOpts, gifOpts) frameSet
 
   -- Convert to ascii represented base64 encoding
-  imgData <- readFile filename
+  imgData <- readFile $ fpFromString filename
   return . unpack . base64 $ imgData
 
 -- Rendering hint.

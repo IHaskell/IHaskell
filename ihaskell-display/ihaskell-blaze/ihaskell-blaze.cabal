@@ -62,7 +62,7 @@ library
              
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.6 && <4.9,
-                       classy-prelude >=0.6,
+                       classy-prelude >=0.10.5 && <0.11,
                        blaze-html >= 0.6,
                        blaze-markup >= 0.5,
                        ihaskell >= 0.5
