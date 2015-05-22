@@ -37,14 +37,13 @@ getIdentifier code pos = identifier
         then "(" ++ lastChunk ++ ")"
         else lastChunk
 
-
 inspect :: String -- ^ Code in the cell
         -> Int    -- ^ Cursor position in the cell
         -> Interpreter (Maybe Display)
 inspect code pos = do
   let identifier = getIdentifier code pos
       handler :: SomeException -> Interpreter (Maybe a)
-      handler _  = return Nothing
+      handler _ = return Nothing
   response <- ghandle handler (Just <$> getType identifier)
   let prefix = identifier ++ " :: "
       fmt str = Display [plain $ prefix ++ str]
