@@ -36,7 +36,7 @@ diagramData renderable format = do
   renderCairo filename (mkSizeSpec2D (Just imgWidth) (Just imgHeight)) renderable
 
   -- Convert to base64.
-  imgData <- readFile filename
+  imgData <- readFile $ fpFromString filename
   let value =
         case format of
           PNG -> png (floor imgWidth) (floor imgHeight) $ base64 imgData

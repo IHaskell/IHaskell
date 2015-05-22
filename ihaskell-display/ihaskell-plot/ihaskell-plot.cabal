@@ -59,7 +59,7 @@ library
              
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.6 && <4.9,
-                       classy-prelude >= 0.10.5,
+                       classy-prelude >= 0.10.5 && <0.11,
                        plot,
                        bytestring,
                        ihaskell >= 0.6.2

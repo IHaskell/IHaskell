@@ -31,7 +31,7 @@ figureData figure format = do
   writeFigure format fname (w, h) figure
 
   -- Read back, and convert to base64.
-  imgData <- readFile fname
+  imgData <- readFile $ fpFromString fname
   let value =
         case format of
           PNG -> png w h $ base64 imgData
