@@ -1,8 +1,6 @@
-{-# LANGUAGE NoImplicitPrelude, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 
 module IHaskell.Display.Diagrams (diagram, animation) where
-
-import           ClassyPrelude
 
 import           System.Directory
 import qualified Data.ByteString.Char8 as Char
@@ -36,11 +34,11 @@ diagramData renderable format = do
   renderCairo filename (mkSizeSpec2D (Just imgWidth) (Just imgHeight)) renderable
 
   -- Convert to base64.
-  imgData <- readFile $ fpFromString filename
+  imgData <- readFile filename
   let value =
         case format of
-          PNG -> png (floor imgWidth) (floor imgHeight) $ base64 imgData
-          SVG -> svg $ Char.unpack imgData
+          PNG -> png (floor imgWidth) (floor imgHeight) $ base64 (Char.pack imgData)
+          SVG -> svg imgData
 
   return value
 
