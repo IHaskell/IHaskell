@@ -56,10 +56,10 @@ defaultKernelSpecOptions = KernelSpecOptions
   }
 
 -- | The IPython kernel name.
-kernelName :: IsString a => a
+kernelName :: String
 kernelName = "haskell"
 
-kernelArgs :: IsString a => [a]
+kernelArgs :: [String]
 kernelArgs = ["--kernel", kernelName]
 
 -- | Run the IPython command with any arguments. The kernel is set to IHaskell.
@@ -192,7 +192,7 @@ kernelSpecCreated = do
   Just ipython <- SH.which "ipython"
   out <- SH.silently $ SH.run ipython ["kernelspec", "list"]
   let kernelspecs = map T.strip $ T.lines out
-  return $ kernelName `elem` kernelspecs
+  return $ T.pack kernelName `elem` kernelspecs
 
 -- | Replace "~" with $HOME if $HOME is defined. Otherwise, do nothing.
 subHome :: String -> IO String

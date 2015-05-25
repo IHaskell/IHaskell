@@ -77,7 +77,11 @@ import           GHC.Show               as X
 import           GHC.Enum               as X
 import           GHC.Num                as X
 import           GHC.Real               as X
+#if MIN_VERSION_ghc(7,10,0)
+import           GHC.Base               as X hiding (Any, mapM, foldr, sequence)
+#else
 import           GHC.Base               as X hiding (Any)
+#endif
 import           Data.List              as X hiding (head, last, tail, init, transpose, subsequences, permutations,
                                         foldl, foldl1, maximum, minimum, scanl, scanl1, scanr, scanr1,
                                         span, break, mapAccumL, mapAccumR, dropWhileEnd, (!!),

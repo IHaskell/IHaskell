@@ -37,7 +37,7 @@ chartData renderable format = do
   mkFile opts filename renderable
 
   -- Convert to base64.
-  imgData <- readFile filename
+  imgData <- fmap Char.pack $ readFile filename
   return $
     case format of
       PNG -> png width height $ base64 imgData
