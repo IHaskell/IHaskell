@@ -1,14 +1,18 @@
+{-# LANGUAGE CPP #-}
 module IHaskellPrelude (
   module IHaskellPrelude,
   module X,
 
   -- Select reexports
-  Data.Typeable.Proxy,
   Data.Typeable.Typeable,
   Data.Typeable.cast,
 
+#if MIN_VERSION_ghc(7,8,0)
+  Data.Typeable.Proxy,
+
   GHC.Exts.IsString,
   GHC.Exts.IsList,
+#endif
 
   System.IO.hPutStrLn,
   System.IO.hPutStr,

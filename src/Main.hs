@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, CPP, OverloadedStrings, ScopedTypeVariables, QuasiQuotes #-}
+{-# LANGUAGE CPP, ScopedTypeVariables, QuasiQuotes #-}
 
 -- | Description : Argument parsing and basic messaging loop, using Haskell
 --                 Chans to communicate with the ZeroMQ sockets.
