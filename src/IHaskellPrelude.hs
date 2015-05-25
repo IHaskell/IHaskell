@@ -79,14 +79,14 @@ import           GHC.Num                as X
 import           GHC.Real               as X
 import           GHC.Base               as X hiding (Any)
 import           Data.List              as X hiding (head, last, tail, init, transpose, subsequences, permutations,
-                                        foldl, foldl1, maximum, minimum, scanl, scanl1, scanr, scanr1, span, break,
-                                        mapAccumL, mapAccumR, dropWhileEnd, (!!), elemIndices,
-                                        elemIndex, findIndex, findIndices, zip5, zip6, zip7, zipWith5,
-                                        zipWith6, zipWith7, unzip5, unzip6, unzip6, delete, union, lookup,
-                                        intersect, insert, deleteBy, deleteFirstBy, unionBy,
-                                        intersectBy, group, groupBy, insertBy, maximumBy, minimumBy,
-                                        genericLength, genericDrop, genericTake, genericSplitAt,
-                                        genericIndex, genericReplicate, inits, tails)
+                                        foldl, foldl1, maximum, minimum, scanl, scanl1, scanr, scanr1,
+                                        span, break, mapAccumL, mapAccumR, dropWhileEnd, (!!),
+                                        elemIndices, elemIndex, findIndex, findIndices, zip5, zip6,
+                                        zip7, zipWith5, zipWith6, zipWith7, unzip5, unzip6, unzip6,
+                                        delete, union, lookup, intersect, insert, deleteBy,
+                                        deleteFirstBy, unionBy, intersectBy, group, groupBy, insertBy,
+                                        maximumBy, minimumBy, genericLength, genericDrop, genericTake,
+                                        genericSplitAt, genericIndex, genericReplicate, inits, tails)
 
 import qualified Control.Applicative
 import qualified Data.Typeable
@@ -109,10 +109,12 @@ import qualified Data.List
 import qualified Prelude as P
 
 type LByteString = Data.ByteString.Lazy.ByteString
+
 type LText = Data.Text.Lazy.Text
 
 (headMay, tailMay, lastMay, initMay, maximumMay, minimumMay) =
-  (wrapEmpty head, wrapEmpty tail, wrapEmpty last, wrapEmpty init, wrapEmpty maximum, wrapEmpty minimum)
+  (wrapEmpty head, wrapEmpty tail, wrapEmpty last,
+   wrapEmpty init, wrapEmpty maximum, wrapEmpty minimum)
   where
     wrapEmpty :: ([a] -> b) -> [a] -> Maybe b
     wrapEmpty _ [] = Nothing
@@ -127,7 +129,7 @@ minimumByMay _ [] = Nothing
 minimumByMay f xs = Just (Data.List.minimumBy f xs)
 
 readMay :: Read a => String -> Maybe a
-readMay = fmap fst . headMay  . reads
+readMay = fmap fst . headMay . reads
 
 putStrLn :: (MonadIO m) => String -> m ()
 putStrLn = liftIO . P.putStrLn
@@ -135,7 +137,7 @@ putStrLn = liftIO . P.putStrLn
 putStr :: (MonadIO m) => String -> m ()
 putStr = liftIO . P.putStr
 
-putChar:: MonadIO m => Char -> m ()
+putChar :: MonadIO m => Char -> m ()
 putChar = liftIO . P.putChar
 
 print :: (MonadIO m, Show a) => a -> m ()
