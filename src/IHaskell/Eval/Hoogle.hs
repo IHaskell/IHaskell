@@ -19,7 +19,7 @@ import           Network.HTTP.Client
 import           Network.HTTP.Client.TLS
 import           Data.Aeson
 import           Data.String.Utils
-import         qualified Data.List as List
+import qualified Data.List as List
 import           Data.Char (isAscii, isAlphaNum)
 
 
@@ -55,8 +55,10 @@ instance FromJSON HoogleResponse where
 query :: String -> IO (Either String String)
 query str = do
   request <- parseUrl $ queryUrl $ urlEncode str
-  catch (Right . CBS.unpack . LBS.toStrict . responseBody <$> withManager tlsManagerSettings (httpLbs request))
-        (\e -> return $ Left $ show (e :: SomeException))
+  catch
+    (Right . CBS.unpack . LBS.toStrict . responseBody <$> withManager tlsManagerSettings
+                                                            (httpLbs request))
+    (\e -> return $ Left $ show (e :: SomeException))
 
   where
     queryUrl :: String -> String
@@ -94,7 +96,7 @@ search string = do
     case response of
       Left err -> [NoResult err]
       Right json ->
-        case eitherDecode $ LBS.fromStrict$ CBS.pack json of
+        case eitherDecode $ LBS.fromStrict $ CBS.pack json of
           Left err -> [NoResult err]
           Right results ->
             case map SearchResult results of

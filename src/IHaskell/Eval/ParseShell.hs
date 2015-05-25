@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+
 -- | This module splits a shell command line into a list of strings,
 --   one for each command / filename
 module IHaskell.Eval.ParseShell (parseShell) where
@@ -55,12 +56,12 @@ separator = many1 space <?> "separator"
 -- | Input must terminate in a space character (like a \n)
 shellWords :: Parser [String]
 shellWords = try (eof *> return []) <|> do
-          x <- word
-          rest1 <- lookAhead (many anyToken)
-          ss <- separator
-          rest2 <- lookAhead (many anyToken)
-          xs <- shellWords
-          return $ x : xs
+               x <- word
+               rest1 <- lookAhead (many anyToken)
+               ss <- separator
+               rest2 <- lookAhead (many anyToken)
+               xs <- shellWords
+               return $ x : xs
 
 parseShell :: String -> Either ParseError [String]
 parseShell string = parse shellWords "shell" (string ++ "\n")

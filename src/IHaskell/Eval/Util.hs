@@ -116,6 +116,7 @@ pprDynFlags show_all dflags =
     
     fstr, fnostr :: String -> O.SDoc
     fstr str = O.text "-f" O.<> O.text str
+    
     fnostr str = O.text "-fno-" O.<> O.text str
     
     (ghciFlags, others) = partition (\f -> flagSpecFlag f `elem` flgs) DynFlags.fFlags
@@ -137,14 +138,16 @@ pprLanguages :: Bool      -- ^ Whether to include flags which are on by default
              -> O.SDoc
 pprLanguages show_all dflags =
   O.vcat
-    [O.text "base language is: " O.<>
-     case language dflags of
-       Nothing          -> O.text "Haskell2010"
-       Just Haskell98   -> O.text "Haskell98"
-       Just Haskell2010 -> O.text "Haskell2010", (if show_all
-                                                  then O.text "all active language options:"
-                                                  else O.text "with the following modifiers:") O.$$
-                                               O.nest 2 (O.vcat (map (setting xopt) DynFlags.xFlags))]
+    [ O.text "base language is: " O.<>
+      case language dflags of
+        Nothing          -> O.text "Haskell2010"
+        Just Haskell98   -> O.text "Haskell98"
+        Just Haskell2010 -> O.text "Haskell2010"
+    , (if show_all
+         then O.text "all active language options:"
+         else O.text "with the following modifiers:") O.$$
+      O.nest 2 (O.vcat (map (setting xopt) DynFlags.xFlags))
+    ]
   where
     setting test flag
       | quiet = O.empty

@@ -252,7 +252,9 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
       convertSvgToHtml x = x
 
       makeSvgImg :: Base64 -> String
-      makeSvgImg base64data = T.unpack $ "<img src=\"data:image/svg+xml;base64," <> base64data <> "\"/>"
+      makeSvgImg base64data = T.unpack $ "<img src=\"data:image/svg+xml;base64," <>
+                                         base64data <>
+                                         "\"/>"
 
       prependCss (DisplayData MimeHtml html) =
         DisplayData MimeHtml $ mconcat ["<style>", T.pack ihaskellCSS, "</style>", html]

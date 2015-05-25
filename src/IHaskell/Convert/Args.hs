@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+
 -- | Description: interpret flags parsed by "IHaskell.Flags"
 module IHaskell.Convert.Args (ConvertSpec(..), fromJustConvertSpec, toConvertSpec) where
 

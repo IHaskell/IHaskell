@@ -71,10 +71,10 @@ cellToVal (Code i o) = object
                                                 ] | _ <- take 1 o])
                          ]
 cellToVal (Markdown txt) = object
-  [ "cell_type" .= String "markdown"
-  , "metadata" .= object ["hidden" .= Bool False]
-  , "source" .= arrayFromTxt txt
-  ]
+                             [ "cell_type" .= String "markdown"
+                             , "metadata" .= object ["hidden" .= Bool False]
+                             , "source" .= arrayFromTxt txt
+                             ]
 
 -- | arrayFromTxt makes a JSON array of string s
 arrayFromTxt :: [LText] -> Value
