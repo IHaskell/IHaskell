@@ -78,7 +78,7 @@ import           GHC.Enum               as X
 import           GHC.Num                as X
 import           GHC.Real               as X
 #if MIN_VERSION_ghc(7,10,0)
-import           GHC.Base               as X hiding (Any, mapM, foldr, sequence)
+import           GHC.Base               as X hiding (Any, mapM, foldr, sequence, many, (<|>))
 #else
 import           GHC.Base               as X hiding (Any)
 #endif
