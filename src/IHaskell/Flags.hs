@@ -11,7 +11,13 @@ module IHaskell.Flags (
     help,
     ) where
 
-import           ClassyPrelude
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
+
 import           System.Console.CmdArgs.Explicit
 import           System.Console.CmdArgs.Text
 import           Data.List (findIndex)
@@ -63,7 +69,7 @@ parseFlags flags =
     Nothing ->
       -- Treat no mode as 'console'.
       if "--help" `elem` flags
-        then Left $ pack (showText (Wrap 100) $ helpText [] HelpFormatAll ihaskellArgs)
+        then Left $ showText (Wrap 100) $ helpText [] HelpFormatAll ihaskellArgs
         else process ihaskellArgs flags
     Just 0 -> process ihaskellArgs flags
 
@@ -139,13 +145,13 @@ convert = mode "convert" (Args ConvertLhs []) description unnamedArg convertFlag
     consStyle style (Args mode prev) = Args mode (ConvertLhsStyle style : prev)
 
     storeFormat constructor str (Args mode prev) =
-      case toLower str of
+      case T.toLower (T.pack str) of
         "lhs"   -> Right $ Args mode $ constructor LhsMarkdown : prev
         "ipynb" -> Right $ Args mode $ constructor IpynbFile : prev
         _       -> Left $ "Unknown format requested: " ++ str
 
     storeLhs str previousArgs =
-      case toLower str of
+      case T.toLower (T.pack str) of
         "bird" -> success lhsStyleBird
         "tex"  -> success lhsStyleTex
         _      -> Left $ "Unknown lhs style: " ++ str

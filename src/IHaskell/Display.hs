@@ -48,17 +48,25 @@ module IHaskell.Display (
     Widget(..),
     ) where
 
-import           ClassyPrelude
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
+
 import           Data.Serialize as Serialize
-import           Data.ByteString hiding (map, pack)
 import           Data.String.Utils (rstrip)
 import qualified Data.ByteString.Base64 as Base64
-import qualified Data.ByteString.Char8 as Char
 import           Data.Aeson (Value)
 import           System.Directory (getTemporaryDirectory, setCurrentDirectory)
 
+import           Control.Concurrent.STM (atomically)
+import           Control.Exception (try)
 import           Control.Concurrent.STM.TChan
 import           System.IO.Unsafe (unsafePerformIO)
+
+import qualified Data.Text.Encoding as E
 
 import           IHaskell.Types
 
@@ -92,23 +100,23 @@ many = ManyDisplay
 
 -- | Generate a plain text display.
 plain :: String -> DisplayData
-plain = DisplayData PlainText . pack . rstrip
+plain = DisplayData PlainText . T.pack . rstrip
 
 -- | Generate an HTML display.
 html :: String -> DisplayData
-html = DisplayData MimeHtml . pack
+html = DisplayData MimeHtml . T.pack
 
 -- | Generate an SVG display.
 svg :: String -> DisplayData
-svg = DisplayData MimeSvg . pack
+svg = DisplayData MimeSvg . T.pack
 
 -- | Generate a LaTeX display.
 latex :: String -> DisplayData
-latex = DisplayData MimeLatex . pack
+latex = DisplayData MimeLatex . T.pack
 
 -- | Generate a Javascript display.
 javascript :: String -> DisplayData
-javascript = DisplayData MimeJavascript . pack
+javascript = DisplayData MimeJavascript . T.pack
 
 -- | Generate a PNG display of the given width and height. Data must be provided in a Base64 encoded
 -- manner, suitable for embedding into HTML. The @base64@ function may be used to encode data into
@@ -124,11 +132,11 @@ jpg width height = DisplayData (MimeJpg width height)
 
 -- | Convert from a string into base 64 encoded data.
 encode64 :: String -> Base64
-encode64 str = base64 $ Char.pack str
+encode64 str = base64 $ CBS.pack str
 
 -- | Convert from a ByteString into base 64 encoded data.
 base64 :: ByteString -> Base64
-base64 = decodeUtf8 . Base64.encode
+base64 = E.decodeUtf8 . Base64.encode
 
 -- | For internal use within IHaskell. Serialize displays to a ByteString.
 serializeDisplay :: Display -> ByteString

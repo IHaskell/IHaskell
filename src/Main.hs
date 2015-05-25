@@ -4,22 +4,24 @@
 --                 Chans to communicate with the ZeroMQ sockets.
 module Main (main) where
 
--- Prelude imports.
-import           ClassyPrelude hiding (last, liftIO, readChan, writeChan)
-import           Prelude (last, read)
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
 
 -- Standard library imports.
 import           Control.Concurrent (threadDelay)
 import           Control.Concurrent.Chan
 import           Data.Aeson
-import           Data.Text (strip)
 import           System.Directory
 import           System.Exit (exitSuccess)
-import           Text.Printf
+import           System.Environment (getArgs)
 import           System.Posix.Signals
 import qualified Data.Map as Map
 import           Data.String.Here (hereFile)
-import qualified Data.Text as T
+import qualified Data.Text.Encoding as E
 
 -- IHaskell imports.
 import           IHaskell.Convert (convert)
@@ -33,7 +35,6 @@ import           IHaskell.IPython
 import           IHaskell.Types
 import           IHaskell.IPython.ZeroMQ
 import           IHaskell.IPython.Types
-import qualified Data.ByteString.Char8 as Chars
 import qualified IHaskell.IPython.Message.UUID as UUID
 import qualified IHaskell.IPython.Stdin as Stdin
 
@@ -42,7 +43,7 @@ import           GHC hiding (extensions, language)
 
 -- | Compute the GHC API version number using the dist/build/autogen/cabal_macros.h
 ghcVersionInts :: [Int]
-ghcVersionInts = map read . words . map dotToSpace $ VERSION_ghc
+ghcVersionInts = map (fromJust . readMay) . words . map dotToSpace $ VERSION_ghc
   where
     dotToSpace '.' = ' '
     dotToSpace x = x
@@ -52,18 +53,18 @@ ihaskellCSS = [hereFile|html/custom.css|]
 
 consoleBanner :: Text
 consoleBanner =
-  "Welcome to IHaskell! Run `IHaskell --help` for more information.\n" ++
+  "Welcome to IHaskell! Run `IHaskell --help` for more information.\n" <>
   "Enter `:help` to learn more about IHaskell built-ins."
 
 main :: IO ()
 main = do
-  args <- parseFlags <$> map unpack <$> getArgs
+  args <- parseFlags <$> getArgs
   case args of
     Left errorMessage -> hPutStrLn stderr errorMessage
     Right args        -> ihaskell args
 
 ihaskell :: Args -> IO ()
-ihaskell (Args (ShowHelp help) _) = putStrLn $ pack help
+ihaskell (Args (ShowHelp help) _) = putStrLn help
 ihaskell (Args ConvertLhs args) = showingHelp ConvertLhs args $ convert args
 ihaskell (Args InstallKernelSpec args) = showingHelp InstallKernelSpec args $ do
   let kernelSpecOpts = parseKernelArgs args
@@ -76,7 +77,7 @@ showingHelp :: IHaskellMode -> [Argument] -> IO () -> IO ()
 showingHelp mode flags act =
   case find (== Help) flags of
     Just _ ->
-      putStrLn $ pack $ help mode
+      putStrLn $ help mode
     Nothing ->
       act
 
@@ -101,7 +102,7 @@ runKernel kernelOpts profileSrc = do
       libdir = kernelSpecGhcLibdir kernelOpts
 
   -- Parse the profile file.
-  Just profile <- liftM decode . readFile . fpFromString $ profileSrc
+  Just profile <- liftM decode $ LBS.readFile profileSrc
 
   -- Necessary for `getLine` and their ilk to work.
   dir <- getIHaskellDir
@@ -131,7 +132,7 @@ runKernel kernelOpts profileSrc = do
 
     confFile <- liftIO $ kernelSpecConfFile kernelOpts
     case confFile of
-      Just filename -> liftIO (readFile $ fpFromString filename) >>= evaluator
+      Just filename -> liftIO (readFile filename) >>= evaluator
       Nothing       -> return ()
 
     forever $ do
@@ -247,12 +248,14 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
         header <- dupHeader replyHeader DisplayDataMessage
         send $ PublishDisplayData header "haskell" $ map (convertSvgToHtml . prependCss) outs
 
-      convertSvgToHtml (DisplayData MimeSvg svg) = html $ makeSvgImg $ base64 $ encodeUtf8 svg
+      convertSvgToHtml (DisplayData MimeSvg svg) = html $ makeSvgImg $ base64 $ E.encodeUtf8 svg
       convertSvgToHtml x = x
-      makeSvgImg base64data = unpack $ "<img src=\"data:image/svg+xml;base64," ++ base64data ++ "\"/>"
+
+      makeSvgImg :: Base64 -> String
+      makeSvgImg base64data = T.unpack $ "<img src=\"data:image/svg+xml;base64," <> base64data <> "\"/>"
 
       prependCss (DisplayData MimeHtml html) =
-        DisplayData MimeHtml $concat ["<style>", pack ihaskellCSS, "</style>", html]
+        DisplayData MimeHtml $ mconcat ["<style>", T.pack ihaskellCSS, "</style>", html]
       prependCss x = x
 
       startComm :: CommInfo -> IO ()
@@ -304,10 +307,10 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
   let execCount = getExecutionCounter state
   -- Let all frontends know the execution count and code that's about to run
   inputHeader <- liftIO $ dupHeader replyHeader InputMessage
-  send $ PublishInput inputHeader (unpack code) execCount
+  send $ PublishInput inputHeader (T.unpack code) execCount
 
   -- Run code and publish to the frontend as we go.
-  updatedState <- evaluate state (unpack code) publish
+  updatedState <- evaluate state (T.unpack code) publish
 
   -- Notify the frontend that we're done computing.
   idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
@@ -329,15 +332,15 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
 replyTo _ req@CompleteRequest{} replyHeader state = do
   let code = getCode req
       pos = getCursorPos req
-  (matchedText, completions) <- complete (unpack code) pos
+  (matchedText, completions) <- complete (T.unpack code) pos
 
   let start = pos - length matchedText
       end = pos
-      reply = CompleteReply replyHeader (map pack completions) start end Map.empty True
+      reply = CompleteReply replyHeader (map T.pack completions) start end Map.empty True
   return (state, reply)
 
 replyTo _ req@InspectRequest{} replyHeader state = do
-  result <- inspect (unpack $ inspectCode req) (inspectCursorPos req)
+  result <- inspect (T.unpack $ inspectCode req) (inspectCursorPos req)
   let reply =
         case result of
           Just (Display datas) -> InspectReply
@@ -365,7 +368,7 @@ handleComm replier kernelState req replyHeader = do
       communicate value = do
         head <- dupHeader replyHeader CommDataMessage
         replier $ CommData head uuid value
-  case lookup uuid widgets of
+  case Map.lookup uuid widgets of
     Nothing -> fail $ "no widget with uuid " ++ show uuid
     Just (Widget widget) ->
       case msgType $ header req of

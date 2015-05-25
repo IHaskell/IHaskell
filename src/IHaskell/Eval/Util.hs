@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, NoImplicitPrelude #-}
+{-# LANGUAGE NoImplicitPrelude, CPP #-}
 
 module IHaskell.Eval.Util (
     -- * Initialization
@@ -23,7 +23,12 @@ module IHaskell.Eval.Util (
     pprLanguages,
     ) where
 
-import           ClassyPrelude hiding ((<>))
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
 
 -- GHC imports.
 import           DynFlags
@@ -34,7 +39,6 @@ import           HsImpExp
 import           HscTypes
 import           InteractiveEval
 import           Module
-import           Outputable
 import           Packages
 import           RdrName
 import           NameSet
@@ -44,6 +48,7 @@ import           InstEnv (ClsInst(..))
 import           Unify (tcMatchTys)
 import           VarSet (mkVarSet)
 import qualified Pretty
+import qualified Outputable as O
 
 import           Control.Monad (void)
 import           Data.Function (on)
@@ -80,15 +85,15 @@ flagSpecFlag (_, flag, _) = flag
 -- | Pretty-print dynamic flags (taken from 'InteractiveUI' module of `ghc-bin`)
 pprDynFlags :: Bool       -- ^ Whether to include flags which are on by default
             -> DynFlags
-            -> SDoc
+            -> O.SDoc
 pprDynFlags show_all dflags =
-  vcat
-    [ text "GHCi-specific dynamic flag settings:" $$
-      nest 2 (vcat (map (setting opt) ghciFlags))
-    , text "other dynamic, non-language, flag settings:" $$
-      nest 2 (vcat (map (setting opt) others))
-    , text "warning settings:" $$
-      nest 2 (vcat (map (setting wopt) DynFlags.fWarningFlags))
+  O.vcat
+    [ O.text "GHCi-specific dynamic flag settings:" O.$$
+      O.nest 2 (O.vcat (map (setting opt) ghciFlags))
+    , O.text "other dynamic, non-language, flag settings:" O.$$
+      O.nest 2 (O.vcat (map (setting opt) others))
+    , O.text "warning settings:" O.$$
+      O.nest 2 (O.vcat (map (setting wopt) DynFlags.fWarningFlags))
     ]
   where
 
@@ -98,9 +103,9 @@ pprDynFlags show_all dflags =
     opt = dopt
 #endif
     setting test flag
-      | quiet = empty
-      | is_on = fstr name
-      | otherwise = fnostr name
+      | quiet = O.empty :: O.SDoc
+      | is_on = fstr name :: O.SDoc
+      | otherwise = fnostr name :: O.SDoc
       where
         name = flagSpecName flag
         f = flagSpecFlag flag
@@ -109,9 +114,9 @@ pprDynFlags show_all dflags =
     
     default_dflags = defaultDynFlags (settings dflags)
     
-    fstr str = text "-f" <> text str
-    
-    fnostr str = text "-fno-" <> text str
+    fstr, fnostr :: String -> O.SDoc
+    fstr str = O.text "-f" O.<> O.text str
+    fnostr str = O.text "-fno-" O.<> O.text str
     
     (ghciFlags, others) = partition (\f -> flagSpecFlag f `elem` flgs) DynFlags.fFlags
     
@@ -129,22 +134,22 @@ flgs3 = [Opt_PrintBindResult, Opt_BreakOnException, Opt_BreakOnError, Opt_PrintE
 -- `ghc-bin`)
 pprLanguages :: Bool      -- ^ Whether to include flags which are on by default
              -> DynFlags
-             -> SDoc
+             -> O.SDoc
 pprLanguages show_all dflags =
-  vcat
-    [text "base language is: " <>
+  O.vcat
+    [O.text "base language is: " O.<>
      case language dflags of
-       Nothing          -> text "Haskell2010"
-       Just Haskell98   -> text "Haskell98"
-       Just Haskell2010 -> text "Haskell2010", (if show_all
-                                                  then text "all active language options:"
-                                                  else text "with the following modifiers:") $$
-                                               nest 2 (vcat (map (setting xopt) DynFlags.xFlags))]
+       Nothing          -> O.text "Haskell2010"
+       Just Haskell98   -> O.text "Haskell98"
+       Just Haskell2010 -> O.text "Haskell2010", (if show_all
+                                                  then O.text "all active language options:"
+                                                  else O.text "with the following modifiers:") O.$$
+                                               O.nest 2 (O.vcat (map (setting xopt) DynFlags.xFlags))]
   where
     setting test flag
-      | quiet = empty
-      | is_on = text "-X" <> text name
-      | otherwise = text "-XNo" <> text name
+      | quiet = O.empty
+      | is_on = O.text "-X" O.<> O.text name
+      | otherwise = O.text "-XNo" O.<> O.text name
       where
         name = flagSpecName flag
         f = flagSpecFlag flag
@@ -196,13 +201,13 @@ setFlags ext = do
 -- does not impose an arbitrary width limit on the output (in terms of number of columns). Instead,
 -- it respsects the 'pprCols' field in the structure returned by 'getSessionDynFlags', and thus
 -- gives a configurable width of output.
-doc :: GhcMonad m => SDoc -> m String
+doc :: GhcMonad m => O.SDoc -> m String
 doc sdoc = do
   flags <- getSessionDynFlags
   unqual <- getPrintUnqual
-  let style = mkUserStyle unqual AllTheWay
+  let style = O.mkUserStyle unqual O.AllTheWay
   let cols = pprCols flags
-      d = runSDoc sdoc (initSDocContext flags style)
+      d = O.runSDoc sdoc (O.initSDocContext flags style)
   return $ Pretty.fullRender Pretty.PageMode cols 1.5 string_txt "" d
 
   where
@@ -298,7 +303,7 @@ evalDeclarations decl = do
   names <- runDecls decl
   cleanUpDuplicateInstances
   flags <- getSessionDynFlags
-  return $ map (replace ":Interactive." "" . showPpr flags) names
+  return $ map (replace ":Interactive." "" . O.showPpr flags) names
 
 cleanUpDuplicateInstances :: GhcMonad m => m ()
 cleanUpDuplicateInstances = modifySession $ \hscEnv ->
@@ -326,7 +331,7 @@ getType :: GhcMonad m => String -> m String
 getType expr = do
   result <- exprType expr
   flags <- getSessionDynFlags
-  let typeStr = showSDocUnqual flags $ ppr result
+  let typeStr = O.showSDocUnqual flags $ O.ppr result
   return typeStr
 
 -- | A wrapper around @getInfo@. Return info about each name in the string.
@@ -363,16 +368,16 @@ getDescription str = do
 
 #if MIN_VERSION_ghc(7,8,0)
     printInfo (thing, fixity, classInstances, famInstances) =
-      pprTyThingInContextLoc thing $$
-      showFixity thing fixity $$
-      vcat (map GHC.pprInstance classInstances) $$
-      vcat (map GHC.pprFamInst famInstances)
+      pprTyThingInContextLoc thing O.$$
+      showFixity thing fixity O.$$
+      O.vcat (map GHC.pprInstance classInstances) O.$$
+      O.vcat (map GHC.pprFamInst famInstances)
 #else
     printInfo (thing, fixity, classInstances) =
-      pprTyThingInContextLoc False thing $$ showFixity thing fixity $$
-      vcat (map GHC.pprInstance classInstances)
+      pprTyThingInContextLoc False thing O.$$ showFixity thing fixity O.$$
+      O.vcat (map GHC.pprInstance classInstances)
 #endif
     showFixity thing fixity =
       if fixity == GHC.defaultFixity
-        then empty
-        else ppr fixity <+> pprInfixName (getName thing)
+        then O.empty
+        else O.ppr fixity O.<+> pprInfixName (getName thing)

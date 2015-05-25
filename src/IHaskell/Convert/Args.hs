@@ -1,5 +1,13 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 -- | Description: interpret flags parsed by "IHaskell.Flags"
 module IHaskell.Convert.Args (ConvertSpec(..), fromJustConvertSpec, toConvertSpec) where
+
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
 
 import           Control.Applicative ((<$>))
 import           Control.Monad.Identity (Identity(Identity))
@@ -17,7 +25,7 @@ data ConvertSpec f =
          { convertToIpynb :: f Bool
          , convertInput :: f FilePath
          , convertOutput :: f FilePath
-         , convertLhsStyle :: f (LhsStyle T.Text)
+         , convertLhsStyle :: f (LhsStyle LT.Text)
          , convertOverwriteFiles :: Bool
          }
 
@@ -28,7 +36,7 @@ fromJustConvertSpec convertSpec = convertSpec
   { convertToIpynb = Identity toIpynb
   , convertInput = Identity inputFile
   , convertOutput = Identity outputFile
-  , convertLhsStyle = Identity $ fromMaybe (T.pack <$> lhsStyleBird) (convertLhsStyle convertSpec)
+  , convertLhsStyle = Identity $ fromMaybe (LT.pack <$> lhsStyleBird) (convertLhsStyle convertSpec)
   }
   where
     toIpynb = fromMaybe (error "Error: direction for conversion unknown")
@@ -63,10 +71,10 @@ mergeArg :: Argument -> ConvertSpec Maybe -> ConvertSpec Maybe
 mergeArg OverwriteFiles convertSpec = convertSpec { convertOverwriteFiles = True }
 mergeArg (ConvertLhsStyle lhsStyle) convertSpec
   | Just previousLhsStyle <- convertLhsStyle convertSpec,
-    previousLhsStyle /= fmap T.pack lhsStyle
+    previousLhsStyle /= fmap LT.pack lhsStyle
   = error $ printf "Conflicting lhs styles requested: <%s> and <%s>" (show lhsStyle)
               (show previousLhsStyle)
-  | otherwise = convertSpec { convertLhsStyle = Just (T.pack <$> lhsStyle) }
+  | otherwise = convertSpec { convertLhsStyle = Just (LT.pack <$> lhsStyle) }
 mergeArg (ConvertFrom inputFile) convertSpec
   | Just previousInputFile <- convertInput convertSpec,
     previousInputFile /= inputFile

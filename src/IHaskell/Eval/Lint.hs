@@ -1,10 +1,16 @@
-{-# LANGUAGE FlexibleContexts, NoImplicitPrelude, QuasiQuotes, ViewPatterns #-}
+{-# LANGUAGE NoImplicitPrelude, FlexibleContexts, QuasiQuotes, ViewPatterns #-}
 
 module IHaskell.Eval.Lint (lint) where
 
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
+
 import           Data.String.Utils (replace, startswith, strip, split)
 import           Prelude (head, tail, last)
-import           ClassyPrelude hiding (last)
 import           Control.Monad
 import           Data.List (findIndex)
 import           Text.Printf

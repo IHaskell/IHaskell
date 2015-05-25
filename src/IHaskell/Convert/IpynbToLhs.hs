@@ -1,66 +1,71 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module IHaskell.Convert.IpynbToLhs (ipynbToLhs) where
 
-import           Control.Applicative ((<$>))
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
+
 import           Data.Aeson (decode, Object, Value(Array, Object, String))
-import qualified Data.ByteString.Lazy as L (readFile)
-import qualified Data.HashMap.Strict as M (lookup)
-import           Data.Maybe (fromMaybe)
 import           Data.Monoid ((<>), Monoid(mempty))
-import qualified Data.Text.Lazy as T (concat, fromStrict, Text, unlines)
-import qualified Data.Text.Lazy.IO as T (writeFile)
 import           Data.Vector (Vector)
+import           Data.HashMap.Strict (lookup)
+
+import qualified Data.Text.Lazy.IO as LTIO
 import qualified Data.Vector as V (map, mapM, toList)
+
 import           IHaskell.Flags (LhsStyle(..))
 
-ipynbToLhs :: LhsStyle T.Text
+ipynbToLhs :: LhsStyle LText
            -> FilePath -- ^ the filename of an ipython notebook
            -> FilePath -- ^ the filename of the literate haskell to write
            -> IO ()
 ipynbToLhs sty from to = do
-  Just (js :: Object) <- decode <$> L.readFile from
-  case M.lookup "cells" js of
+  Just (js :: Object) <- decode <$> LBS.readFile from
+  case lookup "cells" js of
     Just (Array cells) ->
-      T.writeFile to $ T.unlines $ V.toList $ V.map (\(Object y) -> convCell sty y) cells
+      LTIO.writeFile to $ LT.unlines $ V.toList $ V.map (\(Object y) -> convCell sty y) cells
     _ -> error "IHaskell.Convert.ipynbTolhs: json does not follow expected schema"
 
-concatWithPrefix :: T.Text -- ^ the prefix to add to every line
+concatWithPrefix :: LT.Text -- ^ the prefix to add to every line
                  -> Vector Value          -- ^ a json array of text lines
-                 -> Maybe T.Text
-concatWithPrefix p arr = T.concat . map (p <>) . V.toList <$> V.mapM toStr arr
+                 -> Maybe LT.Text
+concatWithPrefix p arr = LT.concat . map (p <>) . V.toList <$> V.mapM toStr arr
 
-toStr :: Value -> Maybe T.Text
-toStr (String x) = Just (T.fromStrict x)
+toStr :: Value -> Maybe LT.Text
+toStr (String x) = Just (LT.fromStrict x)
 toStr _ = Nothing
 
 -- | @convCell sty cell@ converts a single cell in JSON into text suitable for the type of lhs file
 -- described by the @sty@
-convCell :: LhsStyle T.Text -> Object -> T.Text
+convCell :: LhsStyle LT.Text -> Object -> LT.Text
 convCell _sty object
-  | Just (String "markdown") <- M.lookup "cell_type" object,
-    Just (Array xs) <- M.lookup "source" object,
+  | Just (String "markdown") <- lookup "cell_type" object,
+    Just (Array xs) <- lookup "source" object,
     ~(Just s) <- concatWithPrefix "" xs
   = s
 convCell sty object
-  | Just (String "code") <- M.lookup "cell_type" object,
-    Just (Array i) <- M.lookup "source" object,
-    Just (Array o) <- M.lookup "outputs" object,
+  | Just (String "code") <- lookup "cell_type" object,
+    Just (Array i) <- lookup "source" object,
+    Just (Array o) <- lookup "outputs" object,
     ~(Just i) <- concatWithPrefix (lhsCodePrefix sty) i,
     o <- fromMaybe mempty (convOutputs sty o)
   = "\n" <>
     lhsBeginCode sty <> i <> lhsEndCode sty <> "\n" <> o <> "\n"
 convCell _ _ = "IHaskell.Convert.convCell: unknown cell"
 
-convOutputs :: LhsStyle T.Text
+convOutputs :: LhsStyle LT.Text
             -> Vector Value -- ^ JSON array of output lines containing text or markup
-            -> Maybe T.Text
+            -> Maybe LT.Text
 convOutputs sty array = do
   outputLines <- V.mapM (getTexts (lhsOutputPrefix sty)) array
-  return $ lhsBeginOutput sty <> T.concat (V.toList outputLines) <> lhsEndOutput sty
+  return $ lhsBeginOutput sty <> LT.concat (V.toList outputLines) <> lhsEndOutput sty
 
-getTexts :: T.Text -> Value -> Maybe T.Text
+getTexts :: LT.Text -> Value -> Maybe LT.Text
 getTexts p (Object object)
-  | Just (Array text) <- M.lookup "text" object = concatWithPrefix p text
+  | Just (Array text) <- lookup "text" object = concatWithPrefix p text
 getTexts _ _ = Nothing

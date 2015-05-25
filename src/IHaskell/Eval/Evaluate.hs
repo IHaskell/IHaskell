@@ -1,4 +1,4 @@
-{-# LANGUAGE DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances, GADTs, CPP #-}
+{-# LANGUAGE NoImplicitPrelude, DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances, GADTs, CPP #-}
 
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
@@ -15,7 +15,13 @@ module IHaskell.Eval.Evaluate (
     formatType,
     ) where
 
-import           ClassyPrelude hiding (init, last, liftIO, head, hGetContents, tail, try)
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
+
 import           Control.Concurrent (forkIO, threadDelay)
 import           Prelude (putChar, head, tail, last, init, (!!))
 import           Data.List.Utils
@@ -67,8 +73,6 @@ import qualified Pretty
 import           FastString
 import           Bag
 import           ErrUtils (errMsgShortDoc, errMsgExtraInfo)
-
-import qualified System.IO.Strict as StrictIO
 
 import           IHaskell.Types
 import           IHaskell.IPython
@@ -403,7 +407,7 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
       filename = last namePieces ++ ".hs"
   liftIO $ do
     createDirectoryIfMissing True directory
-    writeFile (fpFromString $ directory ++ filename) contents
+    writeFile (directory ++ filename) contents
 
   -- Clear old modules of this name
   let modName = intercalate "." namePieces
@@ -565,7 +569,7 @@ evalCommand _ (Directive LoadFile names) state = wrapExecution state $ do
                 let filename = if endswith ".hs" name
                                  then name
                                  else name ++ ".hs"
-                contents <- readFile $ fpFromString filename
+                contents <- liftIO $ readFile filename
                 modName <- intercalate "." <$> getModuleName contents
                 doLoadModule filename modName
   return (ManyDisplay displays)
@@ -1016,7 +1020,7 @@ doLoadModule name modName = do
     setSessionDynFlags
       flags
         { hscTarget = objTarget flags
-        , log_action = \dflags sev srcspan ppr msg -> modifyIORef errRef (showSDoc flags msg :)
+        , log_action = \dflags sev srcspan ppr msg -> modifyIORef' errRef (showSDoc flags msg :)
         }
 
     -- Load the new target.

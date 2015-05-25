@@ -1,24 +1,26 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {-# LANGUAGE CPP #-}
 
 module IHaskell.Convert.LhsToIpynb (lhsToIpynb) where
 
-import           Control.Applicative ((<$>))
-import           Control.Monad (mplus)
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
+
 import           Data.Aeson ((.=), encode, object, Value(Array, Bool, Number, String, Null))
-import qualified Data.ByteString.Lazy as L (writeFile)
 import           Data.Char (isSpace)
-import           Data.Monoid (Monoid(mempty))
-import qualified Data.Text as TS (Text)
-import qualified Data.Text.Lazy as T (dropWhile, lines, stripPrefix, Text, toStrict, snoc, strip)
-import qualified Data.Text.Lazy.IO as T (readFile)
 import qualified Data.Vector as V (fromList, singleton)
+import qualified Data.List as List
+
 import           IHaskell.Flags (LhsStyle(LhsStyle))
 
-lhsToIpynb :: LhsStyle T.Text -> FilePath -> FilePath -> IO ()
+lhsToIpynb :: LhsStyle LText -> FilePath -> FilePath -> IO ()
 lhsToIpynb sty from to = do
-  classed <- classifyLines sty . T.lines <$> T.readFile from
-  L.writeFile to . encode . encodeCells $ groupClassified classed
+  classed <- classifyLines sty . LT.lines . LT.pack <$> readFile from
+  LBS.writeFile to . encode . encodeCells $ groupClassified classed
 
 data CellLine a = CodeLine a
                 | OutputLine a
@@ -50,40 +52,39 @@ data Cell a = Code a a
             | Markdown a
   deriving Show
 
-encodeCells :: [Cell [T.Text]] -> Value
+encodeCells :: [Cell [LText]] -> Value
 encodeCells xs = object $
-  ["cells" .= Array (V.fromList (map cellToVal xs))]
-  ++ boilerplate
+  "cells" .= Array (V.fromList (map cellToVal xs)) : boilerplate
 
-cellToVal :: Cell [T.Text] -> Value
-cellToVal (Code i o) = object $
-  [ "cell_type" .= String "code"
-  , "execution_count" .= Null
-  , "metadata" .= object ["collapsed" .= Bool False]
-  , "source" .= arrayFromTxt i
-  , "outputs" .= Array
-                   (V.fromList
-                      ([object
-                          [ "text" .= arrayFromTxt o
-                          , "metadata" .= object []
-                          , "output_type" .= String "display_data"
-                          ] | _ <- take 1 o]))
-  ]
-cellToVal (Markdown txt) = object $
+cellToVal :: Cell [LText] -> Value
+cellToVal (Code i o) = object
+                         [ "cell_type" .= String "code"
+                         , "execution_count" .= Null
+                         , "metadata" .= object ["collapsed" .= Bool False]
+                         , "source" .= arrayFromTxt i
+                         , "outputs" .= Array
+                                          (V.fromList
+                                             [object
+                                                [ "text" .= arrayFromTxt o
+                                                , "metadata" .= object []
+                                                , "output_type" .= String "display_data"
+                                                ] | _ <- take 1 o])
+                         ]
+cellToVal (Markdown txt) = object
   [ "cell_type" .= String "markdown"
   , "metadata" .= object ["hidden" .= Bool False]
   , "source" .= arrayFromTxt txt
   ]
 
 -- | arrayFromTxt makes a JSON array of string s
-arrayFromTxt :: [T.Text] -> Value
+arrayFromTxt :: [LText] -> Value
 arrayFromTxt i = Array (V.fromList $ map stringify i)
   where
-    stringify = String . T.toStrict . flip T.snoc '\n'
+    stringify = String . LT.toStrict . flip LT.snoc '\n'
 
 -- | ihaskell needs this boilerplate at the upper level to interpret the json describing cells and
 -- output correctly.
-boilerplate :: [(TS.Text, Value)]
+boilerplate :: [(T.Text, Value)]
 boilerplate =
   ["metadata" .= object [kernelspec, lang], "nbformat" .= Number 4, "nbformat_minor" .= Number 0]
   where
@@ -94,18 +95,18 @@ boilerplate =
                                    ]
     lang = "language_info" .= object ["name" .= String "haskell", "version" .= String VERSION_ghc]
 
-groupClassified :: [CellLine T.Text] -> [Cell [T.Text]]
+groupClassified :: [CellLine LText] -> [Cell [LText]]
 groupClassified (CodeLine a:x)
-  | (c, x) <- span isCode x,
-    (_, x) <- span isEmptyMD x,
-    (o, x) <- span isOutput x
+  | (c, x) <- List.span isCode x,
+    (_, x) <- List.span isEmptyMD x,
+    (o, x) <- List.span isOutput x
   = Code (a : map untag c) (map untag o) : groupClassified x
 groupClassified (MarkdownLine a:x)
-  | (m, x) <- span isMD x = Markdown (a : map untag m) : groupClassified x
+  | (m, x) <- List.span isMD x = Markdown (a : map untag m) : groupClassified x
 groupClassified (OutputLine a:x) = Markdown [a] : groupClassified x
 groupClassified [] = []
 
-classifyLines :: LhsStyle T.Text -> [T.Text] -> [CellLine T.Text]
+classifyLines :: LhsStyle LText -> [LText] -> [CellLine LText]
 classifyLines sty@(LhsStyle c o _ _ _ _) (l:ls) =
   case (sp c, sp o) of
     (Just a, Nothing)  -> CodeLine a : classifyLines sty ls
@@ -113,9 +114,9 @@ classifyLines sty@(LhsStyle c o _ _ _ _) (l:ls) =
     (Nothing, Nothing) -> MarkdownLine l : classifyLines sty ls
     _                  -> error "IHaskell.Convert.classifyLines"
   where
-    sp x = T.stripPrefix (dropSpace x) (dropSpace l) `mplus` blankCodeLine x
-    blankCodeLine x = if T.strip x == T.strip l
+    sp x = LT.stripPrefix (dropSpace x) (dropSpace l) `mplus` blankCodeLine x
+    blankCodeLine x = if LT.strip x == LT.strip l
                         then Just ""
                         else Nothing
-    dropSpace = T.dropWhile isSpace
+    dropSpace = LT.dropWhile isSpace
 classifyLines _ [] = []

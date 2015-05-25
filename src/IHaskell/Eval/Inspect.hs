@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, NoImplicitPrelude, OverloadedStrings, DoAndIfThenElse, FlexibleContexts #-}
+{-# LANGUAGE NoImplicitPrelude, CPP, OverloadedStrings, DoAndIfThenElse, FlexibleContexts #-}
 
 {- |
 Description:    Generates inspections when asked for by the frontend.
@@ -6,7 +6,13 @@ Description:    Generates inspections when asked for by the frontend.
 -}
 module IHaskell.Eval.Inspect (inspect) where
 
-import           ClassyPrelude
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
+
 import qualified Prelude as P
 
 import           Data.List.Split (splitOn)

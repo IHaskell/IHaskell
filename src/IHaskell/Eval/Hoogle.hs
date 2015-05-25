@@ -8,16 +8,19 @@ module IHaskell.Eval.Hoogle (
     HoogleResult,
     ) where
 
-import           ClassyPrelude hiding (last, span, div)
-import           Text.Printf
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
+
 import           Network.HTTP.Client
 import           Network.HTTP.Client.TLS
 import           Data.Aeson
 import           Data.String.Utils
-import           Data.List (elemIndex, (!!), last)
+import         qualified Data.List as List
 import           Data.Char (isAscii, isAlphaNum)
-import qualified Data.ByteString.Lazy.Char8 as Char
-import qualified Prelude as P
 
 
 import           IHaskell.IPython
@@ -52,11 +55,8 @@ instance FromJSON HoogleResponse where
 query :: String -> IO (Either String String)
 query str = do
   request <- parseUrl $ queryUrl $ urlEncode str
-  response <- try $ withManager tlsManagerSettings $ httpLbs request
-  return $
-    case response of
-      Left err   -> Left $ show (err :: SomeException)
-      Right resp -> Right $ Char.unpack $ responseBody resp
+  catch (Right . CBS.unpack . LBS.toStrict . responseBody <$> withManager tlsManagerSettings (httpLbs request))
+        (\e -> return $ Left $ show (e :: SomeException))
 
   where
     queryUrl :: String -> String
@@ -66,25 +66,25 @@ query str = do
 urlEncode :: String -> String
 urlEncode [] = []
 urlEncode (ch:t)
-  | (isAscii ch && isAlphaNum ch) || ch `P.elem` ("-_.~" :: String) = ch : urlEncode t
-  | not (isAscii ch) = P.foldr escape (urlEncode t) (eightBs [] (P.fromEnum ch))
-  | otherwise = escape (P.fromEnum ch) (urlEncode t)
+  | (isAscii ch && isAlphaNum ch) || ch `elem` ("-_.~" :: String) = ch : urlEncode t
+  | not (isAscii ch) = foldr escape (urlEncode t) (eightBs [] (fromEnum ch))
+  | otherwise = escape (fromEnum ch) (urlEncode t)
   where
     escape :: Int -> String -> String
-    escape b rs = '%' : showH (b `P.div` 16) (showH (b `mod` 16) rs)
+    escape b rs = '%' : showH (b `div` 16) (showH (b `mod` 16) rs)
 
     showH :: Int -> String -> String
     showH x xs
       | x <= 9 = toEnum (o_0 + x) : xs
       | otherwise = toEnum (o_A + (x - 10)) : xs
       where
-        o_0 = P.fromEnum '0'
-        o_A = P.fromEnum 'A'
+        o_0 = fromEnum '0'
+        o_A = fromEnum 'A'
 
     eightBs :: [Int] -> Int -> [Int]
     eightBs acc x
       | x <= 255 = x : acc
-      | otherwise = eightBs ((x `mod` 256) : acc) (x `P.div` 256)
+      | otherwise = eightBs ((x `mod` 256) : acc) (x `div` 256)
 
 -- | Search for a query on Hoogle. Return all search results.
 search :: String -> IO [HoogleResult]
@@ -94,7 +94,7 @@ search string = do
     case response of
       Left err -> [NoResult err]
       Right json ->
-        case eitherDecode $ Char.pack json of
+        case eitherDecode $ LBS.fromStrict$ CBS.pack json of
           Left err -> [NoResult err]
           Right results ->
             case map SearchResult results of
@@ -216,7 +216,7 @@ renderSelf string loc
 
 renderDocs :: String -> String
 renderDocs doc =
-  let groups = groupBy bothAreCode $ lines doc
+  let groups = List.groupBy bothAreCode $ lines doc
       nonull = filter (not . null . strip)
       bothAreCode s1 s2 =
                            startswith ">" (strip s1) &&
@@ -224,28 +224,28 @@ renderDocs doc =
       isCode (s:_) = startswith ">" $ strip s
       makeBlock lines =
                          if isCode lines
-                           then div "hoogle-code" $ unlines $ nonull lines
-                           else div "hoogle-text" $ unlines $ nonull lines
-  in div "hoogle-doc" $ unlines $ map makeBlock groups
+                           then div' "hoogle-code" $ unlines $ nonull lines
+                           else div' "hoogle-text" $ unlines $ nonull lines
+  in div' "hoogle-doc" $ unlines $ map makeBlock groups
 
 extractPackageName :: String -> Maybe String
 extractPackageName link = do
   let pieces = split "/" link
-  archiveLoc <- elemIndex "archive" pieces
-  latestLoc <- elemIndex "latest" pieces
+  archiveLoc <- List.elemIndex "archive" pieces
+  latestLoc <- List.elemIndex "latest" pieces
   guard $ latestLoc - archiveLoc == 2
-  return $ pieces !! (latestLoc - 1)
+  return $ pieces List.!! (latestLoc - 1)
 
 extractModuleName :: String -> Maybe String
 extractModuleName link = do
   let pieces = split "/" link
   guard $ not $ null pieces
-  let html = last pieces
+  let html = fromJust $ lastMay pieces
       mod = replace "-" "." $ takeWhile (/= '.') html
   return mod
 
-div :: String -> String -> String
-div = printf "<div class='%s'>%s</div>"
+div' :: String -> String -> String
+div' = printf "<div class='%s'>%s</div>"
 
 span :: String -> String -> String
 span = printf "<span class='%s'>%s</span>"
