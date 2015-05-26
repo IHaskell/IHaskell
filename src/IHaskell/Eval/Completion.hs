@@ -1,5 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, CPP, OverloadedStrings, DoAndIfThenElse #-}
-{-# LANGUAGE TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE CPP, DoAndIfThenElse, TypeFamilies, FlexibleContexts #-}
 
 {- |
 Description:    Generates tab completion options.
@@ -37,6 +36,7 @@ import           GHC.PackageDb (ExposedModule(exposedName))
 #endif
 import           DynFlags
 import           GhcMonad
+import qualified GhcMonad
 import           PackageConfig
 import           Outputable (showPpr)
 import           MonadUtils (MonadIO)
@@ -320,7 +320,7 @@ completePathFilter :: (String -> Bool)      -- ^ File filter: test whether to in
                    -> String               -- ^ Line contents to the left of the cursor.
                    -> String               -- ^ Line contents to the right of the cursor.
                    -> Interpreter [String]
-completePathFilter includeFile includeDirectory left right = liftIO $ do
+completePathFilter includeFile includeDirectory left right = GhcMonad.liftIO $ do
   -- Get the completions from Haskeline.  It has a bit of a strange API.
   expanded <- dirExpand left
   completions <- map replacement <$> snd <$> completeFilename (reverse expanded, right)
