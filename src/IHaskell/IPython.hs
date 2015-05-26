@@ -1,5 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
-{-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE CPP #-}
 
 -- | Description : Shell scripting wrapper using @Shelly@ for the @notebook@, and
 --                 @console@ commands.
@@ -23,10 +22,10 @@ import qualified Data.ByteString.Char8 as CBS
 
 import           Control.Concurrent (threadDelay)
 import           System.Argv0
-import           System.Directory
 import qualified Shelly as SH
-import qualified Filesystem.Path.CurrentOS as FS
 import qualified System.IO as IO
+import qualified System.FilePath as FP
+import           System.Directory
 import           Data.List.Utils (split)
 import           Data.String.Utils (rstrip, endswith, strip, replace)
 import           System.Exit (exitFailure)
@@ -88,11 +87,11 @@ quietRun path args = SH.runHandles path args handles nothing
     handles = [SH.InHandle SH.Inherit, SH.OutHandle SH.CreatePipe, SH.ErrorHandle SH.CreatePipe]
     nothing _ _ _ = return ()
 
-fp :: FS.FilePath -> FilePath
+fp :: SH.FilePath -> FilePath
 fp = T.unpack . SH.toTextIgnore
 
 -- | Create the directory and return it.
-ensure :: SH.Sh FS.FilePath -> SH.Sh FS.FilePath
+ensure :: SH.Sh SH.FilePath -> SH.Sh SH.FilePath
 ensure getDir = do
   dir <- getDir
   SH.mkdir_p dir
@@ -101,13 +100,13 @@ ensure getDir = do
 -- | Return the data directory for IHaskell.
 ihaskellDir :: SH.Sh FilePath
 ihaskellDir = do
-  home <- maybe (error "$HOME not defined.") FS.fromText <$> SH.get_env "HOME"
+  home <- maybe (error "$HOME not defined.") SH.fromText <$> SH.get_env "HOME"
   fp <$> ensure (return (home SH.</> ".ihaskell"))
 
-ipythonDir :: SH.Sh FS.FilePath
+ipythonDir :: SH.Sh SH.FilePath
 ipythonDir = ensure $ (SH.</> "ipython") <$> ihaskellDir
 
-notebookDir :: SH.Sh FS.FilePath
+notebookDir :: SH.Sh SH.FilePath
 notebookDir = ensure $ (SH.</> "notebooks") <$> ihaskellDir
 
 getIHaskellDir :: IO String
@@ -180,7 +179,7 @@ installKernelspec replace opts = void $ do
     let files = ["kernel.js", "logo-64x64.png"]
     forM_ files $ \file -> do
       src <- liftIO $ Paths.getDataFileName $ "html/" ++ file
-      SH.cp (FS.fromText $ T.pack src) (tmp SH.</> kernelName SH.</> file)
+      SH.cp (SH.fromText $ T.pack src) (tmp SH.</> kernelName SH.</> file)
 
     Just ipython <- SH.which "ipython"
     let replaceFlag = ["--replace" | replace]
@@ -202,9 +201,9 @@ subHome path = SH.shelly $ do
 
 -- | Get the path to an executable. If it doensn't exist, fail with an error message complaining
 -- about it.
-path :: Text -> SH.Sh FS.FilePath
+path :: Text -> SH.Sh SH.FilePath
 path exe = do
-  path <- SH.which $ FS.fromText exe
+  path <- SH.which $ SH.fromText exe
   case path of
     Nothing -> do
       liftIO $ putStrLn $ "Could not find `" ++ T.unpack exe ++ "` executable."
@@ -221,27 +220,36 @@ parseVersion versionStr =
        else Nothing
 
 -- | Get the absolute path to this IHaskell executable.
-getIHaskellPath :: SH.Sh String
+getIHaskellPath :: SH.Sh FilePath
 getIHaskellPath = do
   --  Get the absolute filepath to the argument.
-  f <- liftIO getArgv0
+  f <- T.unpack <$> SH.toTextIgnore <$> liftIO getArgv0
 
   -- If we have an absolute path, that's the IHaskell we're interested in.
-  if FS.absolute f
-    then return $ FS.encodeString f
+  if FP.isAbsolute f
+    then return f
     else 
     -- Check whether this is a relative path, or just 'IHaskell' with $PATH resolution done by
     -- the shell. If it's just 'IHaskell', use the $PATH variable to find where IHaskell lives.
-    if FS.filename f == f
+    if FP.takeFileName f == f
       then do
         ihaskellPath <- SH.which "ihaskell"
         case ihaskellPath of
           Nothing   -> error "ihaskell not on $PATH and not referenced relative to directory."
-          Just path -> return $ FS.encodeString path
-      else do
-        -- If it's actually a relative path, make it absolute.
-        cd <- liftIO getCurrentDirectory
-        return $ FS.encodeString $ FS.decodeString cd SH.</> f
+          Just path -> return $ T.unpack $ SH.toTextIgnore path
+      else liftIO $ makeAbsolute f
+
+
+#if !MIN_VERSION_directory(1, 2, 2)
+-- This is included in later versions of `directory`, but we cannot use
+-- later versions because GHC library depends on a particular version of it.
+makeAbsolute :: FilePath -> IO FilePath
+makeAbsolute = fmap FP.normalise . absolutize
+  where absolutize path -- avoid the call to `getCurrentDirectory` if we can
+          | FP.isRelative path = fmap (FP.</> path) getCurrentDirectory
+          | otherwise       = return path
+#endif
+
 
 getSandboxPackageConf :: IO (Maybe String)
 getSandboxPackageConf = SH.shelly $ do
@@ -252,7 +260,7 @@ getSandboxPackageConf = SH.shelly $ do
     else do
       let pieces = split "/" myPath
           sandboxDir = intercalate "/" $ takeWhile (/= sandboxName) pieces ++ [sandboxName]
-      subdirs <- map fp <$> SH.ls (FS.fromText $ T.pack sandboxDir)
+      subdirs <- map fp <$> SH.ls (SH.fromText $ T.pack sandboxDir)
       let confdirs = filter (endswith ("packages.conf.d" :: String)) subdirs
       case confdirs of
         [] -> return Nothing
