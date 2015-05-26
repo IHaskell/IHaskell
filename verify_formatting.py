@@ -52,7 +52,9 @@ for source_dir in ["src", "ipython-kernel", "ihaskell-display"]:
 
         for filename in filenames:
             # Take Haskell files, but ignore the Cabal Setup.hs
-            if filename.endswith(".hs") and filename != "Setup.hs":
+            # Also ignore IHaskellPrelude.hs, it uses CPP in weird places
+            ignored_files = ["Setup.hs", "IHaskellPrelude.hs"]
+            if filename.endswith(".hs") and filename not in ignored_files:
                 sources.append(os.path.join(root, filename))
 
 

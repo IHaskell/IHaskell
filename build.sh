@@ -69,7 +69,7 @@ done
 INSTALL_DIRS=`echo $INSTALLS | tr ' ' '\n' | sed 's#^#./#' | tr ' ' '\n'`
 
 echo CMD: cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
-  cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
+cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
 
 if hash ihaskell 2>/dev/null; then
     ihaskell install 2>/dev/null || echo "The command \"ihaskell install\" failed. Please check your 'ipython --version'. 3.0 or up is required but it is $(ipython --version)!"

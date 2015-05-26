@@ -1,8 +1,9 @@
-{-# LANGUAGE NoImplicitPrelude, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 
 module IHaskell.Display.Diagrams.Animation (animation) where
 
-import           ClassyPrelude hiding (filename)
+import qualified Data.Text as T
+import qualified Data.ByteString.Char8 as CBS
 
 import           Diagrams.Prelude
 import           Diagrams.Backend.Cairo
@@ -47,8 +48,8 @@ animationData renderable = do
   mainRender (diagOpts, gifOpts) frameSet
 
   -- Convert to ascii represented base64 encoding
-  imgData <- readFile $ fpFromString filename
-  return . unpack . base64 $ imgData
+  imgData <- readFile filename
+  return . T.unpack . base64 . CBS.pack $ imgData
 
 -- Rendering hint.
 animation :: Animation Cairo V2 Double -> Animation Cairo V2 Double

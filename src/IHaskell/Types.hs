@@ -30,11 +30,16 @@ module IHaskell.Types (
     KernelSpec(..),
     ) where
 
-import           ClassyPrelude
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
+
 import qualified Data.ByteString.Char8 as Char
 import           Data.Serialize
 import           GHC.Generics
-import           Data.Map (Map, empty)
 import           Data.Aeson (Value)
 
 import           IHaskell.IPython.Kernel
@@ -103,9 +108,6 @@ instance Monoid Display where
   a `mappend` ManyDisplay b = ManyDisplay (a : b)
   a `mappend` b = ManyDisplay [a, b]
 
-instance Semigroup Display where
-  a <> b = a `mappend` b
-
 -- | All state stored in the kernel between executions.
 data KernelState =
        KernelState
@@ -128,7 +130,7 @@ defaultKernelState = KernelState
   , useShowErrors = False
   , useShowTypes = False
   , usePager = True
-  , openComms = empty
+  , openComms = mempty
   , kernelDebug = False
   }
 

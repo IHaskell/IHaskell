@@ -1,11 +1,14 @@
-{-# LANGUAGE NoImplicitPrelude, TypeSynonymInstances, QuasiQuotes, FlexibleInstances, OverloadedStrings #-}
+{-# LANGUAGE TypeSynonymInstances, QuasiQuotes, FlexibleInstances, OverloadedStrings #-}
 
 module IHaskell.Display.Parsec () where
 
-import           ClassyPrelude hiding (fromList)
 import           System.Random
 import           Data.String.Here
 import           Data.HashMap.Strict as Map
+import           Control.Applicative ((<$>))
+
+import qualified Data.Text as T
+import           Data.Text (Text)
 
 import           Text.Parsec (parse, sourceLine, sourceColumn)
 import           Text.Parsec.String (Parser)
@@ -45,5 +48,5 @@ instance Show a => IHaskellWidget (Parser a) where
   comm widget (Object dict) publisher = do
     let key = "text" :: Text
         Just (String text) = Map.lookup key dict
-        result = parse widget "<interactive>" $ unpack text
+        result = parse widget "<interactive>" $ T.unpack text
     publisher $ toJSON result

@@ -1,8 +1,13 @@
-{-# LANGUAGE OverloadedStrings, NoImplicitPrelude, FlexibleContexts #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, FlexibleContexts #-}
 
 module IHaskell.BrokenPackages (getBrokenPackages) where
 
-import           ClassyPrelude hiding ((<|>))
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
 
 import           Text.Parsec
 import           Text.Parsec.String
@@ -27,7 +32,7 @@ getBrokenPackages = shelly $ do
   -- Get rid of extraneous things
   let rightStart str = startswith "There are problems" str ||
                        startswith "  dependency" str
-      ghcPkgOutput = unlines . filter rightStart . lines $ unpack checkOut
+      ghcPkgOutput = unlines . filter rightStart . lines $ T.unpack checkOut
 
   return $
     case parse (many check) "ghc-pkg output" ghcPkgOutput of

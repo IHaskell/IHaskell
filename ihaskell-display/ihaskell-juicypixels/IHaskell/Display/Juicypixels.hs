@@ -1,12 +1,12 @@
-{-# LANGUAGE NoImplicitPrelude, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 
 module IHaskell.Display.Juicypixels (module IHaskell.Display, module Codec.Picture) where
 
 import           Codec.Picture
-import           ClassyPrelude
 import           IHaskell.Display
 import           System.Directory
 import           System.IO.Unsafe
+import qualified Data.ByteString.Char8 as CBS
 
 -- instances
 instance IHaskellDisplay DynamicImage where
@@ -60,8 +60,8 @@ displayImageAsJpg renderable = do
   -- Write the image
   saveJpgImage 95 filename renderable
   -- Convert to base64.
-  imgData <- readFile $ fpFromString filename
-  return $ Display [jpg (imWidth renderable) (imHeight renderable) $ base64 imgData]
+  imgData <- readFile filename
+  return $ Display [jpg (imWidth renderable) (imHeight renderable) $ base64 (CBS.pack imgData)]
 
 -- The type DynamicImage does not have a function to extract width and height
 imWidth :: DynamicImage -> Int
@@ -90,5 +90,5 @@ imWidthHeight (ImageYCbCr8 im) = imWH im
 imWidthHeight (ImageCMYK8 im) = imWH im
 imWidthHeight (ImageCMYK16 im) = imWH im
 
-imWH :: (Image a) -> (Int, Int)
+imWH :: Image a -> (Int, Int)
 imWH im = (imageWidth im, imageHeight im)

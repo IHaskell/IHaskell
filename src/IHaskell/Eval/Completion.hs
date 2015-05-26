@@ -1,5 +1,4 @@
-{-# LANGUAGE CPP, NoImplicitPrelude, OverloadedStrings, DoAndIfThenElse #-}
-{-# LANGUAGE TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE CPP, DoAndIfThenElse, TypeFamilies, FlexibleContexts #-}
 
 {- |
 Description:    Generates tab completion options.
@@ -13,7 +12,12 @@ This has a limited amount of context sensitivity. It distinguishes between four 
 -}
 module IHaskell.Eval.Completion (complete, completionTarget, completionType, CompletionType(..)) where
 
-import           ClassyPrelude hiding (init, last, head, liftIO)
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
 
 import           Control.Applicative ((<$>))
 import           Data.ByteString.UTF8 hiding (drop, take, lines, length)
@@ -32,13 +36,15 @@ import           GHC.PackageDb (ExposedModule(exposedName))
 #endif
 import           DynFlags
 import           GhcMonad
+import qualified GhcMonad
 import           PackageConfig
 import           Outputable (showPpr)
+import           MonadUtils (MonadIO)
 
 
 import           System.Directory
 import           System.FilePath
-import           MonadUtils (MonadIO)
+import           Control.Exception (try)
 
 import           System.Console.Haskeline.Completion
 
@@ -155,7 +161,7 @@ getTrueModuleName name = do
       onlyImportDecl _ = Nothing
 
   -- Get all imports that we use.
-  imports <- ClassyPrelude.catMaybes <$> map onlyImportDecl <$> getContext
+  imports <- catMaybes <$> map onlyImportDecl <$> getContext
 
   -- Find the ones that have a qualified name attached. If this name isn't one of them, it already is
   -- the true name.
@@ -314,7 +320,7 @@ completePathFilter :: (String -> Bool)      -- ^ File filter: test whether to in
                    -> String               -- ^ Line contents to the left of the cursor.
                    -> String               -- ^ Line contents to the right of the cursor.
                    -> Interpreter [String]
-completePathFilter includeFile includeDirectory left right = liftIO $ do
+completePathFilter includeFile includeDirectory left right = GhcMonad.liftIO $ do
   -- Get the completions from Haskeline.  It has a bit of a strange API.
   expanded <- dirExpand left
   completions <- map replacement <$> snd <$> completeFilename (reverse expanded, right)

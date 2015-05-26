@@ -1,18 +1,15 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-
 module IHaskell.Display.Plot where
 
-import           ClassyPrelude
-
 import qualified Data.ByteString.Char8 as Char
-
 import           Graphics.Rendering.Plot
+import           Control.Monad (void)
+import           Control.Applicative ((<$>))
 
 import           IHaskell.Display
 
 instance IHaskellDisplay (Figure a) where
   display fig = do
-    let figure = fig >> return ()
+    let figure = void fig
     pngDisp <- figureData figure PNG
     svgDisp <- figureData figure SVG
     return $ Display [pngDisp, svgDisp]
@@ -31,7 +28,7 @@ figureData figure format = do
   writeFigure format fname (w, h) figure
 
   -- Read back, and convert to base64.
-  imgData <- readFile $ fpFromString fname
+  imgData <- Char.pack <$> readFile fname
   let value =
         case format of
           PNG -> png w h $ base64 imgData

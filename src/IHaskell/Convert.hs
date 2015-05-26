@@ -1,5 +1,14 @@
+{-# LANGUAGE NoImplicitPrelude #-}
+
 -- | Description : mostly reversible conversion between ipynb and lhs 
 module IHaskell.Convert (convert) where
+
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
 
 import           Control.Monad.Identity (Identity(Identity), unless, when)
 import           IHaskell.Convert.Args (ConvertSpec(..), fromJustConvertSpec, toConvertSpec)

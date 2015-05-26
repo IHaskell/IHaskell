@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DoAndIfThenElse #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, DoAndIfThenElse #-}
 
 -- | This module provides a way in which the Haskell standard input may be forwarded to the IPython
 -- frontend and thus allows the notebook to use the standard input.
@@ -12,6 +12,7 @@
 -- communication. For this, use @recordKernelProfile@ once the profile is known. Both this and
 -- @recordParentHeader@ take a directory name where they can store this data.
 --
+--
 -- Finally, the module must know what @execute_request@ message is currently being replied to (which
 -- will request the input). Thus, every time the language kernel receives an @execute_request@
 -- message, it should inform this module via @recordParentHeader@, so that the module may generate
@@ -24,13 +25,19 @@
 -- the host code.
 module IHaskell.IPython.Stdin (fixStdin, recordParentHeader, recordKernelProfile) where
 
+import           IHaskellPrelude
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Char8 as CBS
+
 import           Control.Concurrent
 import           Control.Applicative ((<$>))
 import           Control.Concurrent.Chan
 import           Control.Monad
 import           GHC.IO.Handle
 import           GHC.IO.Handle.Types
-import           System.IO
 import           System.Posix.IO
 import           System.IO.Unsafe
 import qualified Data.Map as Map
@@ -48,7 +55,7 @@ stdinInterface = unsafePerformIO newEmptyMVar
 fixStdin :: String -> IO ()
 fixStdin dir = do
   -- Initialize the stdin interface.
-  profile <- read <$> readFile (dir ++ "/.kernel-profile")
+  profile <- fromJust . readMay <$> readFile (dir ++ "/.kernel-profile")
   interface <- serveStdin profile
   putMVar stdinInterface interface
   void $ forkIO $ stdinOnce dir
@@ -87,7 +94,7 @@ getInputLine dir = do
 
   -- Send a request for input.
   uuid <- UUID.random
-  parentHeader <- read <$> readFile (dir ++ "/.last-req-header")
+  parentHeader <- fromJust . readMay <$> readFile (dir ++ "/.last-req-header")
   let header = MessageHeader
         { username = username parentHeader
         , identifiers = identifiers parentHeader
