@@ -119,7 +119,8 @@ typeCleaner = useStringType . foldl' (.) id (map (`replace` "") fullPrefixes)
     fullPrefixes = map (++ ".") ignoreTypePrefixes
     useStringType = replace "[Char]" "String"
 
-write :: GhcMonad m => KernelState -> String -> m ()
+-- MonadIO constraint necessary for GHC 7.6
+write :: (MonadIO m, GhcMonad m) => KernelState -> String -> m ()
 write state x = when (kernelDebug state) $ liftIO $ hPutStrLn stderr $ "DEBUG: " ++ x
 
 type Interpreter = Ghc
