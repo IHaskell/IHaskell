@@ -63,13 +63,11 @@ import qualified Linker
 import           TcType
 import           Unify
 import           InstEnv
-
 #if MIN_VERSION_ghc(7, 8, 0)
 import           GhcMonad (liftIO, withSession)
 #else
 import           GhcMonad (withSession)
 #endif
-
 import           GHC hiding (Stmt, TypeSig)
 import           Exception hiding (evaluate)
 import           Outputable hiding ((<>))
