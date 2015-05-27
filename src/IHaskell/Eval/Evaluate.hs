@@ -339,35 +339,38 @@ evaluate kernelState code output = do
 
     storeItCommand execCount = Statement $ printf "let it%d = it" execCount
 
-    extractValue :: forall a. Typeable a => String -> Interpreter a
+    extractValue :: Typeable a => String -> Interpreter a
     extractValue expr = do
       compiled <- dynCompileExpr expr
       case fromDynamic compiled of
-        Nothing ->
-          let expectedTypeRep = typeOf (undefined :: a)
-              actualTypeRep = dynTypeRep compiled
-              TypeRep fing1 tycon1 subs1 = expectedTypeRep
-              TypeRep fing2 tycon2 subs2 = actualTypeRep
-          in error $ concat
-                       [ "Expecting value of type "
-                       , showTypeRep expectedTypeRep
-                       , " but got value of type "
-                       , showTypeRep actualTypeRep
-                       ]
+        Nothing     -> error "Error casting types in Evaluate.hs"
         Just result -> return result
 
     showTypeRep :: TypeRep -> String
     showTypeRep (TypeRep fingerprint tycon subs) =
-      concat ["TypeRep "
-             , show fingerprint
-             , " "
-             , show (tyConPackage tycon, tyConModule tycon, tyConName tycon, tyConHash tycon)
-             , " "
-             , "["
-             , intercalate ", " (map showTypeRep subs)
-             , "]" 
-             ]
+      concat
+        [ "TypeRep "
+        , show fingerprint
+        , " "
+        , show (tyConPackage tycon, tyConModule tycon, tyConName tycon, tyConHash tycon)
+        , " "
+        , "["
+        , intercalate ", " (map showTypeRep subs)
+        , "]"
+        ]
 
+{-
+let expectedTypeRep = typeOf (undefined :: a)
+actualTypeRep = dynTypeRep compiled
+TypeRep fing1 tycon1 subs1 = expectedTypeRep
+TypeRep fing2 tycon2 subs2 = actualTypeRep
+in error $ concat
+[ "Expecting value of type "
+, showTypeRep expectedTypeRep
+, " but got value of type "
+, showTypeRep actualTypeRep
+]
+-}
 safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
 safely state = ghandle handler . ghandle sourceErrorHandler
   where
