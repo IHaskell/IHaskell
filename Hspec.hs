@@ -1,38 +1,38 @@
 {-# LANGUAGE QuasiQuotes, OverloadedStrings, ExtendedDefaultRules, CPP #-}
 -- Keep all the language pragmas here so it can be compiled separately.
 module Main where
-import Prelude
-import GHC hiding (Qualified)
-import GHC.Paths
-import Data.IORef
-import Control.Monad
-import Control.Monad.IO.Class ( MonadIO, liftIO )
-import Data.List
-import System.Directory
-import Shelly (Sh, shelly, cmd, (</>), toTextIgnore, cd, withTmpDir, mkdir_p,
-  touchfile)
+import           Prelude
+import           GHC hiding (Qualified)
+import           GHC.Paths
+import           Data.IORef
+import           Control.Monad
+import           Control.Monad.IO.Class (MonadIO, liftIO)
+import           Data.List
+import           System.Directory
+import           Shelly (Sh, shelly, cmd, (</>), toTextIgnore, cd, withTmpDir, mkdir_p, touchfile,
+                         fromText)
+import qualified Data.Text as T
 import qualified Shelly
-import Control.Applicative ((<$>))
-import Filesystem.Path.CurrentOS (encodeString)
-import System.SetEnv (setEnv)
-import Data.String.Here
-import Data.String.Utils (strip, replace)
-import Data.Monoid
+import           Control.Applicative ((<$>))
+import           System.SetEnv (setEnv)
+import           Data.String.Here
+import           Data.String.Utils (strip, replace)
+import           Data.Monoid
 
-import IHaskell.Eval.Parser
-import IHaskell.Types
-import IHaskell.IPython
-import IHaskell.Eval.Evaluate as Eval hiding (liftIO)
+import           IHaskell.Eval.Parser
+import           IHaskell.Types
+import           IHaskell.IPython
+import           IHaskell.Eval.Evaluate as Eval hiding (liftIO)
 import qualified IHaskell.Eval.Evaluate as Eval (liftIO)
 
-import IHaskell.Eval.Completion
-import IHaskell.Eval.ParseShell
+import           IHaskell.Eval.Completion
+import           IHaskell.Eval.ParseShell
 
-import Debug.Trace
+import           Debug.Trace
 
-import Test.Hspec
-import Test.Hspec.HUnit
-import Test.HUnit (assertBool, assertFailure)
+import           Test.Hspec
+import           Test.Hspec.HUnit
+import           Test.HUnit (assertBool, assertFailure)
 
 traceShowId x = traceShow x x 
 
@@ -166,7 +166,7 @@ inDirectory dirs files action = shelly $ withTmpDir $ \dirPath ->
       do cd dirPath
          mapM_ mkdir_p   dirs
          mapM_ touchfile files
-         liftIO $ doGhc $ wrap (encodeString dirPath) (action dirPath)
+         liftIO $ doGhc $ wrap (T.unpack $ toTextIgnore dirPath) (action dirPath)
       where cdEvent path = liftIO $ setCurrentDirectory path --Eval.evaluate defaultKernelState (":! cd " ++ path) noPublish
             wrap :: FilePath -> Interpreter a -> Interpreter a
             wrap path action = 
@@ -241,8 +241,8 @@ completionTests = do
       "import Prel*"   `completionHas` ["Prelude"]
 
     it "properly completes haskell file paths on :load directive" $
-         let loading xs = ":load " ++ encodeString xs
-             paths = map encodeString
+         let loading xs = ":load " ++ T.unpack (toTextIgnore xs)
+             paths = map (T.unpack . toTextIgnore)
          in do 
             loading ("dir" </> "file*") `shouldHaveCompletionsInDirectory` paths ["dir" </> "file2.hs",
                                                                                   "dir" </> "file2.lhs"]
@@ -258,7 +258,7 @@ completionTests = do
                                                                            , "./" </> "file1.lhs"]
 
     it "provides path completions on empty shell cmds " $
-      ":! cd *" `shouldHaveCompletionsInDirectory` map encodeString ["" </> "dir/"
+      ":! cd *" `shouldHaveCompletionsInDirectory` map (T.unpack . toTextIgnore) ["" </> "dir/"
                                                                     , "" </> "file1.hs"
                                                                     , "" </> "file1.lhs"]
 
@@ -268,7 +268,7 @@ completionTests = do
           result <- action
           setHomeEvent $ Shelly.fromText home
           return result
-        setHomeEvent path = liftIO $ setEnv "HOME" (encodeString path)
+        setHomeEvent path = liftIO $ setEnv "HOME" (T.unpack $ toTextIgnore path)
 
     it "correctly interprets ~ as the environment HOME variable" $ 
         let shouldHaveCompletions :: String -> [String] -> IO ()
@@ -289,7 +289,7 @@ completionTests = do
           matchText <- withHsHome $ fst <$> uncurry complete (readCompletePrompt string)
           matchText `shouldBe` expected
 
-        setHomeEvent path = liftIO $ setEnv "HOME" (encodeString path)
+        setHomeEvent path = liftIO $ setEnv "HOME" (T.unpack $ toTextIgnore path)
 
     it "generates the correct matchingText on `:! cd ~/*` " $ 
       do ":! cd ~/*" `shouldHaveMatchingText` ("~/" :: String)
