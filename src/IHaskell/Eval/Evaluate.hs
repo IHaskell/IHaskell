@@ -350,19 +350,23 @@ evaluate kernelState code output = do
               TypeRep fing2 tycon2 subs2 = actualTypeRep
           in error $ concat
                        [ "Expecting value of type "
-                       , show expectedTypeRep
+                       , showTypeRep expectedTypeRep
                        , " but got value of type "
-                       , show actualTypeRep
-                       , "\n. Fingerprint expected "
-                       , show fing1
-                       , " but gotten "
-                       , show fing2
-                       , " with expected tycon "
-                       , show (tyConPackage tycon1, tyConModule tycon1, tyConName tycon1, tyConHash tycon1)
-                       , " but gotten "
-                       , show (tyConPackage tycon2, tyConModule tycon2, tyConName tycon2, tyConHash tycon2)
+                       , showTypeRep actualTypeRep
                        ]
         Just result -> return result
+
+    showTypeRep :: TypeRep -> String
+    showTypeRep (TypeRep fingerprint tycon subs) =
+      concat ["TypeRep "
+             , show fingerprint
+             , " "
+             , show (tyConPackage tycon, tyConModule tycon, tyConName tycon, tyConHash tycon)
+             , " "
+             , "["
+             , intercalate ", " (map showTypeRep subs)
+             , "]" 
+             ]
 
 safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
 safely state = ghandle handler . ghandle sourceErrorHandler
