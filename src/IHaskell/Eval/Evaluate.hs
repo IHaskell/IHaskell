@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances, GADTs, CPP #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
@@ -22,6 +23,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Char8 as CBS
 
+import           Data.Typeable.Internal
 import           Control.Concurrent (forkIO, threadDelay)
 import           Prelude (putChar, head, tail, last, init, (!!))
 import           Data.List.Utils
@@ -337,11 +339,29 @@ evaluate kernelState code output = do
 
     storeItCommand execCount = Statement $ printf "let it%d = it" execCount
 
-    extractValue :: Typeable a => String -> Interpreter a
+    extractValue :: forall a. Typeable a => String -> Interpreter a
     extractValue expr = do
       compiled <- dynCompileExpr expr
       case fromDynamic compiled of
-        Nothing     -> error "Expecting value!"
+        Nothing ->
+          let expectedTypeRep = typeOf (undefined :: a)
+              actualTypeRep = dynTypeRep compiled
+              TypeRep fing1 tycon1 subs1 = expectedTypeRep
+              TypeRep fing2 tycon2 subs2 = actualTypeRep
+          in error $ concat
+                       [ "Expecting value of type "
+                       , show expectedTypeRep
+                       , " but got value of type "
+                       , show actualTypeRep
+                       , "\n. Fingerprint expected "
+                       , show fing1
+                       , " but gotten "
+                       , show fing2
+                       , " with expected tycon "
+                       , show (tyConPackage tycon1, tyConModule tycon1, tyConName tycon1, tyConHash tycon1)
+                       , " but gotten "
+                       , show (tyConPackage tycon2, tyConModule tycon2, tyConName tycon2, tyConHash tycon2)
+                       ]
         Just result -> return result
 
 safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
