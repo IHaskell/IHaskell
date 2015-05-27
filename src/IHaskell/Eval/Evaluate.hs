@@ -1,5 +1,4 @@
 {-# LANGUAGE NoImplicitPrelude, DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances, GADTs, CPP #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
@@ -23,7 +22,6 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Char8 as CBS
 
-import           Data.Typeable.Internal
 import           Control.Concurrent (forkIO, threadDelay)
 import           Prelude (putChar, head, tail, last, init, (!!))
 import           Data.List.Utils
@@ -346,31 +344,6 @@ evaluate kernelState code output = do
         Nothing     -> error "Error casting types in Evaluate.hs"
         Just result -> return result
 
-    showTypeRep :: TypeRep -> String
-    showTypeRep (TypeRep fingerprint tycon subs) =
-      concat
-        [ "TypeRep "
-        , show fingerprint
-        , " "
-        , show (tyConPackage tycon, tyConModule tycon, tyConName tycon, tyConHash tycon)
-        , " "
-        , "["
-        , intercalate ", " (map showTypeRep subs)
-        , "]"
-        ]
-
-{-
-let expectedTypeRep = typeOf (undefined :: a)
-actualTypeRep = dynTypeRep compiled
-TypeRep fing1 tycon1 subs1 = expectedTypeRep
-TypeRep fing2 tycon2 subs2 = actualTypeRep
-in error $ concat
-[ "Expecting value of type "
-, showTypeRep expectedTypeRep
-, " but got value of type "
-, showTypeRep actualTypeRep
-]
--}
 safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
 safely state = ghandle handler . ghandle sourceErrorHandler
   where
