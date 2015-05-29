@@ -333,7 +333,7 @@ completePathFilter includeFile includeDirectory left right = GhcMonad.liftIO $ d
   -- everything else. If we wanted to keep original order, we could instead use
   --   filter (`elem` (dirs ++ files)) completions
   suggestions <- mapM unDirExpand $ dirs ++ files
-  let isHidden str = isPrefixOf  "." . last . split "/" $
+  let isHidden str = isPrefixOf "." . last . split "/" $
         if "/" `isSuffixOf` str
           then init str
           else str
