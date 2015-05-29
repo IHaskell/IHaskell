@@ -1,7 +1,9 @@
 {-# LANGUAGE QuasiQuotes, OverloadedStrings, ExtendedDefaultRules, CPP #-}
 -- Keep all the language pragmas here so it can be compiled separately.
 module Main where
+
 import           Prelude
+import qualified Data.Text as T
 import           GHC hiding (Qualified)
 import           GHC.Paths
 import           Data.IORef
@@ -16,7 +18,6 @@ import qualified Shelly
 import           Control.Applicative ((<$>))
 import           System.SetEnv (setEnv)
 import           Data.String.Here
-import           Data.String.Utils (strip, replace)
 import           Data.Monoid
 
 import           IHaskell.Eval.Parser
@@ -33,6 +34,19 @@ import           Debug.Trace
 import           Test.Hspec
 import           Test.Hspec.HUnit
 import           Test.HUnit (assertBool, assertFailure)
+
+lstrip :: String -> String
+lstrip = dropWhile (`elem` (" \t\r\n" :: String))
+
+rstrip :: String -> String
+rstrip = reverse . lstrip . reverse
+
+strip :: String -> String
+strip = rstrip . lstrip
+
+replace :: String -> String -> String -> String
+replace needle replacement haystack =
+  T.unpack $ T.replace (T.pack needle) (T.pack replacement) (T.pack haystack)
 
 traceShowId x = traceShow x x 
 
