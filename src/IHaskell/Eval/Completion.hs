@@ -23,11 +23,9 @@ import           Control.Applicative ((<$>))
 import           Data.ByteString.UTF8 hiding (drop, take, lines, length)
 import           Data.Char
 import           Data.List (nub, init, last, head, elemIndex)
-import           Data.List.Split
-import           Data.List.Split.Internals
+import qualified Data.List.Split as Split
+import qualified Data.List.Split.Internals as Split
 import           Data.Maybe (fromJust)
-import           Data.String.Utils (strip, startswith, endswith, replace)
-import qualified Data.String.Utils as StringUtils
 import           System.Environment (getEnv)
 
 import           GHC hiding (Qualified)
@@ -51,6 +49,7 @@ import           System.Console.Haskeline.Completion
 import           IHaskell.Types
 import           IHaskell.Eval.Evaluate (Interpreter)
 import           IHaskell.Eval.ParseShell (parseShell)
+import           StringUtils (replace, strip, split)
 
 data CompletionType = Empty
                     | Identifier String
@@ -179,17 +178,17 @@ completionType :: String            -- ^ The line on which the completion is bei
                -> CompletionType
 completionType line loc target
   -- File and directory completions are special
-  | startswith ":!" stripped =
+  | ":!" `isPrefixOf` stripped =
       fileComplete FilePath
-  | startswith ":l" stripped =
+  | ":l" `isPrefixOf` stripped =
       fileComplete HsFilePath
 
   -- Complete :set, :opt, and :ext
-  | startswith ":s" stripped =
+  | ":s" `isPrefixOf` stripped =
       DynFlag candidate
-  | startswith ":o" stripped =
+  | ":o" `isPrefixOf` stripped =
       KernelOption candidate
-  | startswith ":e" stripped =
+  | ":e" `isPrefixOf` stripped =
       Extension candidate
 
   -- Use target for other completions. If it's empty, no completion.
@@ -201,7 +200,7 @@ completionType line loc target
       FilePath (getStringTarget lineUpToCursor) (getStringTarget lineUpToCursor)
 
   -- Complete module names in imports and elsewhere.
-  | startswith "import" stripped && isModName =
+  | "import" `isPrefixOf` stripped && isModName =
       ModuleName dotted candidate
   | isModName && (not . null . init) target =
       Qualified dotted candidate
@@ -225,7 +224,7 @@ completionType line loc target
     fileComplete filePath =
       case parseShell lineUpToCursor of
         Right xs -> filePath lineUpToCursor $
-          if endswith (last xs) lineUpToCursor
+          if last xs `isSuffixOf` lineUpToCursor
             then last xs
             else []
         Left _ -> Empty
@@ -256,14 +255,14 @@ completionTarget :: String -> Int -> [String]
 completionTarget code cursor = expandCompletionPiece pieceToComplete
   where
     pieceToComplete = map fst <$> find (elem cursor . map snd) pieces
-    pieces = splitAlongCursor $ split splitter $ zip code [1 ..]
-    splitter = defaultSplitter
+    pieces = splitAlongCursor $ Split.split splitter $ zip code [1 ..]
+    splitter = Split.defaultSplitter
       { 
       -- Split using only the characters, which are the first elements of the (char, index) tuple
-      delimiter = Delimiter [uncurry isDelim]
+      Split.delimiter = Split.Delimiter [uncurry isDelim]
       -- Condense multiple delimiters into one and then drop them.
-      , condensePolicy = Condense
-      , delimPolicy = Drop
+      , Split.condensePolicy = Split.Condense
+      , Split.delimPolicy = Split.Drop
       }
 
     isDelim :: Char -> Int -> Bool
@@ -281,7 +280,7 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
     neverIdent = " \n\t(),{}[]\\'\"`"
 
     expandCompletionPiece Nothing = []
-    expandCompletionPiece (Just str) = splitOn "." str
+    expandCompletionPiece (Just str) = Split.splitOn "." str
 
 getHome :: IO String
 getHome = do
@@ -313,7 +312,7 @@ completePathWithExtensions extensions line =
     acceptAll = const True
     extensionIsOneOf exts str = any correctEnding exts
       where
-        correctEnding ext = endswith ext str
+        correctEnding ext = ext `isSuffixOf` str
 
 completePathFilter :: (String -> Bool)      -- ^ File filter: test whether to include this file.
                    -> (String -> Bool)      -- ^ Directory filter: test whether to include this directory.
@@ -334,8 +333,8 @@ completePathFilter includeFile includeDirectory left right = GhcMonad.liftIO $ d
   -- everything else. If we wanted to keep original order, we could instead use
   --   filter (`elem` (dirs ++ files)) completions
   suggestions <- mapM unDirExpand $ dirs ++ files
-  let isHidden str = startswith "." . last . StringUtils.split "/" $
-        if endswith "/" str
+  let isHidden str = isPrefixOf  "." . last . split "/" $
+        if "/" `isSuffixOf` str
           then init str
           else str
       visible = filter (not . isHidden) suggestions

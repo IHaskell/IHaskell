@@ -9,11 +9,9 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Char8 as CBS
 
-import           Data.String.Utils (replace, startswith, strip, split)
 import           Prelude (head, tail, last)
 import           Control.Monad
 import           Data.List (findIndex)
-import           Text.Printf
 import           Data.String.Here
 import           Data.Char
 import           Data.Monoid
@@ -34,6 +32,7 @@ import           IHaskell.Types
 import           IHaskell.Display
 import           IHaskell.IPython
 import           IHaskell.Eval.Parser hiding (line)
+import           StringUtils (replace)
 
 type ExtsModule = SrcExts.Module SrcSpanInfo
 

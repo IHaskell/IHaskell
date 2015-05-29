@@ -13,8 +13,6 @@ import           Text.Parsec
 import           Text.Parsec.String
 import           Control.Applicative hiding ((<|>), many)
 
-import           Data.String.Utils (startswith)
-
 import           Shelly
 
 data BrokenPackage = BrokenPackage { packageID :: String, brokenDeps :: [String] }
@@ -30,8 +28,8 @@ getBrokenPackages = shelly $ do
   checkOut <- lastStderr
 
   -- Get rid of extraneous things
-  let rightStart str = startswith "There are problems" str ||
-                       startswith "  dependency" str
+  let rightStart str = "There are problems" `isPrefixOf` str ||
+                       "  dependency" `isPrefixOf` str
       ghcPkgOutput = unlines . filter rightStart . lines $ T.unpack checkOut
 
   return $

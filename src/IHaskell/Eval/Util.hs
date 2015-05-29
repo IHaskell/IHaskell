@@ -52,8 +52,9 @@ import qualified Outputable as O
 
 import           Control.Monad (void)
 import           Data.Function (on)
-import           Data.String.Utils (replace)
 import           Data.List (nubBy)
+
+import           StringUtils (replace)
 
 -- | A extension flag that can be set or unset.
 data ExtFlag = SetFlag ExtensionFlag
