@@ -18,12 +18,12 @@ import qualified Data.ByteString.Char8 as CBS
 import           Network.HTTP.Client
 import           Network.HTTP.Client.TLS
 import           Data.Aeson
-import           Data.String.Utils
 import qualified Data.List as List
 import           Data.Char (isAscii, isAlphaNum)
 
 
 import           IHaskell.IPython
+import           StringUtils (split, strip, replace)
 
 -- | Types of formats to render output to.
 data OutputFormat = Plain      -- ^ Render to plain text.
@@ -156,22 +156,22 @@ renderHtml (SearchResult resp) =
 
 renderSelf :: String -> String -> String
 renderSelf string loc
-  | startswith "package" string =
+  | "package" `isPrefixOf` string =
       pkg ++ " " ++ span "hoogle-package" (link loc $ extractPackage string)
 
-  | startswith "module" string =
+  | "module" `isPrefixOf` string =
       let package = extractPackageName loc
       in mod ++ " " ++
                 span "hoogle-module" (link loc $ extractModule string) ++
                 packageSub package
 
-  | startswith "class" string =
+  | "class" `isPrefixOf` string =
       let package = extractPackageName loc
       in cls ++ " " ++
                 span "hoogle-class" (link loc $ extractClass string) ++
                 packageSub package
 
-  | startswith "data" string =
+  | "data" `isPrefixOf` string =
       let package = extractPackageName loc
       in dat ++ " " ++
                 span "hoogle-class" (link loc $ extractData string) ++
@@ -221,9 +221,9 @@ renderDocs doc =
   let groups = List.groupBy bothAreCode $ lines doc
       nonull = filter (not . null . strip)
       bothAreCode s1 s2 =
-                           startswith ">" (strip s1) &&
-                           startswith ">" (strip s2)
-      isCode (s:_) = startswith ">" $ strip s
+                           isPrefixOf ">" (strip s1) &&
+                           isPrefixOf ">" (strip s2)
+      isCode (s:_) = isPrefixOf ">" $ strip s
       makeBlock lines =
                          if isCode lines
                            then div' "hoogle-code" $ unlines $ nonull lines

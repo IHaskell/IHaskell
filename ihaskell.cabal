@@ -73,7 +73,6 @@ library
                        haskell-src-exts     ==1.16.*,
                        http-client          == 0.4.*,
                        http-client-tls      == 0.2.*,
-                       MissingH             >=1.2,
                        mtl                  >=2.1,
                        parsec               -any,
                        process              >=1.1,
@@ -116,6 +115,7 @@ library
                    Paths_ihaskell
   other-modules: 
                    IHaskellPrelude
+                   StringUtils
 
   default-extensions:
       NoImplicitPrelude
@@ -182,7 +182,6 @@ Test-Suite hspec
         haskell-src-exts ==1.16.*,
         hspec -any,
         HUnit -any,
-        MissingH >=1.2,
         mtl >=2.1,
         parsec -any,
         process >=1.1,

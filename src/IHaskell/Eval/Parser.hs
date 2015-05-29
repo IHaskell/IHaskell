@@ -23,7 +23,6 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Char8 as CBS
 
 import           Data.List (maximumBy, inits)
-import           Data.String.Utils (startswith, strip, split)
 import           Prelude (head, tail)
 import           Control.Monad (msum)
 
@@ -31,6 +30,7 @@ import           GHC hiding (Located)
 
 import           Language.Haskell.GHC.Parser
 import           IHaskell.Eval.Util
+import           StringUtils (strip, split)
 
 -- | A block of code to be evaluated. Each block contains a single element - one declaration,
 -- statement, expression, etc. If parsing of the block failed, the block is instead a ParseError,
@@ -113,11 +113,11 @@ parseString codeString = do
 
     -- Test whether a given chunk is a directive.
     isDirective :: String -> Bool
-    isDirective = startswith ":" . strip
+    isDirective = isPrefixOf ":" . strip
 
     -- Test if a chunk is a pragma.
     isPragma :: String -> Bool
-    isPragma = startswith "{-#" . strip
+    isPragma = isPrefixOf "{-#" . strip
 
 activateExtensions :: GhcMonad m => CodeBlock -> m ()
 activateExtensions (Directive SetExtension ext) = void $ setExtension ext

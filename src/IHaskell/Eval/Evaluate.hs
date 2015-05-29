@@ -24,9 +24,7 @@ import qualified Data.ByteString.Char8 as CBS
 
 import           Control.Concurrent (forkIO, threadDelay)
 import           Prelude (putChar, head, tail, last, init, (!!))
-import           Data.List.Utils
 import           Data.List (findIndex, and, foldl1, nubBy)
-import           Data.String.Utils
 import           Text.Printf
 import           Data.Char as Char
 import           Data.Dynamic
@@ -86,6 +84,7 @@ import qualified IHaskell.Eval.Hoogle as Hoogle
 import           IHaskell.Eval.Util
 import           IHaskell.BrokenPackages
 import qualified IHaskell.IPython.Message.UUID as UUID
+import           StringUtils (replace, split, strip, rstrip)
 
 import           Paths_ihaskell (version)
 import           Data.Version (versionBranch)
@@ -570,7 +569,7 @@ evalCommand _ (Directive LoadFile names) state = wrapExecution state $ do
   write state $ "Load: " ++ names
 
   displays <- forM (words names) $ \name -> do
-                let filename = if endswith ".hs" name
+                let filename = if ".hs" `isSuffixOf` name
                                  then name
                                  else name ++ ".hs"
                 contents <- liftIO $ readFile filename
@@ -855,7 +854,7 @@ evalCommand output (Expression expr) state = do
     isShowError (Display errs) =
       -- Note that we rely on this error message being 'type cleaned', so that `Show` is not displayed as
       -- GHC.Show.Show. This is also very fragile!
-      startswith "No instance for (Show" msg &&
+      "No instance for (Show" `isPrefixOf` msg &&
       isInfixOf "print it" msg
       where
         msg = extractPlain errs
@@ -1250,7 +1249,7 @@ formatErrorWithClass cls =
     fixDollarSigns = replace "$" "<span>$</span>"
     useDashV = "\nUse -v to see a list of the files searched for."
     isShowError err =
-      startswith "No instance for (Show" err &&
+      "No instance for (Show" `isPrefixOf` err &&
       isInfixOf " arising from a use of `print'" err
 
 formatParseError :: StringLoc -> String -> ErrMsg

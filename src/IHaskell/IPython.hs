@@ -26,8 +26,6 @@ import qualified Shelly as SH
 import qualified System.IO as IO
 import qualified System.FilePath as FP
 import           System.Directory
-import           Data.List.Utils (split)
-import           Data.String.Utils (rstrip, endswith, strip, replace)
 import           System.Exit (exitFailure)
 import           Data.Aeson (toJSON)
 import           Data.Aeson.Encode (encodeToTextBuilder)
@@ -39,6 +37,8 @@ import qualified Paths_ihaskell as Paths
 import qualified GHC.Paths
 import           IHaskell.Types
 import           System.Posix.Signals
+
+import           StringUtils (replace, split)
 
 data KernelSpecOptions =
        KernelSpecOptions
@@ -258,7 +258,7 @@ getSandboxPackageConf = SH.shelly $ do
       let pieces = split "/" myPath
           sandboxDir = intercalate "/" $ takeWhile (/= sandboxName) pieces ++ [sandboxName]
       subdirs <- map fp <$> SH.ls (SH.fromText $ T.pack sandboxDir)
-      let confdirs = filter (endswith ("packages.conf.d" :: String)) subdirs
+      let confdirs = filter (isSuffixOf ("packages.conf.d" :: String)) subdirs
       case confdirs of
         [] -> return Nothing
         dir:_ ->

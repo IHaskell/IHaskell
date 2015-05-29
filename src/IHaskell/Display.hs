@@ -56,7 +56,6 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Char8 as CBS
 
 import           Data.Serialize as Serialize
-import           Data.String.Utils (rstrip)
 import qualified Data.ByteString.Base64 as Base64
 import           Data.Aeson (Value)
 import           System.Directory (getTemporaryDirectory, setCurrentDirectory)
@@ -69,6 +68,7 @@ import           System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Text.Encoding as E
 
 import           IHaskell.Types
+import           StringUtils (rstrip)
 
 type Base64 = Text
 
