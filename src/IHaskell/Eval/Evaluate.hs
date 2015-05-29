@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, DoAndIfThenElse, NoOverloadedStrings, TypeSynonymInstances, GADTs, CPP #-}
+{-# LANGUAGE NoOverloadedStrings, TypeSynonymInstances, GADTs, CPP #-}
 
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
@@ -33,7 +33,6 @@ import           Data.Dynamic
 import           Data.Typeable
 import qualified Data.Serialize as Serialize
 import           System.Directory
-import           Filesystem.Path.CurrentOS (encodeString)
 #if !MIN_VERSION_base(4,8,0)
 import           System.Posix.IO (createPipe)
 #endif
