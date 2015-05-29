@@ -10,7 +10,7 @@ import           IHaskellPrelude
 import qualified Data.Text as T
 
 lstrip :: String -> String
-lstrip = dropWhile (`elem` " \t\r\n")
+lstrip = dropWhile (`elem` (" \t\r\n" :: String))
 
 rstrip :: String -> String
 rstrip = reverse . lstrip . reverse
