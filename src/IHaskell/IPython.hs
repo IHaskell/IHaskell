@@ -238,19 +238,16 @@ getIHaskellPath = do
           Nothing   -> error "ihaskell not on $PATH and not referenced relative to directory."
           Just path -> return $ T.unpack $ SH.toTextIgnore path
       else liftIO $ makeAbsolute f
-
-
 #if !MIN_VERSION_directory(1, 2, 2)
--- This is included in later versions of `directory`, but we cannot use
--- later versions because GHC library depends on a particular version of it.
+-- This is included in later versions of `directory`, but we cannot use later versions because GHC
+-- library depends on a particular version of it.
 makeAbsolute :: FilePath -> IO FilePath
 makeAbsolute = fmap FP.normalise . absolutize
-  where absolutize path -- avoid the call to `getCurrentDirectory` if we can
-          | FP.isRelative path = fmap (FP.</> path) getCurrentDirectory
-          | otherwise       = return path
+  where
+    absolutize path -- avoid the call to `getCurrentDirectory` if we can
+      | FP.isRelative path = fmap (FP.</> path) getCurrentDirectory
+      | otherwise = return path
 #endif
-
-
 getSandboxPackageConf :: IO (Maybe String)
 getSandboxPackageConf = SH.shelly $ do
   myPath <- getIHaskellPath
