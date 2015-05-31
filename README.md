@@ -137,6 +137,11 @@ Run IHaskell:
   - `ipython notebook` for the browser-based interactive notebook.
   - `ipython console --kernel haskell` for a REPL.
 
+If you've installed IHaskell in a sandbox, you will need to make sure that IPython can access the contents of the sandbox. You can do this via `cabal exec`:
+```bash
+cabal exec ipython -- notebook
+```
+
 #### (Optional) Install Support Libraries
 
 IHaskell comes with many support libraries, such as `ihaskell-diagrams`, `ihaskell-parsec`, and so on, which add rich and interactive displays for common libraries.
