@@ -135,6 +135,7 @@ globalImports =
   , "import qualified System.Directory as IHaskellDirectory"
   , "import qualified IHaskell.Display"
   , "import qualified IHaskell.IPython.Stdin"
+  , "import qualified IHaskell.Eval.Widgets"
   , "import qualified System.Posix.IO as IHaskellIO"
   , "import qualified System.IO as IHaskellSysIO"
   , "import qualified Language.Haskell.TH as IHaskellTH"
