@@ -8,6 +8,7 @@ import           Prelude
 import           Control.Monad                 (when)
 import           Data.Aeson                    (ToJSON, Value (..), object,
                                                 toJSON, (.=))
+import           Data.Aeson.Types              (Pair)
 import           Data.HashMap.Strict           as Map
 import           Data.IORef
 import           Data.Text                     (Text)
@@ -48,62 +49,66 @@ mkButton = do
   -- Initial state update
   widgetSendUpdate b . toJSON . UpdateState . toJSON $ b
 
-  -- REMOVE ME: Let's display it too
+  -- DEBUG: Try to display it too
   widgetSendView b
 
   -- Return the button widget
   return b
 
--- send :: Button -> Value -> IO ()
--- send b v = widgetSendData (uuid b) v
+update :: Button -> [Pair] -> IO ()
+update b v = widgetSendUpdate b . toJSON . UpdateState . object $ v
 
--- -- | Set the button style
--- setButtonStyle :: ButtonStyle -> Button -> IO ()
--- setButtonStyle bst b = do
---   modifyIORef (buttonStyle b) (const bst)
---   send b . toJSON $ UpdateState b
+-- | Set the button style
+setButtonStyle :: ButtonStyle -> Button -> IO ()
+setButtonStyle bst b = do
+  modifyIORef (buttonStyle b) (const bst)
+  update b [ "button_style" .= bst ]
 
--- -- | Set the button label
--- setButtonLabel :: Text -> Button -> IO ()
--- setButtonLabel txt b = do
---   modifyIORef (description b) (const txt)
---   send b . toJSON $ UpdateState b
+-- | Set the button label
+setButtonLabel :: Text -> Button -> IO ()
+setButtonLabel txt b = do
+  modifyIORef (description b) (const txt)
+  update b [ "description" .= txt ]
 
--- -- | Set the button tooltip
--- setButtonTooltip :: Text -> Button -> IO ()
--- setButtonTooltip txt b = do
---   modifyIORef (tooltip b) (const txt)
---   send b . toJSON $ UpdateState b
+-- | Set the button tooltip
+setButtonTooltip :: Text -> Button -> IO ()
+setButtonTooltip txt b = do
+  modifyIORef (tooltip b) (const txt)
+  update b [ "tooltip" .= txt ]
 
--- -- | Disable the button
--- disableButton :: Button -> IO ()
--- disableButton b = do
---   modifyIORef (disabled b) (const True)
---   send b . toJSON $ UpdateState b
+-- | Disable the button
+disableButton :: Button -> IO ()
+disableButton b = do
+  modifyIORef (disabled b) (const True)
+  update b [ "disabled" .= True ]
 
--- -- | Enable the button
--- enableButton :: Button -> IO ()
--- enableButton b = do
---   modifyIORef (disabled b) (const False)
---   send b . toJSON $ UpdateState b
+-- | Enable the button
+enableButton :: Button -> IO ()
+enableButton b = do
+  modifyIORef (disabled b) (const False)
+  update b [ "disabled" .= False ]
 
--- -- | Toggle the button
--- toggleButtonStatus :: Button -> IO ()
--- toggleButtonStatus b = do
---   modifyIORef (disabled b) not
---   send b . toJSON $ UpdateState b
+-- | Toggle the button
+toggleButtonStatus :: Button -> IO ()
+toggleButtonStatus b = do
+  modifyIORef (disabled b) not
+  newVal <- isDisabled b
+  update b [ "disabled" .= newVal ]
 
--- -- | Get the button style
--- getButtonStyle :: Button -> IO ButtonStyle
--- getButtonStyle = readIORef . buttonStyle
+-- | Get the button style
+getButtonStyle :: Button -> IO ButtonStyle
+getButtonStyle = readIORef . buttonStyle
 
--- -- | Get the button text
--- getButtonText :: Button -> IO Text
--- getButtonText = readIORef . description
+-- | Get the button text
+getButtonText :: Button -> IO Text
+getButtonText = readIORef . description
 
--- -- | Get the button tooltip
--- getButtonTooltip :: Button -> IO Text
--- getButtonTooltip = readIORef . tooltip
+-- | Get the button tooltip
+getButtonTooltip :: Button -> IO Text
+getButtonTooltip = readIORef . tooltip
+
+isDisabled :: Button -> IO Bool
+isDisabled = readIORef . disabled
 
 instance ToJSON ButtonStyle where
   toJSON Primary = "primary"
@@ -112,9 +117,6 @@ instance ToJSON ButtonStyle where
   toJSON Warning = "warning"
   toJSON Danger  = "danger"
   toJSON None    = ""
-
---------------------------------------------------------------------------------
--- To be separated out to another module
 
 data ViewName = ButtonWidget
 
@@ -127,8 +129,6 @@ instance ToJSON InitData where
   toJSON ButtonInitData = object [ "model_name"   .= str "WidgetModel"
                                  , "widget_class" .= str "IPython.Button"
                                  ]
-
---------------------------------------------------------------------------------
 
 instance ToJSON Button where
   toJSON b = object [ "_view_name" .= toJSON ButtonWidget
@@ -148,6 +148,7 @@ instance IHaskellDisplay Button where
     return $ Display []
 
 instance IHaskellWidget Button where
+  getCommUUID = uuid
   -- open widget sender = do
   --   sender . toJSON $ UpdateState widget
   -- comm widget (Object dict1) publisher = do
