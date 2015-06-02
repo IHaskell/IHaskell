@@ -68,6 +68,7 @@ import           System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Text.Encoding as E
 
 import           IHaskell.Types
+import           IHaskell.Eval.Util (unfoldM)
 import           StringUtils (rstrip)
 
 type Base64 = Text
@@ -153,12 +154,6 @@ displayChan = unsafePerformIO newTChanIO
 displayFromChan :: IO (Maybe Display)
 displayFromChan =
   Just . many <$> unfoldM (atomically $ tryReadTChan displayChan)
-
--- | This is unfoldM from monad-loops. It repeatedly runs an IO action until it return Nothing, and
--- puts all the Justs in a list. If you find yourself using more functionality from monad-loops,
--- just add the package dependency instead of copying more code from it.
-unfoldM :: IO (Maybe a) -> IO [a]
-unfoldM f = maybe (return []) (\r -> (r :) <$> unfoldM f) =<< f
 
 -- | Write to the display channel. The contents will be displayed in the notebook once the current
 -- execution call ends.

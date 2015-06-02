@@ -84,6 +84,7 @@ import qualified IHaskell.Eval.Hoogle as Hoogle
 import           IHaskell.Eval.Util
 import           IHaskell.BrokenPackages
 import qualified IHaskell.IPython.Message.UUID as UUID
+import           IHaskell.Eval.Widgets
 import           StringUtils (replace, split, strip, rstrip)
 
 import           Paths_ihaskell (version)
@@ -251,9 +252,9 @@ data EvalOut =
        EvalOut
          { evalStatus :: ErrorOccurred
          , evalResult :: Display
-         , evalState :: KernelState
-         , evalPager :: String
-         , evalComms :: [CommInfo]
+         , evalState  :: KernelState
+         , evalPager  :: String
+         , evalMsgs   :: [WidgetMsg]
          }
 
 cleanString :: String -> String
@@ -275,8 +276,9 @@ cleanString x = if allBrackets
 evaluate :: KernelState                  -- ^ The kernel state.
          -> String                       -- ^ Haskell code or other interpreter commands.
          -> (EvaluationResult -> IO ())   -- ^ Function used to publish data outputs.
+         -> (KernelState -> [WidgetMsg] -> IO KernelState) -- ^ Function to handle widget messages
          -> Interpreter KernelState
-evaluate kernelState code output = do
+evaluate kernelState code output widgetHandler = do
   cmds <- parseString (cleanString code)
   let execCount = getExecutionCounter kernelState
 
@@ -321,13 +323,18 @@ evaluate kernelState code output = do
               Just disps -> evalResult evalOut <> disps
           helpStr = evalPager evalOut
 
-      -- Output things only if they are non-empty.
-      let empty = noResults result && null helpStr && null (evalComms evalOut)
-      unless empty $
-        liftIO $ output $ FinalResult result [plain helpStr] (evalComms evalOut)
+      -- Capture all widget messages queued during code execution
+      messagesIO <- extractValue "IHaskell.Eval.Widgets.relayWidgetMessages"
+      messages <- liftIO messagesIO
+      let commMessages = evalMsgs evalOut ++ messages
 
-      -- Make sure to clear all comms we've started.
-      let newState = evalState evalOut { evalComms = [] }
+      -- Output things only if they are non-empty.
+      let empty = noResults result && null helpStr
+      unless empty $
+        liftIO $ output $ FinalResult result [plain helpStr] []
+
+      -- Handle all the widget messages
+      newState <- liftIO $ widgetHandler (evalState evalOut) commMessages
 
       case evalStatus evalOut of
         Success -> runUntilFailure newState rest
@@ -353,7 +360,7 @@ safely state = ghandle handler . ghandle sourceErrorHandler
           , evalResult = displayError $ show exception
           , evalState = state
           , evalPager = ""
-          , evalComms = []
+          , evalMsgs = []
           }
 
     sourceErrorHandler :: SourceError -> Interpreter EvalOut
@@ -372,7 +379,7 @@ safely state = ghandle handler . ghandle sourceErrorHandler
           , evalResult = displayError fullErr
           , evalState = state
           , evalPager = ""
-          , evalComms = []
+          , evalMsgs = []
           }
 
 wrapExecution :: KernelState
@@ -386,7 +393,7 @@ wrapExecution state exec = safely state $
         , evalResult = res
         , evalState = state
         , evalPager = ""
-        , evalComms = []
+        , evalMsgs = []
         }
 
 -- | Return the display data for this command, as well as whether it resulted in an error.
@@ -476,7 +483,7 @@ evalCommand output (Directive SetDynFlag flagsStr) state = safely state $ do
                            ]
           , evalState = state
           , evalPager = ""
-          , evalComms = []
+          , evalMsgs = []
           }
     else do
       -- Apply all IHaskell flag updaters to the state to get the new state
@@ -502,7 +509,7 @@ evalCommand output (Directive SetDynFlag flagsStr) state = safely state $ do
           , evalResult = display
           , evalState = state'
           , evalPager = ""
-          , evalComms = []
+          , evalMsgs = []
           }
 
 evalCommand output (Directive SetExtension opts) state = do
@@ -536,7 +543,7 @@ evalCommand a (Directive SetOption opts) state = do
                 , evalResult = displayError err
                 , evalState = state
                 , evalPager = ""
-                , evalComms = []
+                , evalMsgs = []
                 }
     else let options = mapMaybe findOption $ words opts
              updater = foldl' (.) id $ map getUpdateKernelState options
@@ -546,7 +553,7 @@ evalCommand a (Directive SetOption opts) state = do
                 , evalResult = mempty
                 , evalState = updater state
                 , evalPager = ""
-                , evalComms = []
+                , evalMsgs = []
                 }
 
   where
@@ -680,7 +687,7 @@ evalCommand _ (Directive GetHelp _) state = do
       , evalResult = Display [out]
       , evalState = state
       , evalPager = ""
-      , evalComms = []
+      , evalMsgs = []
       }
 
   where
@@ -729,7 +736,7 @@ evalCommand _ (Directive GetInfo str) state = safely state $ do
       , evalResult = mempty
       , evalState = state
       , evalPager = output
-      , evalComms = []
+      , evalMsgs = []
       }
 
 evalCommand _ (Directive SearchHoogle query) state = safely state $ do
@@ -814,7 +821,7 @@ evalCommand output (Expression expr) state = do
           , evalResult = mempty
           , evalState = state
           , evalPager = ""
-          , evalComms = []
+          , evalMsgs = []
           }
     else do
       if canRunDisplay
@@ -822,9 +829,8 @@ evalCommand output (Expression expr) state = do
           -- Use the display. As a result, `it` is set to the output.
           out <- useDisplay displayExpr
 
-          -- Register the `it` object as a widget.
           if isWidget
-            then registerWidget out
+            then displayWidget out
             else return out
         else do
           -- Evaluate this expression as though it's just a statement. The output is bound to 'it', so we can
@@ -897,27 +903,22 @@ evalCommand output (Expression expr) state = do
                       then display :: Display
                       else removeSvg display
 
-    registerWidget :: EvalOut -> Ghc EvalOut
-    registerWidget evalOut =
+    displayWidget :: EvalOut -> Ghc EvalOut
+    displayWidget evalOut =
       case evalStatus evalOut of
         Failure -> return evalOut
         Success -> do
           element <- dynCompileExpr "IHaskell.Display.Widget it"
           case fromDynamic element of
             Nothing -> error "Expecting widget"
-            Just widget -> do
-              -- Stick the widget in the kernel state.
-              uuid <- liftIO UUID.random
-              let state = evalState evalOut
-                  newComms = Map.insert uuid widget $ openComms state
-                  state' = state { openComms = newComms }
-
-              -- Store the fact that we should start this comm.
-              return
-                evalOut
-                  { evalComms = CommInfo widget uuid (targetName widget) : evalComms evalOut
-                  , evalState = state'
-                  }
+            Just (Widget widget) -> do
+              let oldComms = openComms state
+                  uuid = getCommUUID widget
+              case Map.lookup uuid oldComms of
+               Nothing -> error "Unregistered widget"
+               Just w  -> do
+                 liftIO $ widgetSendView widget
+                 return evalOut
 
     isIO expr = attempt $ exprType $ printf "((\\x -> x) :: IO a -> IO a) (%s)" expr
 
@@ -987,7 +988,7 @@ evalCommand _ (ParseError loc err) state = do
       , evalResult = displayError $ formatParseError loc err
       , evalState = state
       , evalPager = ""
-      , evalComms = []
+      , evalMsgs = []
       }
 
 evalCommand _ (Pragma (PragmaUnsupported pragmaType) pragmas) state = wrapExecution state $
@@ -1004,7 +1005,7 @@ hoogleResults state results =
     , evalResult = mempty
     , evalState = state
     , evalPager = output
-    , evalComms = []
+    , evalMsgs = []
     }
   where
     -- TODO: Make pager work with plaintext

@@ -106,6 +106,7 @@ library
                    IHaskell.Eval.Parser
                    IHaskell.Eval.Hoogle
                    IHaskell.Eval.ParseShell
+                   IHaskell.Eval.Widgets
                    IHaskell.Eval.Util
                    IHaskell.IPython
                    IHaskell.IPython.Stdin

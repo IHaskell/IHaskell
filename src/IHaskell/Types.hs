@@ -1,4 +1,8 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, DeriveDataTypeable, DeriveGeneric, ExistentialQuantification #-}
+{-# LANGUAGE DeriveDataTypeable        #-}
+{-# LANGUAGE DeriveGeneric             #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE NoImplicitPrelude         #-}
+{-# LANGUAGE OverloadedStrings         #-}
 
 -- | Description : All message type definitions.
 module IHaskell.Types (
@@ -26,29 +30,33 @@ module IHaskell.Types (
     IHaskellDisplay(..),
     IHaskellWidget(..),
     Widget(..),
-    CommInfo(..),
+    WidgetMsg(..),
+    WidgetMethod(..),
     KernelSpec(..),
     ) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
-import qualified Data.ByteString.Char8 as Char
+import qualified Data.ByteString         as BS
+import qualified Data.ByteString.Char8   as CBS
+import qualified Data.ByteString.Lazy    as LBS
+import qualified Data.Text               as T
+import qualified Data.Text.Lazy          as LT
+
+import           Data.Aeson              (Value, (.=), object)
+import           Data.Aeson.Types        (emptyObject)
+import qualified Data.ByteString.Char8   as Char
+import           Data.Function           (on)
 import           Data.Serialize
 import           GHC.Generics
-import           Data.Aeson (Value)
 
 import           IHaskell.IPython.Kernel
 
 -- | A class for displayable Haskell types.
 --
--- IHaskell's displaying of results behaves as if these two overlapping/undecidable instances also
--- existed:
--- 
+-- IHaskell's displaying of results behaves as if these two
+-- overlapping/undecidable instances also existed:
+--
 -- > instance (Show a) => IHaskellDisplay a
 -- > instance Show a where shows _ = id
 class IHaskellDisplay a where
@@ -56,25 +64,34 @@ class IHaskellDisplay a where
 
 -- | Display as an interactive widget.
 class IHaskellDisplay a => IHaskellWidget a where
-  -- | Output target name for this widget. The actual input parameter should be ignored.
+  -- | Output target name for this widget. The actual input parameter
+  -- should be ignored. By default evaluate to "ipython.widget", which
+  -- is used by IPython for its backbone widgets.
   targetName :: a -> String
+  targetName _ = "ipython.widget"
 
-  -- | Called when the comm is opened. Allows additional messages to be sent after comm open.
-  open :: a               -- ^ Widget to open a comm port with.
-       -> (Value -> IO ()) -- ^ Way to respond to the message.
+  -- | Get the uuid for comm associated with this widget. The widget
+  -- is responsible for storing the UUID during initialization.
+  getCommUUID :: a -> UUID
+
+  -- | Called when the comm is opened. Allows additional messages to
+  -- be sent after comm open.
+  open :: a                -- ^ Widget to open a comm port with.
+       -> (Value -> IO ()) -- ^ A function for sending messages.
        -> IO ()
   open _ _ = return ()
 
-  -- | Respond to a comm data message.
-  comm :: a               -- ^ Widget which is being communicated with.
-       -> Value           -- ^ Sent data.
+  -- | Respond to a comm data message. Called when a message is
+  -- recieved on the comm associated with the widget.
+  comm :: a                -- ^ Widget which is being communicated with.
+       -> Value            -- ^ Data recieved from the frontend.
        -> (Value -> IO ()) -- ^ Way to respond to the message.
        -> IO ()
   comm _ _ _ = return ()
 
-  -- | Close the comm, releasing any resources we might need to.
+  -- | Called when a comm_close is recieved from the frontend.
   close :: a               -- ^ Widget to close comm port with.
-        -> Value           -- ^ Sent data.
+        -> Value           -- ^ Data recieved from the frontend.
         -> IO ()
   close _ _ = return ()
 
@@ -85,16 +102,20 @@ instance IHaskellDisplay Widget where
   display (Widget widget) = display widget
 
 instance IHaskellWidget Widget where
-  targetName (Widget widget) = targetName widget
-  open (Widget widget) = open widget
-  comm (Widget widget) = comm widget
-  close (Widget widget) = close widget
+  targetName (Widget widget)  = targetName widget
+  getCommUUID (Widget widget) = getCommUUID widget
+  open (Widget widget)        = open widget
+  comm (Widget widget)        = comm widget
+  close (Widget widget)       = close widget
 
 instance Show Widget where
   show _ = "<Widget>"
 
--- | Wrapper for ipython-kernel's DisplayData which allows sending multiple results from the same
--- expression.
+instance Eq Widget where
+  (==) = (==) `on` getCommUUID
+
+-- | Wrapper for ipython-kernel's DisplayData which allows sending
+-- multiple results from the same expression.
 data Display = Display [DisplayData]
              | ManyDisplay [Display]
   deriving (Show, Typeable, Generic)
@@ -112,13 +133,13 @@ instance Monoid Display where
 data KernelState =
        KernelState
          { getExecutionCounter :: Int
-         , getLintStatus :: LintStatus   -- Whether to use hlint, and what arguments to pass it. 
-         , useSvg :: Bool
-         , useShowErrors :: Bool
-         , useShowTypes :: Bool
-         , usePager :: Bool
-         , openComms :: Map UUID Widget
-         , kernelDebug :: Bool
+         , getLintStatus       :: LintStatus   -- Whether to use hlint, and what arguments to pass it.
+         , useSvg              :: Bool
+         , useShowErrors       :: Bool
+         , useShowTypes        :: Bool
+         , usePager            :: Bool
+         , openComms           :: Map UUID Widget
+         , kernelDebug         :: Bool
          }
   deriving Show
 
@@ -137,10 +158,9 @@ defaultKernelState = KernelState
 -- | Kernel options to be set via `:set` and `:option`.
 data KernelOpt =
        KernelOpt
-         { getOptionName :: [String]                          -- ^ Ways to set this option via `:option`
-         , getSetName :: [String]                             -- ^ Ways to set this option via `:set`
-         , getUpdateKernelState :: KernelState -> KernelState -- ^ Function to update the kernel
-                                                              -- state.
+         { getOptionName        :: [String] -- ^ Ways to set this option via `:option`
+         , getSetName           :: [String] -- ^ Ways to set this option via `:set`
+         , getUpdateKernelState :: KernelState -> KernelState -- ^ Function to update the kernel state.
          }
 
 kernelOpts :: [KernelOpt]
@@ -162,21 +182,42 @@ data LintStatus = LintOn
                 | LintOff
   deriving (Eq, Show)
 
-data CommInfo = CommInfo Widget UUID String
+data WidgetMsg = Open Widget Value
+                 -- ^ Cause the interpreter to open a new comm, and
+                 -- register the associated widget in the
+                 -- kernelState.
+               | Update Widget Value
+                 -- ^ Cause the interpreter to send a comm_msg
+                 -- containing a state update for the widget.
+                 -- Can be used to send fragments of state for update.
+                 -- Also updates the value of widget stored in the kernelState
+               | View Widget
+                 -- ^ Cause the interpreter to send a comm_msg
+                 -- containing a display command for the frontend.
+               | Close Widget Value
+                 -- ^ Cause the interpreter to close the comm
+                 -- associated with the widget. Also sends data with
+                 -- comm_close.
   deriving Show
+
+data WidgetMethod = UpdateState Value
+                  | DisplayWidget
+
+instance ToJSON WidgetMethod where
+  toJSON DisplayWidget   = object [ "method" .= "display" ]
+  toJSON (UpdateState v) = object [ "method" .= "update"
+                                  , "state"  .= v ]
 
 -- | Output of evaluation.
 data EvaluationResult =
-                      -- | An intermediate result which communicates what has been printed thus
-                      -- far.
+                      -- | An intermediate result which communicates what has been printed thus far.
                         IntermediateResult
-                          { outputs :: Display      -- ^ Display outputs.
+                          { outputs :: Display -- ^ Display outputs.
                           }
                       |
                         FinalResult
-                          { outputs :: Display        -- ^ Display outputs.
-                          , pagerOut :: [DisplayData] -- ^ Mimebundles to display in the IPython
-                                                      -- pager.
-                          , startComms :: [CommInfo]  -- ^ Comms to start.
+                          { outputs  :: Display       -- ^ Display outputs.
+                          , pagerOut :: [DisplayData] -- ^ Mimebundles to display in the IPython pager.
+                          , commMsgs :: [WidgetMsg]  -- ^ Comm operations
                           }
   deriving Show
