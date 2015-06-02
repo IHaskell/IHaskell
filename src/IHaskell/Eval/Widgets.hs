@@ -3,6 +3,7 @@ module IHaskell.Eval.Widgets
        , widgetSendUpdate
        , widgetSendView
        , widgetSendClose
+       , relayWidgetMessages
        ) where
 
 import IHaskellPrelude

@@ -82,6 +82,7 @@ import           IHaskell.Eval.Lint
 import           IHaskell.Display
 import qualified IHaskell.Eval.Hoogle as Hoogle
 import           IHaskell.Eval.Util
+import           IHaskell.Eval.Widgets
 import           IHaskell.BrokenPackages
 import qualified IHaskell.IPython.Message.UUID as UUID
 import           IHaskell.Eval.Widgets
