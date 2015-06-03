@@ -198,7 +198,7 @@ data WidgetMsg = Open Widget Value
                  -- ^ Cause the interpreter to close the comm
                  -- associated with the widget. Also sends data with
                  -- comm_close.
-  deriving Show
+  deriving (Show, Typeable)
 
 data WidgetMethod = UpdateState Value
                   | DisplayWidget
