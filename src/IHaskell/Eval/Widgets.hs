@@ -41,8 +41,9 @@ widgetSend :: IHaskellWidget a
               -> a -> Value -> IO ()
 widgetSend msgType widget value = queue $ msgType (Widget widget) value
 
-widgetSendOpen :: IHaskellWidget a => a -> Value -> IO ()
-widgetSendOpen = widgetSend Open
+widgetSendOpen :: IHaskellWidget a => a -> Value -> Value -> IO ()
+widgetSendOpen widget initVal stateVal =
+  queue $ Open (Widget widget) initVal stateVal
 
 widgetSendUpdate :: IHaskellWidget a => a -> Value -> IO ()
 widgetSendUpdate = widgetSend Update

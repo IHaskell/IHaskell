@@ -44,19 +44,13 @@ mkButton = do
   let b = Button uuid desc ttip dis sty
 
   -- Open a comm for this widget, and store it in the kernel state
-  widgetSendOpen b $ toJSON ButtonInitData
-
-  -- Initial state update
-  widgetSendUpdate b . toJSON . UpdateState . toJSON $ b
-
-  -- DEBUG: Try to display it too
-  widgetSendView b
+  widgetSendOpen b (toJSON ButtonInitData) (toJSON b)
 
   -- Return the button widget
   return b
 
 update :: Button -> [Pair] -> IO ()
-update b v = widgetSendUpdate b . toJSON . UpdateState . object $ v
+update b v = widgetSendUpdate b . toJSON . object $ v
 
 -- | Set the button style
 setButtonStyle :: ButtonStyle -> Button -> IO ()

@@ -182,10 +182,11 @@ data LintStatus = LintOn
                 | LintOff
   deriving (Eq, Show)
 
-data WidgetMsg = Open Widget Value
+data WidgetMsg = Open Widget Value Value
                  -- ^ Cause the interpreter to open a new comm, and
                  -- register the associated widget in the
-                 -- kernelState.
+                 -- kernelState. Also sends a Value with comm_open,
+                 -- and then sends an initial state update Value.
                | Update Widget Value
                  -- ^ Cause the interpreter to send a comm_msg
                  -- containing a state update for the widget.

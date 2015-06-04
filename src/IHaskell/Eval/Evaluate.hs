@@ -918,7 +918,7 @@ evalCommand output (Expression expr) state = do
                   uuid = getCommUUID widget
               case Map.lookup uuid oldComms of
                Nothing -> error "Unregistered widget"
-               Just w  -> do
+               Just _  -> do
                  liftIO $ widgetSendView widget
                  return evalOut
 

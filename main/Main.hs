@@ -294,7 +294,7 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
               else sendOutput $ Display pager
 
       handleMessage :: KernelState -> WidgetMsg -> IO KernelState
-      handleMessage state (Open widget value) = do
+      handleMessage state (Open widget initVal stateVal) = do
         -- Check whether the widget is already present in the state
         let oldComms = openComms state
             uuid     = getCommUUID widget
@@ -305,15 +305,18 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
 
             target   = targetName widget
 
-            communicate value = do
+            communicate val = do
               head <- dupHeader replyHeader CommDataMessage
-              writeChan (iopubChannel interface) $ CommData head uuid value
+              writeChan (iopubChannel interface) $ CommData head uuid val
 
         if present
           then return state
           else do -- Send the comm open
                   header <- dupHeader replyHeader CommOpenMessage
-                  send $ CommOpen header target uuid value
+                  send $ CommOpen header target uuid initVal
+
+                  -- Initial state update
+                  communicate . toJSON $ UpdateState stateVal
 
                   -- Send anything else the widget requires.
                   open widget communicate
