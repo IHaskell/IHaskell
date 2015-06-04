@@ -20,15 +20,17 @@ import           IHaskell.Types (WidgetMethod (..))
 import           System.IO.Unsafe              (unsafePerformIO)
 
 -- | ADT for a button
-data Button = Button { uuid        :: U.UUID
-                     , description :: IORef Text
-                     , tooltip     :: IORef Text
-                     , disabled    :: IORef Bool
-                     , buttonStyle :: IORef ButtonStyle
+data Button = Button { uuid         :: U.UUID
+                     , description  :: IORef Text
+                     , tooltip      :: IORef Text
+                     , disabled     :: IORef Bool
+                     , buttonStyle  :: IORef ButtonStyle
+                     , clickHandler :: IORef (Button -> IO ())
                      }
 
 -- | Pre-defined button-styles
 data ButtonStyle = Primary | Success | Info | Warning | Danger | None
+  deriving (Eq, Show)
 
 -- | Create a new button
 mkButton :: IO Button
@@ -36,12 +38,13 @@ mkButton = do
   -- Default properties, with a random uuid
   uuid   <- U.random
   sender <- newIORef Nothing
-  desc   <- newIORef ""
+  desc   <- newIORef "label"        -- Non-empty to get a display
   ttip   <- newIORef ""
   dis    <- newIORef False
   sty    <- newIORef None
+  fun    <- newIORef (\_ -> return ())
 
-  let b = Button uuid desc ttip dis sty
+  let b = Button uuid desc ttip dis sty fun
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen b (toJSON ButtonInitData) (toJSON b)
@@ -52,41 +55,45 @@ mkButton = do
 update :: Button -> [Pair] -> IO ()
 update b v = widgetSendUpdate b . toJSON . object $ v
 
+modify :: Button -> (Button -> IORef a) -> a -> IO ()
+modify b attr val = writeIORef (attr b) val
+
 -- | Set the button style
 setButtonStyle :: ButtonStyle -> Button -> IO ()
 setButtonStyle bst b = do
-  modifyIORef (buttonStyle b) (const bst)
+  modify b buttonStyle bst
   update b [ "button_style" .= bst ]
 
 -- | Set the button label
 setButtonLabel :: Text -> Button -> IO ()
 setButtonLabel txt b = do
-  modifyIORef (description b) (const txt)
+  modify b description txt
   update b [ "description" .= txt ]
 
 -- | Set the button tooltip
 setButtonTooltip :: Text -> Button -> IO ()
 setButtonTooltip txt b = do
-  modifyIORef (tooltip b) (const txt)
+  modify b tooltip txt
   update b [ "tooltip" .= txt ]
 
 -- | Disable the button
 disableButton :: Button -> IO ()
 disableButton b = do
-  modifyIORef (disabled b) (const True)
+  modify b disabled True
   update b [ "disabled" .= True ]
 
 -- | Enable the button
 enableButton :: Button -> IO ()
 enableButton b = do
-  modifyIORef (disabled b) (const False)
+  modify b disabled False
   update b [ "disabled" .= False ]
 
 -- | Toggle the button
 toggleButtonStatus :: Button -> IO ()
 toggleButtonStatus b = do
-  modifyIORef (disabled b) not
-  newVal <- isDisabled b
+  oldVal <- isDisabled b
+  let newVal = not oldVal
+  modify b disabled newVal 
   update b [ "disabled" .= newVal ]
 
 -- | Get the button style
@@ -101,8 +108,19 @@ getButtonText = readIORef . description
 getButtonTooltip :: Button -> IO Text
 getButtonTooltip = readIORef . tooltip
 
+-- | Check whether the button is disabled
 isDisabled :: Button -> IO Bool
 isDisabled = readIORef . disabled
+
+-- | Set a function to be activated on click
+onClicked :: Button -> (Button -> IO ()) -> IO ()
+onClicked = writeIORef . clickHandler
+
+-- | Artificially trigger a button click
+triggerClick :: Button -> IO ()
+triggerClick button = do
+  handler <- readIORef $ clickHandler button
+  handler button
 
 instance ToJSON ButtonStyle where
   toJSON Primary = "primary"
@@ -143,16 +161,12 @@ instance IHaskellDisplay Button where
 
 instance IHaskellWidget Button where
   getCommUUID = uuid
-  -- open widget sender = do
-  --   sender . toJSON $ UpdateState widget
-  -- comm widget (Object dict1) publisher = do
-  --   let key1 = "content" :: Text
-  --       key2 = "event"   :: Text
-  --       Just (Object dict2) = Map.lookup key1 dict1
-  --       Just (String event) = Map.lookup key2 dict2
-  --   when (event == "click") $ do
-  --     modifyIORef (description widget) (flip T.append ";")
-  --     publisher . toJSON $ UpdateState widget
+  comm widget (Object dict1) _ = do
+    let key1 = "content" :: Text
+        key2 = "event"   :: Text
+        Just (Object dict2) = Map.lookup key1 dict1
+        Just (String event) = Map.lookup key2 dict2
+    when (event == "click") $ triggerClick widget
 
 str :: String -> String
 str = id
