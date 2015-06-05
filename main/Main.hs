@@ -30,6 +30,7 @@ import           IHaskell.Eval.Inspect (inspect)
 import           IHaskell.Eval.Evaluate
 import           IHaskell.Display
 import           IHaskell.Eval.Info
+import           IHaskell.Eval.Widgets (widgetHandler)
 import           IHaskell.Flags
 import           IHaskell.IPython
 import           IHaskell.Types
@@ -172,13 +173,6 @@ runKernel kernelOpts profileSrc = do
 initialKernelState :: IO (MVar KernelState)
 initialKernelState = newMVar defaultKernelState
 
--- | Duplicate a message header, giving it a new UUID and message type.
-dupHeader :: MessageHeader -> MessageType -> IO MessageHeader
-dupHeader header messageType = do
-  uuid <- liftIO UUID.random
-
-  return header { messageId = uuid, msgType = messageType }
-
 -- | Create a new message header, given a parent message header.
 createReplyHeader :: MessageHeader -> Interpreter MessageHeader
 createReplyHeader parent = do
@@ -293,95 +287,14 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
               then modifyMVar_ pagerOutput (return . (++ pager))
               else sendOutput $ Display pager
 
-      handleMessage :: KernelState -> WidgetMsg -> IO KernelState
-      handleMessage state (Open widget initVal stateVal) = do
-        -- Check whether the widget is already present in the state
-        let oldComms = openComms state
-            uuid     = getCommUUID widget
-            present  = isJust $ Map.lookup uuid oldComms
-
-            newComms = Map.insert uuid widget $ openComms state
-            newState = state { openComms = newComms }
-
-            target   = targetName widget
-
-            communicate val = do
-              head <- dupHeader replyHeader CommDataMessage
-              writeChan (iopubChannel interface) $ CommData head uuid val
-
-        if present
-          then return state
-          else do -- Send the comm open
-                  header <- dupHeader replyHeader CommOpenMessage
-                  send $ CommOpen header target uuid initVal
-
-                  -- Initial state update
-                  communicate . toJSON $ UpdateState stateVal
-
-                  -- Send anything else the widget requires.
-                  open widget communicate
-
-                  -- Store the widget in the kernelState
-                  return newState
-
-      handleMessage state (Close widget value) = do
-        let oldComms = openComms state
-            present  = isJust $ Map.lookup (getCommUUID widget) oldComms
-
-            target   = targetName widget
-            uuid     = getCommUUID widget
-
-            newComms = Map.delete uuid $ openComms state
-            newState = state { openComms = newComms }
-
-        if present
-          then do header <- dupHeader replyHeader CommCloseMessage
-                  send $ CommClose header uuid value
-                  return newState
-          else return state
-
-      handleMessage state (View widget) = do
-        let oldComms = openComms state
-            uuid     = getCommUUID widget
-            present  = isJust $ Map.lookup (getCommUUID widget) oldComms
-
-        when present $ do
-          header <- dupHeader replyHeader CommDataMessage
-          send . CommData header uuid $ toJSON DisplayWidget
-
-        return state
-
-      -- Assume that a state update means that it is time the stored widget also gets updated.
-      -- Thus replace the stored widget with the copy passed in the CommMsg.
-      handleMessage state (Update widget value) = do
-        let oldComms = openComms state
-            present  = isJust $ Map.lookup (getCommUUID widget) oldComms
-
-            target   = targetName widget
-            uuid     = getCommUUID widget
-
-            newComms = Map.insert uuid widget $ openComms state
-            newState = state { openComms = newComms }
-
-        if present
-          then do header <- dupHeader replyHeader CommDataMessage
-                  send . CommData header uuid . toJSON $ UpdateState value
-                  return newState
-          else return state
-
-      widgetHandler :: KernelState -> [WidgetMsg] -> IO KernelState
-      widgetHandler state []     = return state
-      widgetHandler state (x:xs) = do
-        newState <- handleMessage state x
-        widgetHandler newState xs
-
   let execCount = getExecutionCounter state
   -- Let all frontends know the execution count and code that's about to run
   inputHeader <- liftIO $ dupHeader replyHeader InputMessage
   send $ PublishInput inputHeader (T.unpack code) execCount
 
   -- Run code and publish to the frontend as we go.
-  updatedState <- evaluate state (T.unpack code) publish widgetHandler
+  let widgetMessageHandler = widgetHandler send replyHeader
+  updatedState <- evaluate state (T.unpack code) publish widgetMessageHandler
 
   -- Notify the frontend that we're done computing.
   idleHeader <- liftIO $ dupHeader replyHeader StatusMessage

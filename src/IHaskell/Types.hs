@@ -9,6 +9,7 @@ module IHaskell.Types (
     Message(..),
     MessageHeader(..),
     MessageType(..),
+    dupHeader,
     Username,
     Metadata(..),
     replyType,
@@ -222,3 +223,10 @@ data EvaluationResult =
                           , commMsgs :: [WidgetMsg]  -- ^ Comm operations
                           }
   deriving Show
+
+-- | Duplicate a message header, giving it a new UUID and message type.
+dupHeader :: MessageHeader -> MessageType -> IO MessageHeader
+dupHeader header messageType = do
+  uuid <- liftIO random
+
+  return header { messageId = uuid, msgType = messageType }
