@@ -355,7 +355,7 @@ handleComm replier kernelState req replyHeader = do
         head <- dupHeader replyHeader CommDataMessage
         replier $ CommData head uuid value
   case Map.lookup uuid widgets of
-    Nothing -> fail $ "no widget with uuid " ++ show uuid
+    Nothing -> return kernelState
     Just (Widget widget) ->
       case msgType $ header req of
         CommDataMessage -> do
