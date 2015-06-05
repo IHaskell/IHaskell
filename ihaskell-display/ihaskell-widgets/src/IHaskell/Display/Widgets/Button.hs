@@ -59,20 +59,20 @@ modify :: Button -> (Button -> IORef a) -> a -> IO ()
 modify b attr val = writeIORef (attr b) val
 
 -- | Set the button style
-setButtonStyle :: ButtonStyle -> Button -> IO ()
-setButtonStyle bst b = do
+setButtonStyle :: Button -> ButtonStyle -> IO ()
+setButtonStyle b bst = do
   modify b buttonStyle bst
   update b [ "button_style" .= bst ]
 
 -- | Set the button label
-setButtonLabel :: Text -> Button -> IO ()
-setButtonLabel txt b = do
+setButtonLabel :: Button -> Text -> IO ()
+setButtonLabel b txt = do
   modify b description txt
   update b [ "description" .= txt ]
 
 -- | Set the button tooltip
-setButtonTooltip :: Text -> Button -> IO ()
-setButtonTooltip txt b = do
+setButtonTooltip :: Button -> Text -> IO ()
+setButtonTooltip b txt = do
   modify b tooltip txt
   update b [ "tooltip" .= txt ]
 
