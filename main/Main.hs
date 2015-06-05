@@ -147,12 +147,14 @@ runKernel kernelOpts profileSrc = do
       -- We handle comm messages and normal ones separately. The normal ones are a standard
       -- request/response style, while comms can be anything, and don't necessarily require a response.
       if isCommMessage request
-        then liftIO $ do
-          oldState <- takeMVar state
+        then do
+          oldState <- liftIO $ takeMVar state
           let replier = writeChan (iopubChannel interface)
-          newState <- handleComm replier oldState request replyHeader
-          putMVar state newState
-          writeChan (shellReplyChannel interface) SendNothing
+              widgetMessageHandler = widgetHandler replier replyHeader
+          tempState <- liftIO $ handleComm replier oldState request replyHeader
+          newState <- flushWidgetMessages tempState [] widgetMessageHandler
+          liftIO $ putMVar state newState
+          liftIO $ writeChan (shellReplyChannel interface) SendNothing
         else do
           -- Create the reply, possibly modifying kernel state.
           oldState <- liftIO $ takeMVar state

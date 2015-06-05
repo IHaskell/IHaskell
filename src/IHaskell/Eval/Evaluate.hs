@@ -8,6 +8,7 @@ This module exports all functions used for evaluation of IHaskell input.
 module IHaskell.Eval.Evaluate (
     interpret,
     evaluate,
+    flushWidgetMessages,
     Interpreter,
     liftIO,
     typeCleaner,
@@ -325,18 +326,16 @@ evaluate kernelState code output widgetHandler = do
               Just disps -> evalResult evalOut <> disps
           helpStr = evalPager evalOut
 
-      -- Capture all widget messages queued during code execution
-      messagesIO <- extractValue "IHaskell.Eval.Widgets.relayWidgetMessages"
-      messages <- liftIO messagesIO
-      let commMessages = evalMsgs evalOut ++ messages
-
       -- Output things only if they are non-empty.
       let empty = noResults result && null helpStr
       unless empty $
         liftIO $ output $ FinalResult result [plain helpStr] []
 
-      -- Handle all the widget messages
-      newState <- liftIO $ widgetHandler (evalState evalOut) commMessages
+      let tempMsgs  = evalMsgs evalOut
+          tempState = evalState evalOut { evalMsgs = [] }
+
+      -- Handle the widget messages
+      newState <- flushWidgetMessages tempState tempMsgs widgetHandler
 
       case evalStatus evalOut of
         Success -> runUntilFailure newState rest
@@ -344,12 +343,25 @@ evaluate kernelState code output widgetHandler = do
 
     storeItCommand execCount = Statement $ printf "let it%d = it" execCount
 
-    extractValue :: Typeable a => String -> Interpreter a
-    extractValue expr = do
-      compiled <- dynCompileExpr expr
-      case fromDynamic compiled of
-        Nothing     -> error "Error casting types in Evaluate.hs"
-        Just result -> return result
+extractValue :: Typeable a => String -> Interpreter a
+extractValue expr = do
+  compiled <- dynCompileExpr expr
+  case fromDynamic compiled of
+    Nothing     -> error "Error casting types in Evaluate.hs"
+    Just result -> return result
+
+flushWidgetMessages :: KernelState
+                    -> [WidgetMsg]
+                    -> (KernelState -> [WidgetMsg] -> IO KernelState)
+                    -> Interpreter KernelState
+flushWidgetMessages state evalMsgs widgetHandler = do
+  -- Capture all widget messages queued during code execution
+  messagesIO <- extractValue "IHaskell.Eval.Widgets.relayWidgetMessages"
+  messages <- liftIO messagesIO
+
+  -- Handle all the widget messages
+  let commMessages = evalMsgs ++ messages
+  liftIO $ widgetHandler state commMessages
 
 safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
 safely state = ghandle handler . ghandle sourceErrorHandler
