@@ -841,11 +841,7 @@ evalCommand output (Expression expr) state = do
       if canRunDisplay
         then do
           -- Use the display. As a result, `it` is set to the output.
-          out <- useDisplay displayExpr
-
-          if isWidget
-            then displayWidget out
-            else return out
+          useDisplay displayExpr
         else do
           -- Evaluate this expression as though it's just a statement. The output is bound to 'it', so we can
           -- then use it.
@@ -916,23 +912,6 @@ evalCommand output (Expression expr) state = do
                     if useSvg state
                       then display :: Display
                       else removeSvg display
-
-    displayWidget :: EvalOut -> Ghc EvalOut
-    displayWidget evalOut =
-      case evalStatus evalOut of
-        Failure -> return evalOut
-        Success -> do
-          element <- dynCompileExpr "IHaskell.Display.Widget it"
-          case fromDynamic element of
-            Nothing -> error "Expecting widget"
-            Just (Widget widget) -> do
-              let oldComms = openComms state
-                  uuid = getCommUUID widget
-              case Map.lookup uuid oldComms of
-               Nothing -> error "Unregistered widget"
-               Just _  -> do
-                 liftIO $ widgetSendView widget
-                 return evalOut
 
     isIO expr = attempt $ exprType $ printf "((\\x -> x) :: IO a -> IO a) (%s)" expr
 
