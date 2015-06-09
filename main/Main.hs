@@ -308,7 +308,10 @@ handleComm send kernelState req replyHeader = do
       toUsePager = usePager kernelState
       run = capturedIO publish kernelState
       publish = publishResult send replyHeader displayed updateNeeded pagerOutput toUsePager
-  case Map.lookup uuid widgets of
+  busyHeader <- liftIO $ dupHeader replyHeader StatusMessage
+  liftIO . send $ PublishStatus busyHeader Busy
+
+  newState <- case Map.lookup uuid widgets of
     Nothing -> return kernelState
     Just (Widget widget) ->
       case msgType $ header req of
@@ -322,3 +325,8 @@ handleComm send kernelState req replyHeader = do
           pgrOut <- liftIO $ readMVar pagerOutput
           liftIO $ publish $ FinalResult disp (if toUsePager then pgrOut else []) []
           return kernelState { openComms = Map.delete uuid widgets }
+
+  idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
+  liftIO . send $ PublishStatus idleHeader Idle
+
+  return newState
