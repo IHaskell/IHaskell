@@ -108,6 +108,7 @@ library
                    IHaskell.Eval.ParseShell
                    IHaskell.Eval.Widgets
                    IHaskell.Eval.Util
+                   IHaskell.Publish
                    IHaskell.IPython
                    IHaskell.IPython.Stdin
                    IHaskell.Flags
