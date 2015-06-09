@@ -149,7 +149,7 @@ runKernel kernelOpts profileSrc = do
           oldState <- liftIO $ takeMVar state
           let replier = writeChan (iopubChannel interface)
               widgetMessageHandler = widgetHandler replier replyHeader
-          tempState <- liftIO $ handleComm replier oldState request replyHeader
+          tempState <- handleComm replier oldState request replyHeader
           newState <- flushWidgetMessages tempState [] widgetMessageHandler
           liftIO $ putMVar state newState
           liftIO $ writeChan (shellReplyChannel interface) SendNothing
@@ -293,21 +293,32 @@ replyTo _ HistoryRequest{} replyHeader state = do
         }
   return (state, reply)
 
-handleComm :: (Message -> IO ()) -> KernelState -> Message -> MessageHeader -> IO KernelState
-handleComm replier kernelState req replyHeader = do
+handleComm :: (Message -> IO ()) -> KernelState -> Message -> MessageHeader -> Interpreter KernelState
+handleComm send kernelState req replyHeader = do
+  displayed <- liftIO $ newMVar []
+  updateNeeded <- liftIO $ newMVar False
+  pagerOutput <- liftIO $ newMVar []
+
   let widgets = openComms kernelState
       uuid = commUuid req
       dat = commData req
       communicate value = do
         head <- dupHeader replyHeader CommDataMessage
-        replier $ CommData head uuid value
+        send $ CommData head uuid value
+      toUsePager = usePager kernelState
+      run = capturedIO publish kernelState
+      publish = publishResult send replyHeader displayed updateNeeded pagerOutput toUsePager
   case Map.lookup uuid widgets of
     Nothing -> return kernelState
     Just (Widget widget) ->
       case msgType $ header req of
         CommDataMessage -> do
-          comm widget dat communicate
+          disp <- run $ comm widget dat communicate
+          pgrOut <- liftIO $ readMVar pagerOutput
+          liftIO $ publish $ FinalResult disp (if toUsePager then pgrOut else []) []
           return kernelState
         CommCloseMessage -> do
-          close widget dat
+          disp <- run $ close widget dat
+          pgrOut <- liftIO $ readMVar pagerOutput
+          liftIO $ publish $ FinalResult disp (if toUsePager then pgrOut else []) []
           return kernelState { openComms = Map.delete uuid widgets }

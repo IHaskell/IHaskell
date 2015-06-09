@@ -14,6 +14,7 @@ module IHaskell.Eval.Evaluate (
     typeCleaner,
     globalImports,
     formatType,
+    capturedIO,
     ) where
 
 import           IHaskellPrelude
@@ -278,7 +279,7 @@ cleanString x = if allBrackets
 -- | Evaluate some IPython input code.
 evaluate :: KernelState                  -- ^ The kernel state.
          -> String                       -- ^ Haskell code or other interpreter commands.
-         -> (EvaluationResult -> IO ())   -- ^ Function used to publish data outputs.
+         -> Publisher                    -- ^ Function used to publish data outputs.
          -> (KernelState -> [WidgetMsg] -> IO KernelState) -- ^ Function to handle widget messages
          -> Interpreter KernelState
 evaluate kernelState code output widgetHandler = do
@@ -761,44 +762,7 @@ evalCommand _ (Directive GetDoc query) state = safely state $ do
   results <- liftIO $ Hoogle.document query
   return $ hoogleResults state results
 
-evalCommand output (Statement stmt) state = wrapExecution state $ do
-  write state $ "Statement:\n" ++ stmt
-  let outputter str = output $ IntermediateResult $ Display [plain str]
-  (printed, result) <- capturedStatement outputter stmt
-  case result of
-    RunOk names -> do
-      dflags <- getSessionDynFlags
-
-      let allNames = map (showPpr dflags) names
-          isItName name =
-            name == "it" ||
-            name == "it" ++ show (getExecutionCounter state)
-          nonItNames = filter (not . isItName) allNames
-          output = [plain printed | not . null $ strip printed]
-
-      write state $ "Names: " ++ show allNames
-
-      -- Display the types of all bound names if the option is on. This is similar to GHCi :set +t.
-      if not $ useShowTypes state
-        then return $ Display output
-        else do
-          -- Get all the type strings.
-          types <- forM nonItNames $ \name -> do
-                     theType <- showSDocUnqual dflags . ppr <$> exprType name
-                     return $ name ++ " :: " ++ theType
-
-          let joined = unlines types
-              htmled = unlines $ map formatGetType types
-
-          return $
-            case extractPlain output of
-              "" -> Display [html htmled]
-
-              -- Return plain and html versions. Previously there was only a plain version.
-              text -> Display [plain $ joined ++ "\n" ++ text, html $ htmled ++ mono text]
-
-    RunException exception -> throw exception
-    RunBreak{} -> error "Should not break."
+evalCommand output (Statement stmt) state = wrapExecution state $ evalStatementOrIO output state (Left stmt)
 
 evalCommand output (Expression expr) state = do
   write state $ "Expression:\n" ++ expr
@@ -1087,10 +1051,10 @@ keepingItVariable act = do
   goStmt $ printf "let it = %s" itVariable
   act
 
-capturedStatement :: (String -> IO ())         -- ^ Function used to publish intermediate output.
-                  -> String                            -- ^ Statement to evaluate.
-                  -> Interpreter (String, RunResult)   -- ^ Return the output and result.
-capturedStatement output stmt = do
+capturedEval :: (String -> IO ()) -- ^ Function used to publish intermediate output.
+             -> Either String (IO a) -- ^ Statement to evaluate.
+             -> Interpreter (String, RunResult) -- ^ Return the output and result.
+capturedEval output stmt = do
   -- Generate random variable names to use so that we cannot accidentally override the variables by
   -- using the right names in the terminal.
   gen <- liftIO getStdGen
@@ -1134,6 +1098,13 @@ capturedStatement output stmt = do
       goStmt :: String -> Ghc RunResult
       goStmt s = runStmt s RunToCompletion
 
+      runWithResult (Left str) = goStmt str
+      runWithResult (Right io) = do
+        status <- gcatch (liftIO io >> return NoException) (return . AnyException)
+        return $ case status of
+          NoException -> RunOk []
+          AnyException e -> RunException e
+
   -- Initialize evaluation context.
   void $ forM initStmts goStmt
 
@@ -1148,7 +1119,6 @@ capturedStatement output stmt = do
   pipe <- liftIO $ do
             fd <- head <$> unsafeCoerce hValues
             fdToHandle fd
-
 
   -- Keep track of whether execution has completed.
   completed <- liftIO $ newMVar False
@@ -1192,7 +1162,7 @@ capturedStatement output stmt = do
 
   liftIO $ forkIO loop
 
-  result <- gfinally (goStmt stmt) $ do
+  result <- gfinally (runWithResult stmt) $ do
               -- Execution is done.
               liftIO $ modifyMVar_ completed (const $ return True)
 
@@ -1205,6 +1175,58 @@ capturedStatement output stmt = do
 
   printedOutput <- liftIO $ readMVar outputAccum
   return (printedOutput, result)
+
+data AnyException = NoException | AnyException SomeException
+
+capturedIO :: Publisher -> KernelState -> IO a -> Interpreter Display
+capturedIO publish state action = evalStatementOrIO publish state (Right action)
+
+evalStatementOrIO :: Publisher -> KernelState -> Either String (IO a) -> Interpreter Display
+evalStatementOrIO publish state cmd = do
+  let output str = publish . IntermediateResult $ Display [plain str]
+
+  (printed, result) <- case cmd of
+    Left stmt -> do
+      write state $ "Statement:\n" ++ stmt
+      capturedEval output (Left stmt)
+    Right io -> do
+      write state $ "evalStatementOrIO in Action"
+      capturedEval output (Right io)
+
+  case result of
+    RunOk names -> do
+      dflags <- getSessionDynFlags
+
+      let allNames = map (showPpr dflags) names
+          isItName name =
+            name == "it" ||
+            name == "it" ++ show (getExecutionCounter state)
+          nonItNames = filter (not . isItName) allNames
+          output = [plain printed | not . null $ strip printed]
+
+      write state $ "Names: " ++ show allNames
+
+      -- Display the types of all bound names if the option is on. This is similar to GHCi :set +t.
+      if not $ useShowTypes state
+        then return $ Display output
+        else do
+          -- Get all the type strings.
+          types <- forM nonItNames $ \name -> do
+                     theType <- showSDocUnqual dflags . ppr <$> exprType name
+                     return $ name ++ " :: " ++ theType
+
+          let joined = unlines types
+              htmled = unlines $ map formatGetType types
+
+          return $
+            case extractPlain output of
+              "" -> Display [html htmled]
+
+              -- Return plain and html versions. Previously there was only a plain version.
+              text -> Display [plain $ joined ++ "\n" ++ text, html $ htmled ++ mono text]
+
+    RunException exception -> throw exception
+    RunBreak{} -> error "Should not break."
 
 -- Read from a file handle until we hit a delimiter or until we've read as many characters as
 -- requested
