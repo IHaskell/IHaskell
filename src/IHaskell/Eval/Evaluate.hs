@@ -256,9 +256,9 @@ data EvalOut =
        EvalOut
          { evalStatus :: ErrorOccurred
          , evalResult :: Display
-         , evalState  :: KernelState
-         , evalPager  :: String
-         , evalMsgs   :: [WidgetMsg]
+         , evalState :: KernelState
+         , evalPager :: String
+         , evalMsgs :: [WidgetMsg]
          }
 
 cleanString :: String -> String
@@ -332,7 +332,7 @@ evaluate kernelState code output widgetHandler = do
       unless empty $
         liftIO $ output $ FinalResult result [plain helpStr] []
 
-      let tempMsgs  = evalMsgs evalOut
+      let tempMsgs = evalMsgs evalOut
           tempState = evalState evalOut { evalMsgs = [] }
 
       -- Handle the widget messages
@@ -762,7 +762,8 @@ evalCommand _ (Directive GetDoc query) state = safely state $ do
   results <- liftIO $ Hoogle.document query
   return $ hoogleResults state results
 
-evalCommand output (Statement stmt) state = wrapExecution state $ evalStatementOrIO output state (Left stmt)
+evalCommand output (Statement stmt) state = wrapExecution state $ evalStatementOrIO output state
+                                                                    (Left stmt)
 
 evalCommand output (Expression expr) state = do
   write state $ "Expression:\n" ++ expr
@@ -1101,9 +1102,10 @@ capturedEval output stmt = do
       runWithResult (Left str) = goStmt str
       runWithResult (Right io) = do
         status <- gcatch (liftIO io >> return NoException) (return . AnyException)
-        return $ case status of
-          NoException -> RunOk []
-          AnyException e -> RunException e
+        return $
+          case status of
+            NoException    -> RunOk []
+            AnyException e -> RunException e
 
   -- Initialize evaluation context.
   void $ forM initStmts goStmt
@@ -1176,7 +1178,8 @@ capturedEval output stmt = do
   printedOutput <- liftIO $ readMVar outputAccum
   return (printedOutput, result)
 
-data AnyException = NoException | AnyException SomeException
+data AnyException = NoException
+                  | AnyException SomeException
 
 capturedIO :: Publisher -> KernelState -> IO a -> Interpreter Display
 capturedIO publish state action = do
@@ -1189,12 +1192,12 @@ evalStatementOrIO publish state cmd = do
   let output str = publish . IntermediateResult $ Display [plain str]
 
   (printed, result) <- case cmd of
-    Left stmt -> do
-      write state $ "Statement:\n" ++ stmt
-      capturedEval output (Left stmt)
-    Right io -> do
-      write state $ "evalStatementOrIO in Action"
-      capturedEval output (Right io)
+                         Left stmt -> do
+                           write state $ "Statement:\n" ++ stmt
+                           capturedEval output (Left stmt)
+                         Right io -> do
+                           write state $ "evalStatementOrIO in Action"
+                           capturedEval output (Right io)
 
   case result of
     RunOk names -> do

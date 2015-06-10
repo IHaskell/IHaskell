@@ -1,5 +1,3 @@
-module IHaskell.Display.Widgets
-       ( module IHaskell.Display.Widgets.Button
-       ) where
+module IHaskell.Display.Widgets (module IHaskell.Display.Widgets.Button) where
 
-import IHaskell.Display.Widgets.Button
+import           IHaskell.Display.Widgets.Button

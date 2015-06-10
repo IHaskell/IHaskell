@@ -1,73 +1,79 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module IHaskell.Display.Widgets.Button
-  ( -- * The Button Widget
-    Button
+module IHaskell.Display.Widgets.Button (
+    -- * The Button Widget
+    Button,
     -- * Predefined button styles
-  , ButtonStyle (..)
+    ButtonStyle(..),
     -- * Create a new button
-  , mkButton
+    mkButton,
     -- * Set button properties
-  , setButtonStyle
-  , setButtonLabel
-  , setButtonTooltip
-  , disableButton
-  , enableButton
-  , toggleButtonStatus
+    setButtonStyle,
+    setButtonLabel,
+    setButtonTooltip,
+    disableButton,
+    enableButton,
+    toggleButtonStatus,
     -- * Get button properties
-  , getButtonStyle
-  , getButtonLabel
-  , getButtonTooltip
-  , isDisabled
+    getButtonStyle,
+    getButtonLabel,
+    getButtonTooltip,
+    isDisabled,
     -- * Click handlers
-  , setClickHandler
-  , getClickHandler
-  , triggerClick
-  ) where
+    setClickHandler,
+    getClickHandler,
+    triggerClick,
+    ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad                 (when)
-import           Data.Aeson                    (ToJSON, Value (..), object,
-                                                toJSON, (.=))
-import           Data.Aeson.Types              (Pair)
-import           Data.HashMap.Strict           as Map
+import           Control.Monad (when)
+import           Data.Aeson (ToJSON, Value(..), object, toJSON, (.=))
+import           Data.Aeson.Types (Pair)
+import           Data.HashMap.Strict as Map
 import           Data.IORef
-import           Data.Text                     (Text)
-import qualified Data.Text                     as T
-import           System.IO.Unsafe              (unsafePerformIO)
+import           Data.Text (Text)
+import qualified Data.Text as T
+import           System.IO.Unsafe (unsafePerformIO)
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import qualified IHaskell.IPython.Message.UUID as U
-import           IHaskell.Types                (WidgetMethod (..))
+import           IHaskell.Types (WidgetMethod(..))
 
 -- | ADT for a button
-data Button = Button { uuid         :: U.UUID
-                     , description  :: IORef Text
-                     , tooltip      :: IORef Text
-                     , disabled     :: IORef Bool
-                     , buttonStyle  :: IORef ButtonStyle
-                     , clickHandler :: IORef (Button -> IO ())
-                     }
+data Button =
+       Button
+         { uuid :: U.UUID
+         , description :: IORef Text
+         , tooltip :: IORef Text
+         , disabled :: IORef Bool
+         , buttonStyle :: IORef ButtonStyle
+         , clickHandler :: IORef (Button -> IO ())
+         }
 
 -- | Pre-defined button-styles
-data ButtonStyle = Primary | Success | Info | Warning | Danger | None
+data ButtonStyle = Primary
+                 | Success
+                 | Info
+                 | Warning
+                 | Danger
+                 | None
   deriving (Eq, Show)
 
 -- | Create a new button
 mkButton :: IO Button
 mkButton = do
   -- Default properties, with a random uuid
-  uuid   <- U.random
+  uuid <- U.random
   sender <- newIORef Nothing
-  desc   <- newIORef "label"        -- Non-empty to get a display
-  ttip   <- newIORef ""
-  dis    <- newIORef False
-  sty    <- newIORef None
-  fun    <- newIORef (\_ -> return ())
+  desc <- newIORef "label"        -- Non-empty to get a display
+  ttip <- newIORef ""
+  dis <- newIORef False
+  sty <- newIORef None
+  fun <- newIORef (\_ -> return ())
 
   let b = Button uuid desc ttip dis sty fun
 
@@ -87,31 +93,31 @@ modify b attr val = writeIORef (attr b) val
 setButtonStyle :: Button -> ButtonStyle -> IO ()
 setButtonStyle b bst = do
   modify b buttonStyle bst
-  update b [ "button_style" .= bst ]
+  update b ["button_style" .= bst]
 
 -- | Set the button label
 setButtonLabel :: Button -> Text -> IO ()
 setButtonLabel b txt = do
   modify b description txt
-  update b [ "description" .= txt ]
+  update b ["description" .= txt]
 
 -- | Set the button tooltip
 setButtonTooltip :: Button -> Text -> IO ()
 setButtonTooltip b txt = do
   modify b tooltip txt
-  update b [ "tooltip" .= txt ]
+  update b ["tooltip" .= txt]
 
 -- | Disable the button
 disableButton :: Button -> IO ()
 disableButton b = do
   modify b disabled True
-  update b [ "disabled" .= True ]
+  update b ["disabled" .= True]
 
 -- | Enable the button
 enableButton :: Button -> IO ()
 enableButton b = do
   modify b disabled False
-  update b [ "disabled" .= False ]
+  update b ["disabled" .= False]
 
 -- | Toggle the button
 toggleButtonStatus :: Button -> IO ()
@@ -119,7 +125,7 @@ toggleButtonStatus b = do
   oldVal <- isDisabled b
   let newVal = not oldVal
   modify b disabled newVal
-  update b [ "disabled" .= newVal ]
+  update b ["disabled" .= newVal]
 
 -- | Get the button style
 getButtonStyle :: Button -> IO ButtonStyle
@@ -154,10 +160,10 @@ triggerClick button = do
 instance ToJSON ButtonStyle where
   toJSON Primary = "primary"
   toJSON Success = "success"
-  toJSON Info    = "info"
+  toJSON Info = "info"
   toJSON Warning = "warning"
-  toJSON Danger  = "danger"
-  toJSON None    = ""
+  toJSON Danger = "danger"
+  toJSON None = ""
 
 data ViewName = ButtonWidget
 
@@ -167,21 +173,24 @@ instance ToJSON ViewName where
 data InitData = ButtonInitData
 
 instance ToJSON InitData where
-  toJSON ButtonInitData = object [ "model_name"   .= str "WidgetModel"
-                                 , "widget_class" .= str "IPython.Button"
-                                 ]
+  toJSON ButtonInitData = object
+                            [ "model_name" .= str "WidgetModel"
+                            , "widget_class" .= str "IPython.Button"
+                            ]
 
 instance ToJSON Button where
-  toJSON b = object [ "_view_name" .= toJSON ButtonWidget
-                    , "visible" .= True
-                    , "_css" .= object []
-                    , "msg_throttle" .= (3 :: Int)
-                    , "disabled" .= get disabled b
-                    , "description" .= get description b
-                    , "tooltip" .= get tooltip b
-                    , "button_style" .= get buttonStyle b
-                    ]
-    where get x y = unsafePerformIO . readIORef . x $ y
+  toJSON b = object
+               [ "_view_name" .= toJSON ButtonWidget
+               , "visible" .= True
+               , "_css" .= object []
+               , "msg_throttle" .= (3 :: Int)
+               , "disabled" .= get disabled b
+               , "description" .= get description b
+               , "tooltip" .= get tooltip b
+               , "button_style" .= get buttonStyle b
+               ]
+    where
+      get x y = unsafePerformIO . readIORef . x $ y
 
 instance IHaskellDisplay Button where
   display b = do
@@ -192,7 +201,7 @@ instance IHaskellWidget Button where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "content" :: Text
-        key2 = "event"   :: Text
+        key2 = "event" :: Text
         Just (Object dict2) = Map.lookup key1 dict1
         Just (String event) = Map.lookup key2 dict2
     when (event == "click") $ triggerClick widget

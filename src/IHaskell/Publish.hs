@@ -1,13 +1,11 @@
 {-# LANGUAGE QuasiQuotes #-}
 
-module IHaskell.Publish
-  ( publishResult
-  ) where
+module IHaskell.Publish (publishResult) where
 
 import           IHaskellPrelude
 
-import           Data.String.Here   (hereFile)
-import qualified Data.Text          as T
+import           Data.String.Here (hereFile)
+import qualified Data.Text as T
 import qualified Data.Text.Encoding as E
 
 import           IHaskell.Display
@@ -54,7 +52,8 @@ publishResult send replyHeader displayed updateNeeded pagerOutput usePager resul
       if usePager
         then modifyMVar_ pagerOutput (return . (++ pager))
         else sendOutput $ Display pager
-  where 
+
+  where
     clearOutput = do
       header <- dupHeader replyHeader ClearOutputMessage
       send $ ClearOutput header True
