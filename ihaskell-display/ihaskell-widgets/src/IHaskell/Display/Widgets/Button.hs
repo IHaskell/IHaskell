@@ -1,8 +1,32 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module IHaskell.Display.Widgets.Button where
+module IHaskell.Display.Widgets.Button
+  ( -- * The Button Widget
+    Button
+    -- * Predefined button styles
+  , ButtonStyle (..)
+    -- * Create a new button
+  , mkButton
+    -- * Set button properties
+  , setButtonStyle
+  , setButtonLabel
+  , setButtonTooltip
+  , disableButton
+  , enableButton
+  , toggleButtonStatus
+    -- * Get button properties
+  , getButtonStyle
+  , getButtonLabel
+  , getButtonTooltip
+  , isDisabled
+    -- * Click handlers
+  , setClickHandler
+  , getClickHandler
+  , triggerClick
+  ) where
 
+-- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
 import           Control.Monad                 (when)
@@ -13,11 +37,12 @@ import           Data.HashMap.Strict           as Map
 import           Data.IORef
 import           Data.Text                     (Text)
 import qualified Data.Text                     as T
-import           IHaskell.Display
-import qualified IHaskell.IPython.Message.UUID as U
-import           IHaskell.Eval.Widgets
-import           IHaskell.Types (WidgetMethod (..))
 import           System.IO.Unsafe              (unsafePerformIO)
+
+import           IHaskell.Display
+import           IHaskell.Eval.Widgets
+import qualified IHaskell.IPython.Message.UUID as U
+import           IHaskell.Types                (WidgetMethod (..))
 
 -- | ADT for a button
 data Button = Button { uuid         :: U.UUID
@@ -93,16 +118,16 @@ toggleButtonStatus :: Button -> IO ()
 toggleButtonStatus b = do
   oldVal <- isDisabled b
   let newVal = not oldVal
-  modify b disabled newVal 
+  modify b disabled newVal
   update b [ "disabled" .= newVal ]
 
 -- | Get the button style
 getButtonStyle :: Button -> IO ButtonStyle
 getButtonStyle = readIORef . buttonStyle
 
--- | Get the button text
-getButtonText :: Button -> IO Text
-getButtonText = readIORef . description
+-- | Get the button label
+getButtonLabel :: Button -> IO Text
+getButtonLabel = readIORef . description
 
 -- | Get the button tooltip
 getButtonTooltip :: Button -> IO Text
@@ -113,13 +138,17 @@ isDisabled :: Button -> IO Bool
 isDisabled = readIORef . disabled
 
 -- | Set a function to be activated on click
-onClicked :: Button -> (Button -> IO ()) -> IO ()
-onClicked = writeIORef . clickHandler
+setClickHandler :: Button -> (Button -> IO ()) -> IO ()
+setClickHandler = writeIORef . clickHandler
+
+-- | Get the click handler for a button
+getClickHandler :: Button -> IO (Button -> IO ())
+getClickHandler = readIORef . clickHandler
 
 -- | Artificially trigger a button click
 triggerClick :: Button -> IO ()
 triggerClick button = do
-  handler <- readIORef $ clickHandler button
+  handler <- getClickHandler button
   handler button
 
 instance ToJSON ButtonStyle where
