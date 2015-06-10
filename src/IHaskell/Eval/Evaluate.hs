@@ -1179,7 +1179,10 @@ capturedEval output stmt = do
 data AnyException = NoException | AnyException SomeException
 
 capturedIO :: Publisher -> KernelState -> IO a -> Interpreter Display
-capturedIO publish state action = evalStatementOrIO publish state (Right action)
+capturedIO publish state action = do
+  let showError = return . displayError . show
+      handler e@SomeException{} = showError e
+  gcatch (evalStatementOrIO publish state (Right action)) handler
 
 evalStatementOrIO :: Publisher -> KernelState -> Either String (IO a) -> Interpreter Display
 evalStatementOrIO publish state cmd = do
