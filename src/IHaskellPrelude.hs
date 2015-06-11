@@ -147,3 +147,4 @@ putChar = liftIO . P.putChar
 
 print :: (MonadIO m, Show a) => a -> m ()
 print = liftIO . P.print
+

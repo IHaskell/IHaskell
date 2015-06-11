@@ -12,14 +12,13 @@ module IHaskell.Display.Widgets.Button (
     setButtonStyle,
     setButtonLabel,
     setButtonTooltip,
-    disableButton,
-    enableButton,
+    setButtonStatus,
     toggleButtonStatus,
     -- * Get button properties
     getButtonStyle,
     getButtonLabel,
     getButtonTooltip,
-    isDisabled,
+    getButtonStatus,
     -- * Click handlers
     setClickHandler,
     getClickHandler,
@@ -43,15 +42,15 @@ import           IHaskell.Eval.Widgets
 import qualified IHaskell.IPython.Message.UUID as U
 import           IHaskell.Types (WidgetMethod(..))
 
--- | ADT for a button
+-- | A 'Button' represents a Button from IPython.html.widgets.
 data Button =
        Button
-         { uuid :: U.UUID
-         , description :: IORef Text
-         , tooltip :: IORef Text
-         , disabled :: IORef Bool
-         , buttonStyle :: IORef ButtonStyle
-         , clickHandler :: IORef (Button -> IO ())
+         { uuid :: U.UUID       -- ^ The UUID for the comm
+         , description :: IORef Text -- ^ The label displayed on the button
+         , tooltip :: IORef Text     -- ^ The tooltip shown on mouseover
+         , disabled :: IORef Bool    -- ^ Whether the button is disabled
+         , buttonStyle :: IORef ButtonStyle -- ^ The button_style
+         , clickHandler :: IORef (Button -> IO ()) -- ^ Function executed when button is clicked
          }
 
 -- | Pre-defined button-styles
@@ -67,15 +66,20 @@ data ButtonStyle = Primary
 mkButton :: IO Button
 mkButton = do
   -- Default properties, with a random uuid
-  uuid <- U.random
-  sender <- newIORef Nothing
-  desc <- newIORef "label"        -- Non-empty to get a display
+  commUUID <- U.random
+  desc <- newIORef "label"      -- Non-empty to get a display
   ttip <- newIORef ""
   dis <- newIORef False
   sty <- newIORef None
   fun <- newIORef (\_ -> return ())
 
-  let b = Button uuid desc ttip dis sty fun
+  let b = Button { uuid = commUUID
+                 , description = desc
+                 , tooltip = ttip
+                 , disabled = dis
+                 , buttonStyle = sty
+                 , clickHandler = fun
+                 }
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen b (toJSON ButtonInitData) (toJSON b)
@@ -83,9 +87,13 @@ mkButton = do
   -- Return the button widget
   return b
 
+-- | Send an update msg for a button, with custom json. Make it easy
+-- to update fragments of the state, by accepting a Pair instead of a
+-- Value.
 update :: Button -> [Pair] -> IO ()
 update b v = widgetSendUpdate b . toJSON . object $ v
 
+-- | Modify attributes of a button, stored inside it as IORefs
 modify :: Button -> (Button -> IORef a) -> a -> IO ()
 modify b attr val = writeIORef (attr b) val
 
@@ -107,17 +115,12 @@ setButtonTooltip b txt = do
   modify b tooltip txt
   update b ["tooltip" .= txt]
 
--- | Disable the button
-disableButton :: Button -> IO ()
-disableButton b = do
-  modify b disabled True
-  update b ["disabled" .= True]
-
--- | Enable the button
-enableButton :: Button -> IO ()
-enableButton b = do
-  modify b disabled False
-  update b ["disabled" .= False]
+-- | Set buttton status. True: Enabled, False: Disabled
+setButtonStatus :: Button -> Bool -> IO ()
+setButtonStatus b stat = do
+  let newStatus = not stat
+  modify b disabled newStatus
+  update b ["disabled" .= newStatus]
 
 -- | Toggle the button
 toggleButtonStatus :: Button -> IO ()
@@ -139,9 +142,9 @@ getButtonLabel = readIORef . description
 getButtonTooltip :: Button -> IO Text
 getButtonTooltip = readIORef . tooltip
 
--- | Check whether the button is disabled
-isDisabled :: Button -> IO Bool
-isDisabled = readIORef . disabled
+-- | Check whether the button is enabled / disabled
+getButtonStatus :: Button -> IO Bool
+getButtonStatus = not . readIORef . disabled
 
 -- | Set a function to be activated on click
 setClickHandler :: Button -> (Button -> IO ()) -> IO ()
