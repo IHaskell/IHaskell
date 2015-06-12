@@ -293,8 +293,10 @@ replyTo _ HistoryRequest{} replyHeader state = do
         }
   return (state, reply)
 
+-- | Handle comm messages
 handleComm :: (Message -> IO ()) -> KernelState -> Message -> MessageHeader -> Interpreter KernelState
 handleComm send kernelState req replyHeader = do
+  -- MVars to hold intermediate data during publishing
   displayed <- liftIO $ newMVar []
   updateNeeded <- liftIO $ newMVar False
   pagerOutput <- liftIO $ newMVar []
@@ -306,8 +308,14 @@ handleComm send kernelState req replyHeader = do
         head <- dupHeader replyHeader CommDataMessage
         send $ CommData head uuid value
       toUsePager = usePager kernelState
-      run = capturedIO publish kernelState
+
+  -- Create a publisher according to current state, use that to build
+  -- a function that executes an IO action and publishes the output to
+  -- the frontend simultaneously.
+  let run = capturedIO publish kernelState
       publish = publishResult send replyHeader displayed updateNeeded pagerOutput toUsePager
+
+  -- Notify the frontend that the kernel is busy
   busyHeader <- liftIO $ dupHeader replyHeader StatusMessage
   liftIO . send $ PublishStatus busyHeader Busy
 
@@ -326,6 +334,7 @@ handleComm send kernelState req replyHeader = do
           liftIO $ publish $ FinalResult disp (if toUsePager then pgrOut else []) []
           return kernelState { openComms = Map.delete uuid widgets }
 
+  -- Notify the frontend that the kernel is idle once again
   idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
   liftIO . send $ PublishStatus idleHeader Idle
 

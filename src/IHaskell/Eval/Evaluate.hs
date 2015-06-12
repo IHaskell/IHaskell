@@ -87,7 +87,6 @@ import           IHaskell.Eval.Util
 import           IHaskell.Eval.Widgets
 import           IHaskell.BrokenPackages
 import qualified IHaskell.IPython.Message.UUID as UUID
-import           IHaskell.Eval.Widgets
 import           StringUtils (replace, split, strip, rstrip)
 
 import           Paths_ihaskell (version)
@@ -228,7 +227,7 @@ initializeImports = do
       dropFirstAndLast = reverse . drop 1 . reverse . drop 1
 
       toImportStmt :: String -> String
-      toImportStmt = printf importFmt . concat . map capitalize . dropFirstAndLast . split "-"
+      toImportStmt = printf importFmt . concatMap capitalize . dropFirstAndLast . split "-"
 
       displayImports = map toImportStmt displayPackages
 
@@ -242,7 +241,7 @@ initializeImports = do
 
 -- | Give a value for the `it` variable.
 initializeItVariable :: Interpreter ()
-initializeItVariable = do
+initializeItVariable =
   -- This is required due to the way we handle `it` in the wrapper statements - if it doesn't exist,
   -- the first statement will fail.
   void $ runStmt "let it = ()" RunToCompletion
@@ -344,6 +343,8 @@ evaluate kernelState code output widgetHandler = do
 
     storeItCommand execCount = Statement $ printf "let it%d = it" execCount
 
+-- | Compile a string and extract a value from it. Effectively extract the result of an expression
+-- from inside the notebook environment.
 extractValue :: Typeable a => String -> Interpreter a
 extractValue expr = do
   compiled <- dynCompileExpr expr
@@ -502,7 +503,7 @@ evalCommand output (Directive SetDynFlag flagsStr) state = safely state $ do
           }
     else do
       -- Apply all IHaskell flag updaters to the state to get the new state
-      let state' = (foldl' (.) id (map (fromJust . ihaskellFlagUpdater) ihaskellFlags)) state
+      let state' = foldl' (.) id (map (fromJust . ihaskellFlagUpdater) ihaskellFlags) state
       errs <- setFlags ghcFlags
       let display =
             case errs of
@@ -763,7 +764,7 @@ evalCommand _ (Directive GetDoc query) state = safely state $ do
   return $ hoogleResults state results
 
 evalCommand output (Statement stmt) state = wrapExecution state $ evalStatementOrIO output state
-                                                                    (Left stmt)
+                                                                    (CapturedStmt stmt)
 
 evalCommand output (Expression expr) state = do
   write state $ "Expression:\n" ++ expr
@@ -792,7 +793,7 @@ evalCommand output (Expression expr) state = do
     -- If it typechecks as a DecsQ, we do not want to display the DecsQ, we just want the
     -- declaration made.
     do
-      write state $ "Suppressing display for template haskell declaration"
+      write state "Suppressing display for template haskell declaration"
       GHC.runDecls expr
       return
         EvalOut
@@ -802,24 +803,23 @@ evalCommand output (Expression expr) state = do
           , evalPager = ""
           , evalMsgs = []
           }
-    else do
-      if canRunDisplay
-        then do
-          -- Use the display. As a result, `it` is set to the output.
-          useDisplay displayExpr
-        else do
-          -- Evaluate this expression as though it's just a statement. The output is bound to 'it', so we can
-          -- then use it.
-          evalOut <- evalCommand output (Statement expr) state
+    else if canRunDisplay
+           then 
+           -- Use the display. As a result, `it` is set to the output.
+           useDisplay displayExpr
+           else do
+             -- Evaluate this expression as though it's just a statement. The output is bound to 'it', so we can
+             -- then use it.
+             evalOut <- evalCommand output (Statement expr) state
 
-          let out = evalResult evalOut
-              showErr = isShowError out
+             let out = evalResult evalOut
+                 showErr = isShowError out
 
-          -- If evaluation failed, return the failure. If it was successful, we may be able to use the
-          -- IHaskellDisplay typeclass.
-          return $ if not showErr || useShowErrors state
-                     then evalOut
-                     else postprocessShowError evalOut
+             -- If evaluation failed, return the failure. If it was successful, we may be able to use the
+             -- IHaskellDisplay typeclass.
+             return $ if not showErr || useShowErrors state
+                        then evalOut
+                        else postprocessShowError evalOut
 
   where
     -- Try to evaluate an action. Return True if it succeeds and False if it throws an exception. The
@@ -990,7 +990,7 @@ doLoadModule name modName = do
     oldTargets <- getTargets
     -- Add a target, but make sure targets are unique!
     addTarget target
-    getTargets >>= return . (nubBy ((==) `on` targetId)) >>= setTargets
+    getTargets >>= return . nubBy ((==) `on` targetId) >>= setTargets
     result <- load LoadAllTargets
 
     -- Reset the context, since loading things screws it up.
@@ -1052,8 +1052,11 @@ keepingItVariable act = do
   goStmt $ printf "let it = %s" itVariable
   act
 
+data Captured a = CapturedStmt String
+                | CapturedIO (IO a)
+
 capturedEval :: (String -> IO ()) -- ^ Function used to publish intermediate output.
-             -> Either String (IO a) -- ^ Statement to evaluate.
+             -> Captured a -- ^ Statement to evaluate.
              -> Interpreter (String, RunResult) -- ^ Return the output and result.
 capturedEval output stmt = do
   -- Generate random variable names to use so that we cannot accidentally override the variables by
@@ -1099,8 +1102,8 @@ capturedEval output stmt = do
       goStmt :: String -> Ghc RunResult
       goStmt s = runStmt s RunToCompletion
 
-      runWithResult (Left str) = goStmt str
-      runWithResult (Right io) = do
+      runWithResult (CapturedStmt str) = goStmt str
+      runWithResult (CapturedIO io) = do
         status <- gcatch (liftIO io >> return NoException) (return . AnyException)
         return $
           case status of
@@ -1185,20 +1188,21 @@ capturedIO :: Publisher -> KernelState -> IO a -> Interpreter Display
 capturedIO publish state action = do
   let showError = return . displayError . show
       handler e@SomeException{} = showError e
-  gcatch (evalStatementOrIO publish state (Right action)) handler
+  gcatch (evalStatementOrIO publish state (CapturedIO action)) handler
 
-evalStatementOrIO :: Publisher -> KernelState -> Either String (IO a) -> Interpreter Display
+-- | Evaluate a @Captured@, and then publish the final result to the frontend. Returns the final
+-- Display.
+evalStatementOrIO :: Publisher -> KernelState -> Captured a -> Interpreter Display
 evalStatementOrIO publish state cmd = do
   let output str = publish . IntermediateResult $ Display [plain str]
 
-  (printed, result) <- case cmd of
-                         Left stmt -> do
-                           write state $ "Statement:\n" ++ stmt
-                           capturedEval output (Left stmt)
-                         Right io -> do
-                           write state $ "evalStatementOrIO in Action"
-                           capturedEval output (Right io)
+  case cmd of
+    CapturedStmt stmt ->
+      write state $ "Statement:\n" ++ stmt
+    CapturedIO io ->
+      write state "Evaluating Action"
 
+  (printed, result) <- capturedEval output cmd
   case result of
     RunOk names -> do
       dflags <- getSessionDynFlags

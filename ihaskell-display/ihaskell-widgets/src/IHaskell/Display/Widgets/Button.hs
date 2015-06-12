@@ -71,15 +71,16 @@ mkButton = do
   ttip <- newIORef ""
   dis <- newIORef False
   sty <- newIORef None
-  fun <- newIORef (\_ -> return ())
+  fun <- newIORef $ const $ return ()
 
-  let b = Button { uuid = commUUID
-                 , description = desc
-                 , tooltip = ttip
-                 , disabled = dis
-                 , buttonStyle = sty
-                 , clickHandler = fun
-                 }
+  let b = Button
+        { uuid = commUUID
+        , description = desc
+        , tooltip = ttip
+        , disabled = dis
+        , buttonStyle = sty
+        , clickHandler = fun
+        }
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen b (toJSON ButtonInitData) (toJSON b)
@@ -87,9 +88,8 @@ mkButton = do
   -- Return the button widget
   return b
 
--- | Send an update msg for a button, with custom json. Make it easy
--- to update fragments of the state, by accepting a Pair instead of a
--- Value.
+-- | Send an update msg for a button, with custom json. Make it easy to update fragments of the
+-- state, by accepting a Pair instead of a Value.
 update :: Button -> [Pair] -> IO ()
 update b v = widgetSendUpdate b . toJSON . object $ v
 
@@ -125,7 +125,7 @@ setButtonStatus b stat = do
 -- | Toggle the button
 toggleButtonStatus :: Button -> IO ()
 toggleButtonStatus b = do
-  oldVal <- isDisabled b
+  oldVal <- getButtonStatus b
   let newVal = not oldVal
   modify b disabled newVal
   update b ["disabled" .= newVal]
@@ -144,7 +144,7 @@ getButtonTooltip = readIORef . tooltip
 
 -- | Check whether the button is enabled / disabled
 getButtonStatus :: Button -> IO Bool
-getButtonStatus = not . readIORef . disabled
+getButtonStatus = fmap not . readIORef . disabled
 
 -- | Set a function to be activated on click
 setClickHandler :: Button -> (Button -> IO ()) -> IO ()
