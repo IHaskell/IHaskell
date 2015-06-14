@@ -10,16 +10,13 @@ import           Control.Monad (when)
 import           Data.Aeson (ToJSON, Value(..), object, toJSON, (.=))
 import           Data.Aeson.Types (Pair)
 import           Data.HashMap.Strict as Map
-import           Data.Aeson.Encode.Pretty (encodePretty)
 import           Data.IORef
 import           Data.Text (Text)
-import qualified Data.Text as T
 import           System.IO.Unsafe (unsafePerformIO)
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import qualified IHaskell.IPython.Message.UUID as U
-import           IHaskell.Types (WidgetMethod(..))
 
 -- | A 'Dropdown' represents a Dropdown widget from IPython.html.widgets.
 data Dropdown =
@@ -137,7 +134,12 @@ instance IHaskellDisplay Dropdown where
 
 instance IHaskellWidget Dropdown where
   getCommUUID = uuid
-  comm widget msg _ = putStrLn . show . encodePretty $ msg
+  comm widget (Object dict1) _ = do
+    let key1 = "sync_data" :: Text
+        key2 = "selected_label" :: Text
+        Just (Object dict2) = Map.lookup key1 dict1
+        Just (String label) = Map.lookup key2 dict2
+    modify widget selectedLabel label
 
 str :: String -> String
 str = id
