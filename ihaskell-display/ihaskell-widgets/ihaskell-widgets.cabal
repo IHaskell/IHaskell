@@ -56,6 +56,7 @@ library
   -- Modules included in this library but not exported.
   other-modules:       IHaskell.Display.Widgets.Button
                        IHaskell.Display.Widgets.Image
+                       IHaskell.Display.Widgets.Dropdown
                        IHaskell.Display.Widgets.String.HTML
                        IHaskell.Display.Widgets.String.Latex
                        IHaskell.Display.Widgets.String.Text
@@ -63,7 +64,7 @@ library
                        IHaskell.Display.Widgets.Output
 
                        IHaskell.Display.Widgets.Common
-  
+
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:    
   
@@ -76,6 +77,9 @@ library
 
                        -- Waiting for the next release
                      , ihaskell -any
+
+                       -- DEBUG: Remove Me
+                     , aeson-pretty -any
 
   -- Directories containing source files.
   hs-source-dirs:      src

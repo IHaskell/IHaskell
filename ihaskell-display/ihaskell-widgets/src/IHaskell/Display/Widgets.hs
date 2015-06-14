@@ -2,6 +2,8 @@ module IHaskell.Display.Widgets (module X) where
 
 import           IHaskell.Display.Widgets.Button as X
 
+import           IHaskell.Display.Widgets.Dropdown as X
+
 import           IHaskell.Display.Widgets.Image as X
 
 import           IHaskell.Display.Widgets.String.HTML as X
