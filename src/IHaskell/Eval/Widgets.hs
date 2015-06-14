@@ -45,16 +45,20 @@ widgetSend :: IHaskellWidget a
            -> a -> Value -> IO ()
 widgetSend msgType widget value = queue $ msgType (Widget widget) value
 
+-- | Send a message to open a comm
 widgetSendOpen :: IHaskellWidget a => a -> Value -> Value -> IO ()
 widgetSendOpen widget initVal stateVal =
   queue $ Open (Widget widget) initVal stateVal
 
+-- | Send a state update message
 widgetSendUpdate :: IHaskellWidget a => a -> Value -> IO ()
 widgetSendUpdate = widgetSend Update
 
+-- | Send a [method .= display] comm_msg
 widgetSendView :: IHaskellWidget a => a -> IO ()
 widgetSendView = queue . View . Widget
 
+-- | Send a comm_close
 widgetSendClose :: IHaskellWidget a => a -> Value -> IO ()
 widgetSendClose = widgetSend Close
 
@@ -125,23 +129,14 @@ handleMessage send replyHeader state msg = do
       return state
 
     Update widget value -> do
-      -- Assume that a state update means that it is time the stored widget also gets updated. Thus
-      -- replace the stored widget with the copy passed in the CommMsg.
       let uuid = getCommUUID widget
           present = isJust $ Map.lookup uuid oldComms
 
-          -- The update inside the kernel state happens here.
-          newComms = Map.insert uuid widget oldComms
-          newState = state { openComms = newComms }
-
-      -- If the widget is present, we send an update message on its comm. We also replace the widget
-      -- stored in the kernel state with the one provided here.
-      if present
-        then do
-          header <- dupHeader replyHeader CommDataMessage
-          send . CommData header uuid . toJSON $ UpdateState value
-          return newState
-        else return state
+      -- If the widget is present, we send an update message on its comm.
+      when present $ do
+        header <- dupHeader replyHeader CommDataMessage
+        send . CommData header uuid . toJSON $ UpdateState value
+      return state
 
 -- Handle messages one-by-one, while updating state simultaneously
 widgetHandler :: (Message -> IO ())
