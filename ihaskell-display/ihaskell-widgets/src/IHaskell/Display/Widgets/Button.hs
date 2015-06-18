@@ -4,8 +4,6 @@
 module IHaskell.Display.Widgets.Button (
     -- * The Button Widget
     Button,
-    -- * Predefined button styles
-    ButtonStyle(..),
     -- * Create a new button
     mkButton,
     -- * Set button properties
@@ -42,6 +40,8 @@ import           IHaskell.Eval.Widgets
 import qualified IHaskell.IPython.Message.UUID as U
 import           IHaskell.Types (WidgetMethod(..))
 
+import           IHaskell.Display.Widgets.Common (ButtonStyle (..))
+
 -- | A 'Button' represents a Button from IPython.html.widgets.
 data Button =
        Button
@@ -52,15 +52,6 @@ data Button =
          , buttonStyle :: IORef ButtonStyle -- ^ The button_style
          , clickHandler :: IORef (Button -> IO ()) -- ^ Function executed when button is clicked
          }
-
--- | Pre-defined button-styles
-data ButtonStyle = Primary
-                 | Success
-                 | Info
-                 | Warning
-                 | Danger
-                 | None
-  deriving (Eq, Show)
 
 -- | Create a new button
 mkButton :: IO Button
@@ -159,14 +150,6 @@ triggerClick :: Button -> IO ()
 triggerClick button = do
   handler <- getClickHandler button
   handler button
-
-instance ToJSON ButtonStyle where
-  toJSON Primary = "primary"
-  toJSON Success = "success"
-  toJSON Info = "info"
-  toJSON Warning = "warning"
-  toJSON Danger = "danger"
-  toJSON None = ""
 
 data ViewName = ButtonWidget
 

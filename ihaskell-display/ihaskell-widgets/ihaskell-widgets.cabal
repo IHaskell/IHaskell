@@ -55,6 +55,7 @@ library
   
   -- Modules included in this library but not exported.
   other-modules:       IHaskell.Display.Widgets.Button
+                       IHaskell.Display.Widgets.Common
   
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:    
