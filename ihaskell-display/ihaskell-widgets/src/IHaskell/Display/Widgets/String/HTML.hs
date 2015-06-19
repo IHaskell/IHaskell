@@ -7,8 +7,12 @@ module IHaskell.Display.Widgets.String.HTML (
     mkHTMLWidget,
     -- * Set properties
     setHTMLValue,
+    setHTMLDescription,
+    setHTMLPlaceholder,
     -- * Get properties
     getHTMLValue,
+    getHTMLDescription,
+    getHTMLPlaceholder,
     ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -33,6 +37,8 @@ data HTMLWidget =
        HTMLWidget
          { uuid :: U.UUID
          , value :: IORef String
+         , description :: IORef String
+         , placeholder :: IORef String
          }
 
 -- | Create a new HTML widget
@@ -41,11 +47,15 @@ mkHTMLWidget = do
   -- Default properties, with a random uuid
   commUUID <- U.random
   val <- newIORef ""
+  des <- newIORef ""
+  plc <- newIORef ""
 
   let b = HTMLWidget
-        { uuid = commUUID
-        , value = val
-        }
+            { uuid = commUUID
+            , value = val
+            , description = des
+            , placeholder = plc
+            }
 
   let initData = object [ "model_name" .= str "WidgetModel"
                         , "widget_class" .= str "IPython.HTML"
@@ -72,9 +82,29 @@ setHTMLValue b txt = do
   modify b value txt
   update b ["value" .= txt]
 
+-- | Set the HTML description
+setHTMLDescription :: HTMLWidget -> String -> IO ()
+setHTMLDescription b txt = do
+  modify b description txt
+  update b ["description" .= txt]
+
+-- | Set the HTML placeholder, i.e. text displayed in empty widget
+setHTMLPlaceholder :: HTMLWidget -> String -> IO ()
+setHTMLPlaceholder b txt = do
+  modify b placeholder txt
+  update b ["placeholder" .= txt]
+
 -- | Get the HTML string value.
 getHTMLValue :: HTMLWidget -> IO String
 getHTMLValue = readIORef . value
+
+-- | Get the HTML description value.
+getHTMLDescription :: HTMLWidget -> IO String
+getHTMLDescription = readIORef . description
+
+-- | Get the HTML placeholder value.
+getHTMLPlaceholder :: HTMLWidget -> IO String
+getHTMLPlaceholder = readIORef . placeholder
 
 instance ToJSON HTMLWidget where
   toJSON b = object

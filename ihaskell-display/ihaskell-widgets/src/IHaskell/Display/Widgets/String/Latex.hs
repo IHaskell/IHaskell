@@ -7,9 +7,13 @@ module IHaskell.Display.Widgets.String.Latex (
     mkLatexWidget,
     -- * Set properties
     setLatexValue,
+    setLatexPlaceholder,
+    setLatexDescription,
     setLatexWidth,
     -- * Get properties
     getLatexValue,
+    getLatexPlaceholder,
+    getLatexDescription,
     getLatexWidth,
     ) where
 
@@ -35,6 +39,8 @@ data LatexWidget =
        LatexWidget
          { uuid :: U.UUID
          , value :: IORef String
+         , description :: IORef String
+         , placeholder :: IORef String
          , width :: IORef Int
          }
 
@@ -44,11 +50,15 @@ mkLatexWidget = do
   -- Default properties, with a random uuid
   commUUID <- U.random
   val <- newIORef ""
+  des <- newIORef ""
+  plc <- newIORef ""
   width <- newIORef 400
 
   let b = LatexWidget
         { uuid = commUUID
         , value = val
+        , description = des
+        , placeholder = plc
         , width = width
         }
 
@@ -77,6 +87,18 @@ setLatexValue b txt = do
   modify b value txt
   update b ["value" .= txt]
 
+-- | Set the Latex description
+setLatexDescription :: LatexWidget -> String -> IO ()
+setLatexDescription b txt = do
+  modify b description txt
+  update b ["description" .= txt]
+
+-- | Set the Latex placeholder, i.e. text displayed in empty widget
+setLatexPlaceholder :: LatexWidget -> String -> IO ()
+setLatexPlaceholder b txt = do
+  modify b placeholder txt
+  update b ["placeholder" .= txt]
+
 -- | Set the Latex widget width.
 setLatexWidth :: LatexWidget -> Int -> IO ()
 setLatexWidth b wid = do
@@ -86,6 +108,14 @@ setLatexWidth b wid = do
 -- | Get the Latex string value.
 getLatexValue :: LatexWidget -> IO String
 getLatexValue = readIORef . value
+
+-- | Get the Latex description value.
+getLatexDescription :: LatexWidget -> IO String
+getLatexDescription = readIORef . description
+
+-- | Get the Latex placeholder value.
+getLatexPlaceholder :: LatexWidget -> IO String
+getLatexPlaceholder = readIORef . placeholder
 
 -- | Get the Latex widget width.
 getLatexWidth :: LatexWidget -> IO Int

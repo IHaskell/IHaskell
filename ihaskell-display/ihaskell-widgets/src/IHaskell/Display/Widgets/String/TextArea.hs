@@ -1,18 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module IHaskell.Display.Widgets.String.Text (
-    -- * The Text Widget
-    TextWidget,
+module IHaskell.Display.Widgets.String.TextArea (
+    -- * The TextArea Widget
+    TextAreaWidget,
     -- * Constructor
-    mkTextWidget,
+    mkTextAreaWidget,
     -- * Set properties
-    setTextValue,
-    setTextDescription,
-    setTextPlaceholder,
+    setTextAreaValue,
+    setTextAreaDescription,
+    setTextAreaPlaceholder,
     -- * Get properties
-    getTextValue,
-    getTextDescription,
-    getTextPlaceholder,
+    getTextAreaValue,
+    getTextAreaDescription,
+    getTextAreaPlaceholder,
     ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -33,24 +33,24 @@ import qualified IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Common (ButtonStyle (..))
 
-data TextWidget =
-       TextWidget
+data TextAreaWidget =
+       TextAreaWidget
          { uuid :: U.UUID
          , value :: IORef String
          , description :: IORef String
          , placeholder :: IORef String
          }
 
--- | Create a new Text widget
-mkTextWidget :: IO TextWidget
-mkTextWidget = do
+-- | Create a new TextArea widget
+mkTextAreaWidget :: IO TextAreaWidget
+mkTextAreaWidget = do
   -- Default properties, with a random uuid
   commUUID <- U.random
   val <- newIORef ""
   des <- newIORef ""
   plc <- newIORef ""
 
-  let b = TextWidget
+  let b = TextAreaWidget
             { uuid = commUUID
             , value = val
             , description = des
@@ -58,7 +58,7 @@ mkTextWidget = do
             }
 
   let initData = object [ "model_name" .= str "WidgetModel"
-                        , "widget_class" .= str "IPython.Text"
+                        , "widget_class" .= str "IPython.Textarea"
                         ]
 
   -- Open a comm for this widget, and store it in the kernel state
@@ -69,46 +69,46 @@ mkTextWidget = do
 
 -- | Send an update msg for a widget, with custom json. Make it easy to update fragments of the
 -- state, by accepting a Pair instead of a Value.
-update :: TextWidget -> [Pair] -> IO ()
+update :: TextAreaWidget -> [Pair] -> IO ()
 update b v = widgetSendUpdate b . toJSON . object $ v
 
 -- | Modify attributes stored inside the widget as IORefs
-modify :: TextWidget -> (TextWidget -> IORef a) -> a -> IO ()
+modify :: TextAreaWidget -> (TextAreaWidget -> IORef a) -> a -> IO ()
 modify b attr val = writeIORef (attr b) val
 
--- | Set the Text string value.
-setTextValue :: TextWidget -> String -> IO ()
-setTextValue b txt = do
+-- | Set the TextArea string value.
+setTextAreaValue :: TextAreaWidget -> String -> IO ()
+setTextAreaValue b txt = do
   modify b value txt
   update b ["value" .= txt]
 
--- | Set the text widget "description"
-setTextDescription :: TextWidget -> String -> IO ()
-setTextDescription b txt = do
+-- | Set the TextArea widget "description"
+setTextAreaDescription :: TextAreaWidget -> String -> IO ()
+setTextAreaDescription b txt = do
   modify b description txt
   update b ["description" .= txt]
 
--- | Set the text widget "placeholder", i.e. text displayed in empty text widget
-setTextPlaceholder :: TextWidget -> String -> IO ()
-setTextPlaceholder b txt = do
+-- | Set the TextArea widget "placeholder", i.e. text displayed in empty widget
+setTextAreaPlaceholder :: TextAreaWidget -> String -> IO ()
+setTextAreaPlaceholder b txt = do
   modify b placeholder txt
   update b ["placeholder" .= txt]
 
--- | Get the Text string value.
-getTextValue :: TextWidget -> IO String
-getTextValue = readIORef . value
+-- | Get the TextArea string value.
+getTextAreaValue :: TextAreaWidget -> IO String
+getTextAreaValue = readIORef . value
 
--- | Get the Text widget "description" value.
-getTextDescription :: TextWidget -> IO String
-getTextDescription = readIORef . description
+-- | Get the TextArea widget "description" value.
+getTextAreaDescription :: TextAreaWidget -> IO String
+getTextAreaDescription = readIORef . description
 
--- | Get the Text widget placeholder value.
-getTextPlaceholder :: TextWidget -> IO String
-getTextPlaceholder = readIORef . placeholder
+-- | Get the TextArea widget placeholder value.
+getTextAreaPlaceholder :: TextAreaWidget -> IO String
+getTextAreaPlaceholder = readIORef . placeholder
 
-instance ToJSON TextWidget where
+instance ToJSON TextAreaWidget where
   toJSON b = object
-               [ "_view_name" .= str "TextView"
+               [ "_view_name" .= str "TextareaView"
                , "visible" .= True
                , "_css" .= object []
                , "msg_throttle" .= (3 :: Int)
@@ -119,12 +119,12 @@ instance ToJSON TextWidget where
     where
       get x y = unsafePerformIO . readIORef . x $ y
 
-instance IHaskellDisplay TextWidget where
+instance IHaskellDisplay TextAreaWidget where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget TextWidget where
+instance IHaskellWidget TextAreaWidget where
   getCommUUID = uuid
 
 str :: String -> String
