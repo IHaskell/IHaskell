@@ -36,9 +36,9 @@ import           IHaskell.Display.Widgets.Common (ButtonStyle (..))
 data HTMLWidget =
        HTMLWidget
          { uuid :: U.UUID
-         , value :: IORef String
-         , description :: IORef String
-         , placeholder :: IORef String
+         , value :: IORef Text
+         , description :: IORef Text
+         , placeholder :: IORef Text
          }
 
 -- | Create a new HTML widget
@@ -77,33 +77,33 @@ modify :: HTMLWidget -> (HTMLWidget -> IORef a) -> a -> IO ()
 modify b attr val = writeIORef (attr b) val
 
 -- | Set the HTML string value.
-setHTMLValue :: HTMLWidget -> String -> IO ()
+setHTMLValue :: HTMLWidget -> Text -> IO ()
 setHTMLValue b txt = do
   modify b value txt
   update b ["value" .= txt]
 
 -- | Set the HTML description
-setHTMLDescription :: HTMLWidget -> String -> IO ()
+setHTMLDescription :: HTMLWidget -> Text -> IO ()
 setHTMLDescription b txt = do
   modify b description txt
   update b ["description" .= txt]
 
 -- | Set the HTML placeholder, i.e. text displayed in empty widget
-setHTMLPlaceholder :: HTMLWidget -> String -> IO ()
+setHTMLPlaceholder :: HTMLWidget -> Text -> IO ()
 setHTMLPlaceholder b txt = do
   modify b placeholder txt
   update b ["placeholder" .= txt]
 
 -- | Get the HTML string value.
-getHTMLValue :: HTMLWidget -> IO String
+getHTMLValue :: HTMLWidget -> IO Text
 getHTMLValue = readIORef . value
 
 -- | Get the HTML description value.
-getHTMLDescription :: HTMLWidget -> IO String
+getHTMLDescription :: HTMLWidget -> IO Text
 getHTMLDescription = readIORef . description
 
 -- | Get the HTML placeholder value.
-getHTMLPlaceholder :: HTMLWidget -> IO String
+getHTMLPlaceholder :: HTMLWidget -> IO Text
 getHTMLPlaceholder = readIORef . placeholder
 
 instance ToJSON HTMLWidget where

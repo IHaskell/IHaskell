@@ -38,9 +38,9 @@ import           IHaskell.Display.Widgets.Common (ButtonStyle (..))
 data LatexWidget =
        LatexWidget
          { uuid :: U.UUID
-         , value :: IORef String
-         , description :: IORef String
-         , placeholder :: IORef String
+         , value :: IORef Text
+         , description :: IORef Text
+         , placeholder :: IORef Text
          , width :: IORef Int
          }
 
@@ -82,19 +82,19 @@ modify :: LatexWidget -> (LatexWidget -> IORef a) -> a -> IO ()
 modify b attr val = writeIORef (attr b) val
 
 -- | Set the Latex string value.
-setLatexValue :: LatexWidget -> String -> IO ()
+setLatexValue :: LatexWidget -> Text -> IO ()
 setLatexValue b txt = do
   modify b value txt
   update b ["value" .= txt]
 
 -- | Set the Latex description
-setLatexDescription :: LatexWidget -> String -> IO ()
+setLatexDescription :: LatexWidget -> Text -> IO ()
 setLatexDescription b txt = do
   modify b description txt
   update b ["description" .= txt]
 
 -- | Set the Latex placeholder, i.e. text displayed in empty widget
-setLatexPlaceholder :: LatexWidget -> String -> IO ()
+setLatexPlaceholder :: LatexWidget -> Text -> IO ()
 setLatexPlaceholder b txt = do
   modify b placeholder txt
   update b ["placeholder" .= txt]
@@ -106,15 +106,15 @@ setLatexWidth b wid = do
   update b ["width" .= wid]
 
 -- | Get the Latex string value.
-getLatexValue :: LatexWidget -> IO String
+getLatexValue :: LatexWidget -> IO Text
 getLatexValue = readIORef . value
 
 -- | Get the Latex description value.
-getLatexDescription :: LatexWidget -> IO String
+getLatexDescription :: LatexWidget -> IO Text
 getLatexDescription = readIORef . description
 
 -- | Get the Latex placeholder value.
-getLatexPlaceholder :: LatexWidget -> IO String
+getLatexPlaceholder :: LatexWidget -> IO Text
 getLatexPlaceholder = readIORef . placeholder
 
 -- | Get the Latex widget width.

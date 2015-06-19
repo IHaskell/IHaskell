@@ -36,9 +36,9 @@ import           IHaskell.Display.Widgets.Common (ButtonStyle (..))
 data TextAreaWidget =
        TextAreaWidget
          { uuid :: U.UUID
-         , value :: IORef String
-         , description :: IORef String
-         , placeholder :: IORef String
+         , value :: IORef Text
+         , description :: IORef Text
+         , placeholder :: IORef Text
          }
 
 -- | Create a new TextArea widget
@@ -77,33 +77,33 @@ modify :: TextAreaWidget -> (TextAreaWidget -> IORef a) -> a -> IO ()
 modify b attr val = writeIORef (attr b) val
 
 -- | Set the TextArea string value.
-setTextAreaValue :: TextAreaWidget -> String -> IO ()
+setTextAreaValue :: TextAreaWidget -> Text -> IO ()
 setTextAreaValue b txt = do
   modify b value txt
   update b ["value" .= txt]
 
 -- | Set the TextArea widget "description"
-setTextAreaDescription :: TextAreaWidget -> String -> IO ()
+setTextAreaDescription :: TextAreaWidget -> Text -> IO ()
 setTextAreaDescription b txt = do
   modify b description txt
   update b ["description" .= txt]
 
 -- | Set the TextArea widget "placeholder", i.e. text displayed in empty widget
-setTextAreaPlaceholder :: TextAreaWidget -> String -> IO ()
+setTextAreaPlaceholder :: TextAreaWidget -> Text -> IO ()
 setTextAreaPlaceholder b txt = do
   modify b placeholder txt
   update b ["placeholder" .= txt]
 
 -- | Get the TextArea string value.
-getTextAreaValue :: TextAreaWidget -> IO String
+getTextAreaValue :: TextAreaWidget -> IO Text
 getTextAreaValue = readIORef . value
 
 -- | Get the TextArea widget "description" value.
-getTextAreaDescription :: TextAreaWidget -> IO String
+getTextAreaDescription :: TextAreaWidget -> IO Text
 getTextAreaDescription = readIORef . description
 
 -- | Get the TextArea widget placeholder value.
-getTextAreaPlaceholder :: TextAreaWidget -> IO String
+getTextAreaPlaceholder :: TextAreaWidget -> IO Text
 getTextAreaPlaceholder = readIORef . placeholder
 
 instance ToJSON TextAreaWidget where
