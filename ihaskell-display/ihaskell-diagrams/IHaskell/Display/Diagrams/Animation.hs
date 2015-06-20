@@ -48,8 +48,8 @@ animationData renderable = do
   mainRender (diagOpts, gifOpts) frameSet
 
   -- Convert to ascii represented base64 encoding
-  imgData <- readFile filename
-  return . T.unpack . base64 . CBS.pack $ imgData
+  imgData <- CBS.readFile filename
+  return . T.unpack . base64 $ imgData
 
 -- Rendering hint.
 animation :: Animation Cairo V2 Double -> Animation Cairo V2 Double
