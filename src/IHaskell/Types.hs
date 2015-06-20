@@ -182,6 +182,7 @@ data LintStatus = LintOn
                 | LintOff
   deriving (Eq, Show)
 
+-- | Send JSON objects with specific formats
 data WidgetMsg = Open Widget Value Value
                |
                -- ^ Cause the interpreter to open a new comm, and register the associated widget in
@@ -197,16 +198,24 @@ data WidgetMsg = Open Widget Value Value
                -- ^ Cause the interpreter to send a comm_msg containing a display command for the
                -- frontend.
                 Close Widget Value
-  -- ^ Cause the interpreter to close the comm associated with the widget. Also sends data with
-  -- comm_close.
+               |
+               -- ^ Cause the interpreter to close the comm associated with the widget. Also sends
+               -- data with comm_close.
+                Custom Widget Value
+               |
+               -- ^ A [method .= custom, content = value] message
+                JSONValue Widget Value
+  -- ^ A json object that is sent to the widget without modifications.
   deriving (Show, Typeable)
 
 data WidgetMethod = UpdateState Value
+                  | CustomContent Value
                   | DisplayWidget
 
 instance ToJSON WidgetMethod where
   toJSON DisplayWidget = object ["method" .= "display"]
   toJSON (UpdateState v) = object ["method" .= "update", "state" .= v]
+  toJSON (CustomContent v) = object ["method" .= "custom", "content" .= v]
 
 -- | Output of evaluation.
 data EvaluationResult =

@@ -1,8 +1,10 @@
 module IHaskell.Eval.Widgets (
     widgetSendOpen,
-    widgetSendUpdate,
     widgetSendView,
+    widgetSendUpdate,
+    widgetSendCustom,
     widgetSendClose,
+    widgetSendValue,
     relayWidgetMessages,
     widgetHandler,
     ) where
@@ -62,6 +64,14 @@ widgetSendView = queue . View . Widget
 widgetSendClose :: IHaskellWidget a => a -> Value -> IO ()
 widgetSendClose = widgetSend Close
 
+-- | Send a [method .= custom, content .= value] comm_msg
+widgetSendCustom :: IHaskellWidget a => a -> Value -> IO ()
+widgetSendCustom = widgetSend Custom
+
+-- | Send a custom Value
+widgetSendValue :: IHaskellWidget a => a -> Value -> IO ()
+widgetSendValue widget = queue . JSONValue (Widget widget)
+
 -- | Handle a single widget message. Takes necessary actions according to the message type, such as
 -- opening comms, storing and updating widget representation in the kernel state etc.
 handleMessage :: (Message -> IO ())
@@ -70,8 +80,6 @@ handleMessage :: (Message -> IO ())
               -> WidgetMsg
               -> IO KernelState
 handleMessage send replyHeader state msg = do
-  let oldComms = openComms state
-
   case msg of
     Open widget initVal stateVal -> do
       let target = targetName widget
@@ -118,24 +126,24 @@ handleMessage send replyHeader state msg = do
           return newState
         else return state
 
-    View widget -> do
-      let uuid = getCommUUID widget
-          present = isJust $ Map.lookup uuid oldComms
+    View widget -> sendMessage widget (toJSON DisplayWidget)
 
-      -- If the widget is present, we send a display message on it's comm.
-      when present $ do
-        header <- dupHeader replyHeader CommDataMessage
-        send . CommData header uuid $ toJSON DisplayWidget
-      return state
+    Update widget value -> sendMessage widget (toJSON $ UpdateState value)
 
-    Update widget value -> do
+    Custom widget value -> sendMessage widget (toJSON $ CustomContent value)
+
+    JSONValue widget value -> sendMessage widget value
+
+  where
+    oldComms = openComms state
+    sendMessage widget value = do
       let uuid = getCommUUID widget
           present = isJust $ Map.lookup uuid oldComms
 
       -- If the widget is present, we send an update message on its comm.
       when present $ do
         header <- dupHeader replyHeader CommDataMessage
-        send . CommData header uuid . toJSON $ UpdateState value
+        send $ CommData header uuid value
       return state
 
 -- Handle messages one-by-one, while updating state simultaneously
