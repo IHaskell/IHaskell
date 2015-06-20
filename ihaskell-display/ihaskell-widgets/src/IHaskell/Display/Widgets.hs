@@ -7,4 +7,4 @@ import           IHaskell.Display.Widgets.String.Latex as X
 import           IHaskell.Display.Widgets.String.Text as X
 import           IHaskell.Display.Widgets.String.TextArea as X
 
-import           IHaskell.Display.Widgets.Common as X (ButtonStyle (..))
+import           IHaskell.Display.Widgets.Common as X (ButtonStyle(..))

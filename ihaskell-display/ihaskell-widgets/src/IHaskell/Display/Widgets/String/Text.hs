@@ -35,7 +35,7 @@ import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import qualified IHaskell.IPython.Message.UUID as U
 
-import           IHaskell.Display.Widgets.Common (ButtonStyle (..))
+import           IHaskell.Display.Widgets.Common (ButtonStyle(..))
 
 data TextWidget =
        TextWidget
@@ -57,16 +57,14 @@ mkTextWidget = do
   sh <- newIORef $ const $ return ()
 
   let b = TextWidget
-            { uuid = commUUID
-            , value = val
-            , description = des
-            , placeholder = plc
-            , submitHandler = sh
-            }
+        { uuid = commUUID
+        , value = val
+        , description = des
+        , placeholder = plc
+        , submitHandler = sh
+        }
 
-  let initData = object [ "model_name" .= str "WidgetModel"
-                        , "widget_class" .= str "IPython.Text"
-                        ]
+  let initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Text"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen b initData (toJSON b)
@@ -147,19 +145,20 @@ instance IHaskellDisplay TextWidget where
 
 instance IHaskellWidget TextWidget where
   getCommUUID = uuid
-  -- Two possibilities:
-  -- 1. content -> event -> "submit"
-  -- 2. sync_data -> value -> <new_value>
+  -- Two possibilities: 1. content -> event -> "submit" 2. sync_data -> value -> <new_value>
   comm tw (Object dict1) _ =
     case Map.lookup "sync_data" dict1 of
-      Just (Object dict2) -> case Map.lookup "value" dict2 of
-        Just (String val) -> setTextValue tw val
-        Nothing -> return ()
-      Nothing -> case Map.lookup "content" dict1 of
-        Just (Object dict2) -> case Map.lookup "event" dict2 of
-          Just (String event) -> when (event == "submit") $ triggerSubmit tw
+      Just (Object dict2) ->
+        case Map.lookup "value" dict2 of
+          Just (String val) -> setTextValue tw val
+          Nothing           -> return ()
+      Nothing ->
+        case Map.lookup "content" dict1 of
+          Just (Object dict2) ->
+            case Map.lookup "event" dict2 of
+              Just (String event) -> when (event == "submit") $ triggerSubmit tw
+              Nothing             -> return ()
           Nothing -> return ()
-        Nothing -> return ()
 
 str :: String -> String
 str = id

@@ -40,7 +40,7 @@ import           IHaskell.Eval.Widgets
 import qualified IHaskell.IPython.Message.UUID as U
 import           IHaskell.Types (WidgetMethod(..))
 
-import           IHaskell.Display.Widgets.Common (ButtonStyle (..))
+import           IHaskell.Display.Widgets.Common (ButtonStyle(..))
 
 -- | A 'Button' represents a Button from IPython.html.widgets.
 data Button =

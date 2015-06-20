@@ -31,7 +31,7 @@ import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import qualified IHaskell.IPython.Message.UUID as U
 
-import           IHaskell.Display.Widgets.Common (ButtonStyle (..))
+import           IHaskell.Display.Widgets.Common (ButtonStyle(..))
 
 data HTMLWidget =
        HTMLWidget
@@ -50,16 +50,9 @@ mkHTMLWidget = do
   des <- newIORef ""
   plc <- newIORef ""
 
-  let b = HTMLWidget
-            { uuid = commUUID
-            , value = val
-            , description = des
-            , placeholder = plc
-            }
+  let b = HTMLWidget { uuid = commUUID, value = val, description = des, placeholder = plc }
 
-  let initData = object [ "model_name" .= str "WidgetModel"
-                        , "widget_class" .= str "IPython.HTML"
-                        ]
+  let initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.HTML"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen b initData (toJSON b)

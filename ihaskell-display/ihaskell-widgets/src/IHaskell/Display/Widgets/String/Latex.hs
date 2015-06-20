@@ -33,7 +33,7 @@ import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import qualified IHaskell.IPython.Message.UUID as U
 
-import           IHaskell.Display.Widgets.Common (ButtonStyle (..))
+import           IHaskell.Display.Widgets.Common (ButtonStyle(..))
 
 data LatexWidget =
        LatexWidget
@@ -62,9 +62,7 @@ mkLatexWidget = do
         , width = width
         }
 
-  let initData = object [ "model_name" .= str "WidgetModel"
-                        , "widget_class" .= str "IPython.Latex"
-                        ]
+  let initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Latex"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen b initData (toJSON b)

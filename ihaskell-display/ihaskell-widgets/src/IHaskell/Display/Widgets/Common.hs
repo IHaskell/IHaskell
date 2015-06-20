@@ -1,11 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module IHaskell.Display.Widgets.Common (
-    -- * Predefined button styles
-    ButtonStyle(..),
-    ) where
+-- * Predefined button styles
+ButtonStyle(..)) where
 
-import Data.Aeson (ToJSON (..))
+import           Data.Aeson (ToJSON(..))
 
 -- | Pre-defined button-styles
 data ButtonStyle = Primary
