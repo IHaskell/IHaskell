@@ -50,8 +50,9 @@ data ImageWidget =
 newtype ImageInt = ImageInt { unwrap :: Int }
 
 instance ToJSON ImageInt where
-  toJSON (ImageInt n) | n > 0 = toJSON $ str $ show n
-                      | otherwise = toJSON $ str $ ""
+  toJSON (ImageInt n)
+    | n > 0 = toJSON $ str $ show n
+    | otherwise = toJSON $ str $ ""
 
 -- | Create a new image widget
 mkImageWidget :: IO ImageWidget
@@ -64,13 +65,7 @@ mkImageWidget = do
   val <- newIORef ""
 
   let initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Image"]
-      b = ImageWidget
-        { uuid = commUUID
-        , format = fmt
-        , height = hgt
-        , width = wdt
-        , b64value = val
-        }
+      b = ImageWidget { uuid = commUUID, format = fmt, height = hgt, width = wdt, b64value = val }
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen b initData (toJSON b)

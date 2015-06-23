@@ -1,11 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module IHaskell.Display.Widgets.Common (
-    -- * Predefined button styles
-    ButtonStyle(..),
-    -- * Image formats
-    ImageFormat(..),
-    ) where
+module IHaskell.Display.Widgets.Common (ButtonStyle(..), ImageFormat(..)) where
 
 import           Data.Aeson (ToJSON(..))
 import qualified Data.Text as T
@@ -28,7 +23,9 @@ instance ToJSON ButtonStyle where
   toJSON None = ""
 
 -- | Image formats for ImageWidget
-data ImageFormat = PNG | SVG | JPG
+data ImageFormat = PNG
+                 | SVG
+                 | JPG
   deriving Eq
 
 instance Show ImageFormat where
