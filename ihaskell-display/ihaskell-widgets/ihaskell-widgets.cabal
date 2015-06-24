@@ -55,6 +55,7 @@ library
   
   -- Modules included in this library but not exported.
   other-modules:       IHaskell.Display.Widgets.Button
+                       IHaskell.Display.Widgets.Image
                        IHaskell.Display.Widgets.String.HTML
                        IHaskell.Display.Widgets.String.Latex
                        IHaskell.Display.Widgets.String.Text
