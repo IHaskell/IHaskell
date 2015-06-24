@@ -7,7 +7,7 @@ name:                ihaskell-juicypixels
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.2.2.0
+version:             0.3.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            IHaskell - IHaskellDisplay instances of the image types of the JuicyPixels package.

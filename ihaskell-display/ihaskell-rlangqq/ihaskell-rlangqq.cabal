@@ -19,7 +19,7 @@ library
                        bytestring >=0.10 && <0.11,
                        base64-bytestring >=1.0 && <1.1,
                        ihaskell >= 0.6.2,
-                       ihaskell-blaze >=0.2 && <0.3,
+                       ihaskell-blaze >=0.3 && <0.4,
                        blaze-html >=0.6 && <0.9,
                        split >=0.2 && <0.3,
                        stm   -any,
