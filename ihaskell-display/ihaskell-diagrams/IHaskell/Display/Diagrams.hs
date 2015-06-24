@@ -3,7 +3,7 @@
 module IHaskell.Display.Diagrams (diagram, animation) where
 
 import           System.Directory
-import qualified Data.ByteString.Char8 as Char
+import qualified Data.ByteString.Lazy.Char8 as Char
 import           System.IO.Unsafe
 
 import           Diagrams.Prelude
@@ -34,11 +34,11 @@ diagramData renderable format = do
   renderCairo filename (mkSizeSpec2D (Just imgWidth) (Just imgHeight)) renderable
 
   -- Convert to base64.
-  imgData <- readFile filename
+  imgData <- Char.readFile filename
   let value =
         case format of
-          PNG -> png (floor imgWidth) (floor imgHeight) $ base64 (Char.pack imgData)
-          SVG -> svg imgData
+          PNG -> png (floor imgWidth) (floor imgHeight) $ base64 (Char.toStrict imgData)
+          SVG -> svg (Char.unpack imgData)
 
   return value
 
