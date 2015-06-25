@@ -40,7 +40,7 @@ import           IHaskell.Eval.Widgets
 import qualified IHaskell.IPython.Message.UUID as U
 import           IHaskell.Types (WidgetMethod(..))
 
-import           IHaskell.Display.Widgets.Common (ButtonStyle(..))
+import           IHaskell.Display.Widgets.Common
 
 -- | A 'Button' represents a Button from IPython.html.widgets.
 data Button =
@@ -78,15 +78,6 @@ mkButton = do
 
   -- Return the button widget
   return b
-
--- | Send an update msg for a button, with custom json. Make it easy to update fragments of the
--- state, by accepting a Pair instead of a Value.
-update :: Button -> [Pair] -> IO ()
-update b v = widgetSendUpdate b . toJSON . object $ v
-
--- | Modify attributes of a button, stored inside it as IORefs
-modify :: Button -> (Button -> IORef a) -> a -> IO ()
-modify b attr val = writeIORef (attr b) val
 
 -- | Set the button style
 setButtonStyle :: Button -> ButtonStyle -> IO ()
@@ -191,6 +182,3 @@ instance IHaskellWidget Button where
         Just (Object dict2) = Map.lookup key1 dict1
         Just (String event) = Map.lookup key2 dict2
     when (event == "click") $ triggerClick widget
-
-str :: String -> String
-str = id

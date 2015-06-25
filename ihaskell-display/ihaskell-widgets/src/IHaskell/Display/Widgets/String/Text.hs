@@ -35,7 +35,7 @@ import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import qualified IHaskell.IPython.Message.UUID as U
 
-import           IHaskell.Display.Widgets.Common (ButtonStyle(..))
+import           IHaskell.Display.Widgets.Common
 
 data TextWidget =
        TextWidget
@@ -72,15 +72,6 @@ mkTextWidget = do
   -- Return the string widget
   return b
 
--- | Send an update msg for a widget, with custom json. Make it easy to update fragments of the
--- state, by accepting a Pair instead of a Value.
-update :: TextWidget -> [Pair] -> IO ()
-update b v = widgetSendUpdate b . toJSON . object $ v
-
--- | Modify attributes stored inside the widget as IORefs
-modify :: TextWidget -> (TextWidget -> IORef a) -> a -> IO ()
-modify b attr val = writeIORef (attr b) val
-
 -- | Set the Text string value.
 setTextValue :: TextWidget -> Text -> IO ()
 setTextValue b txt = do
@@ -115,7 +106,7 @@ getTextPlaceholder = readIORef . placeholder
 setSubmitHandler :: TextWidget -> (TextWidget -> IO ()) -> IO ()
 setSubmitHandler = writeIORef . submitHandler
 
--- | Get the click handler for a button
+-- | Get the submit handler for a TextWidget
 getSubmitHandler :: TextWidget -> IO (TextWidget -> IO ())
 getSubmitHandler = readIORef . submitHandler
 
@@ -159,6 +150,3 @@ instance IHaskellWidget TextWidget where
               Just (String event) -> when (event == "submit") $ triggerSubmit tw
               Nothing             -> return ()
           Nothing -> return ()
-
-str :: String -> String
-str = id

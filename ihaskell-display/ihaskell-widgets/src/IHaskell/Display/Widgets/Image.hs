@@ -42,17 +42,10 @@ data ImageWidget =
        ImageWidget
          { uuid :: U.UUID
          , format :: IORef ImageFormat
-         , height :: IORef ImageInt
-         , width :: IORef ImageInt
+         , height :: IORef PosInt
+         , width :: IORef PosInt
          , b64value :: IORef Base64
          }
-
-newtype ImageInt = ImageInt { unwrap :: Int }
-
-instance ToJSON ImageInt where
-  toJSON (ImageInt n)
-    | n > 0 = toJSON $ str $ show n
-    | otherwise = toJSON $ str $ ""
 
 -- | Create a new image widget
 mkImageWidget :: IO ImageWidget
@@ -60,8 +53,8 @@ mkImageWidget = do
   -- Default properties, with a random uuid
   commUUID <- U.random
   fmt <- newIORef PNG
-  hgt <- newIORef (ImageInt 0)
-  wdt <- newIORef (ImageInt 0)
+  hgt <- newIORef (PosInt 0)
+  wdt <- newIORef (PosInt 0)
   val <- newIORef ""
 
   let initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Image"]
@@ -72,15 +65,6 @@ mkImageWidget = do
 
   -- Return the image widget
   return b
-
--- | Send an update msg for a image, with custom json. Make it easy to update fragments of the
--- state, by accepting a Pair instead of a Value.
-update :: ImageWidget -> [Pair] -> IO ()
-update b v = widgetSendUpdate b . toJSON . object $ v
-
--- | Modify attributes of a image, stored inside it as IORefs
-modify :: ImageWidget -> (ImageWidget -> IORef a) -> a -> IO ()
-modify b attr val = writeIORef (attr b) val
 
 -- | Set the image style
 setImageFormat :: ImageWidget -> ImageFormat -> IO ()
@@ -97,14 +81,14 @@ setImageB64Value b val = do
 -- | Set the image width
 setImageWidth :: ImageWidget -> Int -> IO ()
 setImageWidth b wdt = do
-  let w = ImageInt wdt
+  let w = PosInt wdt
   modify b width w
   update b ["width" .= w]
 
 -- | Set the image height
 setImageHeight :: ImageWidget -> Int -> IO ()
 setImageHeight b hgt = do
-  let h = ImageInt hgt
+  let h = PosInt hgt
   modify b height h
   update b ["height" .= h]
 
@@ -160,6 +144,3 @@ instance IHaskellDisplay ImageWidget where
 
 instance IHaskellWidget ImageWidget where
   getCommUUID = uuid
-
-str :: String -> String
-str = id

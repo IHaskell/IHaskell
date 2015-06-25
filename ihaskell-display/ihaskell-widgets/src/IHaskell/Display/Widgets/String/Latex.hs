@@ -33,7 +33,7 @@ import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import qualified IHaskell.IPython.Message.UUID as U
 
-import           IHaskell.Display.Widgets.Common (ButtonStyle(..))
+import           IHaskell.Display.Widgets.Common
 
 data LatexWidget =
        LatexWidget
@@ -69,15 +69,6 @@ mkLatexWidget = do
 
   -- Return the string widget
   return b
-
--- | Send an update msg for a widget, with custom json. Make it easy to update fragments of the
--- state, by accepting a Pair instead of a Value.
-update :: LatexWidget -> [Pair] -> IO ()
-update b v = widgetSendUpdate b . toJSON . object $ v
-
--- | Modify attributes stored inside the widget as IORefs
-modify :: LatexWidget -> (LatexWidget -> IORef a) -> a -> IO ()
-modify b attr val = writeIORef (attr b) val
 
 -- | Set the Latex string value.
 setLatexValue :: LatexWidget -> Text -> IO ()
@@ -137,6 +128,3 @@ instance IHaskellDisplay LatexWidget where
 
 instance IHaskellWidget LatexWidget where
   getCommUUID = uuid
-
-str :: String -> String
-str = id

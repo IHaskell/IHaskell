@@ -31,7 +31,7 @@ import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import qualified IHaskell.IPython.Message.UUID as U
 
-import           IHaskell.Display.Widgets.Common (ButtonStyle(..))
+import           IHaskell.Display.Widgets.Common
 
 data TextAreaWidget =
        TextAreaWidget
@@ -60,15 +60,6 @@ mkTextAreaWidget = do
 
   -- Return the string widget
   return b
-
--- | Send an update msg for a widget, with custom json. Make it easy to update fragments of the
--- state, by accepting a Pair instead of a Value.
-update :: TextAreaWidget -> [Pair] -> IO ()
-update b v = widgetSendUpdate b . toJSON . object $ v
-
--- | Modify attributes stored inside the widget as IORefs
-modify :: TextAreaWidget -> (TextAreaWidget -> IORef a) -> a -> IO ()
-modify b attr val = writeIORef (attr b) val
 
 -- | Set the TextArea string value.
 setTextAreaValue :: TextAreaWidget -> Text -> IO ()
@@ -120,6 +111,3 @@ instance IHaskellDisplay TextAreaWidget where
 
 instance IHaskellWidget TextAreaWidget where
   getCommUUID = uuid
-
-str :: String -> String
-str = id
