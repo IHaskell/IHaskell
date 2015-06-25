@@ -12,7 +12,10 @@ module IHaskell.Display.Widgets.Output (
     modifyOutputWidth,
     modifyOutputWidth_,
     -- * Output to widget
-    setOutput,
+    appendOutput,
+    clearOutput,
+    clearOutput_,
+    replaceOutput,
     ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -72,12 +75,30 @@ modifyOutputWidth widget modifier = getOutputWidth widget >>= modifier >>= setOu
 
 -- | Modify the output widget width (with pure modifier)
 modifyOutputWidth_ :: OutputWidget -> (Int -> Int) -> IO ()
-modifyOutputWidth_ widget modifier = getOutputWidth widget >>= setOutputWidth widget . modifier
+modifyOutputWidth_ widget modifier = do
+  w <- getOutputWidth widget
+  let newWidth = modifier w
+  setOutputWidth widget newWidth
 
-setOutput :: IHaskellDisplay a => OutputWidget -> a -> IO ()
-setOutput widget out = do
+-- | Append to the output widget
+appendOutput :: IHaskellDisplay a => OutputWidget -> a -> IO ()
+appendOutput widget out = do
   disp <- display out
   widgetPublishDisplay widget disp
+
+-- | Clear the output widget immediately
+clearOutput :: OutputWidget -> IO ()
+clearOutput widget = widgetClearOutput widget False
+
+-- | Clear the output widget on next append
+clearOutput_ :: OutputWidget -> IO ()
+clearOutput_ widget = widgetClearOutput widget True
+
+-- | Replace the currently displayed output for output widget
+replaceOutput :: IHaskellDisplay a => OutputWidget -> a -> IO ()
+replaceOutput widget d = do
+  clearOutput_ widget
+  appendOutput widget d
 
 instance ToJSON OutputWidget where
   toJSON b = object
