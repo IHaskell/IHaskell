@@ -205,7 +205,10 @@ data WidgetMsg = Open Widget Value Value
                |
                -- ^ A [method .= custom, content = value] message
                 JSONValue Widget Value
-  -- ^ A json object that is sent to the widget without modifications.
+               |
+               -- ^ A json object that is sent to the widget without modifications.
+                DispMsg Widget Display
+  -- ^ A 'display_data' message, sent as a [method .= custom] comm_msg
   deriving (Show, Typeable)
 
 data WidgetMethod = UpdateState Value

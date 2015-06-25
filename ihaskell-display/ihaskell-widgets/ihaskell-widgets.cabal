@@ -60,6 +60,8 @@ library
                        IHaskell.Display.Widgets.String.Latex
                        IHaskell.Display.Widgets.String.Text
                        IHaskell.Display.Widgets.String.TextArea
+                       IHaskell.Display.Widgets.Output
+
                        IHaskell.Display.Widgets.Common
   
   -- LANGUAGE extensions used by modules in this package.
