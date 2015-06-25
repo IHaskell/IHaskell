@@ -21,6 +21,9 @@ module IHaskell.Eval.Util (
     doc,
     pprDynFlags,
     pprLanguages,
+
+    -- * Monad-loops
+    unfoldM,
     ) where
 
 import           IHaskellPrelude
@@ -337,6 +340,12 @@ getType expr = do
   flags <- getSessionDynFlags
   let typeStr = O.showSDocUnqual flags $ O.ppr result
   return typeStr
+
+-- | This is unfoldM from monad-loops. It repeatedly runs an IO action until it return Nothing, and
+-- puts all the Justs in a list. If you find yourself using more functionality from monad-loops,
+-- just add the package dependency instead of copying more code from it.
+unfoldM :: IO (Maybe a) -> IO [a]
+unfoldM f = maybe (return []) (\r -> (r :) <$> unfoldM f) =<< f
 
 -- | A wrapper around @getInfo@. Return info about each name in the string.
 getDescription :: GhcMonad m => String -> m [String]

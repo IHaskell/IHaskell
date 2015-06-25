@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, ScopedTypeVariables, QuasiQuotes #-}
+{-# LANGUAGE CPP, ScopedTypeVariables #-}
 
 -- | Description : Argument parsing and basic messaging loop, using Haskell
 --                 Chans to communicate with the ZeroMQ sockets.
@@ -30,9 +30,11 @@ import           IHaskell.Eval.Inspect (inspect)
 import           IHaskell.Eval.Evaluate
 import           IHaskell.Display
 import           IHaskell.Eval.Info
+import           IHaskell.Eval.Widgets (widgetHandler)
 import           IHaskell.Flags
 import           IHaskell.IPython
 import           IHaskell.Types
+import           IHaskell.Publish
 import           IHaskell.IPython.ZeroMQ
 import           IHaskell.IPython.Types
 import qualified IHaskell.IPython.Message.UUID as UUID
@@ -47,9 +49,6 @@ ghcVersionInts = map (fromJust . readMay) . words . map dotToSpace $ VERSION_ghc
   where
     dotToSpace '.' = ' '
     dotToSpace x = x
-
-ihaskellCSS :: String
-ihaskellCSS = [hereFile|html/custom.css|]
 
 consoleBanner :: Text
 consoleBanner =
@@ -124,11 +123,12 @@ runKernel kernelOpts profileSrc = do
 
     -- Initialize the context by evaluating everything we got from the command line flags.
     let noPublish _ = return ()
+        noWidget s _ = return s
         evaluator line = void $ do
           -- Create a new state each time.
           stateVar <- liftIO initialKernelState
           state <- liftIO $ takeMVar stateVar
-          evaluate state line noPublish
+          evaluate state line noPublish noWidget
 
     confFile <- liftIO $ kernelSpecConfFile kernelOpts
     case confFile of
@@ -145,12 +145,14 @@ runKernel kernelOpts profileSrc = do
       -- We handle comm messages and normal ones separately. The normal ones are a standard
       -- request/response style, while comms can be anything, and don't necessarily require a response.
       if isCommMessage request
-        then liftIO $ do
-          oldState <- takeMVar state
+        then do
+          oldState <- liftIO $ takeMVar state
           let replier = writeChan (iopubChannel interface)
-          newState <- handleComm replier oldState request replyHeader
-          putMVar state newState
-          writeChan (shellReplyChannel interface) SendNothing
+              widgetMessageHandler = widgetHandler replier replyHeader
+          tempState <- handleComm replier oldState request replyHeader
+          newState <- flushWidgetMessages tempState [] widgetMessageHandler
+          liftIO $ putMVar state newState
+          liftIO $ writeChan (shellReplyChannel interface) SendNothing
         else do
           -- Create the reply, possibly modifying kernel state.
           oldState <- liftIO $ takeMVar state
@@ -170,13 +172,6 @@ runKernel kernelOpts profileSrc = do
 -- Initial kernel state.
 initialKernelState :: IO (MVar KernelState)
 initialKernelState = newMVar defaultKernelState
-
--- | Duplicate a message header, giving it a new UUID and message type.
-dupHeader :: MessageHeader -> MessageType -> IO MessageHeader
-dupHeader header messageType = do
-  uuid <- liftIO UUID.random
-
-  return header { messageId = uuid, msgType = messageType }
 
 -- | Create a new message header, given a parent message header.
 createReplyHeader :: MessageHeader -> Interpreter MessageHeader
@@ -239,72 +234,6 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
   displayed <- liftIO $ newMVar []
   updateNeeded <- liftIO $ newMVar False
   pagerOutput <- liftIO $ newMVar []
-  let clearOutput = do
-        header <- dupHeader replyHeader ClearOutputMessage
-        send $ ClearOutput header True
-
-      sendOutput (ManyDisplay manyOuts) = mapM_ sendOutput manyOuts
-      sendOutput (Display outs) = do
-        header <- dupHeader replyHeader DisplayDataMessage
-        send $ PublishDisplayData header "haskell" $ map (convertSvgToHtml . prependCss) outs
-
-      convertSvgToHtml (DisplayData MimeSvg svg) = html $ makeSvgImg $ base64 $ E.encodeUtf8 svg
-      convertSvgToHtml x = x
-
-      makeSvgImg :: Base64 -> String
-      makeSvgImg base64data = T.unpack $ "<img src=\"data:image/svg+xml;base64," <>
-                                         base64data <>
-                                         "\"/>"
-
-      prependCss (DisplayData MimeHtml html) =
-        DisplayData MimeHtml $ mconcat ["<style>", T.pack ihaskellCSS, "</style>", html]
-      prependCss x = x
-
-      startComm :: CommInfo -> IO ()
-      startComm (CommInfo widget uuid target) = do
-        -- Send the actual comm open.
-        header <- dupHeader replyHeader CommOpenMessage
-        send $ CommOpen header target uuid (Object mempty)
-
-        -- Send anything else the widget requires.
-        let communicate value = do
-              head <- dupHeader replyHeader CommDataMessage
-              writeChan (iopubChannel interface) $ CommData head uuid value
-        open widget communicate
-
-      publish :: EvaluationResult -> IO ()
-      publish result = do
-        let final =
-              case result of
-                IntermediateResult{} -> False
-                FinalResult{}        -> True
-            outs = outputs result
-
-        -- If necessary, clear all previous output and redraw.
-        clear <- readMVar updateNeeded
-        when clear $ do
-          clearOutput
-          disps <- readMVar displayed
-          mapM_ sendOutput $ reverse disps
-
-        -- Draw this message.
-        sendOutput outs
-
-        -- If this is the final message, add it to the list of completed messages. If it isn't, make sure we
-        -- clear it later by marking update needed as true.
-        modifyMVar_ updateNeeded (const $ return $ not final)
-        when final $ do
-          modifyMVar_ displayed (return . (outs :))
-
-          -- Start all comms that need to be started.
-          mapM_ startComm $ startComms result
-
-          -- If this has some pager output, store it for later.
-          let pager = pagerOut result
-          unless (null pager) $
-            if usePager state
-              then modifyMVar_ pagerOutput (return . (++ pager))
-              else sendOutput $ Display pager
 
   let execCount = getExecutionCounter state
   -- Let all frontends know the execution count and code that's about to run
@@ -312,7 +241,9 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
   send $ PublishInput inputHeader (T.unpack code) execCount
 
   -- Run code and publish to the frontend as we go.
-  updatedState <- evaluate state (T.unpack code) publish
+  let widgetMessageHandler = widgetHandler send replyHeader
+      publish = publishResult send replyHeader displayed updateNeeded pagerOutput (usePager state)
+  updatedState <- evaluate state (T.unpack code) publish widgetMessageHandler
 
   -- Notify the frontend that we're done computing.
   idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
@@ -362,21 +293,49 @@ replyTo _ HistoryRequest{} replyHeader state = do
         }
   return (state, reply)
 
-handleComm :: (Message -> IO ()) -> KernelState -> Message -> MessageHeader -> IO KernelState
-handleComm replier kernelState req replyHeader = do
+-- | Handle comm messages
+handleComm :: (Message -> IO ()) -> KernelState -> Message -> MessageHeader -> Interpreter KernelState
+handleComm send kernelState req replyHeader = do
+  -- MVars to hold intermediate data during publishing
+  displayed <- liftIO $ newMVar []
+  updateNeeded <- liftIO $ newMVar False
+  pagerOutput <- liftIO $ newMVar []
+
   let widgets = openComms kernelState
       uuid = commUuid req
       dat = commData req
       communicate value = do
         head <- dupHeader replyHeader CommDataMessage
-        replier $ CommData head uuid value
-  case Map.lookup uuid widgets of
-    Nothing -> fail $ "no widget with uuid " ++ show uuid
+        send $ CommData head uuid value
+      toUsePager = usePager kernelState
+
+  -- Create a publisher according to current state, use that to build
+  -- a function that executes an IO action and publishes the output to
+  -- the frontend simultaneously.
+  let run = capturedIO publish kernelState
+      publish = publishResult send replyHeader displayed updateNeeded pagerOutput toUsePager
+
+  -- Notify the frontend that the kernel is busy
+  busyHeader <- liftIO $ dupHeader replyHeader StatusMessage
+  liftIO . send $ PublishStatus busyHeader Busy
+
+  newState <- case Map.lookup uuid widgets of
+    Nothing -> return kernelState
     Just (Widget widget) ->
       case msgType $ header req of
         CommDataMessage -> do
-          comm widget dat communicate
+          disp <- run $ comm widget dat communicate
+          pgrOut <- liftIO $ readMVar pagerOutput
+          liftIO $ publish $ FinalResult disp (if toUsePager then pgrOut else []) []
           return kernelState
         CommCloseMessage -> do
-          close widget dat
+          disp <- run $ close widget dat
+          pgrOut <- liftIO $ readMVar pagerOutput
+          liftIO $ publish $ FinalResult disp (if toUsePager then pgrOut else []) []
           return kernelState { openComms = Map.delete uuid widgets }
+
+  -- Notify the frontend that the kernel is idle once again
+  idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
+  liftIO . send $ PublishStatus idleHeader Idle
+
+  return newState

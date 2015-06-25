@@ -8,11 +8,13 @@ This module exports all functions used for evaluation of IHaskell input.
 module IHaskell.Eval.Evaluate (
     interpret,
     evaluate,
+    flushWidgetMessages,
     Interpreter,
     liftIO,
     typeCleaner,
     globalImports,
     formatType,
+    capturedIO,
     ) where
 
 import           IHaskellPrelude
@@ -82,6 +84,7 @@ import           IHaskell.Eval.Lint
 import           IHaskell.Display
 import qualified IHaskell.Eval.Hoogle as Hoogle
 import           IHaskell.Eval.Util
+import           IHaskell.Eval.Widgets
 import           IHaskell.BrokenPackages
 import qualified IHaskell.IPython.Message.UUID as UUID
 import           StringUtils (replace, split, strip, rstrip)
@@ -133,6 +136,7 @@ globalImports =
   , "import qualified System.Directory as IHaskellDirectory"
   , "import qualified IHaskell.Display"
   , "import qualified IHaskell.IPython.Stdin"
+  , "import qualified IHaskell.Eval.Widgets"
   , "import qualified System.Posix.IO as IHaskellIO"
   , "import qualified System.IO as IHaskellSysIO"
   , "import qualified Language.Haskell.TH as IHaskellTH"
@@ -223,7 +227,7 @@ initializeImports = do
       dropFirstAndLast = reverse . drop 1 . reverse . drop 1
 
       toImportStmt :: String -> String
-      toImportStmt = printf importFmt . concat . map capitalize . dropFirstAndLast . split "-"
+      toImportStmt = printf importFmt . concatMap capitalize . dropFirstAndLast . split "-"
 
       displayImports = map toImportStmt displayPackages
 
@@ -237,7 +241,7 @@ initializeImports = do
 
 -- | Give a value for the `it` variable.
 initializeItVariable :: Interpreter ()
-initializeItVariable = do
+initializeItVariable =
   -- This is required due to the way we handle `it` in the wrapper statements - if it doesn't exist,
   -- the first statement will fail.
   void $ runStmt "let it = ()" RunToCompletion
@@ -253,7 +257,7 @@ data EvalOut =
          , evalResult :: Display
          , evalState :: KernelState
          , evalPager :: String
-         , evalComms :: [CommInfo]
+         , evalMsgs :: [WidgetMsg]
          }
 
 cleanString :: String -> String
@@ -274,9 +278,10 @@ cleanString x = if allBrackets
 -- | Evaluate some IPython input code.
 evaluate :: KernelState                  -- ^ The kernel state.
          -> String                       -- ^ Haskell code or other interpreter commands.
-         -> (EvaluationResult -> IO ())   -- ^ Function used to publish data outputs.
+         -> Publisher                    -- ^ Function used to publish data outputs.
+         -> (KernelState -> [WidgetMsg] -> IO KernelState) -- ^ Function to handle widget messages
          -> Interpreter KernelState
-evaluate kernelState code output = do
+evaluate kernelState code output widgetHandler = do
   cmds <- parseString (cleanString code)
   let execCount = getExecutionCounter kernelState
 
@@ -322,12 +327,15 @@ evaluate kernelState code output = do
           helpStr = evalPager evalOut
 
       -- Output things only if they are non-empty.
-      let empty = noResults result && null helpStr && null (evalComms evalOut)
+      let empty = noResults result && null helpStr
       unless empty $
-        liftIO $ output $ FinalResult result [plain helpStr] (evalComms evalOut)
+        liftIO $ output $ FinalResult result [plain helpStr] []
 
-      -- Make sure to clear all comms we've started.
-      let newState = evalState evalOut { evalComms = [] }
+      let tempMsgs = evalMsgs evalOut
+          tempState = evalState evalOut { evalMsgs = [] }
+
+      -- Handle the widget messages
+      newState <- flushWidgetMessages tempState tempMsgs widgetHandler
 
       case evalStatus evalOut of
         Success -> runUntilFailure newState rest
@@ -335,12 +343,27 @@ evaluate kernelState code output = do
 
     storeItCommand execCount = Statement $ printf "let it%d = it" execCount
 
-    extractValue :: Typeable a => String -> Interpreter a
-    extractValue expr = do
-      compiled <- dynCompileExpr expr
-      case fromDynamic compiled of
-        Nothing     -> error "Error casting types in Evaluate.hs"
-        Just result -> return result
+-- | Compile a string and extract a value from it. Effectively extract the result of an expression
+-- from inside the notebook environment.
+extractValue :: Typeable a => String -> Interpreter a
+extractValue expr = do
+  compiled <- dynCompileExpr expr
+  case fromDynamic compiled of
+    Nothing     -> error "Error casting types in Evaluate.hs"
+    Just result -> return result
+
+flushWidgetMessages :: KernelState
+                    -> [WidgetMsg]
+                    -> (KernelState -> [WidgetMsg] -> IO KernelState)
+                    -> Interpreter KernelState
+flushWidgetMessages state evalMsgs widgetHandler = do
+  -- Capture all widget messages queued during code execution
+  messagesIO <- extractValue "IHaskell.Eval.Widgets.relayWidgetMessages"
+  messages <- liftIO messagesIO
+
+  -- Handle all the widget messages
+  let commMessages = evalMsgs ++ messages
+  liftIO $ widgetHandler state commMessages
 
 safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
 safely state = ghandle handler . ghandle sourceErrorHandler
@@ -353,7 +376,7 @@ safely state = ghandle handler . ghandle sourceErrorHandler
           , evalResult = displayError $ show exception
           , evalState = state
           , evalPager = ""
-          , evalComms = []
+          , evalMsgs = []
           }
 
     sourceErrorHandler :: SourceError -> Interpreter EvalOut
@@ -372,7 +395,7 @@ safely state = ghandle handler . ghandle sourceErrorHandler
           , evalResult = displayError fullErr
           , evalState = state
           , evalPager = ""
-          , evalComms = []
+          , evalMsgs = []
           }
 
 wrapExecution :: KernelState
@@ -386,7 +409,7 @@ wrapExecution state exec = safely state $
         , evalResult = res
         , evalState = state
         , evalPager = ""
-        , evalComms = []
+        , evalMsgs = []
         }
 
 -- | Return the display data for this command, as well as whether it resulted in an error.
@@ -476,11 +499,11 @@ evalCommand output (Directive SetDynFlag flagsStr) state = safely state $ do
                            ]
           , evalState = state
           , evalPager = ""
-          , evalComms = []
+          , evalMsgs = []
           }
     else do
       -- Apply all IHaskell flag updaters to the state to get the new state
-      let state' = (foldl' (.) id (map (fromJust . ihaskellFlagUpdater) ihaskellFlags)) state
+      let state' = foldl' (.) id (map (fromJust . ihaskellFlagUpdater) ihaskellFlags) state
       errs <- setFlags ghcFlags
       let display =
             case errs of
@@ -502,7 +525,7 @@ evalCommand output (Directive SetDynFlag flagsStr) state = safely state $ do
           , evalResult = display
           , evalState = state'
           , evalPager = ""
-          , evalComms = []
+          , evalMsgs = []
           }
 
 evalCommand output (Directive SetExtension opts) state = do
@@ -536,7 +559,7 @@ evalCommand a (Directive SetOption opts) state = do
                 , evalResult = displayError err
                 , evalState = state
                 , evalPager = ""
-                , evalComms = []
+                , evalMsgs = []
                 }
     else let options = mapMaybe findOption $ words opts
              updater = foldl' (.) id $ map getUpdateKernelState options
@@ -546,7 +569,7 @@ evalCommand a (Directive SetOption opts) state = do
                 , evalResult = mempty
                 , evalState = updater state
                 , evalPager = ""
-                , evalComms = []
+                , evalMsgs = []
                 }
 
   where
@@ -680,7 +703,7 @@ evalCommand _ (Directive GetHelp _) state = do
       , evalResult = Display [out]
       , evalState = state
       , evalPager = ""
-      , evalComms = []
+      , evalMsgs = []
       }
 
   where
@@ -729,7 +752,7 @@ evalCommand _ (Directive GetInfo str) state = safely state $ do
       , evalResult = mempty
       , evalState = state
       , evalPager = output
-      , evalComms = []
+      , evalMsgs = []
       }
 
 evalCommand _ (Directive SearchHoogle query) state = safely state $ do
@@ -740,44 +763,8 @@ evalCommand _ (Directive GetDoc query) state = safely state $ do
   results <- liftIO $ Hoogle.document query
   return $ hoogleResults state results
 
-evalCommand output (Statement stmt) state = wrapExecution state $ do
-  write state $ "Statement:\n" ++ stmt
-  let outputter str = output $ IntermediateResult $ Display [plain str]
-  (printed, result) <- capturedStatement outputter stmt
-  case result of
-    RunOk names -> do
-      dflags <- getSessionDynFlags
-
-      let allNames = map (showPpr dflags) names
-          isItName name =
-            name == "it" ||
-            name == "it" ++ show (getExecutionCounter state)
-          nonItNames = filter (not . isItName) allNames
-          output = [plain printed | not . null $ strip printed]
-
-      write state $ "Names: " ++ show allNames
-
-      -- Display the types of all bound names if the option is on. This is similar to GHCi :set +t.
-      if not $ useShowTypes state
-        then return $ Display output
-        else do
-          -- Get all the type strings.
-          types <- forM nonItNames $ \name -> do
-                     theType <- showSDocUnqual dflags . ppr <$> exprType name
-                     return $ name ++ " :: " ++ theType
-
-          let joined = unlines types
-              htmled = unlines $ map formatGetType types
-
-          return $
-            case extractPlain output of
-              "" -> Display [html htmled]
-
-              -- Return plain and html versions. Previously there was only a plain version.
-              text -> Display [plain $ joined ++ "\n" ++ text, html $ htmled ++ mono text]
-
-    RunException exception -> throw exception
-    RunBreak{} -> error "Should not break."
+evalCommand output (Statement stmt) state = wrapExecution state $ evalStatementOrIO output state
+                                                                    (CapturedStmt stmt)
 
 evalCommand output (Expression expr) state = do
   write state $ "Expression:\n" ++ expr
@@ -806,7 +793,7 @@ evalCommand output (Expression expr) state = do
     -- If it typechecks as a DecsQ, we do not want to display the DecsQ, we just want the
     -- declaration made.
     do
-      write state $ "Suppressing display for template haskell declaration"
+      write state "Suppressing display for template haskell declaration"
       GHC.runDecls expr
       return
         EvalOut
@@ -814,31 +801,25 @@ evalCommand output (Expression expr) state = do
           , evalResult = mempty
           , evalState = state
           , evalPager = ""
-          , evalComms = []
+          , evalMsgs = []
           }
-    else do
-      if canRunDisplay
-        then do
-          -- Use the display. As a result, `it` is set to the output.
-          out <- useDisplay displayExpr
+    else if canRunDisplay
+           then 
+           -- Use the display. As a result, `it` is set to the output.
+           useDisplay displayExpr
+           else do
+             -- Evaluate this expression as though it's just a statement. The output is bound to 'it', so we can
+             -- then use it.
+             evalOut <- evalCommand output (Statement expr) state
 
-          -- Register the `it` object as a widget.
-          if isWidget
-            then registerWidget out
-            else return out
-        else do
-          -- Evaluate this expression as though it's just a statement. The output is bound to 'it', so we can
-          -- then use it.
-          evalOut <- evalCommand output (Statement expr) state
+             let out = evalResult evalOut
+                 showErr = isShowError out
 
-          let out = evalResult evalOut
-              showErr = isShowError out
-
-          -- If evaluation failed, return the failure. If it was successful, we may be able to use the
-          -- IHaskellDisplay typeclass.
-          return $ if not showErr || useShowErrors state
-                     then evalOut
-                     else postprocessShowError evalOut
+             -- If evaluation failed, return the failure. If it was successful, we may be able to use the
+             -- IHaskellDisplay typeclass.
+             return $ if not showErr || useShowErrors state
+                        then evalOut
+                        else postprocessShowError evalOut
 
   where
     -- Try to evaluate an action. Return True if it succeeds and False if it throws an exception. The
@@ -896,28 +877,6 @@ evalCommand output (Expression expr) state = do
                     if useSvg state
                       then display :: Display
                       else removeSvg display
-
-    registerWidget :: EvalOut -> Ghc EvalOut
-    registerWidget evalOut =
-      case evalStatus evalOut of
-        Failure -> return evalOut
-        Success -> do
-          element <- dynCompileExpr "IHaskell.Display.Widget it"
-          case fromDynamic element of
-            Nothing -> error "Expecting widget"
-            Just widget -> do
-              -- Stick the widget in the kernel state.
-              uuid <- liftIO UUID.random
-              let state = evalState evalOut
-                  newComms = Map.insert uuid widget $ openComms state
-                  state' = state { openComms = newComms }
-
-              -- Store the fact that we should start this comm.
-              return
-                evalOut
-                  { evalComms = CommInfo widget uuid (targetName widget) : evalComms evalOut
-                  , evalState = state'
-                  }
 
     isIO expr = attempt $ exprType $ printf "((\\x -> x) :: IO a -> IO a) (%s)" expr
 
@@ -987,7 +946,7 @@ evalCommand _ (ParseError loc err) state = do
       , evalResult = displayError $ formatParseError loc err
       , evalState = state
       , evalPager = ""
-      , evalComms = []
+      , evalMsgs = []
       }
 
 evalCommand _ (Pragma (PragmaUnsupported pragmaType) pragmas) state = wrapExecution state $
@@ -1004,7 +963,7 @@ hoogleResults state results =
     , evalResult = mempty
     , evalState = state
     , evalPager = output
-    , evalComms = []
+    , evalMsgs = []
     }
   where
     -- TODO: Make pager work with plaintext
@@ -1031,7 +990,7 @@ doLoadModule name modName = do
     oldTargets <- getTargets
     -- Add a target, but make sure targets are unique!
     addTarget target
-    getTargets >>= return . (nubBy ((==) `on` targetId)) >>= setTargets
+    getTargets >>= return . nubBy ((==) `on` targetId) >>= setTargets
     result <- load LoadAllTargets
 
     -- Reset the context, since loading things screws it up.
@@ -1093,10 +1052,13 @@ keepingItVariable act = do
   goStmt $ printf "let it = %s" itVariable
   act
 
-capturedStatement :: (String -> IO ())         -- ^ Function used to publish intermediate output.
-                  -> String                            -- ^ Statement to evaluate.
-                  -> Interpreter (String, RunResult)   -- ^ Return the output and result.
-capturedStatement output stmt = do
+data Captured a = CapturedStmt String
+                | CapturedIO (IO a)
+
+capturedEval :: (String -> IO ()) -- ^ Function used to publish intermediate output.
+             -> Captured a -- ^ Statement to evaluate.
+             -> Interpreter (String, RunResult) -- ^ Return the output and result.
+capturedEval output stmt = do
   -- Generate random variable names to use so that we cannot accidentally override the variables by
   -- using the right names in the terminal.
   gen <- liftIO getStdGen
@@ -1140,6 +1102,14 @@ capturedStatement output stmt = do
       goStmt :: String -> Ghc RunResult
       goStmt s = runStmt s RunToCompletion
 
+      runWithResult (CapturedStmt str) = goStmt str
+      runWithResult (CapturedIO io) = do
+        status <- gcatch (liftIO io >> return NoException) (return . AnyException)
+        return $
+          case status of
+            NoException    -> RunOk []
+            AnyException e -> RunException e
+
   -- Initialize evaluation context.
   void $ forM initStmts goStmt
 
@@ -1154,7 +1124,6 @@ capturedStatement output stmt = do
   pipe <- liftIO $ do
             fd <- head <$> unsafeCoerce hValues
             fdToHandle fd
-
 
   -- Keep track of whether execution has completed.
   completed <- liftIO $ newMVar False
@@ -1198,7 +1167,7 @@ capturedStatement output stmt = do
 
   liftIO $ forkIO loop
 
-  result <- gfinally (goStmt stmt) $ do
+  result <- gfinally (runWithResult stmt) $ do
               -- Execution is done.
               liftIO $ modifyMVar_ completed (const $ return True)
 
@@ -1211,6 +1180,63 @@ capturedStatement output stmt = do
 
   printedOutput <- liftIO $ readMVar outputAccum
   return (printedOutput, result)
+
+data AnyException = NoException
+                  | AnyException SomeException
+
+capturedIO :: Publisher -> KernelState -> IO a -> Interpreter Display
+capturedIO publish state action = do
+  let showError = return . displayError . show
+      handler e@SomeException{} = showError e
+  gcatch (evalStatementOrIO publish state (CapturedIO action)) handler
+
+-- | Evaluate a @Captured@, and then publish the final result to the frontend. Returns the final
+-- Display.
+evalStatementOrIO :: Publisher -> KernelState -> Captured a -> Interpreter Display
+evalStatementOrIO publish state cmd = do
+  let output str = publish . IntermediateResult $ Display [plain str]
+
+  case cmd of
+    CapturedStmt stmt ->
+      write state $ "Statement:\n" ++ stmt
+    CapturedIO io ->
+      write state "Evaluating Action"
+
+  (printed, result) <- capturedEval output cmd
+  case result of
+    RunOk names -> do
+      dflags <- getSessionDynFlags
+
+      let allNames = map (showPpr dflags) names
+          isItName name =
+            name == "it" ||
+            name == "it" ++ show (getExecutionCounter state)
+          nonItNames = filter (not . isItName) allNames
+          output = [plain printed | not . null $ strip printed]
+
+      write state $ "Names: " ++ show allNames
+
+      -- Display the types of all bound names if the option is on. This is similar to GHCi :set +t.
+      if not $ useShowTypes state
+        then return $ Display output
+        else do
+          -- Get all the type strings.
+          types <- forM nonItNames $ \name -> do
+                     theType <- showSDocUnqual dflags . ppr <$> exprType name
+                     return $ name ++ " :: " ++ theType
+
+          let joined = unlines types
+              htmled = unlines $ map formatGetType types
+
+          return $
+            case extractPlain output of
+              "" -> Display [html htmled]
+
+              -- Return plain and html versions. Previously there was only a plain version.
+              text -> Display [plain $ joined ++ "\n" ++ text, html $ htmled ++ mono text]
+
+    RunException exception -> throw exception
+    RunBreak{} -> error "Should not break."
 
 -- Read from a file handle until we hit a delimiter or until we've read as many characters as
 -- requested

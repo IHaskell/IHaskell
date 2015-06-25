@@ -70,10 +70,11 @@ eval string = do
         FinalResult outs page [] -> do
           modifyIORef outputAccum (outs :)
           modifyIORef pagerAccum (page :)
+      noWidgetHandling s _ = return s
 
   getTemporaryDirectory >>= setCurrentDirectory
   let state = defaultKernelState { getLintStatus = LintOff }
-  interpret libdir False $ Eval.evaluate state string publish
+  interpret libdir False $ Eval.evaluate state string publish noWidgetHandling
   out <- readIORef outputAccum
   pagerOut <- readIORef pagerAccum
   return (reverse out, unlines . map extractPlain . reverse $ pagerOut)
