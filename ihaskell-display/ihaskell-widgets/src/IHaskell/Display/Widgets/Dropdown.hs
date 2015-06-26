@@ -1,7 +1,26 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module IHaskell.Display.Widgets.Dropdown where
+module IHaskell.Display.Widgets.Dropdown (
+    -- * The dropdown widget
+    DropdownWidget,
+    -- * Constructor
+    mkDropdownWidget,
+    -- * Set properties
+    setDropdownText,
+    setDropdownStatus,
+    setDropdownOptions,
+    setDropdownSelected,
+    -- * Get properties
+    getDropdownText,
+    getDropdownStatus,
+    getDropdownOptions,
+    getDropdownSelected,
+    -- * Handle changes
+    setSelectionHandler,
+    getSelectionHandler,
+    triggerSelection,
+    ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -18,103 +37,106 @@ import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import qualified IHaskell.IPython.Message.UUID as U
 
+import           IHaskell.Display.Widgets.Common
+
 -- | A 'Dropdown' represents a Dropdown widget from IPython.html.widgets.
-data Dropdown =
-       Dropdown
+data DropdownWidget =
+       DropdownWidget
          { uuid :: U.UUID       -- ^ The UUID for the comm
          , description :: IORef Text -- ^ The label displayed beside the dropdown
          , disabled :: IORef Bool    -- ^ Whether the dropdown is disabled
          , selectedLabel :: IORef Text -- ^ The label which is currently selected
          , labelOptions :: IORef [Text] -- ^ The possible label options
+         , selectionHandler :: IORef (DropdownWidget -> IO ())
          }
 
 -- | Create a new dropdown
-mkDropdown :: IO Dropdown
-mkDropdown = do
+mkDropdownWidget :: IO DropdownWidget
+mkDropdownWidget = do
   -- Default properties, with a random uuid
   commUUID <- U.random
   desc <- newIORef ""
   dis <- newIORef False
   sel <- newIORef ""
   opts <- newIORef []
+  handler <- newIORef $ const $ return ()
 
-  let b = Dropdown
+  let b = DropdownWidget
         { uuid = commUUID
         , description = desc
         , disabled = dis
         , selectedLabel = sel
         , labelOptions = opts
+        , selectionHandler = handler
         }
 
+  let initData = object
+                   [ "model_name" .= str "WidgetModel"
+                   , "widget_class" .= str "IPython.Dropdown"
+                   ]
+
   -- Open a comm for this widget, and store it in the kernel state
-  widgetSendOpen b (toJSON DropdownInitData) (toJSON b)
+  widgetSendOpen b initData $ toJSON b
 
   -- Return the dropdown widget
   return b
 
--- | Send an update msg with custom json. Make it easy to update fragments of the
--- state, by accepting Pairs instead of a Value.
-update :: Dropdown -> [Pair] -> IO ()
-update b v = widgetSendUpdate b . toJSON . object $ v
-
--- | Modify attributes of a dropdown, stored inside it as IORefs
-modify :: Dropdown -> (Dropdown -> IORef a) -> a -> IO ()
-modify d attr val = writeIORef (attr d) val
-
-setDropdownText :: Dropdown -> Text -> IO ()
+setDropdownText :: DropdownWidget -> Text -> IO ()
 setDropdownText widget text = do
   modify widget description text
   update widget ["description" .= text]
 
-setDropdownStatus :: Dropdown -> Bool -> IO ()
+setDropdownStatus :: DropdownWidget -> Bool -> IO ()
 setDropdownStatus widget stat = do
   let newStat = not stat
   modify widget disabled newStat
   update widget ["disabled" .= newStat]
 
-setDropdownOptions :: Dropdown -> [Text] -> IO ()
+setDropdownOptions :: DropdownWidget -> [Text] -> IO ()
 setDropdownOptions widget opts = do
   modify widget labelOptions opts
   update widget ["_options_labels" .= opts]
 
-setDropdownSelected :: Dropdown -> Text -> IO ()
+setDropdownSelected :: DropdownWidget -> Text -> IO ()
 setDropdownSelected widget opt = do
   possibleOpts <- getDropdownOptions widget
   when (opt `elem` possibleOpts) $ do
     modify widget selectedLabel opt
     update widget ["selected_label" .= opt]
+  triggerSelection widget
 
-toggleDropdownStatus :: Dropdown -> IO ()
+toggleDropdownStatus :: DropdownWidget -> IO ()
 toggleDropdownStatus widget = modifyIORef (disabled widget) not
 
-getDropdownText :: Dropdown -> IO Text
+getDropdownText :: DropdownWidget -> IO Text
 getDropdownText = readIORef . description
 
-getDropdownStatus :: Dropdown -> IO Bool
+getDropdownStatus :: DropdownWidget -> IO Bool
 getDropdownStatus = fmap not . readIORef . disabled
 
-getDropdownOptions :: Dropdown -> IO [Text]
+getDropdownOptions :: DropdownWidget -> IO [Text]
 getDropdownOptions = readIORef . labelOptions
 
-getDropdownSelected :: Dropdown -> IO Text
+getDropdownSelected :: DropdownWidget -> IO Text
 getDropdownSelected = readIORef . selectedLabel
 
-data ViewName = DropdownWidget
+-- | Set a function to be activated on selection
+setSelectionHandler :: DropdownWidget -> (DropdownWidget -> IO ()) -> IO ()
+setSelectionHandler = writeIORef . selectionHandler
 
-instance ToJSON ViewName where
-  toJSON DropdownWidget = "DropdownView"
+-- | Get the selection handler for a dropdown
+getSelectionHandler :: DropdownWidget -> IO (DropdownWidget -> IO ())
+getSelectionHandler = readIORef . selectionHandler
 
-data InitData = DropdownInitData
+-- | Artificially trigger a selection
+triggerSelection :: DropdownWidget -> IO ()
+triggerSelection widget = do
+  handler <- getSelectionHandler widget
+  handler widget
 
-instance ToJSON InitData where
-  toJSON DropdownInitData = object
-                            [ "model_name" .= str "WidgetModel"
-                            , "widget_class" .= str "IPython.Dropdown"
-                            ]
-
-instance ToJSON Dropdown where
+instance ToJSON DropdownWidget where
   toJSON b = object
-               [ "_view_name" .= toJSON DropdownWidget
+               [ "_view_name" .= str "DropdownView"
                , "visible" .= True
                , "_css" .= object []
                , "msg_throttle" .= (3 :: Int)
@@ -127,12 +149,12 @@ instance ToJSON Dropdown where
     where
       get x y = unsafePerformIO . readIORef . x $ y
 
-instance IHaskellDisplay Dropdown where
+instance IHaskellDisplay DropdownWidget where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget Dropdown where
+instance IHaskellWidget DropdownWidget where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text
@@ -140,6 +162,4 @@ instance IHaskellWidget Dropdown where
         Just (Object dict2) = Map.lookup key1 dict1
         Just (String label) = Map.lookup key2 dict2
     modify widget selectedLabel label
-
-str :: String -> String
-str = id
+    triggerSelection widget
