@@ -37,9 +37,7 @@ import           IHaskell.Types (WidgetMethod(..))
 
 import           IHaskell.Display.Widgets.Common
 
-data OutputWidget = OutputWidget { uuid :: U.UUID
-                                 , width :: IORef PosInt
-                                 }
+data OutputWidget = OutputWidget { uuid :: U.UUID, width :: IORef PosInt }
 
 mkOutputWidget :: IO OutputWidget
 mkOutputWidget = do
@@ -50,7 +48,7 @@ mkOutputWidget = do
 
   let b = OutputWidget { uuid = commUUID, width = wdt }
 
-  let initData = object [ "model_name" .= str "WidgetModel" ]
+  let initData = object ["model_name" .= str "WidgetModel"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen b initData (toJSON b)

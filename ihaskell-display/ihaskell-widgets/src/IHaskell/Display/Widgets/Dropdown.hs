@@ -71,9 +71,7 @@ mkDropdownWidget = do
         }
 
   let initData = object
-                   [ "model_name" .= str "WidgetModel"
-                   , "widget_class" .= str "IPython.Dropdown"
-                   ]
+                   ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Dropdown"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen b initData $ toJSON b
