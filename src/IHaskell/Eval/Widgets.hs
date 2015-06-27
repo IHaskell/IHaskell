@@ -5,6 +5,8 @@ module IHaskell.Eval.Widgets (
     widgetSendCustom,
     widgetSendClose,
     widgetSendValue,
+    widgetPublishDisplay,
+    widgetClearOutput,
     relayWidgetMessages,
     widgetHandler,
     ) where
@@ -21,7 +23,9 @@ import           System.IO.Unsafe (unsafePerformIO)
 
 import           IHaskell.Display
 import           IHaskell.Eval.Util (unfoldM)
+import           IHaskell.IPython.Types (showMessageType)
 import           IHaskell.IPython.Message.UUID
+import           IHaskell.IPython.Message.Writer
 import           IHaskell.Types
 
 -- All comm_open messages go here
@@ -71,6 +75,14 @@ widgetSendCustom = widgetSend Custom
 -- | Send a custom Value
 widgetSendValue :: IHaskellWidget a => a -> Value -> IO ()
 widgetSendValue widget = queue . JSONValue (Widget widget)
+
+-- | Send a `display_data` message as a [method .= custom] message
+widgetPublishDisplay :: (IHaskellWidget a, IHaskellDisplay b) => a -> b -> IO ()
+widgetPublishDisplay widget disp = display disp >>= queue . DispMsg (Widget widget)
+
+-- | Send a `clear_output` message as a [method .= custom] message
+widgetClearOutput :: IHaskellWidget a => a -> Bool -> IO ()
+widgetClearOutput widget wait = queue $ ClrOutput (Widget widget) wait
 
 -- | Handle a single widget message. Takes necessary actions according to the message type, such as
 -- opening comms, storing and updating widget representation in the kernel state etc.
@@ -134,6 +146,16 @@ handleMessage send replyHeader state msg = do
 
     JSONValue widget value -> sendMessage widget value
 
+    DispMsg widget disp -> do
+      dispHeader <- dupHeader replyHeader DisplayDataMessage
+      let dmsg = WidgetDisplay dispHeader "haskell" $ unwrap disp
+      sendMessage widget (toJSON $ CustomContent $ toJSON dmsg)
+
+    ClrOutput widget wait -> do
+      header <- dupHeader replyHeader ClearOutputMessage
+      let cmsg = WidgetClear header wait
+      sendMessage widget (toJSON $ CustomContent $ toJSON cmsg)
+
   where
     oldComms = openComms state
     sendMessage widget value = do
@@ -145,6 +167,41 @@ handleMessage send replyHeader state msg = do
         header <- dupHeader replyHeader CommDataMessage
         send $ CommData header uuid value
       return state
+
+    unwrap :: Display -> [DisplayData]
+    unwrap (ManyDisplay ds) = concatMap unwrap ds
+    unwrap (Display ddatas) = ddatas
+
+-- Override toJSON for PublishDisplayData for sending Display messages through [method .= custom]
+data WidgetDisplay = WidgetDisplay MessageHeader String [DisplayData]
+
+instance ToJSON WidgetDisplay where
+  toJSON (WidgetDisplay replyHeader source ddata) =
+    let pbval = toJSON $ PublishDisplayData replyHeader source ddata
+    in toJSON $ IPythonMessage replyHeader pbval DisplayDataMessage
+
+-- Override toJSON for ClearOutput
+data WidgetClear = WidgetClear MessageHeader Bool
+
+instance ToJSON WidgetClear where
+  toJSON (WidgetClear replyHeader wait) =
+    let clrVal = toJSON $ ClearOutput replyHeader wait
+    in toJSON $ IPythonMessage replyHeader clrVal ClearOutputMessage
+
+data IPythonMessage = IPythonMessage MessageHeader Value MessageType
+
+instance ToJSON IPythonMessage where
+  toJSON (IPythonMessage replyHeader val msgType) =
+    object
+      [ "header" .= replyHeader
+      , "parent_header" .= str ""
+      , "metadata" .= str "{}"
+      , "content" .= val
+      , "msg_type" .= (toJSON . showMessageType $ msgType)
+      ]
+
+str :: String -> String
+str = id
 
 -- Handle messages one-by-one, while updating state simultaneously
 widgetHandler :: (Message -> IO ())

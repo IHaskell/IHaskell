@@ -25,6 +25,7 @@ module IHaskell.IPython.Types (
     HistoryAccessType(..),
     HistoryReplyElement(..),
     replyType,
+    showMessageType,
 
     -- ** IPython display data message
     DisplayData(..),
@@ -63,7 +64,7 @@ data Profile =
        Profile
          { ip :: IP                     -- ^ The IP on which to listen.
          , transport :: Transport       -- ^ The transport mechanism.
-         , stdinPort :: Port            -- ^ The stdin channel port. 
+         , stdinPort :: Port            -- ^ The stdin channel port.
          , controlPort :: Port          -- ^ The control channel port.
          , hbPort :: Port               -- ^ The heartbeat channel port.
          , shellPort :: Port            -- ^ The shell command port.
