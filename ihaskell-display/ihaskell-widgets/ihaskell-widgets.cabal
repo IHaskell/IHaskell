@@ -63,6 +63,7 @@ library
                        IHaskell.Display.Widgets.String.TextArea
                        IHaskell.Display.Widgets.Output
 
+                       IHaskell.Display.Widgets.Types
                        IHaskell.Display.Widgets.Common
 
   -- LANGUAGE extensions used by modules in this package.
@@ -71,9 +72,13 @@ library
   -- Other library packages from which modules are imported.
   build-depends:       aeson >= 0.8.1.0
                      , base >=4.7 && <4.9
+                     , containers >= 0.5.6.2
                      , ipython-kernel >= 0.6.1.0
                      , text >= 1.2.1.0
                      , unordered-containers >= 0.2.5.1
+
+                       -- TODO: Need to check versions
+                     , singletons -any
 
                        -- Waiting for the next release
                      , ihaskell -any
