@@ -14,17 +14,22 @@
 
 module IHaskell.Display.Widgets.Types where
 
+import GHC.Exts (Constraint)
+import Data.Aeson
+import Data.Aeson.Types
 import Data.Text
 import Data.Dynamic
 import Data.IORef (IORef, modifyIORef, readIORef)
 import Data.Singletons.TH
+import Data.Singletons.Prelude
 import Data.Proxy
 import qualified Data.Map as M
+import IHaskell.Eval.Widgets
+import IHaskell.Display (IHaskellWidget(..), Base64)
 import IHaskell.IPython.Message.UUID
 
 singletons [d|
-  data Field = CommUUID
-             | ModelModule
+  data Field = ModelModule
              | ModelName
              | ViewModule
              | ViewName
@@ -51,17 +56,50 @@ singletons [d|
              | Description
              | ClickHandler
              | Disabled
+             | StringValue
              | Placeholder
              | Tooltip
              | Icon
              | ButtonStyle
              | B64Value
-             | Icons
              | ImageFormat
-             | StringValue
-             | Tooltips
              deriving (Eq, Ord, Show)
              |]
+
+instance ToJSON Field where
+  toJSON ModelModule = "_model_module"
+  toJSON ModelName = "_model_name"
+  toJSON ViewModule = "_view_module"
+  toJSON ViewName = "_view_name"
+  toJSON MsgThrottle = "msg_throttle"
+  toJSON Version = "version"
+  toJSON Visible = "visible"
+  toJSON CSS = "_css"
+  toJSON DOMClasses = "_dom_classes"
+  toJSON Width = "width"
+  toJSON Height = "height"
+  toJSON Padding = "padding"
+  toJSON Margin = "margin"
+  toJSON Color = "color"
+  toJSON BackgroundColor = "background_color"
+  toJSON BorderColor = "border_color"
+  toJSON BorderWidth = "border_width"
+  toJSON BorderRadius = "border_radius"
+  toJSON BorderStyle = "border_style"
+  toJSON FontStyle = "font_style"
+  toJSON FontWeight = "font_weight"
+  toJSON FontSize = "font_size"
+  toJSON FontFamily = "font_family"
+  toJSON Description = "description"
+  toJSON ClickHandler = ""
+  toJSON Disabled = "disabled"
+  toJSON StringValue = "value"
+  toJSON Placeholder = "placeholder"
+  toJSON Tooltip = "tooltip"
+  toJSON Icon = "icon"
+  toJSON ButtonStyle = "button_style"
+  toJSON B64Value = "_b64value"
+  toJSON ImageFormat = "format"
 
 -- | Reflect a (Proxy :: Proxy f) back to f
 -- Copied from: http://stackoverflow.com/a/28033250/2388535
@@ -71,38 +109,97 @@ reflect ::
   Proxy a -> Demote a
 reflect _ = fromSing (sing :: Sing a)
 
-data BorderStyleValue = NoBorder -- 'none'
-                      | HiddenBorder -- 'hidden'
-                      | DottedBorder -- 'dotted'
-                      | DashedBorder -- 'dashed'
-                      | SolidBorder -- 'solid'
-                      | DoubleBorder -- 'double'
-                      | GrooveBorder -- 'groove'
-                      | RidgeBorder -- 'ridge'
-                      | InsetBorder -- 'inset'
-                      | OutsetBorder -- 'outset'
-                      | InitialBorder -- 'initial'
-                      | InheritBorder -- 'inherit'
-                      | DefaultBorder -- ''
+data BorderStyleValue = NoBorder
+                      | HiddenBorder
+                      | DottedBorder
+                      | DashedBorder
+                      | SolidBorder
+                      | DoubleBorder
+                      | GrooveBorder
+                      | RidgeBorder
+                      | InsetBorder
+                      | OutsetBorder
+                      | InitialBorder
+                      | InheritBorder
+                      | DefaultBorder
 
-data FontStyleValue = NormalFont -- 'normal'
-                    | ItalicFont -- 'italic'
-                    | ObliqueFont -- 'oblique'
-                    | InitialFont -- 'initial'
-                    | InheritFont -- 'inherit'
-                    | DefaultFont -- ''
+instance ToJSON BorderStyleValue where
+  toJSON NoBorder = "none"
+  toJSON HiddenBorder = "hidden"
+  toJSON DottedBorder = "dotted"
+  toJSON DashedBorder = "dashed"
+  toJSON SolidBorder = "solid"
+  toJSON DoubleBorder = "double"
+  toJSON GrooveBorder = "groove"
+  toJSON RidgeBorder = "ridge"
+  toJSON InsetBorder = "inset"
+  toJSON OutsetBorder = "outset"
+  toJSON InitialBorder = "initial"
+  toJSON InheritBorder = "inherit"
+  toJSON DefaultBorder = ""
 
-data FontWeightValue = NormalWeight -- 'normal'
-                     | BoldWeight -- 'bold'
-                     | BolderWeight -- 'bolder'
-                     | LighterWeight -- 'lighter'
-                     | InheritWeight -- 'inherit'
-                     | InitialWeight -- 'initial'
-                     | DefaultWeight -- ''
+data FontStyleValue = NormalFont
+                    | ItalicFont
+                    | ObliqueFont
+                    | InitialFont
+                    | InheritFont
+                    | DefaultFont
+
+instance ToJSON FontStyleValue where
+  toJSON NormalFont = "normal"
+  toJSON ItalicFont = "italic"
+  toJSON ObliqueFont = "oblique"
+  toJSON InitialFont = "initial"
+  toJSON InheritFont = "inherit"
+  toJSON DefaultFont = ""
+
+data FontWeightValue = NormalWeight
+                     | BoldWeight
+                     | BolderWeight
+                     | LighterWeight
+                     | InheritWeight
+                     | InitialWeight
+                     | DefaultWeight
+
+instance ToJSON FontWeightValue where
+  toJSON NormalWeight = "normal"
+  toJSON BoldWeight = "bold"
+  toJSON BolderWeight = "bolder"
+  toJSON LighterWeight = "lighter"
+  toJSON InheritWeight = "inherit"
+  toJSON InitialWeight = "initial"
+  toJSON DefaultWeight = ""
+
+data ButtonStyleValue = PrimaryButton
+                      | SuccessButton
+                      | InfoButton
+                      | WarningButton
+                      | DangerButton
+                      | DefaultButton
+
+instance ToJSON ButtonStyleValue where
+  toJSON PrimaryButton = "primary"
+  toJSON SuccessButton = "success"
+  toJSON InfoButton = "info"
+  toJSON WarningButton = "warning"
+  toJSON DangerButton = "danger"
+  toJSON DefaultButton = ""
+
+-- | Image formats for ImageWidget
+data ImageFormatValue = PNG
+                      | SVG
+                      | JPG
+  deriving Eq
+
+instance Show ImageFormatValue where
+  show PNG = "png"
+  show SVG = "svg"
+  show JPG = "jpg"
+
+instance ToJSON ImageFormatValue where
+  toJSON = toJSON . pack . show
 
 type family FieldType (f :: Field) :: * where
-  FieldType CommUUID = UUID
-
   -- WidgetClass
   FieldType ModelModule = Text
   FieldType ModelName = Text
@@ -135,23 +232,31 @@ type family FieldType (f :: Field) :: * where
   FieldType StringValue = Text
   FieldType Placeholder = Text
 
-  -- Other widgets
+  -- Multiple widgets/classes
   FieldType Description = Text
-  FieldType ClickHandler = Text -> IO ()
+  FieldType ClickHandler = IO ()
   FieldType Disabled = Bool
+  FieldType Tooltip = Text
+  FieldType Icon = Text
+  FieldType ButtonStyle = ButtonStyleValue
+  FieldType B64Value = Base64
+  FieldType ImageFormat = ImageFormatValue
 
-type family Append (xs :: [k]) (ys :: [k]) :: [k] where
-  Append '[] xs = xs
-  Append xs '[] = xs
-  Append (x ': xs) ys = x ': Append xs ys
+class ToPairs a where
+  toPairs :: a -> [Pair]
 
+instance (SingI f, ToJSON (FieldType f)) => ToPairs (SField f, FieldType f) where
+  toPairs (sfield :: SField f, ftype) = let field = reflect (Proxy :: Proxy f)
+                                        in [field .= ftype]
+
+-- Classes from IPython's widget hierarchy
 type WidgetClass = '[ModelModule, ModelName, ViewModule, ViewName, MsgThrottle, Version, OnDisplayed]
-type DOMWidgetClass = Append WidgetClass
+type DOMWidgetClass = WidgetClass :++
     '[ Visible, CSS, DOMClasses, Width, Height, Padding, Margin, Color
      , BackgroundColor, BorderColor, BorderWidth, BorderStyle, FontStyle
      , FontWeight, FontSize, FontFamily
      ]
-type StringClass = Append WidgetClass '[StringValue, Disabled, Description, Placeholder]
+type StringClass = WidgetClass :++ '[StringValue, Disabled, Description, Placeholder]
 
 data WidgetType = ButtonType
                 | ImageType
@@ -161,33 +266,78 @@ data WidgetType = ButtonType
                 | TextType
                 | TextAreaType
 
-data Widget (w :: WidgetType) = Widget { attrs :: IORef (M.Map Field Dynamic) }
+newtype WidgetState = WidgetState (IORef (M.Map Field Dynamic))
+
+data Widget (w :: WidgetType) = Widget { uuid :: UUID, state :: WidgetState }
 
 type family WidgetFields (w :: WidgetType) :: [Field] where
-  WidgetFields ButtonType = Append DOMWidgetClass '[Description, Tooltip, Disabled, Icon, ButtonStyle, ClickHandler]
-  WidgetFields ImageType = Append DOMWidgetClass '[ImageFormat, B64Value]
+  WidgetFields ButtonType = DOMWidgetClass :++ '[Description, Tooltip, Disabled, Icon, ButtonStyle, ClickHandler]
+  WidgetFields ImageType = DOMWidgetClass :++ '[ImageFormat, B64Value]
   WidgetFields OutputType = DOMWidgetClass
   WidgetFields HTMLType = StringClass
   WidgetFields LatexType = StringClass
   WidgetFields TextType = StringClass
   WidgetFields TextAreaType = StringClass
 
-type family IsElem (xs :: [a]) (x :: a) :: Bool where
-  IsElem '[] y = False
-  IsElem (y ': ys) y = True
-  IsElem (x ': ys) y = IsElem ys y
+type family IsElem (x :: a) (xs :: [a]) :: Constraint where
+  IsElem x xs = (IsElement x xs ~ True)
 
-setField :: (Typeable (FieldType f), SingI f, IsElem (WidgetFields w) f ~ True) => Widget w -> Proxy f -> FieldType f -> IO ()
-setField widget proxy val = do
-  let field = reflect proxy
-  modifyIORef (attrs widget) (M.insert field $ toDyn val)
+type family IsElement (x :: a) (xs :: [a]) :: Bool where
+  IsElement y '[] = False
+  IsElement y (y ': ys) = True
+  IsElement y (x ': ys) = IsElement y ys
 
-getField :: (Typeable (FieldType f), SingI f, IsElem (WidgetFields w) f ~ True) => Widget w -> Proxy f -> IO (FieldType f)
-getField widget proxy = do
-  let field = reflect proxy
-  valMap <- readIORef $ attrs widget
+setField :: (Typeable (FieldType f), SingI f, f `IsElem` WidgetFields w, ToJSON (SField f, FieldType f), IHaskellWidget w) => Widget w -> SField f -> FieldType f -> IO ()
+setField widget (sing :: SField f) val = do
+  let field = reflect (Proxy :: Proxy f)
+      WidgetState attrs = state widget
+  modifyIORef attrs (M.insert field $ toDyn val)
+  widgetSendUpdate widget $ toJSON (field, val)
+
+getField :: (Typeable (FieldType f), SingI f, f `IsElem` WidgetFields w) => Widget w -> SField f -> IO (FieldType f)
+getField widget (sing :: SField f) = do
+  let field = reflect (Proxy :: Proxy f)
+      WidgetState attrs = state widget
+  valMap <- readIORef attrs
   case M.lookup field valMap of
     Nothing -> error "Couldn't find the field in IHaskell.Display.Widgets.Types.getField"
     Just x -> case fromDynamic x of
       Nothing -> error "Error casting types in IHaskell.Display.Widgets.Types.getField"
       Just y -> return y
+
+-- | Enforce type-checked creation of attributes. Works well with Data.Map.fromList
+(~=) :: (Typeable (FieldType f), SingI f) => SField f -> FieldType f -> (Field, Dynamic)
+(sfield :: SField f) ~= ftype = (reflect (Proxy :: Proxy f), toDyn ftype)
+
+-- | Default attributes for a DOMWidget
+domWidgetWith :: FieldType ViewName -> [(Field, Dynamic)]
+domWidgetWith viewName =
+  [ SModelModule ~= ""
+  , SModelName ~= "WidgetModel"
+  , SViewModule ~= ""
+  , SViewName ~= viewName
+  , SMsgThrottle ~= 3
+  , SVersion ~= 0
+  , SOnDisplayed ~= return ()
+  , SVisible ~= True
+  , SCSS ~= []
+  , SDOMClasses ~= []
+  , SWidth ~= 0
+  , SHeight ~= 0
+  , SPadding ~= 0
+  , SMargin ~= 0
+  , SColor ~= ""
+  , SBackgroundColor ~= ""
+  , SBorderColor ~= ""
+  , SBorderWidth ~= 0
+  , SBorderRadius ~= 0
+  , SBorderStyle ~= DefaultBorder
+  , SFontStyle ~= DefaultFont
+  , SFontWeight ~= DefaultWeight
+  , SFontSize ~= 0
+  , SFontFamily ~= ""
+  ]
+
+-- | Useful with toJSON
+str :: String -> String
+str = id

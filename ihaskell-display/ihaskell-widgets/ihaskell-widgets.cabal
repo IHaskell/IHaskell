@@ -64,7 +64,6 @@ library
                        IHaskell.Display.Widgets.Output
 
                        IHaskell.Display.Widgets.Types
-                       IHaskell.Display.Widgets.Common
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:    
