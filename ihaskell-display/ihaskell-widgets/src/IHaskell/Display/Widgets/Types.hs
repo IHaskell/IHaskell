@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE KindSignatures #-}
@@ -10,197 +11,42 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE AutoDeriveTypeable #-}
-
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 module IHaskell.Display.Widgets.Types where
 
-import GHC.Exts (Constraint)
+import Control.Monad (when)
+
 import Data.Aeson
-import Data.Aeson.Types
-import Data.Text
-import Data.Dynamic
-import Data.IORef (IORef, modifyIORef, readIORef)
-import Data.Singletons.TH
-import Data.Singletons.Prelude
+import Data.Aeson.Types (emptyObject, Pair)
+import Data.Text (pack, Text)
+import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.Proxy
-import qualified Data.Map as M
-import IHaskell.Eval.Widgets
-import IHaskell.Display (IHaskellWidget(..), Base64)
+
+import Data.Vinyl (Rec (..), (<+>), recordToList, reifyConstraint, rmap, Dict (..))
+import Data.Vinyl.Functor (Compose (..), Const (..))
+import Data.Vinyl.Lens (rget, rput, type (∈))
+import qualified Data.Vinyl.TypeLevel as TL
+
+import Data.Singletons.TH
+
+import IHaskell.Eval.Widgets (widgetSendUpdate)
+import IHaskell.Display (Base64, IHaskellWidget (..))
 import IHaskell.IPython.Message.UUID
 
-singletons [d|
-  data Field = ModelModule
-             | ModelName
-             | ViewModule
-             | ViewName
-             | MsgThrottle
-             | Version
-             | OnDisplayed
-             | Visible
-             | CSS
-             | DOMClasses
-             | Width
-             | Height
-             | Padding
-             | Margin
-             | Color
-             | BackgroundColor
-             | BorderColor
-             | BorderWidth
-             | BorderRadius
-             | BorderStyle
-             | FontStyle
-             | FontWeight
-             | FontSize
-             | FontFamily
-             | Description
-             | ClickHandler
-             | Disabled
-             | StringValue
-             | Placeholder
-             | Tooltip
-             | Icon
-             | ButtonStyle
-             | B64Value
-             | ImageFormat
-             deriving (Eq, Ord, Show)
-             |]
+import IHaskell.Display.Widgets.Common
 
-instance ToJSON Field where
-  toJSON ModelModule = "_model_module"
-  toJSON ModelName = "_model_name"
-  toJSON ViewModule = "_view_module"
-  toJSON ViewName = "_view_name"
-  toJSON MsgThrottle = "msg_throttle"
-  toJSON Version = "version"
-  toJSON Visible = "visible"
-  toJSON CSS = "_css"
-  toJSON DOMClasses = "_dom_classes"
-  toJSON Width = "width"
-  toJSON Height = "height"
-  toJSON Padding = "padding"
-  toJSON Margin = "margin"
-  toJSON Color = "color"
-  toJSON BackgroundColor = "background_color"
-  toJSON BorderColor = "border_color"
-  toJSON BorderWidth = "border_width"
-  toJSON BorderRadius = "border_radius"
-  toJSON BorderStyle = "border_style"
-  toJSON FontStyle = "font_style"
-  toJSON FontWeight = "font_weight"
-  toJSON FontSize = "font_size"
-  toJSON FontFamily = "font_family"
-  toJSON Description = "description"
-  toJSON ClickHandler = ""
-  toJSON Disabled = "disabled"
-  toJSON StringValue = "value"
-  toJSON Placeholder = "placeholder"
-  toJSON Tooltip = "tooltip"
-  toJSON Icon = "icon"
-  toJSON ButtonStyle = "button_style"
-  toJSON B64Value = "_b64value"
-  toJSON ImageFormat = "format"
+-- Classes from IPython's widget hierarchy
+type WidgetClass = '[ModelModule, ModelName, ViewModule, ViewName, MsgThrottle, Version, OnDisplayed]
+type DOMWidgetClass = WidgetClass TL.++
+   '[ Visible, CSS, DOMClasses, Width, Height, Padding, Margin, Color
+    , BackgroundColor, BorderColor, BorderWidth, BorderRadius, BorderStyle, FontStyle
+    , FontWeight, FontSize, FontFamily
+    ]
+type StringClass = DOMWidgetClass TL.++ '[StringValue, Disabled, Description, Placeholder]
 
--- | Reflect a (Proxy :: Proxy f) back to f
--- Copied from: http://stackoverflow.com/a/28033250/2388535
-reflect ::
-  forall (a :: k).
-  (SingI a, SingKind ('KProxy :: KProxy k)) =>
-  Proxy a -> Demote a
-reflect _ = fromSing (sing :: Sing a)
-
-data BorderStyleValue = NoBorder
-                      | HiddenBorder
-                      | DottedBorder
-                      | DashedBorder
-                      | SolidBorder
-                      | DoubleBorder
-                      | GrooveBorder
-                      | RidgeBorder
-                      | InsetBorder
-                      | OutsetBorder
-                      | InitialBorder
-                      | InheritBorder
-                      | DefaultBorder
-
-instance ToJSON BorderStyleValue where
-  toJSON NoBorder = "none"
-  toJSON HiddenBorder = "hidden"
-  toJSON DottedBorder = "dotted"
-  toJSON DashedBorder = "dashed"
-  toJSON SolidBorder = "solid"
-  toJSON DoubleBorder = "double"
-  toJSON GrooveBorder = "groove"
-  toJSON RidgeBorder = "ridge"
-  toJSON InsetBorder = "inset"
-  toJSON OutsetBorder = "outset"
-  toJSON InitialBorder = "initial"
-  toJSON InheritBorder = "inherit"
-  toJSON DefaultBorder = ""
-
-data FontStyleValue = NormalFont
-                    | ItalicFont
-                    | ObliqueFont
-                    | InitialFont
-                    | InheritFont
-                    | DefaultFont
-
-instance ToJSON FontStyleValue where
-  toJSON NormalFont = "normal"
-  toJSON ItalicFont = "italic"
-  toJSON ObliqueFont = "oblique"
-  toJSON InitialFont = "initial"
-  toJSON InheritFont = "inherit"
-  toJSON DefaultFont = ""
-
-data FontWeightValue = NormalWeight
-                     | BoldWeight
-                     | BolderWeight
-                     | LighterWeight
-                     | InheritWeight
-                     | InitialWeight
-                     | DefaultWeight
-
-instance ToJSON FontWeightValue where
-  toJSON NormalWeight = "normal"
-  toJSON BoldWeight = "bold"
-  toJSON BolderWeight = "bolder"
-  toJSON LighterWeight = "lighter"
-  toJSON InheritWeight = "inherit"
-  toJSON InitialWeight = "initial"
-  toJSON DefaultWeight = ""
-
-data ButtonStyleValue = PrimaryButton
-                      | SuccessButton
-                      | InfoButton
-                      | WarningButton
-                      | DangerButton
-                      | DefaultButton
-
-instance ToJSON ButtonStyleValue where
-  toJSON PrimaryButton = "primary"
-  toJSON SuccessButton = "success"
-  toJSON InfoButton = "info"
-  toJSON WarningButton = "warning"
-  toJSON DangerButton = "danger"
-  toJSON DefaultButton = ""
-
--- | Image formats for ImageWidget
-data ImageFormatValue = PNG
-                      | SVG
-                      | JPG
-  deriving Eq
-
-instance Show ImageFormatValue where
-  show PNG = "png"
-  show SVG = "svg"
-  show JPG = "jpg"
-
-instance ToJSON ImageFormatValue where
-  toJSON = toJSON . pack . show
-
+-- Types associated with Fields
 type family FieldType (f :: Field) :: * where
-  -- WidgetClass
   FieldType ModelModule = Text
   FieldType ModelName = Text
   FieldType ViewModule = Text
@@ -208,8 +54,6 @@ type family FieldType (f :: Field) :: * where
   FieldType MsgThrottle = Int
   FieldType Version = Int
   FieldType OnDisplayed = IO ()
-
-  -- DOMWidgetClass
   FieldType Visible = Bool
   FieldType CSS = [(Text, Text, Text)]
   FieldType DOMClasses = [Text]
@@ -227,36 +71,17 @@ type family FieldType (f :: Field) :: * where
   FieldType FontWeight = FontWeightValue
   FieldType FontSize = Int
   FieldType FontFamily = Text
-
-  -- StringClass
-  FieldType StringValue = Text
-  FieldType Placeholder = Text
-
-  -- Multiple widgets/classes
   FieldType Description = Text
   FieldType ClickHandler = IO ()
+  FieldType SubmitHandler = IO ()
   FieldType Disabled = Bool
+  FieldType StringValue = Text
+  FieldType Placeholder = Text
   FieldType Tooltip = Text
   FieldType Icon = Text
   FieldType ButtonStyle = ButtonStyleValue
   FieldType B64Value = Base64
   FieldType ImageFormat = ImageFormatValue
-
-class ToPairs a where
-  toPairs :: a -> [Pair]
-
-instance (SingI f, ToJSON (FieldType f)) => ToPairs (SField f, FieldType f) where
-  toPairs (sfield :: SField f, ftype) = let field = reflect (Proxy :: Proxy f)
-                                        in [field .= ftype]
-
--- Classes from IPython's widget hierarchy
-type WidgetClass = '[ModelModule, ModelName, ViewModule, ViewName, MsgThrottle, Version, OnDisplayed]
-type DOMWidgetClass = WidgetClass :++
-    '[ Visible, CSS, DOMClasses, Width, Height, Padding, Margin, Color
-     , BackgroundColor, BorderColor, BorderWidth, BorderStyle, FontStyle
-     , FontWeight, FontSize, FontFamily
-     ]
-type StringClass = WidgetClass :++ '[StringValue, Disabled, Description, Placeholder]
 
 data WidgetType = ButtonType
                 | ImageType
@@ -266,78 +91,135 @@ data WidgetType = ButtonType
                 | TextType
                 | TextAreaType
 
-newtype WidgetState = WidgetState (IORef (M.Map Field Dynamic))
-
-data Widget (w :: WidgetType) = Widget { uuid :: UUID, state :: WidgetState }
-
 type family WidgetFields (w :: WidgetType) :: [Field] where
-  WidgetFields ButtonType = DOMWidgetClass :++ '[Description, Tooltip, Disabled, Icon, ButtonStyle, ClickHandler]
-  WidgetFields ImageType = DOMWidgetClass :++ '[ImageFormat, B64Value]
+  WidgetFields ButtonType = DOMWidgetClass TL.++ '[Description, Tooltip, Disabled, Icon, ButtonStyle, ClickHandler]
+  WidgetFields ImageType = DOMWidgetClass TL.++ '[ImageFormat, B64Value]
   WidgetFields OutputType = DOMWidgetClass
   WidgetFields HTMLType = StringClass
   WidgetFields LatexType = StringClass
-  WidgetFields TextType = StringClass
+  WidgetFields TextType = StringClass TL.++ '[SubmitHandler]
   WidgetFields TextAreaType = StringClass
 
-type family IsElem (x :: a) (xs :: [a]) :: Constraint where
-  IsElem x xs = (IsElement x xs ~ True)
+newtype Attr f = Attr { _unAttr :: FieldType f }
 
-type family IsElement (x :: a) (xs :: [a]) :: Bool where
-  IsElement y '[] = False
-  IsElement y (y ': ys) = True
-  IsElement y (x ': ys) = IsElement y ys
+class ToPairs a where
+  toPairs :: a -> [Pair]
 
-setField :: (Typeable (FieldType f), SingI f, f `IsElem` WidgetFields w, ToJSON (SField f, FieldType f), IHaskellWidget w) => Widget w -> SField f -> FieldType f -> IO ()
-setField widget (sing :: SField f) val = do
-  let field = reflect (Proxy :: Proxy f)
-      WidgetState attrs = state widget
-  modifyIORef attrs (M.insert field $ toDyn val)
-  widgetSendUpdate widget $ toJSON (field, val)
+-- Attributes that aren't synced with the frontend give [] on toPairs
+instance ToPairs (Attr ModelModule) where toPairs (Attr x) = ["_model_module" .= toJSON x]
+instance ToPairs (Attr ModelName) where toPairs (Attr x) = ["_model_name" .= toJSON x]
+instance ToPairs (Attr ViewModule) where toPairs (Attr x) = ["_view_module" .= toJSON x]
+instance ToPairs (Attr ViewName) where toPairs (Attr x) = ["_view_name" .= toJSON x]
+instance ToPairs (Attr MsgThrottle) where toPairs (Attr x) = ["msg_throttle" .= toJSON x]
+instance ToPairs (Attr Version) where toPairs (Attr x) = ["version" .= toJSON x]
+instance ToPairs (Attr OnDisplayed) where toPairs (Attr x) = [] -- Not sent to the frontend
+instance ToPairs (Attr Visible) where toPairs (Attr x) = ["visible" .= toJSON x]
+instance ToPairs (Attr CSS) where toPairs (Attr x) = ["_css" .= toJSON x]
+instance ToPairs (Attr DOMClasses) where toPairs (Attr x) = ["_dom_classes" .= toJSON x]
+instance ToPairs (Attr Width) where toPairs (Attr x) = ["width" .= toJSON x]
+instance ToPairs (Attr Height) where toPairs (Attr x) = ["height" .= toJSON x]
+instance ToPairs (Attr Padding) where toPairs (Attr x) = ["padding" .= toJSON x]
+instance ToPairs (Attr Margin) where toPairs (Attr x) = ["margin" .= toJSON x]
+instance ToPairs (Attr Color) where toPairs (Attr x) = ["color" .= toJSON x]
+instance ToPairs (Attr BackgroundColor) where toPairs (Attr x) = ["background_color" .= toJSON x]
+instance ToPairs (Attr BorderColor) where toPairs (Attr x) = ["border_color" .= toJSON x]
+instance ToPairs (Attr BorderWidth) where toPairs (Attr x) = ["border_width" .= toJSON x]
+instance ToPairs (Attr BorderRadius) where toPairs (Attr x) = ["border_radius" .= toJSON x]
+instance ToPairs (Attr BorderStyle) where toPairs (Attr x) = ["border_style" .= toJSON x]
+instance ToPairs (Attr FontStyle) where toPairs (Attr x) = ["font_style" .= toJSON x]
+instance ToPairs (Attr FontWeight) where toPairs (Attr x) = ["font_weight" .= toJSON x]
+instance ToPairs (Attr FontSize) where toPairs (Attr x) = ["font_size" .= toJSON x]
+instance ToPairs (Attr FontFamily) where toPairs (Attr x) = ["font_family" .= toJSON x]
+instance ToPairs (Attr Description) where toPairs (Attr x) = ["description" .= toJSON x]
+instance ToPairs (Attr ClickHandler) where toPairs (Attr x) = [] -- Not sent to the frontend
+instance ToPairs (Attr SubmitHandler) where toPairs (Attr x) = [] -- Not sent to the frontend
+instance ToPairs (Attr Disabled) where toPairs (Attr x) = ["disabled" .= toJSON x]
+instance ToPairs (Attr StringValue) where toPairs (Attr x) = ["value" .= toJSON x]
+instance ToPairs (Attr Placeholder) where toPairs (Attr x) = ["placeholder" .= toJSON x]
+instance ToPairs (Attr Tooltip) where toPairs (Attr x) = ["tooltip" .= toJSON x]
+instance ToPairs (Attr Icon) where toPairs (Attr x) = ["icon" .= toJSON x]
+instance ToPairs (Attr ButtonStyle) where toPairs (Attr x) = ["button_style" .= toJSON x]
+instance ToPairs (Attr B64Value) where toPairs (Attr x) = ["_b64value" .= toJSON x]
+instance ToPairs (Attr ImageFormat) where toPairs (Attr x) = ["format" .= toJSON x]
 
-getField :: (Typeable (FieldType f), SingI f, f `IsElem` WidgetFields w) => Widget w -> SField f -> IO (FieldType f)
-getField widget (sing :: SField f) = do
-  let field = reflect (Proxy :: Proxy f)
-      WidgetState attrs = state widget
-  valMap <- readIORef attrs
-  case M.lookup field valMap of
-    Nothing -> error "Couldn't find the field in IHaskell.Display.Widgets.Types.getField"
-    Just x -> case fromDynamic x of
-      Nothing -> error "Error casting types in IHaskell.Display.Widgets.Types.getField"
-      Just y -> return y
+(=::) :: sing f -> FieldType f -> Attr f
+_ =:: x = Attr x
 
--- | Enforce type-checked creation of attributes. Works well with Data.Map.fromList
-(~=) :: (Typeable (FieldType f), SingI f) => SField f -> FieldType f -> (Field, Dynamic)
-(sfield :: SField f) ~= ftype = (reflect (Proxy :: Proxy f), toDyn ftype)
+defaultWidget :: FieldType ViewName -> Rec Attr WidgetClass
+defaultWidget viewName = (SModelModule =:: "")
+                      :& (SModelName =:: "WidgetModel")
+                      :& (SViewModule =:: "")
+                      :& (SViewName =:: viewName)
+                      :& (SMsgThrottle =:: 3)
+                      :& (SVersion =:: 0)
+                      :& (SOnDisplayed =:: return ())
+                      :& RNil
 
--- | Default attributes for a DOMWidget
-domWidgetWith :: FieldType ViewName -> [(Field, Dynamic)]
-domWidgetWith viewName =
-  [ SModelModule ~= ""
-  , SModelName ~= "WidgetModel"
-  , SViewModule ~= ""
-  , SViewName ~= viewName
-  , SMsgThrottle ~= 3
-  , SVersion ~= 0
-  , SOnDisplayed ~= return ()
-  , SVisible ~= True
-  , SCSS ~= []
-  , SDOMClasses ~= []
-  , SWidth ~= 0
-  , SHeight ~= 0
-  , SPadding ~= 0
-  , SMargin ~= 0
-  , SColor ~= ""
-  , SBackgroundColor ~= ""
-  , SBorderColor ~= ""
-  , SBorderWidth ~= 0
-  , SBorderRadius ~= 0
-  , SBorderStyle ~= DefaultBorder
-  , SFontStyle ~= DefaultFont
-  , SFontWeight ~= DefaultWeight
-  , SFontSize ~= 0
-  , SFontFamily ~= ""
-  ]
+defaultDOMWidget :: FieldType ViewName -> Rec Attr DOMWidgetClass
+defaultDOMWidget viewName = defaultWidget viewName <+> domAttrs
+  where domAttrs = (SVisible =:: True)
+                :& (SCSS =:: [])
+                :& (SDOMClasses =:: [])
+                :& (SWidth =:: 0)
+                :& (SHeight =:: 0)
+                :& (SPadding =:: 0)
+                :& (SMargin =:: 0)
+                :& (SColor =:: "")
+                :& (SBackgroundColor =:: "")
+                :& (SBorderColor =:: "")
+                :& (SBorderWidth =:: 0)
+                :& (SBorderRadius =:: 0)
+                :& (SBorderStyle =:: DefaultBorder)
+                :& (SFontStyle =:: DefaultFont)
+                :& (SFontWeight =:: DefaultWeight)
+                :& (SFontSize =:: 0)
+                :& (SFontFamily =:: "")
+                :& RNil
 
--- | Useful with toJSON
+defaultStringWidget :: FieldType ViewName -> Rec Attr StringClass
+defaultStringWidget viewName = defaultDOMWidget viewName <+> strAttrs
+  where strAttrs = (SStringValue =:: "")
+                :& (SDisabled =:: False)
+                :& (SDescription =:: "")
+                :& (SPlaceholder =:: "")
+                :& RNil
+
+newtype WidgetState w = WidgetState { _getState :: Rec Attr (WidgetFields w) }
+
+-- All records with ToPair instances for their Attrs will automatically have a toJSON instance now.
+instance TL.RecAll Attr (WidgetFields w) ToPairs => ToJSON (WidgetState w) where
+  toJSON record =
+    object
+    . concat
+    . recordToList
+    . rmap (\(Compose (Dict x)) -> Const $ toPairs x)
+    $ reifyConstraint (Proxy :: Proxy ToPairs) $ _getState record
+
+data Widget (w :: WidgetType) = Widget { uuid :: UUID, state :: IORef (WidgetState w) }
+
+-- | Reflect a (Proxy :: Proxy f) back to f
+-- Copied from: http://stackoverflow.com/a/28033250/2388535
+reflect ::
+  forall (a :: k).
+  (SingI a, SingKind ('KProxy :: KProxy k)) =>
+  Proxy a -> Demote a
+reflect _ = fromSing (sing :: Sing a)
+
+-- | Change the value for a field, and notify the frontend about it.
+setField :: (f ∈ WidgetFields w, IHaskellWidget (Widget w), SingI f, ToPairs (Attr f)) => Widget w -> SField f -> FieldType f -> IO ()
+setField widget (sfield :: SField f) fval = do
+  setField' widget sfield fval
+  let pairs = toPairs (Attr fval :: Attr f)
+  when (not . null $ pairs) $ widgetSendUpdate widget (object pairs)
+
+-- | Change the value of a field, without notifying the frontend. For internal use.
+setField' :: (f ∈ WidgetFields w, IHaskellWidget (Widget w), SingI f) => Widget w -> SField f -> FieldType f -> IO ()
+setField' widget (sfield :: SField f) fval = modifyIORef (state widget) (WidgetState . rput (sfield =:: fval) . _getState)
+
+-- | Get the value of a field.
+getField :: (f ∈ WidgetFields w) => Widget w -> SField f -> IO (FieldType f)
+getField widget sfield = _unAttr <$> rget sfield <$> _getState <$> readIORef (state widget)
+
+-- | Useful with toJSON, and OverloadedStrings
 str :: String -> String
 str = id

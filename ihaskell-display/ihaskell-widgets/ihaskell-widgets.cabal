@@ -56,7 +56,7 @@ library
   -- Modules included in this library but not exported.
   other-modules:       IHaskell.Display.Widgets.Button
                        IHaskell.Display.Widgets.Image
-                       IHaskell.Display.Widgets.Dropdown
+                       -- IHaskell.Display.Widgets.Dropdown
                        IHaskell.Display.Widgets.String.HTML
                        IHaskell.Display.Widgets.String.Latex
                        IHaskell.Display.Widgets.String.Text
@@ -64,6 +64,7 @@ library
                        IHaskell.Display.Widgets.Output
 
                        IHaskell.Display.Widgets.Types
+                       IHaskell.Display.Widgets.Common
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:    
@@ -77,6 +78,7 @@ library
                      , unordered-containers >= 0.2.5.1
 
                        -- TODO: Need to check versions
+                     , vinyl -any
                      , singletons -any
 
                        -- Waiting for the next release
