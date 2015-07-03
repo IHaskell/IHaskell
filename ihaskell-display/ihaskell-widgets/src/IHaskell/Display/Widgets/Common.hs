@@ -163,3 +163,10 @@ instance Show ImageFormatValue where
 
 instance ToJSON ImageFormatValue where
   toJSON = toJSON . pack . show
+
+newtype PosInt = PosInt { unwrap :: Int }
+
+instance ToJSON PosInt where
+  toJSON (PosInt x)
+    | x > 0 = String . pack $ show x
+    | otherwise = ""

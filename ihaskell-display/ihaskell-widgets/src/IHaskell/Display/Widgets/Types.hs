@@ -51,25 +51,25 @@ type family FieldType (f :: Field) :: * where
   FieldType ModelName = Text
   FieldType ViewModule = Text
   FieldType ViewName = Text
-  FieldType MsgThrottle = Int
-  FieldType Version = Int
+  FieldType MsgThrottle = PosInt
+  FieldType Version = PosInt
   FieldType OnDisplayed = IO ()
   FieldType Visible = Bool
   FieldType CSS = [(Text, Text, Text)]
   FieldType DOMClasses = [Text]
-  FieldType Width = Int
-  FieldType Height = Int
-  FieldType Padding = Int
-  FieldType Margin = Int
+  FieldType Width = PosInt
+  FieldType Height = PosInt
+  FieldType Padding = PosInt
+  FieldType Margin = PosInt
   FieldType Color = Text
   FieldType BackgroundColor = Text
   FieldType BorderColor = Text
-  FieldType BorderWidth = Int
-  FieldType BorderRadius = Int
+  FieldType BorderWidth = PosInt
+  FieldType BorderRadius = PosInt
   FieldType BorderStyle = BorderStyleValue
   FieldType FontStyle = FontStyleValue
   FieldType FontWeight = FontWeightValue
-  FieldType FontSize = Int
+  FieldType FontSize = PosInt
   FieldType FontFamily = Text
   FieldType Description = Text
   FieldType ClickHandler = IO ()
@@ -150,8 +150,8 @@ defaultWidget viewName = (SModelModule =:: "")
                       :& (SModelName =:: "WidgetModel")
                       :& (SViewModule =:: "")
                       :& (SViewName =:: viewName)
-                      :& (SMsgThrottle =:: 3)
-                      :& (SVersion =:: 0)
+                      :& (SMsgThrottle =:: PosInt 3)
+                      :& (SVersion =:: PosInt 0)
                       :& (SOnDisplayed =:: return ())
                       :& RNil
 
@@ -160,19 +160,19 @@ defaultDOMWidget viewName = defaultWidget viewName <+> domAttrs
   where domAttrs = (SVisible =:: True)
                 :& (SCSS =:: [])
                 :& (SDOMClasses =:: [])
-                :& (SWidth =:: 0)
-                :& (SHeight =:: 0)
-                :& (SPadding =:: 0)
-                :& (SMargin =:: 0)
+                :& (SWidth =:: PosInt 0)
+                :& (SHeight =:: PosInt 0)
+                :& (SPadding =:: PosInt 0)
+                :& (SMargin =:: PosInt 0)
                 :& (SColor =:: "")
                 :& (SBackgroundColor =:: "")
                 :& (SBorderColor =:: "")
-                :& (SBorderWidth =:: 0)
-                :& (SBorderRadius =:: 0)
+                :& (SBorderWidth =:: PosInt 0)
+                :& (SBorderRadius =:: PosInt 0)
                 :& (SBorderStyle =:: DefaultBorder)
                 :& (SFontStyle =:: DefaultFont)
                 :& (SFontWeight =:: DefaultWeight)
-                :& (SFontSize =:: 0)
+                :& (SFontSize =:: PosInt 0)
                 :& (SFontFamily =:: "")
                 :& RNil
 
