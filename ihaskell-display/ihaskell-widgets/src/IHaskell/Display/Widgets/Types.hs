@@ -13,6 +13,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE BangPatterns #-}
 module IHaskell.Display.Widgets.Types where
 
 import Control.Monad (when)
@@ -29,6 +30,8 @@ import Data.Vinyl.Lens (rget, rput, type (∈))
 import qualified Data.Vinyl.TypeLevel as TL
 
 import Data.Singletons.TH
+
+import Numeric.Natural
 
 import IHaskell.Eval.Widgets (widgetSendUpdate)
 import IHaskell.Display (Base64, IHaskellWidget (..))
@@ -51,25 +54,25 @@ type family FieldType (f :: Field) :: * where
   FieldType ModelName = Text
   FieldType ViewModule = Text
   FieldType ViewName = Text
-  FieldType MsgThrottle = PosInt
-  FieldType Version = PosInt
+  FieldType MsgThrottle = Natural
+  FieldType Version = Natural
   FieldType OnDisplayed = IO ()
   FieldType Visible = Bool
   FieldType CSS = [(Text, Text, Text)]
   FieldType DOMClasses = [Text]
-  FieldType Width = PosInt
-  FieldType Height = PosInt
-  FieldType Padding = PosInt
-  FieldType Margin = PosInt
+  FieldType Width = Natural
+  FieldType Height = Natural
+  FieldType Padding = Natural
+  FieldType Margin = Natural
   FieldType Color = Text
   FieldType BackgroundColor = Text
   FieldType BorderColor = Text
-  FieldType BorderWidth = PosInt
-  FieldType BorderRadius = PosInt
+  FieldType BorderWidth = Natural
+  FieldType BorderRadius = Natural
   FieldType BorderStyle = BorderStyleValue
   FieldType FontStyle = FontStyleValue
   FieldType FontWeight = FontWeightValue
-  FieldType FontSize = PosInt
+  FieldType FontSize = Natural
   FieldType FontFamily = Text
   FieldType Description = Text
   FieldType ClickHandler = IO ()
@@ -150,8 +153,8 @@ defaultWidget viewName = (SModelModule =:: "")
                       :& (SModelName =:: "WidgetModel")
                       :& (SViewModule =:: "")
                       :& (SViewName =:: viewName)
-                      :& (SMsgThrottle =:: PosInt 3)
-                      :& (SVersion =:: PosInt 0)
+                      :& (SMsgThrottle =:: 3)
+                      :& (SVersion =:: 0)
                       :& (SOnDisplayed =:: return ())
                       :& RNil
 
@@ -160,19 +163,19 @@ defaultDOMWidget viewName = defaultWidget viewName <+> domAttrs
   where domAttrs = (SVisible =:: True)
                 :& (SCSS =:: [])
                 :& (SDOMClasses =:: [])
-                :& (SWidth =:: PosInt 0)
-                :& (SHeight =:: PosInt 0)
-                :& (SPadding =:: PosInt 0)
-                :& (SMargin =:: PosInt 0)
+                :& (SWidth =:: 0)
+                :& (SHeight =:: 0)
+                :& (SPadding =:: 0)
+                :& (SMargin =:: 0)
                 :& (SColor =:: "")
                 :& (SBackgroundColor =:: "")
                 :& (SBorderColor =:: "")
-                :& (SBorderWidth =:: PosInt 0)
-                :& (SBorderRadius =:: PosInt 0)
+                :& (SBorderWidth =:: 0)
+                :& (SBorderRadius =:: 0)
                 :& (SBorderStyle =:: DefaultBorder)
                 :& (SFontStyle =:: DefaultFont)
                 :& (SFontWeight =:: DefaultWeight)
-                :& (SFontSize =:: PosInt 0)
+                :& (SFontSize =:: 0)
                 :& (SFontFamily =:: "")
                 :& RNil
 
@@ -212,9 +215,9 @@ setField widget (sfield :: SField f) fval = do
   let pairs = toPairs (Attr fval :: Attr f)
   when (not . null $ pairs) $ widgetSendUpdate widget (object pairs)
 
--- | Change the value of a field, without notifying the frontend. For internal use.
+-- | Change the value of a field, without notifying the frontend. For internal use. Uses BangPattern.
 setField' :: (f ∈ WidgetFields w, IHaskellWidget (Widget w), SingI f) => Widget w -> SField f -> FieldType f -> IO ()
-setField' widget (sfield :: SField f) fval = modifyIORef (state widget) (WidgetState . rput (sfield =:: fval) . _getState)
+setField' widget (sfield :: SField f) !fval = modifyIORef (state widget) (WidgetState . rput (sfield =:: fval) . _getState)
 
 -- | Get the value of a field.
 getField :: (f ∈ WidgetFields w) => Widget w -> SField f -> IO (FieldType f)
@@ -223,3 +226,7 @@ getField widget sfield = _unAttr <$> rget sfield <$> _getState <$> readIORef (st
 -- | Useful with toJSON, and OverloadedStrings
 str :: String -> String
 str = id
+
+instance ToJSON Natural where
+  toJSON 0 = String ""
+  toJSON n = String . pack $ show n

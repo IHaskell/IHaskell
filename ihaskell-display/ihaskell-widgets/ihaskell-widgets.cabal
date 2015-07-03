@@ -78,6 +78,7 @@ library
                      , unordered-containers >= 0.2.5.1
 
                        -- TODO: Need to check versions
+                     , nats -any
                      , vinyl -any
                      , singletons -any
 
