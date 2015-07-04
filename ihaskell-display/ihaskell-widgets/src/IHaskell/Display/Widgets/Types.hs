@@ -14,9 +14,11 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ConstraintKinds #-}
 module IHaskell.Display.Widgets.Types where
 
 import Control.Monad (when)
+import Control.Applicative ((<$>))
 
 import Data.Aeson
 import Data.Aeson.Types (emptyObject, Pair)

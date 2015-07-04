@@ -17,4 +17,4 @@ import           IHaskell.Display.Widgets.String.TextArea as X
 import           IHaskell.Display.Widgets.Output as X
 
 import           IHaskell.Display.Widgets.Common as X
-import           IHaskell.Display.Widgets.Types as X (setField, setField', getField)
+import           IHaskell.Display.Widgets.Types as X (setField, getField)
