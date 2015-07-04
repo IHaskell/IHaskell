@@ -27,8 +27,9 @@ import Data.Proxy
 import Data.Vinyl (Rec (..), (<+>), recordToList, reifyConstraint, rmap, Dict (..))
 import Data.Vinyl.Functor (Compose (..), Const (..))
 import Data.Vinyl.Lens (rget, rput, type (∈))
-import qualified Data.Vinyl.TypeLevel as TL
+import Data.Vinyl.TypeLevel (RecAll (..))
 
+import Data.Singletons.Prelude ((:++))
 import Data.Singletons.TH
 
 import Numeric.Natural
@@ -41,12 +42,13 @@ import IHaskell.Display.Widgets.Common
 
 -- Classes from IPython's widget hierarchy
 type WidgetClass = '[ModelModule, ModelName, ViewModule, ViewName, MsgThrottle, Version, OnDisplayed]
-type DOMWidgetClass = WidgetClass TL.++
+type DOMWidgetClass = WidgetClass :++
    '[ Visible, CSS, DOMClasses, Width, Height, Padding, Margin, Color
     , BackgroundColor, BorderColor, BorderWidth, BorderRadius, BorderStyle, FontStyle
     , FontWeight, FontSize, FontFamily
     ]
-type StringClass = DOMWidgetClass TL.++ '[StringValue, Disabled, Description, Placeholder]
+type StringClass = DOMWidgetClass :++ '[StringValue, Disabled, Description, Placeholder]
+type BoolClass = DOMWidgetClass :++ '[BoolValue, Disabled, Description]
 
 -- Types associated with Fields
 type family FieldType (f :: Field) :: * where
@@ -85,6 +87,7 @@ type family FieldType (f :: Field) :: * where
   FieldType ButtonStyle = ButtonStyleValue
   FieldType B64Value = Base64
   FieldType ImageFormat = ImageFormatValue
+  FieldType BoolValue = Bool
 
 data WidgetType = ButtonType
                 | ImageType
@@ -93,15 +96,19 @@ data WidgetType = ButtonType
                 | LatexType
                 | TextType
                 | TextAreaType
+                | CheckBoxType
+                | ToggleButtonType
 
 type family WidgetFields (w :: WidgetType) :: [Field] where
-  WidgetFields ButtonType = DOMWidgetClass TL.++ '[Description, Tooltip, Disabled, Icon, ButtonStyle, ClickHandler]
-  WidgetFields ImageType = DOMWidgetClass TL.++ '[ImageFormat, B64Value]
+  WidgetFields ButtonType = DOMWidgetClass :++ '[Description, Tooltip, Disabled, Icon, ButtonStyle, ClickHandler]
+  WidgetFields ImageType = DOMWidgetClass :++ '[ImageFormat, B64Value]
   WidgetFields OutputType = DOMWidgetClass
   WidgetFields HTMLType = StringClass
   WidgetFields LatexType = StringClass
-  WidgetFields TextType = StringClass TL.++ '[SubmitHandler]
+  WidgetFields TextType = StringClass :++ '[SubmitHandler]
   WidgetFields TextAreaType = StringClass
+  WidgetFields CheckBoxType = BoolClass
+  WidgetFields ToggleButtonType = BoolClass :++ '[Tooltip, Icon, ButtonStyle]
 
 newtype Attr f = Attr { _unAttr :: FieldType f }
 
@@ -144,6 +151,7 @@ instance ToPairs (Attr Icon) where toPairs (Attr x) = ["icon" .= toJSON x]
 instance ToPairs (Attr ButtonStyle) where toPairs (Attr x) = ["button_style" .= toJSON x]
 instance ToPairs (Attr B64Value) where toPairs (Attr x) = ["_b64value" .= toJSON x]
 instance ToPairs (Attr ImageFormat) where toPairs (Attr x) = ["format" .= toJSON x]
+instance ToPairs (Attr BoolValue) where toPairs (Attr x) = ["value" .= toJSON x]
 
 (=::) :: sing f -> FieldType f -> Attr f
 _ =:: x = Attr x
@@ -187,10 +195,17 @@ defaultStringWidget viewName = defaultDOMWidget viewName <+> strAttrs
                 :& (SPlaceholder =:: "")
                 :& RNil
 
+defaultBoolWidget :: FieldType ViewName -> Rec Attr BoolClass
+defaultBoolWidget viewName = defaultDOMWidget viewName <+> boolAttrs
+  where boolAttrs = (SBoolValue =:: False)
+                 :& (SDisabled =:: False)
+                 :& (SDescription =:: "")
+                 :& RNil
+
 newtype WidgetState w = WidgetState { _getState :: Rec Attr (WidgetFields w) }
 
 -- All records with ToPair instances for their Attrs will automatically have a toJSON instance now.
-instance TL.RecAll Attr (WidgetFields w) ToPairs => ToJSON (WidgetState w) where
+instance RecAll Attr (WidgetFields w) ToPairs => ToJSON (WidgetState w) where
   toJSON record =
     object
     . concat

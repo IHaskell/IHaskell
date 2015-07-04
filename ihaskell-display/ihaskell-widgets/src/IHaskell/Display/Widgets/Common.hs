@@ -71,6 +71,7 @@ singletons [d|
              | ButtonStyle
              | B64Value
              | ImageFormat
+             | BoolValue
              deriving (Eq, Ord, Show)
              |]
 

@@ -2,6 +2,9 @@ module IHaskell.Display.Widgets (module X) where
 
 import           IHaskell.Display.Widgets.Button as X
 
+import           IHaskell.Display.Widgets.Bool.CheckBox as X
+import           IHaskell.Display.Widgets.Bool.ToggleButton as X
+
 -- import           IHaskell.Display.Widgets.Dropdown as X
 
 import           IHaskell.Display.Widgets.Image as X

@@ -56,6 +56,8 @@ library
   -- Modules included in this library but not exported.
   other-modules:       IHaskell.Display.Widgets.Button
                        IHaskell.Display.Widgets.Image
+                       IHaskell.Display.Widgets.Bool.CheckBox
+                       IHaskell.Display.Widgets.Bool.ToggleButton
                        -- IHaskell.Display.Widgets.Dropdown
                        IHaskell.Display.Widgets.String.HTML
                        IHaskell.Display.Widgets.String.Latex
