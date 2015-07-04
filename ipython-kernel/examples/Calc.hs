@@ -213,7 +213,7 @@ mkConfig var = KernelConfig
   , displayResult = displayRes
   , displayOutput = displayOut
   , completion = langCompletion
-  , objectInfo = langInfo
+  , inspectInfo = langInfo
   , run = parseAndRun
   , debug = False
   }
