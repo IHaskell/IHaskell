@@ -91,3 +91,6 @@ library
   -- Base language which the package is written in.
   default-language:    Haskell2010
   
+  -- Deal with small -fcontext-stack on ghc-7.8
+  if impl(ghc == 7.8.*)
+    ghc-options:       -fcontext-stack=100

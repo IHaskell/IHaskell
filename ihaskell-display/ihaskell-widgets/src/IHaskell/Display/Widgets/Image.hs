@@ -17,6 +17,7 @@ import           Control.Monad (when, join)
 import           Data.Aeson
 import           Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
+import           Data.Monoid (mempty)
 import           Data.Text (Text)
 import           Data.Vinyl (Rec (..), (<+>))
 
