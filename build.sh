@@ -48,7 +48,7 @@ if [ $# -gt 0 ]; then
   if [ $1 = "display" ] || [ $1 = "all" ]; then
         # Install all the display libraries
         cd ihaskell-display
-        for dir in `ls`
+        for dir in `ls | grep -v ihaskell-widgets`
         do
             INSTALLS="$INSTALLS ihaskell-display/$dir"
         done
@@ -70,6 +70,10 @@ INSTALL_DIRS=`echo $INSTALLS | tr ' ' '\n' | sed 's#^#./#' | tr ' ' '\n'`
 
 echo CMD: cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
 cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
+
+if [ $1 = "display" ] || [ $1 = "all" ]; then
+    cabal install ihaskell-display/ihaskell-widgets
+fi
 
 if hash ihaskell 2>/dev/null; then
     ihaskell install 2>/dev/null || echo "The command \"ihaskell install\" failed. Please check your 'ipython --version'. 3.0 or up is required but it is $(ipython --version)!"
