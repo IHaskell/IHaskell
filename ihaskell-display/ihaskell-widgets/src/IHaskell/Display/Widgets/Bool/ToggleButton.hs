@@ -4,11 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Bool.ToggleButton (
-    -- * The ToggleButton Widget
-    ToggleButton,
-    -- * Constructor
-    mkToggleButton,
-    ) where
+-- * The ToggleButton Widget
+ToggleButton, 
+              -- * Constructor
+              mkToggleButton) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -18,7 +17,7 @@ import           Data.Aeson
 import           Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
 import           Data.Text (Text)
-import           Data.Vinyl (Rec (..), (<+>))
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -38,15 +37,16 @@ mkToggleButton = do
 
   let boolState = defaultBoolWidget "ToggleButtonView"
       toggleState = (STooltip =:: "")
-                 :& (SIcon =:: "")
-                 :& (SButtonStyle =:: DefaultButton)
-                 :& RNil
+                    :& (SIcon =:: "")
+                    :& (SButtonStyle =:: DefaultButton)
+                    :& RNil
       widgetState = WidgetState (boolState <+> toggleState)
 
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
-      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.ToggleButton"]
+      initData = object
+                   ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.ToggleButton"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget initData $ toJSON widgetState

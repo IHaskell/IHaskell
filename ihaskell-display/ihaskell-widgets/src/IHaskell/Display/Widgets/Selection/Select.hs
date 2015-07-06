@@ -4,11 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Selection.Select (
-    -- * The Select Widget
-    SelectWidget,
-    -- * Constructor
-    mkSelectWidget,
-    ) where
+-- * The Select Widget
+SelectWidget, 
+              -- * Constructor
+              mkSelectWidget) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -18,7 +17,7 @@ import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
 import           Data.Text (Text)
-import           Data.Vinyl (Rec (..), (<+>))
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -69,9 +68,10 @@ instance IHaskellWidget SelectWidget where
       OptionLabels _ -> do
         setField' widget SSelectedLabel label
         setField' widget SSelectedValue label
-      OptionDict ps -> case lookup label ps of
-        Nothing -> return ()
-        Just value -> do
-          setField' widget SSelectedLabel label
-          setField' widget SSelectedValue value
+      OptionDict ps ->
+        case lookup label ps of
+          Nothing -> return ()
+          Just value -> do
+            setField' widget SSelectedLabel label
+            setField' widget SSelectedValue value
     triggerSelection widget

@@ -4,13 +4,12 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.String.Text (
-    -- * The Text Widget
-    TextWidget,
-    -- * Constructor
-    mkTextWidget,
-    -- * Submit handling
-    triggerSubmit,
-    ) where
+-- * The Text Widget
+TextWidget, 
+            -- * Constructor
+            mkTextWidget, 
+                          -- * Submit handling
+                          triggerSubmit) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -20,7 +19,7 @@ import           Data.Aeson
 import qualified Data.HashMap.Strict as Map
 import           Data.IORef (newIORef)
 import           Data.Text (Text)
-import           Data.Vinyl (Rec (..), (<+>))
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets

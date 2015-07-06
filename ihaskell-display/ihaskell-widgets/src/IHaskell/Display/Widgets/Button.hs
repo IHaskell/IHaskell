@@ -4,13 +4,12 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Button (
-    -- * The Button Widget
-    Button,
-    -- * Create a new button
-    mkButton,
-    -- * Click manipulation
-    triggerClick,
-    ) where
+-- * The Button Widget
+Button, 
+        -- * Create a new button
+        mkButton, 
+                  -- * Click manipulation
+                  triggerClick) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -20,7 +19,7 @@ import           Data.Aeson
 import           Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
 import           Data.Text (Text)
-import           Data.Vinyl (Rec (..), (<+>))
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -40,22 +39,19 @@ mkButton = do
 
   let dom = defaultDOMWidget "ButtonView"
       but = (SDescription =:: "")
-         :& (STooltip =:: "")
-         :& (SDisabled =:: False)
-         :& (SIcon =:: "")
-         :& (SButtonStyle =:: DefaultButton)
-         :& (SClickHandler =:: return ())
-         :& RNil
+            :& (STooltip =:: "")
+            :& (SDisabled =:: False)
+            :& (SIcon =:: "")
+            :& (SButtonStyle =:: DefaultButton)
+            :& (SClickHandler =:: return ())
+            :& RNil
       buttonState = WidgetState (dom <+> but)
 
   stateIO <- newIORef buttonState
 
   let button = IPythonWidget uuid stateIO
 
-  let initData = object
-                   [ "model_name" .= str "WidgetModel"
-                   , "widget_class" .= str "IPython.Button"
-                   ]
+  let initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Button"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen button initData $ toJSON buttonState

@@ -4,11 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Selection.Dropdown (
-    -- * The Dropdown Widget
-    Dropdown,
-    -- * Constructor
-    mkDropdown,
-    ) where
+-- * The Dropdown Widget
+Dropdown, 
+          -- * Constructor
+          mkDropdown) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -18,7 +17,7 @@ import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
 import           Data.Text (Text)
-import           Data.Vinyl (Rec (..), (<+>))
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -42,7 +41,8 @@ mkDropdown = do
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
-      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Dropdown"]
+      initData = object
+                   ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Dropdown"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget initData $ toJSON widgetState
@@ -71,9 +71,10 @@ instance IHaskellWidget Dropdown where
       OptionLabels _ -> do
         setField' widget SSelectedLabel label
         setField' widget SSelectedValue label
-      OptionDict ps -> case lookup label ps of
-        Nothing -> return ()
-        Just value -> do
-          setField' widget SSelectedLabel label
-          setField' widget SSelectedValue value
+      OptionDict ps ->
+        case lookup label ps of
+          Nothing -> return ()
+          Just value -> do
+            setField' widget SSelectedLabel label
+            setField' widget SSelectedValue value
     triggerSelection widget

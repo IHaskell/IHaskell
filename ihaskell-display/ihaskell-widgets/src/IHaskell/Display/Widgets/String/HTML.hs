@@ -4,11 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.String.HTML (
-    -- * The HTML Widget
-    HTMLWidget,
-    -- * Constructor
-    mkHTMLWidget,
-    ) where
+-- * The HTML Widget
+HTMLWidget, 
+            -- * Constructor
+            mkHTMLWidget) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -17,7 +16,7 @@ import           Control.Monad (when, join)
 import           Data.Aeson
 import           Data.IORef (newIORef)
 import           Data.Text (Text)
-import           Data.Vinyl (Rec (..), (<+>))
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets

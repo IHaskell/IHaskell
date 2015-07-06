@@ -4,11 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Bool.CheckBox (
-    -- * The CheckBox Widget
-    CheckBoxWidget,
-    -- * Constructor
-    mkCheckBoxWidget,
-    ) where
+-- * The CheckBox Widget
+CheckBoxWidget, 
+                -- * Constructor
+                mkCheckBoxWidget) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -18,7 +17,7 @@ import           Data.Aeson
 import           Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
 import           Data.Text (Text)
-import           Data.Vinyl (Rec (..), (<+>))
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -41,7 +40,8 @@ mkCheckBoxWidget = do
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
-      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Checkbox"]
+      initData = object
+                   ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Checkbox"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget initData $ toJSON widgetState

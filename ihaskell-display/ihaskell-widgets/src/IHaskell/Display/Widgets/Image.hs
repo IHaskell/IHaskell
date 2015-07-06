@@ -4,11 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Image (
-    -- * The Image Widget
-    ImageWidget,
-    -- * Constructor
-    mkImageWidget,
-    ) where
+-- * The Image Widget
+ImageWidget, 
+             -- * Constructor
+             mkImageWidget) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -19,7 +18,7 @@ import           Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
 import           Data.Monoid (mempty)
 import           Data.Text (Text)
-import           Data.Vinyl (Rec (..), (<+>))
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -39,18 +38,15 @@ mkImageWidget = do
 
   let dom = defaultDOMWidget "ImageView"
       img = (SImageFormat =:: PNG)
-         :& (SB64Value =:: mempty)
-         :& RNil
+            :& (SB64Value =:: mempty)
+            :& RNil
       widgetState = WidgetState (dom <+> img)
 
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
 
-  let initData = object
-                   [ "model_name" .= str "WidgetModel"
-                   , "widget_class" .= str "IPython.Image"
-                   ]
+  let initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Image"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget initData $ toJSON widgetState

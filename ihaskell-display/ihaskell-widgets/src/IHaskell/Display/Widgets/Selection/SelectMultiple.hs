@@ -4,11 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Selection.SelectMultiple (
-    -- * The SelectMultiple Widget
-    SelectMultipleWidget,
-    -- * Constructor
-    mkSelectMultipleWidget,
-    ) where
+-- * The SelectMultiple Widget
+SelectMultipleWidget, 
+                      -- * Constructor
+                      mkSelectMultipleWidget) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -19,7 +18,7 @@ import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
 import           Data.Text (Text)
 import qualified Data.Vector as V
-import           Data.Vinyl (Rec (..), (<+>))
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -41,7 +40,10 @@ mkSelectMultipleWidget = do
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
-      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.SelectMultiple"]
+      initData = object
+                   [ "model_name" .= str "WidgetModel"
+                   , "widget_class" .= str "IPython.SelectMultiple"
+                   ]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget initData $ toJSON widgetState
@@ -71,9 +73,10 @@ instance IHaskellWidget SelectMultipleWidget where
       OptionLabels _ -> do
         setField' widget SSelectedLabels labelList
         setField' widget SSelectedValues labelList
-      OptionDict ps -> case sequence $ map (`lookup` ps) labelList of
-        Nothing -> return ()
-        Just valueList -> do
-          setField' widget SSelectedLabels labelList
-          setField' widget SSelectedValues valueList
+      OptionDict ps ->
+        case sequence $ map (`lookup` ps) labelList of
+          Nothing -> return ()
+          Just valueList -> do
+            setField' widget SSelectedLabels labelList
+            setField' widget SSelectedValues valueList
     triggerSelection widget
