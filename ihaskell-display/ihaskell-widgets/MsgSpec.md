@@ -54,6 +54,8 @@ message to the frontend on the widget's comm.
 }
 ```
 
+## Custom messages
+
 * Widgets can also send a custom message, having the form:
 
 ```json
@@ -63,6 +65,9 @@ message to the frontend on the widget's comm.
 }
 ```
 
+This message is used by widgets for ad-hoc syncronization, event handling and other stuff. An example
+is mentioned in the next section.
+
 ## Handling changes to widget in the frontend
 
 Changes to widgets in the frontend lead to messages being sent to the backend. These messages have
@@ -70,28 +75,28 @@ two possible formats:
 
 1. Backbone.js initiated sync:
 
-```json
-{
-    "method": "backbone",
-    "sync_data": { "<changes to sync with the backend>" }
-}
-```
+  ```json
+  {
+      "method": "backbone",
+      "sync_data": { "<changes to sync with the backend>" }
+  }
+  ```
 
-These messages are sent by the Backbone.js library when some change is made to a widget. For
-example, whenever a change is made to the text inside a `TextWidget`, the complete contents are sent
-to the kernel so that the kernel stays up-to-date about the widget's contents.
+  These messages are sent by the Backbone.js library when some change is made to a widget. For
+  example, whenever a change is made to the text inside a `TextWidget`, the complete contents are sent
+  to the kernel so that the kernel stays up-to-date about the widget's contents.
 
 2. Custom message:
 
-```json
-{
-    "method": "custom",
-    "content": { "<custom message data>" }
-}
-```
+  ```json
+  {
+      "method": "custom",
+      "content": { "<custom message data>" }
+  }
+  ```
 
-This form is generally used to notify the kernel about events. For example, the `TextWidget` sends a
-custom message when the text is submitted by hitting the 'Enter' key.
+  This form is generally used to notify the kernel about events. For example, the `TextWidget` sends a
+  custom message when the text is submitted by hitting the 'Enter' key.
 
 ---
 
