@@ -1,38 +1,17 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 module IHaskell.Display.Widgets.Common where
 
-import Control.Monad (when)
-
 import Data.Aeson
-import Data.Aeson.Types (emptyObject, Pair)
 import Data.Text (pack, Text)
-import Data.IORef (IORef, readIORef, modifyIORef)
-import Data.Proxy
-
-import Data.Vinyl (Rec (..), (<+>), recordToList, reifyConstraint, rmap, Dict (..))
-import Data.Vinyl.Functor (Compose (..), Const (..))
-import Data.Vinyl.Lens (rget, rput, type (∈))
-import qualified Data.Vinyl.TypeLevel as TL
 
 import Data.Singletons.TH
-
-import IHaskell.Eval.Widgets (widgetSendUpdate)
-import IHaskell.Display (Base64, IHaskellWidget (..))
-import IHaskell.IPython.Message.UUID
 
 -- Widget properties
 singletons [d|

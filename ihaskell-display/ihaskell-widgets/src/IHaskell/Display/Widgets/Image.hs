@@ -21,7 +21,7 @@ import           Data.Monoid (mempty)
 import           Data.Text (Text)
 import           Data.Vinyl (Rec (..), (<+>))
 
-import           IHaskell.Display hiding (Widget)
+import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
@@ -29,7 +29,7 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
 -- | An 'ImageWidget' represents a Image widget from IPython.html.widgets.
-type ImageWidget = Widget ImageType
+type ImageWidget = IPythonWidget ImageType
 
 -- | Create a new image widget
 mkImageWidget :: IO ImageWidget
@@ -45,7 +45,7 @@ mkImageWidget = do
 
   stateIO <- newIORef widgetState
 
-  let widget = Widget uuid stateIO
+  let widget = IPythonWidget uuid stateIO
 
   let initData = object
                    [ "model_name" .= str "WidgetModel"

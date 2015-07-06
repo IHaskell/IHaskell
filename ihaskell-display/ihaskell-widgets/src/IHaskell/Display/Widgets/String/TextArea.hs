@@ -19,14 +19,14 @@ import           Data.IORef (newIORef)
 import           Data.Text (Text)
 import           Data.Vinyl (Rec (..), (<+>))
 
-import           IHaskell.Display hiding (Widget)
+import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 
 -- | A 'TextAreaWidget' represents a Textarea widget from IPython.html.widgets.
-type TextAreaWidget = Widget TextAreaType
+type TextAreaWidget = IPythonWidget TextAreaType
 
 -- | Create a new TextArea widget
 mkTextAreaWidget :: IO TextAreaWidget
@@ -37,7 +37,7 @@ mkTextAreaWidget = do
 
   stateIO <- newIORef widgetState
 
-  let widget = Widget uuid stateIO
+  let widget = IPythonWidget uuid stateIO
       initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Textarea"]
 
   -- Open a comm for this widget, and store it in the kernel state

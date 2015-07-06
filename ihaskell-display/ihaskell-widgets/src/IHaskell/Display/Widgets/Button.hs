@@ -22,7 +22,7 @@ import           Data.IORef (newIORef)
 import           Data.Text (Text)
 import           Data.Vinyl (Rec (..), (<+>))
 
-import           IHaskell.Display hiding (Widget)
+import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
@@ -30,7 +30,7 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
 -- | A 'Button' represents a Button from IPython.html.widgets.
-type Button = Widget ButtonType
+type Button = IPythonWidget ButtonType
 
 -- | Create a new button
 mkButton :: IO Button
@@ -50,7 +50,7 @@ mkButton = do
 
   stateIO <- newIORef buttonState
 
-  let button = Widget uuid stateIO
+  let button = IPythonWidget uuid stateIO
 
   let initData = object
                    [ "model_name" .= str "WidgetModel"

@@ -6,16 +6,41 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ConstraintKinds #-}
 module IHaskell.Display.Widgets.Types where
+
+-- | This module houses all the type-trickery needed to make widgets happen.
+--
+-- All widgets have a corresponding 'WidgetType', and some fields/attributes/properties as defined by
+-- the 'WidgetFields' type-family.
+--
+-- Each widget field corresponds to a concrete haskell type, as given by the 'FieldType' type-family.
+--
+-- Vinyl records are used to wrap together widget fields into a single 'WidgetState'.
+--
+-- Singletons are used as a way to represent the promoted types of kind Field. For example:
+--
+-- @
+-- SViewName :: SField ViewName
+-- @
+--
+-- This allows the user to pass the type 'ViewName' without using Data.Proxy. In essence, a singleton
+-- is the only inhabitant (other than bottom) of a promoted type. Single element set/type == singleton.
+--
+-- It also allows the record to wrap values of properties with information about their Field type. A
+-- vinyl record is represented as @Rec f ts@, which means that a record is a list of @f x@, where @x@
+-- is a type present in the type-level list @ts@. Thus a 'WidgetState' is essentially a list of field
+-- properties wrapped together with the corresponding promoted Field type. See ('=::') for more.
+--
+-- The IPython widgets expect state updates of the form {"property": value}, where an empty string for
+-- value is ignored by the frontend and the default value is used instead.
+--
+-- To know more about the IPython messaging specification (as implemented in this package) take a look
+-- at the supplied MsgSpec.md.
 
 import Control.Monad (when)
 import Control.Applicative ((<$>))
@@ -24,7 +49,6 @@ import Data.Aeson
 import Data.Aeson.Types (emptyObject, Pair)
 import Data.Text (pack, Text)
 import Data.IORef (IORef, readIORef, modifyIORef)
-import Data.Proxy
 
 import Data.Vinyl (Rec (..), (<+>), recordToList, reifyConstraint, rmap, Dict (..))
 import Data.Vinyl.Functor (Compose (..), Const (..))
@@ -42,7 +66,7 @@ import IHaskell.IPython.Message.UUID
 
 import IHaskell.Display.Widgets.Common
 
--- Classes from IPython's widget hierarchy
+-- Classes from IPython's widget hierarchy. Defined as such to reduce code duplication.
 type WidgetClass = '[ModelModule, ModelName, ViewModule, ViewName, MsgThrottle, Version, OnDisplayed]
 type DOMWidgetClass = WidgetClass :++
    '[ Visible, CSS, DOMClasses, Width, Height, Padding, Margin, Color
@@ -52,7 +76,7 @@ type DOMWidgetClass = WidgetClass :++
 type StringClass = DOMWidgetClass :++ '[StringValue, Disabled, Description, Placeholder]
 type BoolClass = DOMWidgetClass :++ '[BoolValue, Disabled, Description]
 
--- Types associated with Fields
+-- Types associated with Fields.
 type family FieldType (f :: Field) :: * where
   FieldType ModelModule = Text
   FieldType ModelName = Text
@@ -91,6 +115,7 @@ type family FieldType (f :: Field) :: * where
   FieldType ImageFormat = ImageFormatValue
   FieldType BoolValue = Bool
 
+-- Different types of widgets. Every widget in IPython has a corresponding WidgetType
 data WidgetType = ButtonType
                 | ImageType
                 | OutputType
@@ -101,6 +126,7 @@ data WidgetType = ButtonType
                 | CheckBoxType
                 | ToggleButtonType
 
+-- Fields associated with a widget
 type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields ButtonType = DOMWidgetClass :++ '[Description, Tooltip, Disabled, Icon, ButtonStyle, ClickHandler]
   WidgetFields ImageType = DOMWidgetClass :++ '[ImageFormat, B64Value]
@@ -112,8 +138,10 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields CheckBoxType = BoolClass
   WidgetFields ToggleButtonType = BoolClass :++ '[Tooltip, Icon, ButtonStyle]
 
-newtype Attr f = Attr { _unAttr :: FieldType f }
+-- Wrapper around a field
+newtype Attr (f :: Field) = Attr { _unAttr :: FieldType f }
 
+-- Types that can be converted to Aeson Pairs.
 class ToPairs a where
   toPairs :: a -> [Pair]
 
@@ -155,9 +183,11 @@ instance ToPairs (Attr B64Value) where toPairs (Attr x) = ["_b64value" .= toJSON
 instance ToPairs (Attr ImageFormat) where toPairs (Attr x) = ["format" .= toJSON x]
 instance ToPairs (Attr BoolValue) where toPairs (Attr x) = ["value" .= toJSON x]
 
+-- | Store the value for a field, as an object parametrized by the Field
 (=::) :: sing f -> FieldType f -> Attr f
 _ =:: x = Attr x
 
+-- | A record representing an object of the Widget class from IPython
 defaultWidget :: FieldType ViewName -> Rec Attr WidgetClass
 defaultWidget viewName = (SModelModule =:: "")
                       :& (SModelName =:: "WidgetModel")
@@ -168,6 +198,7 @@ defaultWidget viewName = (SModelModule =:: "")
                       :& (SOnDisplayed =:: return ())
                       :& RNil
 
+-- | A record representing an object of the DOMWidget class from IPython
 defaultDOMWidget :: FieldType ViewName -> Rec Attr DOMWidgetClass
 defaultDOMWidget viewName = defaultWidget viewName <+> domAttrs
   where domAttrs = (SVisible =:: True)
@@ -189,6 +220,7 @@ defaultDOMWidget viewName = defaultWidget viewName <+> domAttrs
                 :& (SFontFamily =:: "")
                 :& RNil
 
+-- | A record representing a widget of the _String class from IPython
 defaultStringWidget :: FieldType ViewName -> Rec Attr StringClass
 defaultStringWidget viewName = defaultDOMWidget viewName <+> strAttrs
   where strAttrs = (SStringValue =:: "")
@@ -197,6 +229,7 @@ defaultStringWidget viewName = defaultDOMWidget viewName <+> strAttrs
                 :& (SPlaceholder =:: "")
                 :& RNil
 
+-- | A record representing a widget of the _Bool class from IPython
 defaultBoolWidget :: FieldType ViewName -> Rec Attr BoolClass
 defaultBoolWidget viewName = defaultDOMWidget viewName <+> boolAttrs
   where boolAttrs = (SBoolValue =:: False)
@@ -215,35 +248,28 @@ instance RecAll Attr (WidgetFields w) ToPairs => ToJSON (WidgetState w) where
     . rmap (\(Compose (Dict x)) -> Const $ toPairs x)
     $ reifyConstraint (Proxy :: Proxy ToPairs) $ _getState record
 
-data Widget (w :: WidgetType) = Widget { uuid :: UUID, state :: IORef (WidgetState w) }
-
--- | Reflect a (Proxy :: Proxy f) back to f
--- Copied from: http://stackoverflow.com/a/28033250/2388535
-reflect ::
-  forall (a :: k).
-  (SingI a, SingKind ('KProxy :: KProxy k)) =>
-  Proxy a -> Demote a
-reflect _ = fromSing (sing :: Sing a)
+data IPythonWidget (w :: WidgetType) = IPythonWidget { uuid :: UUID, state :: IORef (WidgetState w) }
 
 -- | Change the value for a field, and notify the frontend about it.
-setField :: (f ∈ WidgetFields w, IHaskellWidget (Widget w), SingI f, ToPairs (Attr f)) => Widget w -> SField f -> FieldType f -> IO ()
+setField :: (f ∈ WidgetFields w, IHaskellWidget (IPythonWidget w), ToPairs (Attr f)) => IPythonWidget w -> SField f -> FieldType f -> IO ()
 setField widget (sfield :: SField f) fval = do
   setField' widget sfield fval
   let pairs = toPairs (Attr fval :: Attr f)
   when (not . null $ pairs) $ widgetSendUpdate widget (object pairs)
 
 -- | Change the value of a field, without notifying the frontend. For internal use. Uses BangPattern.
-setField' :: (f ∈ WidgetFields w, IHaskellWidget (Widget w), SingI f) => Widget w -> SField f -> FieldType f -> IO ()
-setField' widget (sfield :: SField f) !fval = modifyIORef (state widget) (WidgetState . rput (sfield =:: fval) . _getState)
+setField' :: (f ∈ WidgetFields w, IHaskellWidget (IPythonWidget w)) => IPythonWidget w -> SField f -> FieldType f -> IO ()
+setField' widget sfield !fval = modifyIORef (state widget) (WidgetState . rput (sfield =:: fval) . _getState)
 
 -- | Get the value of a field.
-getField :: (f ∈ WidgetFields w) => Widget w -> SField f -> IO (FieldType f)
+getField :: (f ∈ WidgetFields w) => IPythonWidget w -> SField f -> IO (FieldType f)
 getField widget sfield = _unAttr <$> rget sfield <$> _getState <$> readIORef (state widget)
 
--- | Useful with toJSON, and OverloadedStrings
+-- | Useful with toJSON and OverloadedStrings
 str :: String -> String
 str = id
 
+-- | Send zero values as empty strings, which stands for default value in the frontend.
 instance ToJSON Natural where
   toJSON 0 = String ""
   toJSON n = String . pack $ show n

@@ -22,7 +22,7 @@ import           Data.IORef (newIORef)
 import           Data.Text (Text)
 import           Data.Vinyl (Rec (..), (<+>))
 
-import           IHaskell.Display hiding (Widget)
+import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
@@ -30,7 +30,7 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
 -- | A 'TextWidget' represents a Text widget from IPython.html.widgets.
-type TextWidget = Widget TextType
+type TextWidget = IPythonWidget TextType
 
 -- | Create a new Text widget
 mkTextWidget :: IO TextWidget
@@ -43,7 +43,7 @@ mkTextWidget = do
 
   stateIO <- newIORef widgetState
 
-  let widget = Widget uuid stateIO
+  let widget = IPythonWidget uuid stateIO
       initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Text"]
 
   -- Open a comm for this widget, and store it in the kernel state
