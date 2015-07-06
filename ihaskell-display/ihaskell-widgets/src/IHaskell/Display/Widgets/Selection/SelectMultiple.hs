@@ -3,21 +3,22 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.Selection.Dropdown (
-    -- * The Dropdown Widget
-    Dropdown,
+module IHaskell.Display.Widgets.Selection.SelectMultiple (
+    -- * The SelectMultiple Widget
+    SelectMultipleWidget,
     -- * Constructor
-    mkDropdown,
+    mkSelectMultipleWidget,
     ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (when, join)
+import           Control.Monad (fmap, join, sequence)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
 import           Data.Text (Text)
+import qualified Data.Vector as V
 import           Data.Vinyl (Rec (..), (<+>))
 
 import           IHaskell.Display
@@ -27,22 +28,20 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | A 'Dropdown' represents a Dropdown widget from IPython.html.widgets.
-type Dropdown = IPythonWidget DropdownType
+-- | A 'SelectMultipleWidget' represents a SelectMultiple widget from IPython.html.widgets.
+type SelectMultipleWidget = IPythonWidget SelectMultipleType
 
--- | Create a new Dropdown widget
-mkDropdown :: IO Dropdown
-mkDropdown = do
+-- | Create a new SelectMultiple widget
+mkSelectMultipleWidget :: IO SelectMultipleWidget
+mkSelectMultipleWidget = do
   -- Default properties, with a random uuid
   uuid <- U.random
-  let selectionAttrs = defaultSelectionWidget "DropdownView"
-      dropdownAttrs = (SButtonStyle =:: DefaultButton) :& RNil
-      widgetState = WidgetState $ selectionAttrs <+> dropdownAttrs
+  let widgetState = WidgetState $ defaultMultipleSelectionWidget "SelectMultipleView"
 
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
-      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Dropdown"]
+      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.SelectMultiple"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget initData $ toJSON widgetState
@@ -51,29 +50,30 @@ mkDropdown = do
   return widget
 
 -- | Artificially trigger a selection
-triggerSelection :: Dropdown -> IO ()
+triggerSelection :: SelectMultipleWidget -> IO ()
 triggerSelection widget = join $ getField widget SSelectionHandler
 
-instance IHaskellDisplay Dropdown where
+instance IHaskellDisplay SelectMultipleWidget where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget Dropdown where
+instance IHaskellWidget SelectMultipleWidget where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text
-        key2 = "selected_label" :: Text
+        key2 = "selected_labels" :: Text
         Just (Object dict2) = HM.lookup key1 dict1
-        Just (String label) = HM.lookup key2 dict2
+        Just (Array labels) = HM.lookup key2 dict2
+        labelList = map (\(String x) -> x) $ V.toList labels
     opts <- getField widget SOptions
     case opts of
       OptionLabels _ -> do
-        setField' widget SSelectedLabel label
-        setField' widget SSelectedValue label
-      OptionDict ps -> case lookup label ps of
+        setField' widget SSelectedLabels labelList
+        setField' widget SSelectedValues labelList
+      OptionDict ps -> case sequence $ map (`lookup` ps) labelList of
         Nothing -> return ()
-        Just value -> do
-          setField' widget SSelectedLabel label
-          setField' widget SSelectedValue value
+        Just valueList -> do
+          setField' widget SSelectedLabels labelList
+          setField' widget SSelectedValues valueList
     triggerSelection widget

@@ -55,15 +55,19 @@ library
   
   -- Modules included in this library but not exported.
   other-modules:       IHaskell.Display.Widgets.Button
-                       IHaskell.Display.Widgets.Image
                        IHaskell.Display.Widgets.Bool.CheckBox
                        IHaskell.Display.Widgets.Bool.ToggleButton
-                       -- IHaskell.Display.Widgets.Dropdown
+                       IHaskell.Display.Widgets.Image
+                       IHaskell.Display.Widgets.Output
+                       IHaskell.Display.Widgets.Selection.Dropdown
+                       IHaskell.Display.Widgets.Selection.RadioButtons
+                       IHaskell.Display.Widgets.Selection.Select
+                       IHaskell.Display.Widgets.Selection.ToggleButtons
+                       IHaskell.Display.Widgets.Selection.SelectMultiple
                        IHaskell.Display.Widgets.String.HTML
                        IHaskell.Display.Widgets.String.Latex
                        IHaskell.Display.Widgets.String.Text
                        IHaskell.Display.Widgets.String.TextArea
-                       IHaskell.Display.Widgets.Output
 
                        IHaskell.Display.Widgets.Types
                        IHaskell.Display.Widgets.Common
@@ -80,6 +84,7 @@ library
                      , unordered-containers -any
                      , nats -any
                      , vinyl >= 0.5
+                     , vector -any
                      , singletons >= 0.9.0
 
                        -- Waiting for the next release

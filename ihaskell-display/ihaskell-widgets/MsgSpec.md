@@ -22,7 +22,7 @@ The initial state update message looks like this:
 }
 ```
 
-Any property initialized with the empty string is provided the default value by the frontend.
+Any *numeric* property initialized with the empty string is provided the default value by the frontend.
 
 The initial state update must *at least* have the following fields:
 

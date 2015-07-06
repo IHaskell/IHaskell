@@ -37,7 +37,7 @@ module IHaskell.Display.Widgets.Types where
 -- properties wrapped together with the corresponding promoted Field type. See ('=::') for more.
 --
 -- The IPython widgets expect state updates of the form {"property": value}, where an empty string for
--- value is ignored by the frontend and the default value is used instead.
+-- numeric values is ignored by the frontend and the default value is used instead.
 --
 -- To know more about the IPython messaging specification (as implemented in this package) take a look
 -- at the supplied MsgSpec.md.
@@ -75,6 +75,10 @@ type DOMWidgetClass = WidgetClass :++
     ]
 type StringClass = DOMWidgetClass :++ '[StringValue, Disabled, Description, Placeholder]
 type BoolClass = DOMWidgetClass :++ '[BoolValue, Disabled, Description]
+type SelectionClass = DOMWidgetClass :++
+   '[Options, SelectedValue, SelectedLabel, Disabled, Description, SelectionHandler]
+type MultipleSelectionClass = DOMWidgetClass :++
+   '[Options, SelectedLabels, SelectedValues, Disabled, Description, SelectionHandler]
 
 -- Types associated with Fields.
 type family FieldType (f :: Field) :: * where
@@ -114,6 +118,14 @@ type family FieldType (f :: Field) :: * where
   FieldType B64Value = Base64
   FieldType ImageFormat = ImageFormatValue
   FieldType BoolValue = Bool
+  FieldType Options = SelectionOptions
+  FieldType SelectedLabel = Text
+  FieldType SelectedValue = Text
+  FieldType SelectionHandler = IO ()
+  FieldType Tooltips = [Text]
+  FieldType Icons = [Text]
+  FieldType SelectedLabels = [Text]
+  FieldType SelectedValues = [Text]
 
 -- Different types of widgets. Every widget in IPython has a corresponding WidgetType
 data WidgetType = ButtonType
@@ -125,6 +137,11 @@ data WidgetType = ButtonType
                 | TextAreaType
                 | CheckBoxType
                 | ToggleButtonType
+                | DropdownType
+                | RadioButtonsType
+                | SelectType
+                | ToggleButtonsType
+                | SelectMultipleType
 
 -- Fields associated with a widget
 type family WidgetFields (w :: WidgetType) :: [Field] where
@@ -137,6 +154,11 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields TextAreaType = StringClass
   WidgetFields CheckBoxType = BoolClass
   WidgetFields ToggleButtonType = BoolClass :++ '[Tooltip, Icon, ButtonStyle]
+  WidgetFields DropdownType = SelectionClass :++ '[ButtonStyle]
+  WidgetFields RadioButtonsType = SelectionClass
+  WidgetFields SelectType = SelectionClass
+  WidgetFields ToggleButtonsType = SelectionClass :++ '[Tooltips, Icons, ButtonStyle]
+  WidgetFields SelectMultipleType = MultipleSelectionClass
 
 -- Wrapper around a field
 newtype Attr (f :: Field) = Attr { _unAttr :: FieldType f }
@@ -152,7 +174,7 @@ instance ToPairs (Attr ViewModule) where toPairs (Attr x) = ["_view_module" .= t
 instance ToPairs (Attr ViewName) where toPairs (Attr x) = ["_view_name" .= toJSON x]
 instance ToPairs (Attr MsgThrottle) where toPairs (Attr x) = ["msg_throttle" .= toJSON x]
 instance ToPairs (Attr Version) where toPairs (Attr x) = ["version" .= toJSON x]
-instance ToPairs (Attr OnDisplayed) where toPairs (Attr x) = [] -- Not sent to the frontend
+instance ToPairs (Attr OnDisplayed) where toPairs _ = [] -- Not sent to the frontend
 instance ToPairs (Attr Visible) where toPairs (Attr x) = ["visible" .= toJSON x]
 instance ToPairs (Attr CSS) where toPairs (Attr x) = ["_css" .= toJSON x]
 instance ToPairs (Attr DOMClasses) where toPairs (Attr x) = ["_dom_classes" .= toJSON x]
@@ -171,8 +193,8 @@ instance ToPairs (Attr FontWeight) where toPairs (Attr x) = ["font_weight" .= to
 instance ToPairs (Attr FontSize) where toPairs (Attr x) = ["font_size" .= toJSON x]
 instance ToPairs (Attr FontFamily) where toPairs (Attr x) = ["font_family" .= toJSON x]
 instance ToPairs (Attr Description) where toPairs (Attr x) = ["description" .= toJSON x]
-instance ToPairs (Attr ClickHandler) where toPairs (Attr x) = [] -- Not sent to the frontend
-instance ToPairs (Attr SubmitHandler) where toPairs (Attr x) = [] -- Not sent to the frontend
+instance ToPairs (Attr ClickHandler) where toPairs _ = [] -- Not sent to the frontend
+instance ToPairs (Attr SubmitHandler) where toPairs _ = [] -- Not sent to the frontend
 instance ToPairs (Attr Disabled) where toPairs (Attr x) = ["disabled" .= toJSON x]
 instance ToPairs (Attr StringValue) where toPairs (Attr x) = ["value" .= toJSON x]
 instance ToPairs (Attr Placeholder) where toPairs (Attr x) = ["placeholder" .= toJSON x]
@@ -182,6 +204,18 @@ instance ToPairs (Attr ButtonStyle) where toPairs (Attr x) = ["button_style" .= 
 instance ToPairs (Attr B64Value) where toPairs (Attr x) = ["_b64value" .= toJSON x]
 instance ToPairs (Attr ImageFormat) where toPairs (Attr x) = ["format" .= toJSON x]
 instance ToPairs (Attr BoolValue) where toPairs (Attr x) = ["value" .= toJSON x]
+instance ToPairs (Attr SelectedLabel) where toPairs (Attr x) = ["selected_label" .= toJSON x]
+instance ToPairs (Attr SelectedValue) where toPairs (Attr x) = ["value" .= toJSON x]
+instance ToPairs (Attr Options) where
+  toPairs (Attr x) = case x of
+    OptionLabels xs -> labels xs
+    OptionDict xps -> labels $ map fst xps
+    where labels xs = ["_options_labels" .= xs]
+instance ToPairs (Attr SelectionHandler) where toPairs _ = [] -- Not sent to the frontend
+instance ToPairs (Attr Tooltips) where toPairs (Attr x) = ["tooltips" .= toJSON x]
+instance ToPairs (Attr Icons) where toPairs (Attr x) = ["icons" .= toJSON x]
+instance ToPairs (Attr SelectedLabels) where toPairs (Attr x) = ["selected_labels" .= toJSON x]
+instance ToPairs (Attr SelectedValues) where toPairs (Attr x) = ["values" .= toJSON x]
 
 -- | Store the value for a field, as an object parametrized by the Field
 (=::) :: sing f -> FieldType f -> Attr f
@@ -236,6 +270,28 @@ defaultBoolWidget viewName = defaultDOMWidget viewName <+> boolAttrs
                  :& (SDisabled =:: False)
                  :& (SDescription =:: "")
                  :& RNil
+
+-- | A record representing a widget of the _Selection class from IPython
+defaultSelectionWidget :: FieldType ViewName -> Rec Attr SelectionClass
+defaultSelectionWidget viewName = defaultDOMWidget viewName <+> selectionAttrs
+  where selectionAttrs = (SOptions =:: OptionLabels [])
+                      :& (SSelectedValue =:: "")
+                      :& (SSelectedLabel =:: "")
+                      :& (SDisabled =:: False)
+                      :& (SDescription =:: "")
+                      :& (SSelectionHandler =:: return ())
+                      :& RNil
+
+-- | A record representing a widget of the _MultipleSelection class from IPython
+defaultMultipleSelectionWidget :: FieldType ViewName -> Rec Attr MultipleSelectionClass
+defaultMultipleSelectionWidget viewName = defaultDOMWidget viewName <+> mulSelAttrs
+  where mulSelAttrs = (SOptions =:: OptionLabels [])
+                   :& (SSelectedLabels =:: [])
+                   :& (SSelectedValues =:: [])
+                   :& (SDisabled =:: False)
+                   :& (SDescription =:: "")
+                   :& (SSelectionHandler =:: return ())
+                   :& RNil
 
 newtype WidgetState w = WidgetState { _getState :: Rec Attr (WidgetFields w) }
 

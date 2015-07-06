@@ -3,11 +3,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.Selection.Dropdown (
-    -- * The Dropdown Widget
-    Dropdown,
+module IHaskell.Display.Widgets.Selection.RadioButtons (
+    -- * The RadioButtons Widget
+    RadioButtons,
     -- * Constructor
-    mkDropdown,
+    mkRadioButtons,
     ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -27,22 +27,20 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | A 'Dropdown' represents a Dropdown widget from IPython.html.widgets.
-type Dropdown = IPythonWidget DropdownType
+-- | A 'RadioButtons' represents a RadioButtons widget from IPython.html.widgets.
+type RadioButtons = IPythonWidget RadioButtonsType
 
--- | Create a new Dropdown widget
-mkDropdown :: IO Dropdown
-mkDropdown = do
+-- | Create a new RadioButtons widget
+mkRadioButtons :: IO RadioButtons
+mkRadioButtons = do
   -- Default properties, with a random uuid
   uuid <- U.random
-  let selectionAttrs = defaultSelectionWidget "DropdownView"
-      dropdownAttrs = (SButtonStyle =:: DefaultButton) :& RNil
-      widgetState = WidgetState $ selectionAttrs <+> dropdownAttrs
+  let widgetState = WidgetState $ defaultSelectionWidget "RadioButtonsView"
 
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
-      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Dropdown"]
+      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.RadioButtons"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget initData $ toJSON widgetState
@@ -51,15 +49,15 @@ mkDropdown = do
   return widget
 
 -- | Artificially trigger a selection
-triggerSelection :: Dropdown -> IO ()
+triggerSelection :: RadioButtons -> IO ()
 triggerSelection widget = join $ getField widget SSelectionHandler
 
-instance IHaskellDisplay Dropdown where
+instance IHaskellDisplay RadioButtons where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget Dropdown where
+instance IHaskellWidget RadioButtons where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text

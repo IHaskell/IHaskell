@@ -3,11 +3,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.Selection.Dropdown (
-    -- * The Dropdown Widget
-    Dropdown,
+module IHaskell.Display.Widgets.Selection.Select (
+    -- * The Select Widget
+    SelectWidget,
     -- * Constructor
-    mkDropdown,
+    mkSelectWidget,
     ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -27,22 +27,20 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | A 'Dropdown' represents a Dropdown widget from IPython.html.widgets.
-type Dropdown = IPythonWidget DropdownType
+-- | A 'SelectWidget' represents a Select widget from IPython.html.widgets.
+type SelectWidget = IPythonWidget SelectType
 
--- | Create a new Dropdown widget
-mkDropdown :: IO Dropdown
-mkDropdown = do
+-- | Create a new Select widget
+mkSelectWidget :: IO SelectWidget
+mkSelectWidget = do
   -- Default properties, with a random uuid
   uuid <- U.random
-  let selectionAttrs = defaultSelectionWidget "DropdownView"
-      dropdownAttrs = (SButtonStyle =:: DefaultButton) :& RNil
-      widgetState = WidgetState $ selectionAttrs <+> dropdownAttrs
+  let widgetState = WidgetState $ defaultSelectionWidget "SelectView"
 
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
-      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Dropdown"]
+      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Select"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget initData $ toJSON widgetState
@@ -51,15 +49,15 @@ mkDropdown = do
   return widget
 
 -- | Artificially trigger a selection
-triggerSelection :: Dropdown -> IO ()
+triggerSelection :: SelectWidget -> IO ()
 triggerSelection widget = join $ getField widget SSelectionHandler
 
-instance IHaskellDisplay Dropdown where
+instance IHaskellDisplay SelectWidget where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget Dropdown where
+instance IHaskellWidget SelectWidget where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text

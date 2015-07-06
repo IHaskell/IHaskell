@@ -51,9 +51,18 @@ singletons [d|
              | B64Value
              | ImageFormat
              | BoolValue
+             | Options
+             | SelectedLabel
+             | SelectedValue
+             | SelectionHandler
+             | Tooltips
+             | Icons
+             | SelectedLabels
+             | SelectedValues
              deriving (Eq, Ord, Show)
              |]
 
+-- | Pre-defined border styles
 data BorderStyleValue = NoBorder
                       | HiddenBorder
                       | DottedBorder
@@ -83,6 +92,7 @@ instance ToJSON BorderStyleValue where
   toJSON InheritBorder = "inherit"
   toJSON DefaultBorder = ""
 
+-- | Font style values
 data FontStyleValue = NormalFont
                     | ItalicFont
                     | ObliqueFont
@@ -98,6 +108,7 @@ instance ToJSON FontStyleValue where
   toJSON InheritFont = "inherit"
   toJSON DefaultFont = ""
 
+-- | Font weight values
 data FontWeightValue = NormalWeight
                      | BoldWeight
                      | BolderWeight
@@ -115,6 +126,7 @@ instance ToJSON FontWeightValue where
   toJSON InitialWeight = "initial"
   toJSON DefaultWeight = ""
 
+-- | Pre-defined button styles
 data ButtonStyleValue = PrimaryButton
                       | SuccessButton
                       | InfoButton
@@ -143,3 +155,6 @@ instance Show ImageFormatValue where
 
 instance ToJSON ImageFormatValue where
   toJSON = toJSON . pack . show
+
+-- | Options for selection widgets.
+data SelectionOptions = OptionLabels [Text] | OptionDict [(Text, Text)]
