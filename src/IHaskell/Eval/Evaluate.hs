@@ -239,6 +239,10 @@ initializeImports = do
   imports <- mapM parseImportDecl $ globalImports ++ displayImports
   setContext $ map IIDecl $ implicitPrelude : imports
 
+  -- Set -fcontext-stack to 100 (default in ghc-7.10). ghc-7.8 uses 20, which is too small.
+  let contextStackFlag = printf "-fcontext-stack=%d" (100 :: Int)
+  void $ setFlags [contextStackFlag]
+
 -- | Give a value for the `it` variable.
 initializeItVariable :: Interpreter ()
 initializeItVariable =

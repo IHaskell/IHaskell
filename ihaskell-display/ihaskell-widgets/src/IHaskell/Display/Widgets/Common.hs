@@ -1,72 +1,163 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE QuasiQuotes #-}
+module IHaskell.Display.Widgets.Common where
 
-module IHaskell.Display.Widgets.Common (
-    -- * Convenience types
-    ButtonStyle(..),
-    ImageFormat(..),
-    PosInt(..),
-    -- * Convenience functions (for internal use)
-    update,
-    modify,
-    str,
-    ) where
+import Data.Aeson
+import Data.Text (pack, Text)
 
-import           Data.Aeson hiding (Success)
-import           Data.Aeson.Types (Pair)
-import qualified Data.Text as T
-import           Data.IORef
+import Data.Singletons.TH
 
-import           IHaskell.Display
-import           IHaskell.Eval.Widgets
+-- Widget properties
+singletons [d|
+  data Field = ModelModule
+             | ModelName
+             | ViewModule
+             | ViewName
+             | MsgThrottle
+             | Version
+             | OnDisplayed
+             | Visible
+             | CSS
+             | DOMClasses
+             | Width
+             | Height
+             | Padding
+             | Margin
+             | Color
+             | BackgroundColor
+             | BorderColor
+             | BorderWidth
+             | BorderRadius
+             | BorderStyle
+             | FontStyle
+             | FontWeight
+             | FontSize
+             | FontFamily
+             | Description
+             | ClickHandler
+             | SubmitHandler
+             | Disabled
+             | StringValue
+             | Placeholder
+             | Tooltip
+             | Icon
+             | ButtonStyle
+             | B64Value
+             | ImageFormat
+             | BoolValue
+             | Options
+             | SelectedLabel
+             | SelectedValue
+             | SelectionHandler
+             | Tooltips
+             | Icons
+             | SelectedLabels
+             | SelectedValues
+             deriving (Eq, Ord, Show)
+             |]
 
--- | Pre-defined button-styles
-data ButtonStyle = Primary
-                 | Success
-                 | Info
-                 | Warning
-                 | Danger
-                 | None
-  deriving (Eq, Show)
+-- | Pre-defined border styles
+data BorderStyleValue = NoBorder
+                      | HiddenBorder
+                      | DottedBorder
+                      | DashedBorder
+                      | SolidBorder
+                      | DoubleBorder
+                      | GrooveBorder
+                      | RidgeBorder
+                      | InsetBorder
+                      | OutsetBorder
+                      | InitialBorder
+                      | InheritBorder
+                      | DefaultBorder
 
-instance ToJSON ButtonStyle where
-  toJSON Primary = "primary"
-  toJSON Success = "success"
-  toJSON Info = "info"
-  toJSON Warning = "warning"
-  toJSON Danger = "danger"
-  toJSON None = ""
+instance ToJSON BorderStyleValue where
+  toJSON NoBorder = "none"
+  toJSON HiddenBorder = "hidden"
+  toJSON DottedBorder = "dotted"
+  toJSON DashedBorder = "dashed"
+  toJSON SolidBorder = "solid"
+  toJSON DoubleBorder = "double"
+  toJSON GrooveBorder = "groove"
+  toJSON RidgeBorder = "ridge"
+  toJSON InsetBorder = "inset"
+  toJSON OutsetBorder = "outset"
+  toJSON InitialBorder = "initial"
+  toJSON InheritBorder = "inherit"
+  toJSON DefaultBorder = ""
 
--- | A wrapper around Int. 'toJSON' gives the no. for positive numbers, and empty string otherwise
-newtype PosInt = PosInt { unwrap :: Int }
+-- | Font style values
+data FontStyleValue = NormalFont
+                    | ItalicFont
+                    | ObliqueFont
+                    | InitialFont
+                    | InheritFont
+                    | DefaultFont
 
-instance ToJSON PosInt where
-  toJSON (PosInt n)
-    | n > 0 = toJSON $ str $ show n
-    | otherwise = toJSON $ str $ ""
+instance ToJSON FontStyleValue where
+  toJSON NormalFont = "normal"
+  toJSON ItalicFont = "italic"
+  toJSON ObliqueFont = "oblique"
+  toJSON InitialFont = "initial"
+  toJSON InheritFont = "inherit"
+  toJSON DefaultFont = ""
+
+-- | Font weight values
+data FontWeightValue = NormalWeight
+                     | BoldWeight
+                     | BolderWeight
+                     | LighterWeight
+                     | InheritWeight
+                     | InitialWeight
+                     | DefaultWeight
+
+instance ToJSON FontWeightValue where
+  toJSON NormalWeight = "normal"
+  toJSON BoldWeight = "bold"
+  toJSON BolderWeight = "bolder"
+  toJSON LighterWeight = "lighter"
+  toJSON InheritWeight = "inherit"
+  toJSON InitialWeight = "initial"
+  toJSON DefaultWeight = ""
+
+-- | Pre-defined button styles
+data ButtonStyleValue = PrimaryButton
+                      | SuccessButton
+                      | InfoButton
+                      | WarningButton
+                      | DangerButton
+                      | DefaultButton
+
+instance ToJSON ButtonStyleValue where
+  toJSON PrimaryButton = "primary"
+  toJSON SuccessButton = "success"
+  toJSON InfoButton = "info"
+  toJSON WarningButton = "warning"
+  toJSON DangerButton = "danger"
+  toJSON DefaultButton = ""
 
 -- | Image formats for ImageWidget
-data ImageFormat = PNG
-                 | SVG
-                 | JPG
+data ImageFormatValue = PNG
+                      | SVG
+                      | JPG
   deriving Eq
 
-instance Show ImageFormat where
+instance Show ImageFormatValue where
   show PNG = "png"
   show SVG = "svg"
   show JPG = "jpg"
 
-instance ToJSON ImageFormat where
-  toJSON = toJSON . T.pack . show
+instance ToJSON ImageFormatValue where
+  toJSON = toJSON . pack . show
 
--- | Send an update msg for a widget, with custom json. Make it easy to update fragments of the
--- state, by accepting a Pair instead of a Value.
-update :: IHaskellWidget a => a -> [Pair] -> IO ()
-update widget = widgetSendUpdate widget . toJSON . object
+-- | Options for selection widgets.
+data SelectionOptions = OptionLabels [Text] | OptionDict [(Text, Text)]
 
--- | Modify attributes of a widget, stored inside it as IORefs
-modify :: IHaskellWidget a => a -> (a -> IORef b) -> b -> IO ()
-modify widget attr newval = writeIORef (attr widget) newval
 
--- | Useful with toJSON
-str :: String -> String
-str = id
+

@@ -1,108 +1,50 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.String.TextArea (
-    -- * The TextArea Widget
-    TextAreaWidget,
-    -- * Constructor
-    mkTextAreaWidget,
-    -- * Set properties
-    setTextAreaValue,
-    setTextAreaDescription,
-    setTextAreaPlaceholder,
-    -- * Get properties
-    getTextAreaValue,
-    getTextAreaDescription,
-    getTextAreaPlaceholder,
-    ) where
+-- * The TextArea Widget
+TextAreaWidget, 
+                -- * Constructor
+                mkTextAreaWidget) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (when)
-import           Data.Aeson (ToJSON, Value(..), object, toJSON, (.=))
-import           Data.Aeson.Types (Pair)
-import           Data.HashMap.Strict as Map
-import           Data.IORef
+import           Control.Monad (when, join)
+import           Data.Aeson
+import           Data.IORef (newIORef)
 import           Data.Text (Text)
-import qualified Data.Text as T
-import           System.IO.Unsafe (unsafePerformIO)
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
-import qualified IHaskell.IPython.Message.UUID as U
+import           IHaskell.IPython.Message.UUID as U
 
-import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Types
 
-data TextAreaWidget =
-       TextAreaWidget
-         { uuid :: U.UUID
-         , value :: IORef Text
-         , description :: IORef Text
-         , placeholder :: IORef Text
-         }
+-- | A 'TextAreaWidget' represents a Textarea widget from IPython.html.widgets.
+type TextAreaWidget = IPythonWidget TextAreaType
 
 -- | Create a new TextArea widget
 mkTextAreaWidget :: IO TextAreaWidget
 mkTextAreaWidget = do
   -- Default properties, with a random uuid
-  commUUID <- U.random
-  val <- newIORef ""
-  des <- newIORef ""
-  plc <- newIORef ""
+  uuid <- U.random
+  let widgetState = WidgetState $ defaultStringWidget "TextareaView"
 
-  let b = TextAreaWidget { uuid = commUUID, value = val, description = des, placeholder = plc }
+  stateIO <- newIORef widgetState
 
-  let initData = object
+  let widget = IPythonWidget uuid stateIO
+      initData = object
                    ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Textarea"]
 
   -- Open a comm for this widget, and store it in the kernel state
-  widgetSendOpen b initData (toJSON b)
+  widgetSendOpen widget initData $ toJSON widgetState
 
-  -- Return the string widget
-  return b
-
--- | Set the TextArea string value.
-setTextAreaValue :: TextAreaWidget -> Text -> IO ()
-setTextAreaValue b txt = do
-  modify b value txt
-  update b ["value" .= txt]
-
--- | Set the TextArea widget "description"
-setTextAreaDescription :: TextAreaWidget -> Text -> IO ()
-setTextAreaDescription b txt = do
-  modify b description txt
-  update b ["description" .= txt]
-
--- | Set the TextArea widget "placeholder", i.e. text displayed in empty widget
-setTextAreaPlaceholder :: TextAreaWidget -> Text -> IO ()
-setTextAreaPlaceholder b txt = do
-  modify b placeholder txt
-  update b ["placeholder" .= txt]
-
--- | Get the TextArea string value.
-getTextAreaValue :: TextAreaWidget -> IO Text
-getTextAreaValue = readIORef . value
-
--- | Get the TextArea widget "description" value.
-getTextAreaDescription :: TextAreaWidget -> IO Text
-getTextAreaDescription = readIORef . description
-
--- | Get the TextArea widget placeholder value.
-getTextAreaPlaceholder :: TextAreaWidget -> IO Text
-getTextAreaPlaceholder = readIORef . placeholder
-
-instance ToJSON TextAreaWidget where
-  toJSON b = object
-               [ "_view_name" .= str "TextareaView"
-               , "visible" .= True
-               , "_css" .= object []
-               , "msg_throttle" .= (3 :: Int)
-               , "value" .= get value b
-               , "description" .= get description b
-               , "placeholder" .= get placeholder b
-               ]
-    where
-      get x y = unsafePerformIO . readIORef . x $ y
+  -- Return the widget
+  return widget
 
 instance IHaskellDisplay TextAreaWidget where
   display b = do
