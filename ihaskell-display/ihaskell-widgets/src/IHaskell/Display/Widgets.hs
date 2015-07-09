@@ -5,6 +5,12 @@ import           IHaskell.Display.Widgets.Button as X
 import           IHaskell.Display.Widgets.Bool.CheckBox as X
 import           IHaskell.Display.Widgets.Bool.ToggleButton as X
 
+import           IHaskell.Display.Widgets.Int.IntText as X
+import           IHaskell.Display.Widgets.Int.BoundedInt.BoundedIntText as X
+import           IHaskell.Display.Widgets.Int.BoundedInt.IntProgress as X
+import           IHaskell.Display.Widgets.Int.BoundedInt.IntSlider as X
+import           IHaskell.Display.Widgets.Int.BoundedIntRange.IntRangeSlider as X
+
 import           IHaskell.Display.Widgets.Image as X
 
 import           IHaskell.Display.Widgets.Output as X

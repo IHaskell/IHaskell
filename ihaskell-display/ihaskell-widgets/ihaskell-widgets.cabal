@@ -57,6 +57,11 @@ library
   other-modules:       IHaskell.Display.Widgets.Button
                        IHaskell.Display.Widgets.Bool.CheckBox
                        IHaskell.Display.Widgets.Bool.ToggleButton
+                       IHaskell.Display.Widgets.Int.IntText
+                       IHaskell.Display.Widgets.Int.BoundedInt.BoundedIntText
+                       IHaskell.Display.Widgets.Int.BoundedInt.IntProgress
+                       IHaskell.Display.Widgets.Int.BoundedInt.IntSlider
+                       IHaskell.Display.Widgets.Int.BoundedIntRange.IntRangeSlider
                        IHaskell.Display.Widgets.Image
                        IHaskell.Display.Widgets.Output
                        IHaskell.Display.Widgets.Selection.Dropdown
@@ -86,6 +91,7 @@ library
                      , vinyl >= 0.5
                      , vector -any
                      , singletons >= 0.9.0
+                     , scientific -any
 
                        -- Waiting for the next release
                      , ihaskell -any

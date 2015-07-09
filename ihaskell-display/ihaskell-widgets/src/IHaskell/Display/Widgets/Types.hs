@@ -79,6 +79,10 @@ type SelectionClass = DOMWidgetClass :++
    '[Options, SelectedValue, SelectedLabel, Disabled, Description, SelectionHandler]
 type MultipleSelectionClass = DOMWidgetClass :++
    '[Options, SelectedLabels, SelectedValues, Disabled, Description, SelectionHandler]
+type IntClass = DOMWidgetClass :++ '[IntValue, Disabled, Description]
+type BoundedIntClass = IntClass :++ '[StepInt, MinInt, MaxInt]
+type IntRangeClass = IntClass :++ '[IntPairValue, LowerInt, UpperInt]
+type BoundedIntRangeClass = IntRangeClass :++ '[StepInt, MinInt, MaxInt]
 
 -- Types associated with Fields.
 type family FieldType (f :: Field) :: * where
@@ -126,6 +130,18 @@ type family FieldType (f :: Field) :: * where
   FieldType Icons = [Text]
   FieldType SelectedLabels = [Text]
   FieldType SelectedValues = [Text]
+  FieldType IntValue = Integer
+  FieldType StepInt = Natural
+  FieldType MinInt = Int
+  FieldType MaxInt = Int
+  FieldType LowerInt = Int
+  FieldType UpperInt = Int
+  FieldType IntPairValue = (Integer, Integer)
+  FieldType Orientation = OrientationValue
+  FieldType ShowRange = Bool
+  FieldType ReadOut = Bool
+  FieldType SliderColor = Text
+  FieldType BarStyle = BarStyleValue
 
 -- Different types of widgets. Every widget in IPython has a corresponding WidgetType
 data WidgetType = ButtonType
@@ -142,6 +158,11 @@ data WidgetType = ButtonType
                 | SelectType
                 | ToggleButtonsType
                 | SelectMultipleType
+                | IntTextType
+                | BoundedIntTextType
+                | IntSliderType
+                | IntProgressType
+                | IntRangeSliderType
 
 -- Fields associated with a widget
 type family WidgetFields (w :: WidgetType) :: [Field] where
@@ -159,6 +180,11 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields SelectType = SelectionClass
   WidgetFields ToggleButtonsType = SelectionClass :++ '[Tooltips, Icons, ButtonStyle]
   WidgetFields SelectMultipleType = MultipleSelectionClass
+  WidgetFields IntTextType = IntClass
+  WidgetFields BoundedIntTextType = BoundedIntClass
+  WidgetFields IntSliderType = BoundedIntClass :++ '[Orientation, ShowRange, ReadOut, SliderColor]
+  WidgetFields IntProgressType = BoundedIntClass :++ '[BarStyle]
+  WidgetFields IntRangeSliderType = BoundedIntRangeClass :++ '[Orientation, ShowRange, ReadOut, SliderColor]
 
 -- Wrapper around a field
 newtype Attr (f :: Field) = Attr { _unAttr :: FieldType f }
@@ -216,6 +242,18 @@ instance ToPairs (Attr Tooltips) where toPairs (Attr x) = ["tooltips" .= toJSON 
 instance ToPairs (Attr Icons) where toPairs (Attr x) = ["icons" .= toJSON x]
 instance ToPairs (Attr SelectedLabels) where toPairs (Attr x) = ["selected_labels" .= toJSON x]
 instance ToPairs (Attr SelectedValues) where toPairs (Attr x) = ["values" .= toJSON x]
+instance ToPairs (Attr IntValue) where toPairs (Attr x) = ["value" .= toJSON x]
+instance ToPairs (Attr StepInt) where toPairs (Attr x) = ["step" .= toJSON x]
+instance ToPairs (Attr MinInt) where toPairs (Attr x) = ["min" .= toJSON x]
+instance ToPairs (Attr MaxInt) where toPairs (Attr x) = ["max" .= toJSON x]
+instance ToPairs (Attr IntPairValue) where toPairs (Attr x) = ["value" .= toJSON x]
+instance ToPairs (Attr LowerInt) where toPairs (Attr x) = ["min" .= toJSON x]
+instance ToPairs (Attr UpperInt) where toPairs (Attr x) = ["max" .= toJSON x]
+instance ToPairs (Attr Orientation) where toPairs (Attr x) = ["orientation" .= toJSON x]
+instance ToPairs (Attr ShowRange) where toPairs (Attr x) = ["_range" .= toJSON x]
+instance ToPairs (Attr ReadOut) where toPairs (Attr x) = ["readout" .= toJSON x]
+instance ToPairs (Attr SliderColor) where toPairs (Attr x) = ["slider_color" .= toJSON x]
+instance ToPairs (Attr BarStyle) where toPairs (Attr x) = ["bar_style" .= toJSON x]
 
 -- | Store the value for a field, as an object parametrized by the Field
 (=::) :: sing f -> FieldType f -> Attr f
@@ -293,6 +331,38 @@ defaultMultipleSelectionWidget viewName = defaultDOMWidget viewName <+> mulSelAt
                    :& (SSelectionHandler =:: return ())
                    :& RNil
 
+-- | A record representing a widget of the _Int class from IPython
+defaultIntWidget :: FieldType ViewName -> Rec Attr IntClass
+defaultIntWidget viewName = defaultDOMWidget viewName <+> intAttrs
+  where intAttrs = (SIntValue =:: 0)
+                :& (SDisabled =:: False)
+                :& (SDescription =:: "")
+                :& RNil
+
+-- | A record representing a widget of the _BoundedInt class from IPython
+defaultBoundedIntWidget :: FieldType ViewName -> Rec Attr BoundedIntClass
+defaultBoundedIntWidget viewName = defaultIntWidget viewName <+> boundedIntAttrs
+  where boundedIntAttrs = (SStepInt =:: 1)
+                       :& (SMinInt =:: 0)
+                       :& (SMaxInt =:: 100)
+                       :& RNil
+
+-- | A record representing a widget of the _BoundedInt class from IPython
+defaultIntRangeWidget :: FieldType ViewName -> Rec Attr IntRangeClass
+defaultIntRangeWidget viewName = defaultIntWidget viewName <+> rangeAttrs
+  where rangeAttrs = (SIntPairValue =:: (25, 75))
+                  :& (SLowerInt =:: 0)
+                  :& (SUpperInt =:: 100)
+                  :& RNil
+
+-- | A record representing a widget of the _BoundedIntRange class from IPython
+defaultBoundedIntRangeWidget :: FieldType ViewName -> Rec Attr BoundedIntRangeClass
+defaultBoundedIntRangeWidget viewName = defaultIntRangeWidget viewName <+> boundedIntRangeAttrs
+  where boundedIntRangeAttrs = (SStepInt =:: 1)
+                            :& (SMinInt =:: 0)
+                            :& (SMaxInt =:: 100)
+                            :& RNil
+
 newtype WidgetState w = WidgetState { _getState :: Rec Attr (WidgetFields w) }
 
 -- All records with ToPair instances for their Attrs will automatically have a toJSON instance now.
@@ -326,9 +396,8 @@ str :: String -> String
 str = id
 
 -- | Send zero values as empty strings, which stands for default value in the frontend.
+-- Sending non-zero naturals as strings causes issues in the frontend. Specifically, addition
+-- becomes string concatenation which creates problems in {Int|Float}RangeSlider.
 instance ToJSON Natural where
   toJSON 0 = String ""
-  toJSON n = String . pack $ show n
-
-
-
+  toJSON n = Number . fromInteger $ toInteger n

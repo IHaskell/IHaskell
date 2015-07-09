@@ -59,6 +59,18 @@ singletons [d|
              | Icons
              | SelectedLabels
              | SelectedValues
+             | IntValue
+             | StepInt
+             | MaxInt
+             | MinInt
+             | IntPairValue
+             | LowerInt
+             | UpperInt
+             | Orientation
+             | ShowRange
+             | ReadOut
+             | SliderColor
+             | BarStyle
              deriving (Eq, Ord, Show)
              |]
 
@@ -142,6 +154,20 @@ instance ToJSON ButtonStyleValue where
   toJSON DangerButton = "danger"
   toJSON DefaultButton = ""
 
+-- | Pre-defined bar styles
+data BarStyleValue = SuccessBar
+                   | InfoBar
+                   | WarningBar
+                   | DangerBar
+                   | DefaultBar
+
+instance ToJSON BarStyleValue where
+  toJSON SuccessBar = "success"
+  toJSON InfoBar = "info"
+  toJSON WarningBar = "warning"
+  toJSON DangerBar = "danger"
+  toJSON DefaultBar = ""
+
 -- | Image formats for ImageWidget
 data ImageFormatValue = PNG
                       | SVG
@@ -159,5 +185,10 @@ instance ToJSON ImageFormatValue where
 -- | Options for selection widgets.
 data SelectionOptions = OptionLabels [Text] | OptionDict [(Text, Text)]
 
+-- | Orientation values.
+data OrientationValue = HorizontalOrientation
+                      | VerticalOrientation
 
-
+instance ToJSON OrientationValue where
+  toJSON HorizontalOrientation = "horizontal"
+  toJSON VerticalOrientation = "vertical"
