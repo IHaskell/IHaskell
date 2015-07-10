@@ -62,6 +62,11 @@ library
                        IHaskell.Display.Widgets.Int.BoundedInt.IntProgress
                        IHaskell.Display.Widgets.Int.BoundedInt.IntSlider
                        IHaskell.Display.Widgets.Int.BoundedIntRange.IntRangeSlider
+                       IHaskell.Display.Widgets.Float.FloatText
+                       IHaskell.Display.Widgets.Float.BoundedFloat.BoundedFloatText
+                       IHaskell.Display.Widgets.Float.BoundedFloat.FloatProgress
+                       IHaskell.Display.Widgets.Float.BoundedFloat.FloatSlider
+                       IHaskell.Display.Widgets.Float.BoundedFloatRange.FloatRangeSlider
                        IHaskell.Display.Widgets.Image
                        IHaskell.Display.Widgets.Output
                        IHaskell.Display.Widgets.Selection.Dropdown

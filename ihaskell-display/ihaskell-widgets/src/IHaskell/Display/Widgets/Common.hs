@@ -66,6 +66,13 @@ singletons [d|
              | IntPairValue
              | LowerInt
              | UpperInt
+             | FloatValue
+             | StepFloat
+             | MaxFloat
+             | MinFloat
+             | FloatPairValue
+             | LowerFloat
+             | UpperFloat
              | Orientation
              | ShowRange
              | ReadOut

@@ -83,6 +83,10 @@ type IntClass = DOMWidgetClass :++ '[IntValue, Disabled, Description]
 type BoundedIntClass = IntClass :++ '[StepInt, MinInt, MaxInt]
 type IntRangeClass = IntClass :++ '[IntPairValue, LowerInt, UpperInt]
 type BoundedIntRangeClass = IntRangeClass :++ '[StepInt, MinInt, MaxInt]
+type FloatClass = DOMWidgetClass :++ '[FloatValue, Disabled, Description]
+type BoundedFloatClass = FloatClass :++ '[StepFloat, MinFloat, MaxFloat]
+type FloatRangeClass = FloatClass :++ '[FloatPairValue, LowerFloat, UpperFloat]
+type BoundedFloatRangeClass = FloatRangeClass :++ '[StepFloat, MinFloat, MaxFloat]
 
 -- Types associated with Fields.
 type family FieldType (f :: Field) :: * where
@@ -142,6 +146,13 @@ type family FieldType (f :: Field) :: * where
   FieldType ReadOut = Bool
   FieldType SliderColor = Text
   FieldType BarStyle = BarStyleValue
+  FieldType FloatValue = Double
+  FieldType StepFloat = Double
+  FieldType MinFloat = Double
+  FieldType MaxFloat = Double
+  FieldType LowerFloat = Double
+  FieldType UpperFloat = Double
+  FieldType FloatPairValue = (Double, Double)
 
 -- Different types of widgets. Every widget in IPython has a corresponding WidgetType
 data WidgetType = ButtonType
@@ -163,6 +174,11 @@ data WidgetType = ButtonType
                 | IntSliderType
                 | IntProgressType
                 | IntRangeSliderType
+                | FloatTextType
+                | BoundedFloatTextType
+                | FloatSliderType
+                | FloatProgressType
+                | FloatRangeSliderType
 
 -- Fields associated with a widget
 type family WidgetFields (w :: WidgetType) :: [Field] where
@@ -185,6 +201,11 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields IntSliderType = BoundedIntClass :++ '[Orientation, ShowRange, ReadOut, SliderColor]
   WidgetFields IntProgressType = BoundedIntClass :++ '[BarStyle]
   WidgetFields IntRangeSliderType = BoundedIntRangeClass :++ '[Orientation, ShowRange, ReadOut, SliderColor]
+  WidgetFields FloatTextType = FloatClass
+  WidgetFields BoundedFloatTextType = BoundedFloatClass
+  WidgetFields FloatSliderType = BoundedFloatClass :++ '[Orientation, ShowRange, ReadOut, SliderColor]
+  WidgetFields FloatProgressType = BoundedFloatClass :++ '[BarStyle]
+  WidgetFields FloatRangeSliderType = BoundedFloatRangeClass :++ '[Orientation, ShowRange, ReadOut, SliderColor]
 
 -- Wrapper around a field
 newtype Attr (f :: Field) = Attr { _unAttr :: FieldType f }
@@ -249,6 +270,13 @@ instance ToPairs (Attr MaxInt) where toPairs (Attr x) = ["max" .= toJSON x]
 instance ToPairs (Attr IntPairValue) where toPairs (Attr x) = ["value" .= toJSON x]
 instance ToPairs (Attr LowerInt) where toPairs (Attr x) = ["min" .= toJSON x]
 instance ToPairs (Attr UpperInt) where toPairs (Attr x) = ["max" .= toJSON x]
+instance ToPairs (Attr FloatValue) where toPairs (Attr x) = ["value" .= toJSON x]
+instance ToPairs (Attr StepFloat) where toPairs (Attr x) = ["step" .= toJSON x]
+instance ToPairs (Attr MinFloat) where toPairs (Attr x) = ["min" .= toJSON x]
+instance ToPairs (Attr MaxFloat) where toPairs (Attr x) = ["max" .= toJSON x]
+instance ToPairs (Attr FloatPairValue) where toPairs (Attr x) = ["value" .= toJSON x]
+instance ToPairs (Attr LowerFloat) where toPairs (Attr x) = ["min" .= toJSON x]
+instance ToPairs (Attr UpperFloat) where toPairs (Attr x) = ["max" .= toJSON x]
 instance ToPairs (Attr Orientation) where toPairs (Attr x) = ["orientation" .= toJSON x]
 instance ToPairs (Attr ShowRange) where toPairs (Attr x) = ["_range" .= toJSON x]
 instance ToPairs (Attr ReadOut) where toPairs (Attr x) = ["readout" .= toJSON x]
@@ -361,6 +389,38 @@ defaultBoundedIntRangeWidget viewName = defaultIntRangeWidget viewName <+> bound
   where boundedIntRangeAttrs = (SStepInt =:: 1)
                             :& (SMinInt =:: 0)
                             :& (SMaxInt =:: 100)
+                            :& RNil
+
+-- | A record representing a widget of the _Float class from IPython
+defaultFloatWidget :: FieldType ViewName -> Rec Attr FloatClass
+defaultFloatWidget viewName = defaultDOMWidget viewName <+> intAttrs
+  where intAttrs = (SFloatValue =:: 0)
+                :& (SDisabled =:: False)
+                :& (SDescription =:: "")
+                :& RNil
+
+-- | A record representing a widget of the _BoundedFloat class from IPython
+defaultBoundedFloatWidget :: FieldType ViewName -> Rec Attr BoundedFloatClass
+defaultBoundedFloatWidget viewName = defaultFloatWidget viewName <+> boundedFloatAttrs
+  where boundedFloatAttrs = (SStepFloat =:: 1)
+                       :& (SMinFloat =:: 0)
+                       :& (SMaxFloat =:: 100)
+                       :& RNil
+
+-- | A record representing a widget of the _BoundedFloat class from IPython
+defaultFloatRangeWidget :: FieldType ViewName -> Rec Attr FloatRangeClass
+defaultFloatRangeWidget viewName = defaultFloatWidget viewName <+> rangeAttrs
+  where rangeAttrs = (SFloatPairValue =:: (25, 75))
+                  :& (SLowerFloat =:: 0)
+                  :& (SUpperFloat =:: 100)
+                  :& RNil
+
+-- | A record representing a widget of the _BoundedFloatRange class from IPython
+defaultBoundedFloatRangeWidget :: FieldType ViewName -> Rec Attr BoundedFloatRangeClass
+defaultBoundedFloatRangeWidget viewName = defaultFloatRangeWidget viewName <+> boundedFloatRangeAttrs
+  where boundedFloatRangeAttrs = (SStepFloat =:: 1)
+                            :& (SMinFloat =:: 0)
+                            :& (SMaxFloat =:: 100)
                             :& RNil
 
 newtype WidgetState w = WidgetState { _getState :: Rec Attr (WidgetFields w) }

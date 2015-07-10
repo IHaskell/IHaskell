@@ -11,6 +11,12 @@ import           IHaskell.Display.Widgets.Int.BoundedInt.IntProgress as X
 import           IHaskell.Display.Widgets.Int.BoundedInt.IntSlider as X
 import           IHaskell.Display.Widgets.Int.BoundedIntRange.IntRangeSlider as X
 
+import           IHaskell.Display.Widgets.Float.FloatText as X
+import           IHaskell.Display.Widgets.Float.BoundedFloat.BoundedFloatText as X
+import           IHaskell.Display.Widgets.Float.BoundedFloat.FloatProgress as X
+import           IHaskell.Display.Widgets.Float.BoundedFloat.FloatSlider as X
+import           IHaskell.Display.Widgets.Float.BoundedFloatRange.FloatRangeSlider as X
+
 import           IHaskell.Display.Widgets.Image as X
 
 import           IHaskell.Display.Widgets.Output as X
