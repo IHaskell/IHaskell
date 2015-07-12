@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Bool.CheckBox (
 -- * The CheckBox Widget
-CheckBoxWidget, 
+CheckBox,
                 -- * Constructor
-                mkCheckBoxWidget) where
+                mkCheckBox) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -26,12 +26,12 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | A 'CheckBoxWidget' represents a Checkbox widget from IPython.html.widgets.
-type CheckBoxWidget = IPythonWidget CheckBoxType
+-- | A 'CheckBox' represents a Checkbox widget from IPython.html.widgets.
+type CheckBox = IPythonWidget CheckBoxType
 
 -- | Create a new output widget
-mkCheckBoxWidget :: IO CheckBoxWidget
-mkCheckBoxWidget = do
+mkCheckBox :: IO CheckBox
+mkCheckBox = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
@@ -49,12 +49,12 @@ mkCheckBoxWidget = do
   -- Return the image widget
   return widget
 
-instance IHaskellDisplay CheckBoxWidget where
+instance IHaskellDisplay CheckBox where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget CheckBoxWidget where
+instance IHaskellWidget CheckBox where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text

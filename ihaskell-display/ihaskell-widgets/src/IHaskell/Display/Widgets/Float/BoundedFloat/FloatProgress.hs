@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Float.BoundedFloat.FloatProgress (
   -- * The FloatProgress Widget
-  FloatProgressWidget,
+  FloatProgress,
   -- * Constructor
-  mkFloatProgressWidget) where
+  mkFloatProgress) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -28,12 +28,12 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | 'FloatProgressWidget' represents an FloatProgress widget from IPython.html.widgets.
-type FloatProgressWidget = IPythonWidget FloatProgressType
+-- | 'FloatProgress' represents an FloatProgress widget from IPython.html.widgets.
+type FloatProgress = IPythonWidget FloatProgressType
 
 -- | Create a new widget
-mkFloatProgressWidget :: IO FloatProgressWidget
-mkFloatProgressWidget = do
+mkFloatProgress :: IO FloatProgress
+mkFloatProgress = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
@@ -55,10 +55,10 @@ mkFloatProgressWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay FloatProgressWidget where
+instance IHaskellDisplay FloatProgress where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget FloatProgressWidget where
+instance IHaskellWidget FloatProgress where
   getCommUUID = uuid

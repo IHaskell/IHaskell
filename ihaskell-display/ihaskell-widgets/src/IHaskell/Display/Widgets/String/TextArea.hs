@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.String.TextArea (
 -- * The TextArea Widget
-TextAreaWidget, 
+TextArea,
                 -- * Constructor
-                mkTextAreaWidget) where
+                mkTextArea) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -24,12 +24,12 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 
--- | A 'TextAreaWidget' represents a Textarea widget from IPython.html.widgets.
-type TextAreaWidget = IPythonWidget TextAreaType
+-- | A 'TextArea' represents a Textarea widget from IPython.html.widgets.
+type TextArea = IPythonWidget TextAreaType
 
 -- | Create a new TextArea widget
-mkTextAreaWidget :: IO TextAreaWidget
-mkTextAreaWidget = do
+mkTextArea :: IO TextArea
+mkTextArea = do
   -- Default properties, with a random uuid
   uuid <- U.random
   let widgetState = WidgetState $ defaultStringWidget "TextareaView"
@@ -46,10 +46,10 @@ mkTextAreaWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay TextAreaWidget where
+instance IHaskellDisplay TextArea where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget TextAreaWidget where
+instance IHaskellWidget TextArea where
   getCommUUID = uuid

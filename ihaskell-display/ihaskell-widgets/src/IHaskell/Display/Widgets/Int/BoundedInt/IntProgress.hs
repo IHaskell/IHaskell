@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Int.BoundedInt.IntProgress (
   -- * The IntProgress Widget
-  IntProgressWidget,
+  IntProgress,
   -- * Constructor
-  mkIntProgressWidget) where
+  mkIntProgress) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -28,12 +28,12 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | 'IntProgressWidget' represents an IntProgress widget from IPython.html.widgets.
-type IntProgressWidget = IPythonWidget IntProgressType
+-- | 'IntProgress' represents an IntProgress widget from IPython.html.widgets.
+type IntProgress = IPythonWidget IntProgressType
 
 -- | Create a new widget
-mkIntProgressWidget :: IO IntProgressWidget
-mkIntProgressWidget = do
+mkIntProgress :: IO IntProgress
+mkIntProgress = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
@@ -55,10 +55,10 @@ mkIntProgressWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay IntProgressWidget where
+instance IHaskellDisplay IntProgress where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget IntProgressWidget where
+instance IHaskellWidget IntProgress where
   getCommUUID = uuid

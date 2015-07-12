@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Selection.SelectMultiple (
 -- * The SelectMultiple Widget
-SelectMultipleWidget, 
+SelectMultiple,
                       -- * Constructor
-                      mkSelectMultipleWidget) where
+                      mkSelectMultiple) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -27,12 +27,12 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | A 'SelectMultipleWidget' represents a SelectMultiple widget from IPython.html.widgets.
-type SelectMultipleWidget = IPythonWidget SelectMultipleType
+-- | A 'SelectMultiple' represents a SelectMultiple widget from IPython.html.widgets.
+type SelectMultiple = IPythonWidget SelectMultipleType
 
 -- | Create a new SelectMultiple widget
-mkSelectMultipleWidget :: IO SelectMultipleWidget
-mkSelectMultipleWidget = do
+mkSelectMultiple :: IO SelectMultiple
+mkSelectMultiple = do
   -- Default properties, with a random uuid
   uuid <- U.random
   let widgetState = WidgetState $ defaultMultipleSelectionWidget "SelectMultipleView"
@@ -52,15 +52,15 @@ mkSelectMultipleWidget = do
   return widget
 
 -- | Artificially trigger a selection
-triggerSelection :: SelectMultipleWidget -> IO ()
+triggerSelection :: SelectMultiple -> IO ()
 triggerSelection widget = join $ getField widget SSelectionHandler
 
-instance IHaskellDisplay SelectMultipleWidget where
+instance IHaskellDisplay SelectMultiple where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget SelectMultipleWidget where
+instance IHaskellWidget SelectMultiple where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text

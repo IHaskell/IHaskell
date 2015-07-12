@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Int.BoundedInt.IntSlider (
   -- * The IntSlider Widget
-  IntSliderWidget,
+  IntSlider,
   -- * Constructor
-  mkIntSliderWidget) where
+  mkIntSlider) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -28,12 +28,12 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | 'IntSliderWidget' represents an IntSlider widget from IPython.html.widgets.
-type IntSliderWidget = IPythonWidget IntSliderType
+-- | 'IntSlider' represents an IntSlider widget from IPython.html.widgets.
+type IntSlider = IPythonWidget IntSliderType
 
 -- | Create a new widget
-mkIntSliderWidget :: IO IntSliderWidget
-mkIntSliderWidget = do
+mkIntSlider :: IO IntSlider
+mkIntSlider = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
@@ -59,12 +59,12 @@ mkIntSliderWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay IntSliderWidget where
+instance IHaskellDisplay IntSlider where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget IntSliderWidget where
+instance IHaskellWidget IntSlider where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text

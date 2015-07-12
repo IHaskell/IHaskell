@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Int.BoundedIntRange.IntRangeSlider (
   -- * The IntRangeSlider Widget
-  IntRangeSliderWidget,
+  IntRangeSlider,
   -- * Constructor
-  mkIntRangeSliderWidget) where
+  mkIntRangeSlider) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -29,12 +29,12 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | 'IntRangeSliderWidget' represents an IntRangeSlider widget from IPython.html.widgets.
-type IntRangeSliderWidget = IPythonWidget IntRangeSliderType
+-- | 'IntRangeSlider' represents an IntRangeSlider widget from IPython.html.widgets.
+type IntRangeSlider = IPythonWidget IntRangeSliderType
 
 -- | Create a new widget
-mkIntRangeSliderWidget :: IO IntRangeSliderWidget
-mkIntRangeSliderWidget = do
+mkIntRangeSlider :: IO IntRangeSlider
+mkIntRangeSlider = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
@@ -60,12 +60,12 @@ mkIntRangeSliderWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay IntRangeSliderWidget where
+instance IHaskellDisplay IntRangeSlider where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget IntRangeSliderWidget where
+instance IHaskellWidget IntRangeSlider where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text

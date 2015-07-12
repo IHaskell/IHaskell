@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Selection.Select (
 -- * The Select Widget
-SelectWidget, 
+Select,
               -- * Constructor
-              mkSelectWidget) where
+              mkSelect) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -26,12 +26,12 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | A 'SelectWidget' represents a Select widget from IPython.html.widgets.
-type SelectWidget = IPythonWidget SelectType
+-- | A 'Select' represents a Select widget from IPython.html.widgets.
+type Select = IPythonWidget SelectType
 
 -- | Create a new Select widget
-mkSelectWidget :: IO SelectWidget
-mkSelectWidget = do
+mkSelect :: IO Select
+mkSelect = do
   -- Default properties, with a random uuid
   uuid <- U.random
   let widgetState = WidgetState $ defaultSelectionWidget "SelectView"
@@ -48,15 +48,15 @@ mkSelectWidget = do
   return widget
 
 -- | Artificially trigger a selection
-triggerSelection :: SelectWidget -> IO ()
+triggerSelection :: Select -> IO ()
 triggerSelection widget = join $ getField widget SSelectionHandler
 
-instance IHaskellDisplay SelectWidget where
+instance IHaskellDisplay Select where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget SelectWidget where
+instance IHaskellWidget Select where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text

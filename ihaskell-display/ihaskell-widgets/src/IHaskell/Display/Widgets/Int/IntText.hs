@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Int.IntText (
   -- * The IntText Widget
-  IntTextWidget,
+  IntText,
   -- * Constructor
-  mkIntTextWidget) where
+  mkIntText) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -28,12 +28,12 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | 'IntTextWidget' represents an IntText widget from IPython.html.widgets.
-type IntTextWidget = IPythonWidget IntTextType
+-- | 'IntText' represents an IntText widget from IPython.html.widgets.
+type IntText = IPythonWidget IntTextType
 
 -- | Create a new widget
-mkIntTextWidget :: IO IntTextWidget
-mkIntTextWidget = do
+mkIntText :: IO IntText
+mkIntText = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
@@ -50,12 +50,12 @@ mkIntTextWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay IntTextWidget where
+instance IHaskellDisplay IntText where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget IntTextWidget where
+instance IHaskellWidget IntText where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text

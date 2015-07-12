@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Float.BoundedFloat.BoundedFloatText (
   -- * The BoundedFloatText Widget
-  BoundedFloatTextWidget,
+  BoundedFloatText,
   -- * Constructor
-  mkBoundedFloatTextWidget) where
+  mkBoundedFloatText) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -28,12 +28,12 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | 'BoundedFloatTextWidget' represents an BoundedFloatText widget from IPython.html.widgets.
-type BoundedFloatTextWidget = IPythonWidget BoundedFloatTextType
+-- | 'BoundedFloatText' represents an BoundedFloatText widget from IPython.html.widgets.
+type BoundedFloatText = IPythonWidget BoundedFloatTextType
 
 -- | Create a new widget
-mkBoundedFloatTextWidget :: IO BoundedFloatTextWidget
-mkBoundedFloatTextWidget = do
+mkBoundedFloatText :: IO BoundedFloatText
+mkBoundedFloatText = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
@@ -53,12 +53,12 @@ mkBoundedFloatTextWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay BoundedFloatTextWidget where
+instance IHaskellDisplay BoundedFloatText where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget BoundedFloatTextWidget where
+instance IHaskellWidget BoundedFloatText where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text

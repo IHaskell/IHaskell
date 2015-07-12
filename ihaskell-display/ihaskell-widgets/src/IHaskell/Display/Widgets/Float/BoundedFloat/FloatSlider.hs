@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Float.BoundedFloat.FloatSlider (
   -- * The FloatSlider Widget
-  FloatSliderWidget,
+  FloatSlider,
   -- * Constructor
-  mkFloatSliderWidget) where
+  mkFloatSlider) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -28,12 +28,12 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | 'FloatSliderWidget' represents an FloatSlider widget from IPython.html.widgets.
-type FloatSliderWidget = IPythonWidget FloatSliderType
+-- | 'FloatSlider' represents an FloatSlider widget from IPython.html.widgets.
+type FloatSlider = IPythonWidget FloatSliderType
 
 -- | Create a new widget
-mkFloatSliderWidget :: IO FloatSliderWidget
-mkFloatSliderWidget = do
+mkFloatSlider :: IO FloatSlider
+mkFloatSlider = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
@@ -59,12 +59,12 @@ mkFloatSliderWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay FloatSliderWidget where
+instance IHaskellDisplay FloatSlider where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget FloatSliderWidget where
+instance IHaskellWidget FloatSlider where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text

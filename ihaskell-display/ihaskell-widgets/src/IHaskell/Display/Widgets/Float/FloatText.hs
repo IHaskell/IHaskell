@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Float.FloatText (
   -- * The FloatText Widget
-  FloatTextWidget,
+  FloatText,
   -- * Constructor
-  mkFloatTextWidget) where
+  mkFloatText) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -28,12 +28,12 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | 'FloatTextWidget' represents an FloatText widget from IPython.html.widgets.
-type FloatTextWidget = IPythonWidget FloatTextType
+-- | 'FloatText' represents an FloatText widget from IPython.html.widgets.
+type FloatText = IPythonWidget FloatTextType
 
 -- | Create a new widget
-mkFloatTextWidget :: IO FloatTextWidget
-mkFloatTextWidget = do
+mkFloatText :: IO FloatText
+mkFloatText = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
@@ -50,12 +50,12 @@ mkFloatTextWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay FloatTextWidget where
+instance IHaskellDisplay FloatText where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget FloatTextWidget where
+instance IHaskellWidget FloatText where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text

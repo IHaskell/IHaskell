@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Int.BoundedInt.BoundedIntText (
   -- * The BoundedIntText Widget
-  BoundedIntTextWidget,
+  BoundedIntText,
   -- * Constructor
-  mkBoundedIntTextWidget) where
+  mkBoundedIntText) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -28,12 +28,12 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | 'BoundedIntTextWidget' represents an BoundedIntText widget from IPython.html.widgets.
-type BoundedIntTextWidget = IPythonWidget BoundedIntTextType
+-- | 'BoundedIntText' represents an BoundedIntText widget from IPython.html.widgets.
+type BoundedIntText = IPythonWidget BoundedIntTextType
 
 -- | Create a new widget
-mkBoundedIntTextWidget :: IO BoundedIntTextWidget
-mkBoundedIntTextWidget = do
+mkBoundedIntText :: IO BoundedIntText
+mkBoundedIntText = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
@@ -53,12 +53,12 @@ mkBoundedIntTextWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay BoundedIntTextWidget where
+instance IHaskellDisplay BoundedIntText where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget BoundedIntTextWidget where
+instance IHaskellWidget BoundedIntText where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text
