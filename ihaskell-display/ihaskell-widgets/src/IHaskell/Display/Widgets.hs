@@ -33,4 +33,4 @@ import           IHaskell.Display.Widgets.String.Text as X
 import           IHaskell.Display.Widgets.String.TextArea as X
 
 import           IHaskell.Display.Widgets.Common as X
-import           IHaskell.Display.Widgets.Types as X (setField, getField)
+import           IHaskell.Display.Widgets.Types as X (setField, getField, properties)

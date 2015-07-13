@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.String.Text (
 -- * The Text Widget
-TextWidget, 
+TextWidget,
             -- * Constructor
-            mkTextWidget, 
+            mkTextWidget,
                           -- * Submit handling
                           triggerSubmit) where
 
@@ -66,7 +66,7 @@ instance IHaskellWidget TextWidget where
     case Map.lookup "sync_data" dict1 of
       Just (Object dict2) ->
         case Map.lookup "value" dict2 of
-          Just (String val) -> setField' tw SStringValue val
+          Just (String val) -> setField' tw SStringValue val >> return ()
           Nothing           -> return ()
       Nothing ->
         case Map.lookup "content" dict1 of

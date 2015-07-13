@@ -5,14 +5,14 @@
 
 module IHaskell.Display.Widgets.Bool.ToggleButton (
 -- * The ToggleButton Widget
-ToggleButton, 
+ToggleButton,
               -- * Constructor
               mkToggleButton) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (when, join)
+import           Control.Monad (when, join, void)
 import           Data.Aeson
 import           Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
@@ -66,4 +66,4 @@ instance IHaskellWidget ToggleButton where
         key2 = "value" :: Text
         Just (Object dict2) = HM.lookup key1 dict1
         Just (Bool value) = HM.lookup key2 dict2
-    setField' widget SBoolValue value
+    void $ setField' widget SBoolValue value

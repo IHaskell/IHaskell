@@ -13,7 +13,7 @@ module IHaskell.Display.Widgets.Float.BoundedFloatRange.FloatRangeSlider (
 import           Prelude
 
 import           Control.Exception (throw, ArithException (LossOfPrecision))
-import           Control.Monad (when, join)
+import           Control.Monad (when, join, void)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
@@ -73,4 +73,4 @@ instance IHaskellWidget FloatRangeSlider where
         Just (Object dict2) = HM.lookup key1 dict1
         Just (Array values) = HM.lookup key2 dict2
         [x, y] = map (\(Number x) -> Sci.toRealFloat x) $ V.toList values
-    setField' widget SFloatPairValue (x, y)
+    void $ setField' widget SFloatPairValue (x, y)

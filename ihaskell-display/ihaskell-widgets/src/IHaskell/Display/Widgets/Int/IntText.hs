@@ -13,7 +13,7 @@ module IHaskell.Display.Widgets.Int.IntText (
 import           Prelude
 
 import           Control.Exception (throw, ArithException (LossOfPrecision))
-import           Control.Monad (when, join)
+import           Control.Monad (when, join, void)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
@@ -65,4 +65,4 @@ instance IHaskellWidget IntText where
     newValue <- if abs value < 10 ^ 16
                   then return (Sci.coefficient value)
                   else throw LossOfPrecision
-    setField' widget SIntValue newValue
+    void $ setField' widget SIntValue newValue

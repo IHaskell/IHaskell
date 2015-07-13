@@ -13,7 +13,7 @@ module IHaskell.Display.Widgets.Float.BoundedFloat.BoundedFloatText (
 import           Prelude
 
 import           Control.Exception (throw, ArithException (LossOfPrecision))
-import           Control.Monad (when, join)
+import           Control.Monad (when, join, void)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
@@ -68,4 +68,4 @@ instance IHaskellWidget BoundedFloatText where
     newValue <- if abs value < 10 ^ 16
                   then return (Sci.toRealFloat value)
                   else throw LossOfPrecision
-    setField' widget SFloatValue newValue
+    void $ setField' widget SFloatValue newValue

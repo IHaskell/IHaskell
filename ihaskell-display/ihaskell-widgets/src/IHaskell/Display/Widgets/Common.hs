@@ -6,6 +6,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module IHaskell.Display.Widgets.Common where
 
 import Data.Aeson
@@ -80,6 +81,11 @@ singletons [d|
              | BarStyle
              deriving (Eq, Ord, Show)
              |]
+
+newtype StrInt = StrInt Integer deriving (Num, Ord, Eq, Enum)
+
+instance ToJSON StrInt where
+  toJSON (StrInt x) = toJSON . pack $ show x
 
 -- | Pre-defined border styles
 data BorderStyleValue = NoBorder

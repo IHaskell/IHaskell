@@ -12,7 +12,7 @@ SelectMultiple,
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (fmap, join, sequence)
+import           Control.Monad (fmap, join, sequence, void)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
@@ -70,13 +70,13 @@ instance IHaskellWidget SelectMultiple where
         labelList = map (\(String x) -> x) $ V.toList labels
     opts <- getField widget SOptions
     case opts of
-      OptionLabels _ -> do
+      OptionLabels _ -> void $ do
         setField' widget SSelectedLabels labelList
         setField' widget SSelectedValues labelList
       OptionDict ps ->
         case sequence $ map (`lookup` ps) labelList of
           Nothing -> return ()
-          Just valueList -> do
+          Just valueList -> void $ do
             setField' widget SSelectedLabels labelList
             setField' widget SSelectedValues valueList
     triggerSelection widget

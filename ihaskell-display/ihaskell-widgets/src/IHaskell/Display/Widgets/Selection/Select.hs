@@ -12,7 +12,7 @@ Select,
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (when, join)
+import           Control.Monad (when, join, void)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
@@ -65,13 +65,13 @@ instance IHaskellWidget Select where
         Just (String label) = HM.lookup key2 dict2
     opts <- getField widget SOptions
     case opts of
-      OptionLabels _ -> do
+      OptionLabels _ -> void $ do
         setField' widget SSelectedLabel label
         setField' widget SSelectedValue label
       OptionDict ps ->
         case lookup label ps of
           Nothing -> return ()
-          Just value -> do
+          Just value -> void $ do
             setField' widget SSelectedLabel label
             setField' widget SSelectedValue value
     triggerSelection widget
