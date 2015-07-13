@@ -12,7 +12,6 @@ module IHaskell.Display.Widgets.Int.BoundedIntRange.IntRangeSlider (
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Exception (throw, ArithException (LossOfPrecision))
 import           Control.Monad (when, join, void)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
@@ -73,4 +72,5 @@ instance IHaskellWidget IntRangeSlider where
         Just (Object dict2) = HM.lookup key1 dict1
         Just (Array values) = HM.lookup key2 dict2
         [x, y] = map (\(Number x) -> Sci.coefficient x) $ V.toList values
-    void $ setField' widget SIntPairValue (x, y)
+    setField' widget SIntPairValue (x, y)
+    triggerChange widget

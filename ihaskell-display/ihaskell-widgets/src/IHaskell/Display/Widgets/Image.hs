@@ -5,7 +5,7 @@
 
 module IHaskell.Display.Widgets.Image (
 -- * The Image Widget
-ImageWidget, 
+ImageWidget,
              -- * Constructor
              mkImageWidget) where
 

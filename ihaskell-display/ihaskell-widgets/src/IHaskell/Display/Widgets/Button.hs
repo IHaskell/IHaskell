@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Button (
 -- * The Button Widget
-Button, 
+Button,
         -- * Create a new button
-        mkButton, 
+        mkButton,
                   -- * Click manipulation
                   triggerClick) where
 
@@ -58,10 +58,6 @@ mkButton = do
 
   -- Return the button widget
   return button
-
--- | Artificially trigger a button click
-triggerClick :: Button -> IO ()
-triggerClick button = join $ getField button SClickHandler
 
 instance IHaskellDisplay Button where
   display b = do

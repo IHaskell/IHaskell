@@ -55,10 +55,6 @@ mkToggleButtons = do
   -- Return the widget
   return widget
 
--- | Artificially trigger a selection
-triggerSelection :: ToggleButtons -> IO ()
-triggerSelection widget = join $ getField widget SSelectionHandler
-
 instance IHaskellDisplay ToggleButtons where
   display b = do
     widgetSendView b

@@ -48,10 +48,6 @@ mkRadioButtons = do
   -- Return the widget
   return widget
 
--- | Artificially trigger a selection
-triggerSelection :: RadioButtons -> IO ()
-triggerSelection widget = join $ getField widget SSelectionHandler
-
 instance IHaskellDisplay RadioButtons where
   display b = do
     widgetSendView b

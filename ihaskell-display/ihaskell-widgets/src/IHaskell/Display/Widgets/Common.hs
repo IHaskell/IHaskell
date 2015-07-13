@@ -79,6 +79,7 @@ singletons [d|
              | ReadOut
              | SliderColor
              | BarStyle
+             | ChangeHandler
              deriving (Eq, Ord, Show)
              |]
 

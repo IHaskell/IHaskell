@@ -48,7 +48,7 @@ module IHaskell.Display.Widgets.Types where
 -- To know more about the IPython messaging specification (as implemented in this package) take a look
 -- at the supplied MsgSpec.md.
 
-import Control.Monad (unless)
+import Control.Monad (unless, join)
 import Control.Applicative ((<$>))
 import qualified Control.Exception as Ex
 
@@ -79,16 +79,16 @@ type DOMWidgetClass = WidgetClass :++
     , FontWeight, FontSize, FontFamily
     ]
 type StringClass = DOMWidgetClass :++ '[StringValue, Disabled, Description, Placeholder]
-type BoolClass = DOMWidgetClass :++ '[BoolValue, Disabled, Description]
+type BoolClass = DOMWidgetClass :++ '[BoolValue, Disabled, Description, ChangeHandler]
 type SelectionClass = DOMWidgetClass :++
    '[Options, SelectedValue, SelectedLabel, Disabled, Description, SelectionHandler]
 type MultipleSelectionClass = DOMWidgetClass :++
    '[Options, SelectedLabels, SelectedValues, Disabled, Description, SelectionHandler]
-type IntClass = DOMWidgetClass :++ '[IntValue, Disabled, Description]
+type IntClass = DOMWidgetClass :++ '[IntValue, Disabled, Description, ChangeHandler]
 type BoundedIntClass = IntClass :++ '[StepInt, MinInt, MaxInt]
 type IntRangeClass = IntClass :++ '[IntPairValue, LowerInt, UpperInt]
 type BoundedIntRangeClass = IntRangeClass :++ '[StepInt, MinInt, MaxInt]
-type FloatClass = DOMWidgetClass :++ '[FloatValue, Disabled, Description]
+type FloatClass = DOMWidgetClass :++ '[FloatValue, Disabled, Description, ChangeHandler]
 type BoundedFloatClass = FloatClass :++ '[StepFloat, MinFloat, MaxFloat]
 type FloatRangeClass = FloatClass :++ '[FloatPairValue, LowerFloat, UpperFloat]
 type BoundedFloatRangeClass = FloatRangeClass :++ '[StepFloat, MinFloat, MaxFloat]
@@ -158,6 +158,7 @@ type family FieldType (f :: Field) :: * where
   FieldType LowerFloat = Double
   FieldType UpperFloat = Double
   FieldType FloatPairValue = (Double, Double)
+  FieldType ChangeHandler = IO ()
 
 -- Will use a custom class rather than a newtype wrapper with an orphan instance. The main issue is
 -- the need of a Bounded instance for Float / Double.
@@ -211,8 +212,8 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields OutputType = DOMWidgetClass
   WidgetFields HTMLType = StringClass
   WidgetFields LatexType = StringClass
-  WidgetFields TextType = StringClass :++ '[SubmitHandler]
-  WidgetFields TextAreaType = StringClass
+  WidgetFields TextType = StringClass :++ '[SubmitHandler, ChangeHandler]
+  WidgetFields TextAreaType = StringClass :++ '[ChangeHandler]
   WidgetFields CheckBoxType = BoolClass
   WidgetFields ToggleButtonType = BoolClass :++ '[Tooltip, Icon, ButtonStyle]
   WidgetFields DropdownType = SelectionClass :++ '[ButtonStyle]
@@ -323,6 +324,7 @@ instance ToPairs (Attr ShowRange) where toPairs x = ["_range" .= toJSON x]
 instance ToPairs (Attr ReadOut) where toPairs x = ["readout" .= toJSON x]
 instance ToPairs (Attr SliderColor) where toPairs x = ["slider_color" .= toJSON x]
 instance ToPairs (Attr BarStyle) where toPairs x = ["bar_style" .= toJSON x]
+instance ToPairs (Attr ChangeHandler) where toPairs _ = [] -- Not sent to the frontend
 
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.
@@ -401,6 +403,7 @@ defaultBoolWidget viewName = defaultDOMWidget viewName <+> boolAttrs
   where boolAttrs = (SBoolValue =:: False)
                  :& (SDisabled =:: False)
                  :& (SDescription =:: "")
+                 :& (SChangeHandler =:: return ())
                  :& RNil
 
 -- | A record representing a widget of the _Selection class from IPython
@@ -431,6 +434,7 @@ defaultIntWidget viewName = defaultDOMWidget viewName <+> intAttrs
   where intAttrs = (SIntValue =:: 0)
                 :& (SDisabled =:: False)
                 :& (SDescription =:: "")
+                :& (SChangeHandler =:: return ())
                 :& RNil
 
 -- | A record representing a widget of the _BoundedInt class from IPython
@@ -463,6 +467,7 @@ defaultFloatWidget viewName = defaultDOMWidget viewName <+> intAttrs
   where intAttrs = (SFloatValue =:: 0)
                 :& (SDisabled =:: False)
                 :& (SDescription =:: "")
+                :& (SChangeHandler =:: return ())
                 :& RNil
 
 -- | A record representing a widget of the _BoundedFloat class from IPython
@@ -538,3 +543,16 @@ properties widget = do
   let convert :: Attr f -> Const Field f
       convert attr = Const { getConst = _field attr }
   return $ recordToList . rmap convert . _getState $ st
+
+-- Trigger events
+triggerChange :: (ChangeHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
+triggerChange w = join $ getField w SChangeHandler
+
+triggerClick :: (ClickHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
+triggerClick w = join $ getField w SClickHandler
+
+triggerSelection :: (SelectionHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
+triggerSelection w = join $ getField w SSelectionHandler
+
+triggerSubmit :: (SubmitHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
+triggerSubmit w = join $ getField w SSubmitHandler

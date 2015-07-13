@@ -50,10 +50,6 @@ mkDropdown = do
   -- Return the widget
   return widget
 
--- | Artificially trigger a selection
-triggerSelection :: Dropdown -> IO ()
-triggerSelection widget = join $ getField widget SSelectionHandler
-
 instance IHaskellDisplay Dropdown where
   display b = do
     widgetSendView b

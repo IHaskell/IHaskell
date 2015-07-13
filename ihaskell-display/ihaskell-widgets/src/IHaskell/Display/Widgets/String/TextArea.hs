@@ -14,6 +14,7 @@ import           Prelude
 
 import           Control.Monad (when, join)
 import           Data.Aeson
+import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
 import           Data.Text (Text)
 import           Data.Vinyl (Rec(..), (<+>))
@@ -23,6 +24,7 @@ import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
+import           IHaskell.Display.Widgets.Common
 
 -- | A 'TextArea' represents a Textarea widget from IPython.html.widgets.
 type TextArea = IPythonWidget TextAreaType
@@ -32,7 +34,9 @@ mkTextArea :: IO TextArea
 mkTextArea = do
   -- Default properties, with a random uuid
   uuid <- U.random
-  let widgetState = WidgetState $ defaultStringWidget "TextareaView"
+  let strAttrs = defaultStringWidget "TextareaView"
+      wgtAttrs = (SChangeHandler =:: return ()) :& RNil
+      widgetState = WidgetState $ strAttrs <+> wgtAttrs
 
   stateIO <- newIORef widgetState
 
@@ -53,3 +57,10 @@ instance IHaskellDisplay TextArea where
 
 instance IHaskellWidget TextArea where
   getCommUUID = uuid
+  comm widget (Object dict1) _ = do
+    let key1 = "sync_data" :: Text
+        key2 = "value" :: Text
+        Just (Object dict2) = HM.lookup key1 dict1
+        Just (String value) = HM.lookup key2 dict2
+    setField' widget SStringValue value
+    triggerChange widget

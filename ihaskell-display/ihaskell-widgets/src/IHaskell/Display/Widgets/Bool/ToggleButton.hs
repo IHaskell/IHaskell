@@ -66,4 +66,5 @@ instance IHaskellWidget ToggleButton where
         key2 = "value" :: Text
         Just (Object dict2) = HM.lookup key1 dict1
         Just (Bool value) = HM.lookup key2 dict2
-    void $ setField' widget SBoolValue value
+    setField' widget SBoolValue value
+    triggerChange widget

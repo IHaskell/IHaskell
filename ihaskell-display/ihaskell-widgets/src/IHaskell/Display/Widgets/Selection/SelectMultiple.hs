@@ -51,10 +51,6 @@ mkSelectMultiple = do
   -- Return the widget
   return widget
 
--- | Artificially trigger a selection
-triggerSelection :: SelectMultiple -> IO ()
-triggerSelection widget = join $ getField widget SSelectionHandler
-
 instance IHaskellDisplay SelectMultiple where
   display b = do
     widgetSendView b

@@ -12,7 +12,6 @@ module IHaskell.Display.Widgets.Int.IntText (
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Exception (throw, ArithException (LossOfPrecision))
 import           Control.Monad (when, join, void)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
@@ -62,7 +61,5 @@ instance IHaskellWidget IntText where
         key2 = "value" :: Text
         Just (Object dict2) = HM.lookup key1 dict1
         Just (Number value) = HM.lookup key2 dict2
-    newValue <- if abs value < 10 ^ 16
-                  then return (Sci.coefficient value)
-                  else throw LossOfPrecision
-    void $ setField' widget SIntValue newValue
+    setField' widget SIntValue (Sci.coefficient value)
+    triggerChange widget
