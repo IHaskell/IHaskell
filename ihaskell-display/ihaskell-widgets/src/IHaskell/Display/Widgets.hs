@@ -34,3 +34,5 @@ import           IHaskell.Display.Widgets.String.TextArea as X
 
 import           IHaskell.Display.Widgets.Common as X
 import           IHaskell.Display.Widgets.Types as X (setField, getField, properties)
+
+import           IHaskell.Display.Widgets.Types as X (triggerChange, triggerClick, triggerSelection, triggerSubmit)
