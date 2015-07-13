@@ -16,13 +16,11 @@ import Data.Singletons.TH
 
 -- Widget properties
 singletons [d|
-  data Field = ModelModule
-             | ModelName
-             | ViewModule
+  data Field = ViewModule
              | ViewName
              | MsgThrottle
              | Version
-             | OnDisplayed
+             | DisplayHandler
              | Visible
              | CSS
              | DOMClasses
@@ -80,6 +78,10 @@ singletons [d|
              | SliderColor
              | BarStyle
              | ChangeHandler
+             | Children
+             | OverflowX
+             | OverflowY
+             | BoxStyle
              deriving (Eq, Ord, Show)
              |]
 
@@ -206,3 +208,33 @@ data OrientationValue = HorizontalOrientation
 instance ToJSON OrientationValue where
   toJSON HorizontalOrientation = "horizontal"
   toJSON VerticalOrientation = "vertical"
+
+data OverflowValue = VisibleOverflow
+                   | HiddenOverflow
+                   | ScrollOverflow
+                   | AutoOverflow
+                   | InitialOverflow
+                   | InheritOverflow
+                   | DefaultOverflow
+
+instance ToJSON OverflowValue where
+  toJSON VisibleOverflow = "visible"
+  toJSON HiddenOverflow = "hidden"
+  toJSON ScrollOverflow = "scroll"
+  toJSON AutoOverflow = "auto"
+  toJSON InitialOverflow = "initial"
+  toJSON InheritOverflow = "inherit"
+  toJSON DefaultOverflow = ""
+
+data BoxStyleValue = SuccessBox
+                   | InfoBox
+                   | WarningBox
+                   | DangerBox
+                   | DefaultBox
+
+instance ToJSON BoxStyleValue where
+  toJSON SuccessBox = "success"
+  toJSON InfoBox = "info"
+  toJSON WarningBox = "warning"
+  toJSON DangerBox = "danger"
+  toJSON DefaultBox = ""

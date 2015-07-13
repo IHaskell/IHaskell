@@ -2,6 +2,8 @@ module IHaskell.Display.Widgets (module X) where
 
 import           IHaskell.Display.Widgets.Button as X
 
+import           IHaskell.Display.Widgets.Box.Box as X
+
 import           IHaskell.Display.Widgets.Bool.CheckBox as X
 import           IHaskell.Display.Widgets.Bool.ToggleButton as X
 
@@ -35,4 +37,10 @@ import           IHaskell.Display.Widgets.String.TextArea as X
 import           IHaskell.Display.Widgets.Common as X
 import           IHaskell.Display.Widgets.Types as X (setField, getField, properties)
 
-import           IHaskell.Display.Widgets.Types as X (triggerChange, triggerClick, triggerSelection, triggerSubmit)
+import           IHaskell.Display.Widgets.Types as X ( triggerDisplay
+                                                     , triggerChange
+                                                     , triggerClick
+                                                     , triggerSelection
+                                                     , triggerSubmit
+                                                     , ChildWidget (..)
+                                                     )

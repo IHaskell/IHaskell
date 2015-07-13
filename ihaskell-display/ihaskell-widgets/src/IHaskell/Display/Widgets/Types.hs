@@ -11,6 +11,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE ExistentialQuantification #-}
 module IHaskell.Display.Widgets.Types where
 
 -- | This module houses all the type-trickery needed to make widgets happen.
@@ -53,14 +54,14 @@ import Control.Applicative ((<$>))
 import qualified Control.Exception as Ex
 
 import Data.Aeson
-import Data.Aeson.Types (emptyObject, Pair)
-import Data.Text (pack, Text)
+import Data.Aeson.Types (Pair)
 import Data.IORef (IORef, readIORef, modifyIORef)
+import Data.Text (Text, pack)
 
 import Data.Vinyl (Rec (..), (<+>), recordToList, reifyConstraint, rmap, Dict (..))
 import Data.Vinyl.Functor (Compose (..), Const (..))
 import Data.Vinyl.Lens (rget, rput, type (∈))
-import Data.Vinyl.TypeLevel (RecAll (..))
+import Data.Vinyl.TypeLevel (RecAll)
 
 import Data.Singletons.Prelude ((:++))
 import Data.Singletons.TH
@@ -72,7 +73,7 @@ import IHaskell.IPython.Message.UUID
 import IHaskell.Display.Widgets.Common
 
 -- Classes from IPython's widget hierarchy. Defined as such to reduce code duplication.
-type WidgetClass = '[ModelModule, ModelName, ViewModule, ViewName, MsgThrottle, Version, OnDisplayed]
+type WidgetClass = '[ViewModule, ViewName, MsgThrottle, Version, DisplayHandler]
 type DOMWidgetClass = WidgetClass :++
    '[ Visible, CSS, DOMClasses, Width, Height, Padding, Margin, Color
     , BackgroundColor, BorderColor, BorderWidth, BorderRadius, BorderStyle, FontStyle
@@ -92,16 +93,15 @@ type FloatClass = DOMWidgetClass :++ '[FloatValue, Disabled, Description, Change
 type BoundedFloatClass = FloatClass :++ '[StepFloat, MinFloat, MaxFloat]
 type FloatRangeClass = FloatClass :++ '[FloatPairValue, LowerFloat, UpperFloat]
 type BoundedFloatRangeClass = FloatRangeClass :++ '[StepFloat, MinFloat, MaxFloat]
+type BoxClass = DOMWidgetClass :++ '[Children, OverflowX, OverflowY, BoxStyle]
 
 -- Types associated with Fields.
 type family FieldType (f :: Field) :: * where
-  FieldType ModelModule = Text
-  FieldType ModelName = Text
   FieldType ViewModule = Text
   FieldType ViewName = Text
-  FieldType MsgThrottle = StrInt
-  FieldType Version = StrInt
-  FieldType OnDisplayed = IO ()
+  FieldType MsgThrottle = Integer
+  FieldType Version = Integer
+  FieldType DisplayHandler = IO ()
   FieldType Visible = Bool
   FieldType CSS = [(Text, Text, Text)]
   FieldType DOMClasses = [Text]
@@ -159,6 +159,16 @@ type family FieldType (f :: Field) :: * where
   FieldType UpperFloat = Double
   FieldType FloatPairValue = (Double, Double)
   FieldType ChangeHandler = IO ()
+  FieldType Children = [ChildWidget]
+  FieldType OverflowX = OverflowValue
+  FieldType OverflowY = OverflowValue
+  FieldType BoxStyle = BoxStyleValue
+
+-- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
+data ChildWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => ChildWidget (IPythonWidget w)
+
+instance ToJSON ChildWidget where
+  toJSON (ChildWidget x) = toJSON . pack $ "IPY_MODEL_" ++ uuidToString (uuid x)
 
 -- Will use a custom class rather than a newtype wrapper with an orphan instance. The main issue is
 -- the need of a Bounded instance for Float / Double.
@@ -204,6 +214,8 @@ data WidgetType = ButtonType
                 | FloatSliderType
                 | FloatProgressType
                 | FloatRangeSliderType
+                | BoxType
+                | FlexBoxType
 
 -- Fields associated with a widget
 type family WidgetFields (w :: WidgetType) :: [Field] where
@@ -231,6 +243,8 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields FloatSliderType = BoundedFloatClass :++ '[Orientation, ShowRange, ReadOut, SliderColor]
   WidgetFields FloatProgressType = BoundedFloatClass :++ '[BarStyle]
   WidgetFields FloatRangeSliderType = BoundedFloatRangeClass :++ '[Orientation, ShowRange, ReadOut, SliderColor]
+  WidgetFields BoxType = BoxClass
+  WidgetFields FlexBoxType = BoxClass
 
 -- Wrapper around a field's value. A dummy value is sent as an empty string to the frontend.
 data AttrVal a = Dummy a | Real a
@@ -256,13 +270,11 @@ class ToPairs a where
   toPairs :: a -> [Pair]
 
 -- Attributes that aren't synced with the frontend give [] on toPairs
-instance ToPairs (Attr ModelModule) where toPairs x = ["_model_module" .= toJSON x]
-instance ToPairs (Attr ModelName) where toPairs x = ["_model_name" .= toJSON x]
 instance ToPairs (Attr ViewModule) where toPairs x = ["_view_module" .= toJSON x]
 instance ToPairs (Attr ViewName) where toPairs x = ["_view_name" .= toJSON x]
 instance ToPairs (Attr MsgThrottle) where toPairs x = ["msg_throttle" .= toJSON x]
 instance ToPairs (Attr Version) where toPairs x = ["version" .= toJSON x]
-instance ToPairs (Attr OnDisplayed) where toPairs _ = [] -- Not sent to the frontend
+instance ToPairs (Attr DisplayHandler) where toPairs _ = [] -- Not sent to the frontend
 instance ToPairs (Attr Visible) where toPairs x = ["visible" .= toJSON x]
 instance ToPairs (Attr CSS) where toPairs x = ["_css" .= toJSON x]
 instance ToPairs (Attr DOMClasses) where toPairs x = ["_dom_classes" .= toJSON x]
@@ -325,6 +337,10 @@ instance ToPairs (Attr ReadOut) where toPairs x = ["readout" .= toJSON x]
 instance ToPairs (Attr SliderColor) where toPairs x = ["slider_color" .= toJSON x]
 instance ToPairs (Attr BarStyle) where toPairs x = ["bar_style" .= toJSON x]
 instance ToPairs (Attr ChangeHandler) where toPairs _ = [] -- Not sent to the frontend
+instance ToPairs (Attr Children) where toPairs x = ["children" .= toJSON x]
+instance ToPairs (Attr OverflowX) where toPairs x = ["overflow_x" .= toJSON x]
+instance ToPairs (Attr OverflowY) where toPairs x = ["overflow_y" .= toJSON x]
+instance ToPairs (Attr BoxStyle) where toPairs x = ["box_style" .= toJSON x]
 
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.
@@ -357,13 +373,11 @@ reflect = fromSing
 
 -- | A record representing an object of the Widget class from IPython
 defaultWidget :: FieldType ViewName -> Rec Attr WidgetClass
-defaultWidget viewName = (SModelModule =:: "")
-                      :& (SModelName =:: "WidgetModel")
-                      :& (SViewModule =:: "")
+defaultWidget viewName = (SViewModule =:: "")
                       :& (SViewName =:: viewName)
                       :& (SMsgThrottle =:+ 3)
                       :& (SVersion =:: 0)
-                      :& (SOnDisplayed =:: return ())
+                      :& (SDisplayHandler =:: return ())
                       :& RNil
 
 -- | A record representing an object of the DOMWidget class from IPython
@@ -490,9 +504,17 @@ defaultFloatRangeWidget viewName = defaultFloatWidget viewName <+> rangeAttrs
 defaultBoundedFloatRangeWidget :: FieldType ViewName -> Rec Attr BoundedFloatRangeClass
 defaultBoundedFloatRangeWidget viewName = defaultFloatRangeWidget viewName <+> boundedFloatRangeAttrs
   where boundedFloatRangeAttrs = (SStepFloat =:+ 1)
-                            :& (SMinFloat =:: 0)
-                            :& (SMaxFloat =:: 100)
-                            :& RNil
+                              :& (SMinFloat =:: 0)
+                              :& (SMaxFloat =:: 100)
+                              :& RNil
+
+defaultBoxWidget :: FieldType ViewName -> Rec Attr BoxClass
+defaultBoxWidget viewName = defaultDOMWidget viewName <+> boxAttrs
+  where boxAttrs = (SChildren =:: [])
+                :& (SOverflowX =:: DefaultOverflow)
+                :& (SOverflowY =:: DefaultOverflow)
+                :& (SBoxStyle =:: DefaultBox)
+                :& RNil
 
 newtype WidgetState w = WidgetState { _getState :: Rec Attr (WidgetFields w) }
 
@@ -556,3 +578,6 @@ triggerSelection w = join $ getField w SSelectionHandler
 
 triggerSubmit :: (SubmitHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
 triggerSubmit w = join $ getField w SSubmitHandler
+
+triggerDisplay :: (DisplayHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
+triggerDisplay w = join $ getField w SDisplayHandler
