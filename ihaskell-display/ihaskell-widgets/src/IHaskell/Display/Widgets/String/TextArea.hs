@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.String.TextArea (
 -- * The TextArea Widget
-TextArea,
-                -- * Constructor
-                mkTextArea) where
+TextArea, 
+          -- * Constructor
+          mkTextArea) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude

@@ -4,10 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Int.BoundedIntRange.IntRangeSlider (
-  -- * The IntRangeSlider Widget
-  IntRangeSlider,
-  -- * Constructor
-  mkIntRangeSlider) where
+-- * The IntRangeSlider Widget
+IntRangeSlider, 
+                -- * Constructor
+                mkIntRangeSlider) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -39,10 +39,10 @@ mkIntRangeSlider = do
 
   let boundedIntAttrs = defaultBoundedIntRangeWidget "IntSliderView"
       sliderAttrs = (SOrientation =:: HorizontalOrientation)
-                 :& (SShowRange =:: True)
-                 :& (SReadOut =:: True)
-                 :& (SSliderColor =:: "")
-                 :& RNil
+                    :& (SShowRange =:: True)
+                    :& (SReadOut =:: True)
+                    :& (SSliderColor =:: "")
+                    :& RNil
       widgetState = WidgetState $ boundedIntAttrs <+> sliderAttrs
 
   stateIO <- newIORef widgetState

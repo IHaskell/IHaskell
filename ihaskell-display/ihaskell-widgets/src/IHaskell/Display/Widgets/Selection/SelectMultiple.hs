@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Selection.SelectMultiple (
 -- * The SelectMultiple Widget
-SelectMultiple,
-                      -- * Constructor
-                      mkSelectMultiple) where
+SelectMultiple, 
+                -- * Constructor
+                mkSelectMultiple) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude

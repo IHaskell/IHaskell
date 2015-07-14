@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Selection.Select (
 -- * The Select Widget
-Select,
-              -- * Constructor
-              mkSelect) where
+Select, 
+        -- * Constructor
+        mkSelect) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude

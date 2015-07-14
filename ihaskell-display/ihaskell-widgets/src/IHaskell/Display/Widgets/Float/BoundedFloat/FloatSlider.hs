@@ -4,10 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Float.BoundedFloat.FloatSlider (
-  -- * The FloatSlider Widget
-  FloatSlider,
-  -- * Constructor
-  mkFloatSlider) where
+-- * The FloatSlider Widget
+FloatSlider, 
+             -- * Constructor
+             mkFloatSlider) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -38,19 +38,17 @@ mkFloatSlider = do
 
   let boundedFloatAttrs = defaultBoundedFloatWidget "FloatSliderView"
       sliderAttrs = (SOrientation =:: HorizontalOrientation)
-                 :& (SShowRange =:: False)
-                 :& (SReadOut =:: True)
-                 :& (SSliderColor =:: "")
-                 :& RNil
+                    :& (SShowRange =:: False)
+                    :& (SReadOut =:: True)
+                    :& (SSliderColor =:: "")
+                    :& RNil
       widgetState = WidgetState $ boundedFloatAttrs <+> sliderAttrs
 
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
       initData = object
-                   [ "model_name" .= str "WidgetModel"
-                   , "widget_class" .= str "IPython.FloatSlider"
-                   ]
+                   ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.FloatSlider"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget initData $ toJSON widgetState

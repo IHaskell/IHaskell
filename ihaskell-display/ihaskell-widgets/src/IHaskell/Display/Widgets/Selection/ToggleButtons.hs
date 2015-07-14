@@ -5,7 +5,7 @@
 
 module IHaskell.Display.Widgets.Selection.ToggleButtons (
 -- * The ToggleButtons Widget
-ToggleButtons,
+ToggleButtons, 
                -- * Constructor
                mkToggleButtons) where
 

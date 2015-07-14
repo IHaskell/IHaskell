@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Bool.CheckBox (
 -- * The CheckBox Widget
-CheckBox,
-                -- * Constructor
-                mkCheckBox) where
+CheckBox, 
+          -- * Constructor
+          mkCheckBox) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude

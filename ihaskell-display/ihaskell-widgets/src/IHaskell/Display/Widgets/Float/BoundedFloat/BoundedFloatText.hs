@@ -4,10 +4,11 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Float.BoundedFloat.BoundedFloatText (
-  -- * The BoundedFloatText Widget
-  BoundedFloatText,
-  -- * Constructor
-  mkBoundedFloatText) where
+-- * The BoundedFloatText
+-- Widget
+BoundedFloatText, 
+                  -- * Constructor
+                  mkBoundedFloatText) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude

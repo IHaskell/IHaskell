@@ -4,10 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Int.BoundedInt.BoundedIntText (
-  -- * The BoundedIntText Widget
-  BoundedIntText,
-  -- * Constructor
-  mkBoundedIntText) where
+-- * The BoundedIntText Widget
+BoundedIntText, 
+                -- * Constructor
+                mkBoundedIntText) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude

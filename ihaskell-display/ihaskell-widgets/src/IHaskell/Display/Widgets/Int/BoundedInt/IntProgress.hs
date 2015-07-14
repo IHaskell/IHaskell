@@ -4,15 +4,15 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Int.BoundedInt.IntProgress (
-  -- * The IntProgress Widget
-  IntProgress,
-  -- * Constructor
-  mkIntProgress) where
+-- * The IntProgress Widget
+IntProgress, 
+             -- * Constructor
+             mkIntProgress) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Exception (throw, ArithException (LossOfPrecision))
+import           Control.Exception (throw, ArithException(LossOfPrecision))
 import           Control.Monad (when, join)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
@@ -45,9 +45,7 @@ mkIntProgress = do
 
   let widget = IPythonWidget uuid stateIO
       initData = object
-                   [ "model_name" .= str "WidgetModel"
-                   , "widget_class" .= str "IPython.IntProgress"
-                   ]
+                   ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.IntProgress"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget initData $ toJSON widgetState

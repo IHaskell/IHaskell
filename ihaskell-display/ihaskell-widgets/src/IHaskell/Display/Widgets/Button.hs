@@ -5,7 +5,7 @@
 
 module IHaskell.Display.Widgets.Button (
 -- * The Button Widget
-Button,
+Button, 
         -- * Create a new button
         mkButton) where
 

@@ -5,7 +5,7 @@
 
 module IHaskell.Display.Widgets.Bool.ToggleButton (
 -- * The ToggleButton Widget
-ToggleButton,
+ToggleButton, 
               -- * Constructor
               mkToggleButton) where
 

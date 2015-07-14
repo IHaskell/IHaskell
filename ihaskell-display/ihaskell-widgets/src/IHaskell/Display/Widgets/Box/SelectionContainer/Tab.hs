@@ -4,11 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Box.SelectionContainer.Tab (
-    -- * The Tab widget
-    TabWidget,
-    -- * Constructor
-    mkTabWidget,
-    ) where
+-- * The Tab widget
+TabWidget, 
+           -- * Constructor
+           mkTabWidget) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude

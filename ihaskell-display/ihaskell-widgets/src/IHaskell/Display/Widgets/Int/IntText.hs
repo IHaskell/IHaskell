@@ -4,10 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Int.IntText (
-  -- * The IntText Widget
-  IntText,
-  -- * Constructor
-  mkIntText) where
+-- * The IntText Widget
+IntText, 
+         -- * Constructor
+         mkIntText) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude

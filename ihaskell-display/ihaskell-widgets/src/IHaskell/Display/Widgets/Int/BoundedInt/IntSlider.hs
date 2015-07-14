@@ -4,10 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Int.BoundedInt.IntSlider (
-  -- * The IntSlider Widget
-  IntSlider,
-  -- * Constructor
-  mkIntSlider) where
+-- * The IntSlider Widget
+IntSlider, 
+           -- * Constructor
+           mkIntSlider) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -38,19 +38,17 @@ mkIntSlider = do
 
   let boundedIntAttrs = defaultBoundedIntWidget "IntSliderView"
       sliderAttrs = (SOrientation =:: HorizontalOrientation)
-                 :& (SShowRange =:: False)
-                 :& (SReadOut =:: True)
-                 :& (SSliderColor =:: "")
-                 :& RNil
+                    :& (SShowRange =:: False)
+                    :& (SReadOut =:: True)
+                    :& (SSliderColor =:: "")
+                    :& RNil
       widgetState = WidgetState $ boundedIntAttrs <+> sliderAttrs
 
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
       initData = object
-                   [ "model_name" .= str "WidgetModel"
-                   , "widget_class" .= str "IPython.IntSlider"
-                   ]
+                   ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.IntSlider"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget initData $ toJSON widgetState

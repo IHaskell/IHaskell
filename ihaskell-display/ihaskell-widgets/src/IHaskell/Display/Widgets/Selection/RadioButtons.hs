@@ -5,7 +5,7 @@
 
 module IHaskell.Display.Widgets.Selection.RadioButtons (
 -- * The RadioButtons Widget
-RadioButtons,
+RadioButtons, 
               -- * Constructor
               mkRadioButtons) where
 

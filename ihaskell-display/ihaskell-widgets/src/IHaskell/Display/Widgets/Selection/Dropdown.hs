@@ -5,7 +5,7 @@
 
 module IHaskell.Display.Widgets.Selection.Dropdown (
 -- * The Dropdown Widget
-Dropdown,
+Dropdown, 
           -- * Constructor
           mkDropdown) where
 

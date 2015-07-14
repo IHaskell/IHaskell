@@ -4,11 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Box.Box (
-    -- * The Box widget
-    Box,
-    -- * Constructor
-    mkBox,
-    ) where
+-- * The Box widget
+Box, 
+     -- * Constructor
+     mkBox) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude

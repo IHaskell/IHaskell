@@ -4,11 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.String.Text (
-  -- * The Text Widget
-  TextWidget,
-  -- * Constructor
-  mkTextWidget,
-  ) where
+-- * The Text Widget
+TextWidget, 
+            -- * Constructor
+            mkTextWidget) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude

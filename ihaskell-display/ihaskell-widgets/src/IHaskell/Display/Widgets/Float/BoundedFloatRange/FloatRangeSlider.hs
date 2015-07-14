@@ -4,15 +4,16 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Float.BoundedFloatRange.FloatRangeSlider (
-  -- * The FloatRangeSlider Widget
-  FloatRangeSlider,
-  -- * Constructor
-  mkFloatRangeSlider) where
+-- * The FloatRangeSlider
+-- Widget
+FloatRangeSlider, 
+                  -- * Constructor
+                  mkFloatRangeSlider) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Exception (throw, ArithException (LossOfPrecision))
+import           Control.Exception (throw, ArithException(LossOfPrecision))
 import           Control.Monad (when, join, void)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
@@ -40,10 +41,10 @@ mkFloatRangeSlider = do
 
   let boundedFloatAttrs = defaultBoundedFloatRangeWidget "FloatSliderView"
       sliderAttrs = (SOrientation =:: HorizontalOrientation)
-                 :& (SShowRange =:: True)
-                 :& (SReadOut =:: True)
-                 :& (SSliderColor =:: "")
-                 :& RNil
+                    :& (SShowRange =:: True)
+                    :& (SReadOut =:: True)
+                    :& (SSliderColor =:: "")
+                    :& RNil
       widgetState = WidgetState $ boundedFloatAttrs <+> sliderAttrs
 
   stateIO <- newIORef widgetState

@@ -4,10 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Float.FloatText (
-  -- * The FloatText Widget
-  FloatText,
-  -- * Constructor
-  mkFloatText) where
+-- * The FloatText Widget
+FloatText, 
+           -- * Constructor
+           mkFloatText) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -41,7 +41,8 @@ mkFloatText = do
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
-      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.FloatText"]
+      initData = object
+                   ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.FloatText"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget initData $ toJSON widgetState

@@ -4,11 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Box.FlexBox (
-    -- * The FlexBox widget
-    FlexBox,
-    -- * Constructor
-    mkFlexBox,
-    ) where
+-- * The FlexBox widget
+FlexBox, 
+         -- * Constructor
+         mkFlexBox) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -38,10 +37,10 @@ mkFlexBox = do
 
   let boxAttrs = defaultBoxWidget "FlexBoxView"
       flxAttrs = (SOrientation =:: HorizontalOrientation)
-              :& (SFlex =:: 0)
-              :& (SPack =:: StartLocation)
-              :& (SAlign =:: StartLocation)
-              :& RNil
+                 :& (SFlex =:: 0)
+                 :& (SPack =:: StartLocation)
+                 :& (SAlign =:: StartLocation)
+                 :& RNil
       widgetState = WidgetState $ boxAttrs <+> flxAttrs
 
   stateIO <- newIORef widgetState
