@@ -56,6 +56,9 @@ library
   -- Modules included in this library but not exported.
   other-modules:       IHaskell.Display.Widgets.Button
                        IHaskell.Display.Widgets.Box.Box
+                       IHaskell.Display.Widgets.Box.FlexBox
+                       IHaskell.Display.Widgets.Box.SelectionContainer.Accordion
+                       IHaskell.Display.Widgets.Box.SelectionContainer.Tab
                        IHaskell.Display.Widgets.Bool.CheckBox
                        IHaskell.Display.Widgets.Bool.ToggleButton
                        IHaskell.Display.Widgets.Int.IntText

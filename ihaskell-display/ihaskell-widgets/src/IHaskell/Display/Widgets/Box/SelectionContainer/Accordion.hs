@@ -3,11 +3,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.Box.Box (
-    -- * The Box widget
-    Box,
+module IHaskell.Display.Widgets.Box.SelectionContainer.Accordion (
+    -- * The Accordion widget
+    Accordion,
     -- * Constructor
-    mkBox,
+    mkAccordion,
     ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -17,6 +17,7 @@ import           Control.Monad (when, join)
 import           Data.Aeson
 import           Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
+import qualified Data.Scientific as Sci
 import           Data.Text (Text)
 import           Data.Vinyl (Rec(..), (<+>))
 
@@ -27,21 +28,21 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | A 'Box' represents a Box widget from IPython.html.widgets.
-type Box = IPythonWidget BoxType
+-- | A 'Accordion' represents a Accordion widget from IPython.html.widgets.
+type Accordion = IPythonWidget AccordionType
 
 -- | Create a new box
-mkBox :: IO Box
-mkBox = do
+mkAccordion :: IO Accordion
+mkAccordion = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let widgetState = WidgetState $ defaultBoxWidget "BoxView"
+  let widgetState = WidgetState $ defaultSelectionContainerWidget "AccordionView"
 
   stateIO <- newIORef widgetState
 
   let box = IPythonWidget uuid stateIO
-      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Box"]
+      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Accordion"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen box initData $ toJSON widgetState
@@ -49,10 +50,17 @@ mkBox = do
   -- Return the widget
   return box
 
-instance IHaskellDisplay Box where
+instance IHaskellDisplay Accordion where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget Box where
+instance IHaskellWidget Accordion where
   getCommUUID = uuid
+  comm widget (Object dict1) _ = do
+    let key1 = "sync_data" :: Text
+        key2 = "selected_index" :: Text
+        Just (Object dict2) = HM.lookup key1 dict1
+        Just (Number num) = HM.lookup key2 dict2
+    setField' widget SSelectedIndex (Sci.coefficient num)
+    triggerChange widget

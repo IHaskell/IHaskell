@@ -46,6 +46,9 @@ module IHaskell.Display.Widgets.Types where
 -- numeric values is ignored by the frontend and the default value is used instead. Some numbers need to
 -- be sent as numbers (represented by @Integer@), whereas some need to be sent as Strings (@StrInt@).
 --
+-- Child widgets are expected to be sent as strings of the form "IPY_MODEL_<uuid>", where @<uuid>@
+-- represents the uuid of the widget's comm.
+--
 -- To know more about the IPython messaging specification (as implemented in this package) take a look
 -- at the supplied MsgSpec.md.
 
@@ -94,6 +97,7 @@ type BoundedFloatClass = FloatClass :++ '[StepFloat, MinFloat, MaxFloat]
 type FloatRangeClass = FloatClass :++ '[FloatPairValue, LowerFloat, UpperFloat]
 type BoundedFloatRangeClass = FloatRangeClass :++ '[StepFloat, MinFloat, MaxFloat]
 type BoxClass = DOMWidgetClass :++ '[Children, OverflowX, OverflowY, BoxStyle]
+type SelectionContainerClass = BoxClass :++ '[Titles, SelectedIndex, ChangeHandler]
 
 -- Types associated with Fields.
 type family FieldType (f :: Field) :: * where
@@ -163,6 +167,11 @@ type family FieldType (f :: Field) :: * where
   FieldType OverflowX = OverflowValue
   FieldType OverflowY = OverflowValue
   FieldType BoxStyle = BoxStyleValue
+  FieldType Flex = Int
+  FieldType Pack = LocationValue
+  FieldType Align = LocationValue
+  FieldType Titles = [Text]
+  FieldType SelectedIndex = Integer
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
 data ChildWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => ChildWidget (IPythonWidget w)
@@ -216,6 +225,8 @@ data WidgetType = ButtonType
                 | FloatRangeSliderType
                 | BoxType
                 | FlexBoxType
+                | AccordionType
+                | TabType
 
 -- Fields associated with a widget
 type family WidgetFields (w :: WidgetType) :: [Field] where
@@ -244,7 +255,9 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields FloatProgressType = BoundedFloatClass :++ '[BarStyle]
   WidgetFields FloatRangeSliderType = BoundedFloatRangeClass :++ '[Orientation, ShowRange, ReadOut, SliderColor]
   WidgetFields BoxType = BoxClass
-  WidgetFields FlexBoxType = BoxClass
+  WidgetFields FlexBoxType = BoxClass :++ '[Orientation, Flex, Pack, Align]
+  WidgetFields AccordionType = SelectionContainerClass
+  WidgetFields TabType = SelectionContainerClass
 
 -- Wrapper around a field's value. A dummy value is sent as an empty string to the frontend.
 data AttrVal a = Dummy a | Real a
@@ -341,6 +354,11 @@ instance ToPairs (Attr Children) where toPairs x = ["children" .= toJSON x]
 instance ToPairs (Attr OverflowX) where toPairs x = ["overflow_x" .= toJSON x]
 instance ToPairs (Attr OverflowY) where toPairs x = ["overflow_y" .= toJSON x]
 instance ToPairs (Attr BoxStyle) where toPairs x = ["box_style" .= toJSON x]
+instance ToPairs (Attr Flex) where toPairs x = ["flex" .= toJSON x]
+instance ToPairs (Attr Pack) where toPairs x = ["pack" .= toJSON x]
+instance ToPairs (Attr Align) where toPairs x = ["align" .= toJSON x]
+instance ToPairs (Attr Titles) where toPairs x = ["_titles" .= toJSON x]
+instance ToPairs (Attr SelectedIndex) where toPairs x = ["selected_index" .= toJSON x]
 
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.
@@ -508,12 +526,21 @@ defaultBoundedFloatRangeWidget viewName = defaultFloatRangeWidget viewName <+> b
                               :& (SMaxFloat =:: 100)
                               :& RNil
 
+-- | A record representing a widget of the _Box class from IPython
 defaultBoxWidget :: FieldType ViewName -> Rec Attr BoxClass
 defaultBoxWidget viewName = defaultDOMWidget viewName <+> boxAttrs
   where boxAttrs = (SChildren =:: [])
                 :& (SOverflowX =:: DefaultOverflow)
                 :& (SOverflowY =:: DefaultOverflow)
                 :& (SBoxStyle =:: DefaultBox)
+                :& RNil
+
+-- | A record representing a widget of the _SelectionContainer class from IPython
+defaultSelectionContainerWidget :: FieldType ViewName -> Rec Attr SelectionContainerClass
+defaultSelectionContainerWidget viewName = defaultBoxWidget viewName <+> selAttrs
+  where selAttrs = (STitles =:: [])
+                :& (SSelectedIndex =:: 0)
+                :& (SChangeHandler =:: return ())
                 :& RNil
 
 newtype WidgetState w = WidgetState { _getState :: Rec Attr (WidgetFields w) }

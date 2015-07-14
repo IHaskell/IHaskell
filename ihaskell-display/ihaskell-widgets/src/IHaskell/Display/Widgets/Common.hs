@@ -82,6 +82,11 @@ singletons [d|
              | OverflowX
              | OverflowY
              | BoxStyle
+             | Flex
+             | Pack
+             | Align
+             | Titles
+             | SelectedIndex
              deriving (Eq, Ord, Show)
              |]
 
@@ -238,3 +243,16 @@ instance ToJSON BoxStyleValue where
   toJSON WarningBox = "warning"
   toJSON DangerBox = "danger"
   toJSON DefaultBox = ""
+
+data LocationValue = StartLocation
+                   | CenterLocation
+                   | EndLocation
+                   | BaselineLocation
+                   | StretchLocation
+
+instance ToJSON LocationValue where
+  toJSON StartLocation = "start"
+  toJSON CenterLocation = "center"
+  toJSON EndLocation = "end"
+  toJSON BaselineLocation = "baseline"
+  toJSON StretchLocation = "stretch"
