@@ -10,9 +10,17 @@
 module IHaskell.Display.Widgets.Common where
 
 import Data.Aeson
+import Data.Aeson.Types (emptyObject)
 import Data.Text (pack, Text)
 
 import Data.Singletons.TH
+
+import IHaskell.Display (IHaskellWidget)
+import IHaskell.Eval.Widgets (widgetSendClose)
+
+-- | Close a widget's comm
+closeWidget :: IHaskellWidget w => w -> IO ()
+closeWidget w = widgetSendClose w emptyObject
 
 -- Widget properties
 singletons [d|
