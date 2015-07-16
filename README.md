@@ -6,6 +6,9 @@
 ![IHaskell](https://raw.github.com/gibiansky/IHaskell/master/html/logo-64x64.png)
 
 # IHaskell
+
+> You can now try IHaskell directly in your browser at [try.jupyter.org](https://try.jupyter.org).
+
 IHaskell is a kernel for the [Jupyter project](http://ipython.org), which allows you to use Haskell inside Jupyter frontends (including the console and notebook).
 
 For a tour of some IHaskell features, check out the [demo Notebook](http://nbviewer.ipython.org/github/gibiansky/IHaskell/blob/master/notebooks/IHaskell.ipynb). More example notebooks are available on the [wiki](https://github.com/gibiansky/IHaskell/wiki).
