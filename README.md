@@ -144,6 +144,10 @@ If you've installed IHaskell in a sandbox, you will need to make sure that IPyth
 ```bash
 cabal exec ipython -- notebook
 ```
+Likewise, if you've installed IHaskell with `stack`:
+```bash
+stack exec ipython -- notebook
+```
 
 #### (Optional) Install Support Libraries
 
