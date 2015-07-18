@@ -3,20 +3,21 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.Image (
--- * The Image Widget
-ImageWidget, 
+module IHaskell.Display.Widgets.Int.BoundedInt.IntProgress (
+-- * The IntProgress Widget
+IntProgress, 
              -- * Constructor
-             mkImageWidget) where
+             mkIntProgress) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
+import           Control.Exception (throw, ArithException(LossOfPrecision))
 import           Control.Monad (when, join)
 import           Data.Aeson
-import           Data.HashMap.Strict as HM
+import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
-import           Data.Monoid (mempty)
+import qualified Data.Scientific as Sci
 import           Data.Text (Text)
 import           Data.Vinyl (Rec(..), (<+>))
 
@@ -27,37 +28,35 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | An 'ImageWidget' represents a Image widget from IPython.html.widgets.
-type ImageWidget = IPythonWidget ImageType
+-- | 'IntProgress' represents an IntProgress widget from IPython.html.widgets.
+type IntProgress = IPythonWidget IntProgressType
 
--- | Create a new image widget
-mkImageWidget :: IO ImageWidget
-mkImageWidget = do
+-- | Create a new widget
+mkIntProgress :: IO IntProgress
+mkIntProgress = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let dom = defaultDOMWidget "ImageView"
-      img = (SImageFormat =:: PNG)
-            :& (SB64Value =:: mempty)
-            :& RNil
-      widgetState = WidgetState (dom <+> img)
+  let boundedIntAttrs = defaultBoundedIntWidget "ProgressView"
+      progressAttrs = (SBarStyle =:: DefaultBar) :& RNil
+      widgetState = WidgetState $ boundedIntAttrs <+> progressAttrs
 
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
-
-  let initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Image"]
+      initData = object
+                   ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.IntProgress"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget initData $ toJSON widgetState
 
-  -- Return the image widget
+  -- Return the widget
   return widget
 
-instance IHaskellDisplay ImageWidget where
+instance IHaskellDisplay IntProgress where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget ImageWidget where
+instance IHaskellWidget IntProgress where
   getCommUUID = uuid

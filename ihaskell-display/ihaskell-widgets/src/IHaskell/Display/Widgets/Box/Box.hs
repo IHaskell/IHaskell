@@ -3,11 +3,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.Image (
--- * The Image Widget
-ImageWidget, 
-             -- * Constructor
-             mkImageWidget) where
+module IHaskell.Display.Widgets.Box.Box (
+-- * The Box widget
+Box, 
+     -- * Constructor
+     mkBox) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -16,7 +16,6 @@ import           Control.Monad (when, join)
 import           Data.Aeson
 import           Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
-import           Data.Monoid (mempty)
 import           Data.Text (Text)
 import           Data.Vinyl (Rec(..), (<+>))
 
@@ -27,37 +26,32 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | An 'ImageWidget' represents a Image widget from IPython.html.widgets.
-type ImageWidget = IPythonWidget ImageType
+-- | A 'Box' represents a Box widget from IPython.html.widgets.
+type Box = IPythonWidget BoxType
 
--- | Create a new image widget
-mkImageWidget :: IO ImageWidget
-mkImageWidget = do
+-- | Create a new box
+mkBox :: IO Box
+mkBox = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let dom = defaultDOMWidget "ImageView"
-      img = (SImageFormat =:: PNG)
-            :& (SB64Value =:: mempty)
-            :& RNil
-      widgetState = WidgetState (dom <+> img)
+  let widgetState = WidgetState $ defaultBoxWidget "BoxView"
 
   stateIO <- newIORef widgetState
 
-  let widget = IPythonWidget uuid stateIO
-
-  let initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Image"]
+  let box = IPythonWidget uuid stateIO
+      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Box"]
 
   -- Open a comm for this widget, and store it in the kernel state
-  widgetSendOpen widget initData $ toJSON widgetState
+  widgetSendOpen box initData $ toJSON widgetState
 
-  -- Return the image widget
-  return widget
+  -- Return the widget
+  return box
 
-instance IHaskellDisplay ImageWidget where
+instance IHaskellDisplay Box where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget ImageWidget where
+instance IHaskellWidget Box where
   getCommUUID = uuid

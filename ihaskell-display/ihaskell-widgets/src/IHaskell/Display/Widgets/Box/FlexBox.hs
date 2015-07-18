@@ -3,11 +3,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.Image (
--- * The Image Widget
-ImageWidget, 
-             -- * Constructor
-             mkImageWidget) where
+module IHaskell.Display.Widgets.Box.FlexBox (
+-- * The FlexBox widget
+FlexBox, 
+         -- * Constructor
+         mkFlexBox) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -16,7 +16,6 @@ import           Control.Monad (when, join)
 import           Data.Aeson
 import           Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
-import           Data.Monoid (mempty)
 import           Data.Text (Text)
 import           Data.Vinyl (Rec(..), (<+>))
 
@@ -27,37 +26,38 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | An 'ImageWidget' represents a Image widget from IPython.html.widgets.
-type ImageWidget = IPythonWidget ImageType
+-- | A 'FlexBox' represents a FlexBox widget from IPython.html.widgets.
+type FlexBox = IPythonWidget FlexBoxType
 
--- | Create a new image widget
-mkImageWidget :: IO ImageWidget
-mkImageWidget = do
+-- | Create a new box
+mkFlexBox :: IO FlexBox
+mkFlexBox = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let dom = defaultDOMWidget "ImageView"
-      img = (SImageFormat =:: PNG)
-            :& (SB64Value =:: mempty)
-            :& RNil
-      widgetState = WidgetState (dom <+> img)
+  let boxAttrs = defaultBoxWidget "FlexBoxView"
+      flxAttrs = (SOrientation =:: HorizontalOrientation)
+                 :& (SFlex =:: 0)
+                 :& (SPack =:: StartLocation)
+                 :& (SAlign =:: StartLocation)
+                 :& RNil
+      widgetState = WidgetState $ boxAttrs <+> flxAttrs
 
   stateIO <- newIORef widgetState
 
-  let widget = IPythonWidget uuid stateIO
-
-  let initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Image"]
+  let box = IPythonWidget uuid stateIO
+      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.FlexBox"]
 
   -- Open a comm for this widget, and store it in the kernel state
-  widgetSendOpen widget initData $ toJSON widgetState
+  widgetSendOpen box initData $ toJSON widgetState
 
-  -- Return the image widget
-  return widget
+  -- Return the widget
+  return box
 
-instance IHaskellDisplay ImageWidget where
+instance IHaskellDisplay FlexBox where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget ImageWidget where
+instance IHaskellWidget FlexBox where
   getCommUUID = uuid

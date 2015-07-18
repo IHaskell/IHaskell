@@ -1,7 +1,7 @@
 -- | Description : UUID generator and data structure
 --
 -- Generate, parse, and pretty print UUIDs for use with IPython.
-module IHaskell.IPython.Message.UUID (UUID, random, randoms) where
+module IHaskell.IPython.Message.UUID (UUID, random, randoms, uuidToString) where
 
 import           Control.Monad (mzero, replicateM)
 import           Control.Applicative ((<$>))
@@ -16,7 +16,7 @@ data UUID =
      -- present in the correct locations. For the purposes of new UUIDs, it does not matter,
      -- but IPython expects UUIDs passed to kernels to be returned unchanged, so we cannot
      -- actually parse them.
-      UUID String
+      UUID { uuidToString :: String }
   deriving (Show, Read, Eq, Ord)
 
 -- | Generate a list of random UUIDs.
@@ -28,7 +28,7 @@ randoms n = replicateM n random
 random :: IO UUID
 random = UUID <$> show <$> nextRandom
 
--- Allows reading and writing UUIDs as Strings in JSON. 
+-- Allows reading and writing UUIDs as Strings in JSON.
 instance FromJSON UUID where
   parseJSON val@(String _) = UUID <$> parseJSON val
 

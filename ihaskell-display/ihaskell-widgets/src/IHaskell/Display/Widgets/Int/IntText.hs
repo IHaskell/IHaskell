@@ -3,19 +3,20 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.String.TextArea (
--- * The TextArea Widget
-TextArea, 
-          -- * Constructor
-          mkTextArea) where
+module IHaskell.Display.Widgets.Int.IntText (
+-- * The IntText Widget
+IntText, 
+         -- * Constructor
+         mkIntText) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (when, join)
+import           Control.Monad (when, join, void)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
+import qualified Data.Scientific as Sci
 import           Data.Text (Text)
 import           Data.Vinyl (Rec(..), (<+>))
 
@@ -26,23 +27,21 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | A 'TextArea' represents a Textarea widget from IPython.html.widgets.
-type TextArea = IPythonWidget TextAreaType
+-- | 'IntText' represents an IntText widget from IPython.html.widgets.
+type IntText = IPythonWidget IntTextType
 
--- | Create a new TextArea widget
-mkTextArea :: IO TextArea
-mkTextArea = do
+-- | Create a new widget
+mkIntText :: IO IntText
+mkIntText = do
   -- Default properties, with a random uuid
   uuid <- U.random
-  let strAttrs = defaultStringWidget "TextareaView"
-      wgtAttrs = (SChangeHandler =:: return ()) :& RNil
-      widgetState = WidgetState $ strAttrs <+> wgtAttrs
+
+  let widgetState = WidgetState $ defaultIntWidget "IntTextView"
 
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
-      initData = object
-                   ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Textarea"]
+      initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.IntText"]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget initData $ toJSON widgetState
@@ -50,17 +49,17 @@ mkTextArea = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay TextArea where
+instance IHaskellDisplay IntText where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget TextArea where
+instance IHaskellWidget IntText where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text
         key2 = "value" :: Text
         Just (Object dict2) = HM.lookup key1 dict1
-        Just (String value) = HM.lookup key2 dict2
-    setField' widget SStringValue value
+        Just (Number value) = HM.lookup key2 dict2
+    setField' widget SIntValue (Sci.coefficient value)
     triggerChange widget

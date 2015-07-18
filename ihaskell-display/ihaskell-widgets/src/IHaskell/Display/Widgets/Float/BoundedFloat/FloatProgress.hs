@@ -3,19 +3,21 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.String.TextArea (
--- * The TextArea Widget
-TextArea, 
-          -- * Constructor
-          mkTextArea) where
+module IHaskell.Display.Widgets.Float.BoundedFloat.FloatProgress (
+-- * The FloatProgress Widget
+FloatProgress, 
+               -- * Constructor
+               mkFloatProgress) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
+import           Control.Exception (throw, ArithException(LossOfPrecision))
 import           Control.Monad (when, join)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
+import qualified Data.Scientific as Sci
 import           Data.Text (Text)
 import           Data.Vinyl (Rec(..), (<+>))
 
@@ -26,23 +28,26 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | A 'TextArea' represents a Textarea widget from IPython.html.widgets.
-type TextArea = IPythonWidget TextAreaType
+-- | 'FloatProgress' represents an FloatProgress widget from IPython.html.widgets.
+type FloatProgress = IPythonWidget FloatProgressType
 
--- | Create a new TextArea widget
-mkTextArea :: IO TextArea
-mkTextArea = do
+-- | Create a new widget
+mkFloatProgress :: IO FloatProgress
+mkFloatProgress = do
   -- Default properties, with a random uuid
   uuid <- U.random
-  let strAttrs = defaultStringWidget "TextareaView"
-      wgtAttrs = (SChangeHandler =:: return ()) :& RNil
-      widgetState = WidgetState $ strAttrs <+> wgtAttrs
+
+  let boundedFloatAttrs = defaultBoundedFloatWidget "ProgressView"
+      progressAttrs = (SBarStyle =:: DefaultBar) :& RNil
+      widgetState = WidgetState $ boundedFloatAttrs <+> progressAttrs
 
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
       initData = object
-                   ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Textarea"]
+                   [ "model_name" .= str "WidgetModel"
+                   , "widget_class" .= str "IPython.FloatProgress"
+                   ]
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget initData $ toJSON widgetState
@@ -50,17 +55,10 @@ mkTextArea = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay TextArea where
+instance IHaskellDisplay FloatProgress where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget TextArea where
+instance IHaskellWidget FloatProgress where
   getCommUUID = uuid
-  comm widget (Object dict1) _ = do
-    let key1 = "sync_data" :: Text
-        key2 = "value" :: Text
-        Just (Object dict2) = HM.lookup key1 dict1
-        Just (String value) = HM.lookup key2 dict2
-    setField' widget SStringValue value
-    triggerChange widget

@@ -44,7 +44,7 @@ build-type:          Simple
 
 -- Extra files to be distributed with the package, such as examples or a 
 -- README.
--- extra-source-files:  
+extra-source-files:  README.md, MsgSpec.md
 
 -- Constraint on the version of Cabal needed to build this package.
 cabal-version:       >=1.10
@@ -55,29 +55,66 @@ library
   
   -- Modules included in this library but not exported.
   other-modules:       IHaskell.Display.Widgets.Button
+                       IHaskell.Display.Widgets.Box.Box
+                       IHaskell.Display.Widgets.Box.FlexBox
+                       IHaskell.Display.Widgets.Box.SelectionContainer.Accordion
+                       IHaskell.Display.Widgets.Box.SelectionContainer.Tab
+                       IHaskell.Display.Widgets.Bool.CheckBox
+                       IHaskell.Display.Widgets.Bool.ToggleButton
+                       IHaskell.Display.Widgets.Int.IntText
+                       IHaskell.Display.Widgets.Int.BoundedInt.BoundedIntText
+                       IHaskell.Display.Widgets.Int.BoundedInt.IntProgress
+                       IHaskell.Display.Widgets.Int.BoundedInt.IntSlider
+                       IHaskell.Display.Widgets.Int.BoundedIntRange.IntRangeSlider
+                       IHaskell.Display.Widgets.Float.FloatText
+                       IHaskell.Display.Widgets.Float.BoundedFloat.BoundedFloatText
+                       IHaskell.Display.Widgets.Float.BoundedFloat.FloatProgress
+                       IHaskell.Display.Widgets.Float.BoundedFloat.FloatSlider
+                       IHaskell.Display.Widgets.Float.BoundedFloatRange.FloatRangeSlider
                        IHaskell.Display.Widgets.Image
+                       IHaskell.Display.Widgets.Output
+                       IHaskell.Display.Widgets.Selection.Dropdown
+                       IHaskell.Display.Widgets.Selection.RadioButtons
+                       IHaskell.Display.Widgets.Selection.Select
+                       IHaskell.Display.Widgets.Selection.ToggleButtons
+                       IHaskell.Display.Widgets.Selection.SelectMultiple
                        IHaskell.Display.Widgets.String.HTML
                        IHaskell.Display.Widgets.String.Latex
                        IHaskell.Display.Widgets.String.Text
                        IHaskell.Display.Widgets.String.TextArea
+
+                       IHaskell.Display.Widgets.Types
                        IHaskell.Display.Widgets.Common
-  
+
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       aeson >= 0.8.1.0
+  build-depends:       aeson >=0.7 && < 0.9
                      , base >=4.7 && <4.9
-                     , ipython-kernel >= 0.6.1.0
-                     , text >= 1.2.1.0
-                     , unordered-containers >= 0.2.5.1
+                     , containers >= 0.5
+                     , ipython-kernel >= 0.6.1
+                     , text >= 0.11
+                     , unordered-containers -any
+                     , nats -any
+                     , vinyl >= 0.5
+                     , vector -any
+                     , singletons >= 0.9.0
+                     , scientific -any
 
                        -- Waiting for the next release
                      , ihaskell -any
-
+  
   -- Directories containing source files.
   hs-source-dirs:      src
   
   -- Base language which the package is written in.
   default-language:    Haskell2010
   
+  -- Deal with small -fcontext-stack on ghc-7.8.
+  -- Default values:
+  --   ghc-7.6.*  = 200
+  --   ghc-7.8.*  = 20   -- Too small for vinyl & singletons
+  --   ghc-7.10.* = 100
+  if impl(ghc == 7.8.*)
+    ghc-options:       -fcontext-stack=100

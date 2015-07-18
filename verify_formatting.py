@@ -51,9 +51,14 @@ for source_dir in ["src", "ipython-kernel", "ihaskell-display"]:
             continue
 
         for filename in filenames:
-            # Take Haskell files, but ignore the Cabal Setup.hs
-            # Also ignore IHaskellPrelude.hs, it uses CPP in weird places
-            ignored_files = ["Setup.hs", "IHaskellPrelude.hs"]
+            if "ihaskell-display/ihaskell-widgets/src/IHaskell/Display/Widgets" in root:
+                # Ignore Types.hs and Common.hs from ihaskell-widgets
+                # They cause issues with hindent, due to promoted types
+                ignored_files = ["Types.hs", "Common.hs"]
+            else:
+                # Take Haskell files, but ignore the Cabal Setup.hs
+                # Also ignore IHaskellPrelude.hs, it uses CPP in weird places
+                ignored_files = ["Setup.hs", "IHaskellPrelude.hs"]
             if filename.endswith(".hs") and filename not in ignored_files:
                 sources.append(os.path.join(root, filename))
 
