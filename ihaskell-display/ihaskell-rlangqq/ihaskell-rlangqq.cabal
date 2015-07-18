@@ -1,5 +1,5 @@
 name:                ihaskell-rlangqq
-version:             0.2.2.0
+version:             0.3.0.0
 synopsis:            a rDisp quasiquote to show plots from Rlang-QQ in IHaskell 
 license:             BSD3
 license-file:        LICENSE
