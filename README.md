@@ -134,6 +134,16 @@ You may also need to use `--extra-lib-dirs` and `--extra-include-dirs`, if
 cabal install . ihaskell-display/* --extra-lib-dirs=`brew --prefix libmagic`/lib --extra-include-dirs=`brew --prefix libmagic`/include
 ```
 
+You can also build IHaskell with [stack](https://github.com/commercialhaskell/stack) instead of cabal:
+```bash
+cd IHaskell
+stack install
+```
+The above will install `ihaskell`, all support libraries (specified in `stack.yaml`), and their dependencies. You can also specify which libraries to install, for example:
+```bash
+stack install ihaskell ihaskell-aeson ihaskell-diagrams
+```
+
 #### Run IHaskell
 Run IHaskell:
   - `ihaskell install` to install the IHaskell kernel into Jupyter.
