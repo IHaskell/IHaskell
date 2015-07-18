@@ -6,22 +6,29 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module IHaskell.Display.Widgets.Common where
 
 import Data.Aeson
+import Data.Aeson.Types (emptyObject)
 import Data.Text (pack, Text)
 
 import Data.Singletons.TH
 
+import IHaskell.Display (IHaskellWidget)
+import IHaskell.Eval.Widgets (widgetSendClose)
+
+-- | Close a widget's comm
+closeWidget :: IHaskellWidget w => w -> IO ()
+closeWidget w = widgetSendClose w emptyObject
+
 -- Widget properties
 singletons [d|
-  data Field = ModelModule
-             | ModelName
-             | ViewModule
+  data Field = ViewModule
              | ViewName
              | MsgThrottle
              | Version
-             | OnDisplayed
+             | DisplayHandler
              | Visible
              | CSS
              | DOMClasses
@@ -59,8 +66,42 @@ singletons [d|
              | Icons
              | SelectedLabels
              | SelectedValues
+             | IntValue
+             | StepInt
+             | MaxInt
+             | MinInt
+             | IntPairValue
+             | LowerInt
+             | UpperInt
+             | FloatValue
+             | StepFloat
+             | MaxFloat
+             | MinFloat
+             | FloatPairValue
+             | LowerFloat
+             | UpperFloat
+             | Orientation
+             | ShowRange
+             | ReadOut
+             | SliderColor
+             | BarStyle
+             | ChangeHandler
+             | Children
+             | OverflowX
+             | OverflowY
+             | BoxStyle
+             | Flex
+             | Pack
+             | Align
+             | Titles
+             | SelectedIndex
              deriving (Eq, Ord, Show)
              |]
+
+newtype StrInt = StrInt Integer deriving (Num, Ord, Eq, Enum)
+
+instance ToJSON StrInt where
+  toJSON (StrInt x) = toJSON . pack $ show x
 
 -- | Pre-defined border styles
 data BorderStyleValue = NoBorder
@@ -142,6 +183,20 @@ instance ToJSON ButtonStyleValue where
   toJSON DangerButton = "danger"
   toJSON DefaultButton = ""
 
+-- | Pre-defined bar styles
+data BarStyleValue = SuccessBar
+                   | InfoBar
+                   | WarningBar
+                   | DangerBar
+                   | DefaultBar
+
+instance ToJSON BarStyleValue where
+  toJSON SuccessBar = "success"
+  toJSON InfoBar = "info"
+  toJSON WarningBar = "warning"
+  toJSON DangerBar = "danger"
+  toJSON DefaultBar = ""
+
 -- | Image formats for ImageWidget
 data ImageFormatValue = PNG
                       | SVG
@@ -159,5 +214,53 @@ instance ToJSON ImageFormatValue where
 -- | Options for selection widgets.
 data SelectionOptions = OptionLabels [Text] | OptionDict [(Text, Text)]
 
+-- | Orientation values.
+data OrientationValue = HorizontalOrientation
+                      | VerticalOrientation
 
+instance ToJSON OrientationValue where
+  toJSON HorizontalOrientation = "horizontal"
+  toJSON VerticalOrientation = "vertical"
 
+data OverflowValue = VisibleOverflow
+                   | HiddenOverflow
+                   | ScrollOverflow
+                   | AutoOverflow
+                   | InitialOverflow
+                   | InheritOverflow
+                   | DefaultOverflow
+
+instance ToJSON OverflowValue where
+  toJSON VisibleOverflow = "visible"
+  toJSON HiddenOverflow = "hidden"
+  toJSON ScrollOverflow = "scroll"
+  toJSON AutoOverflow = "auto"
+  toJSON InitialOverflow = "initial"
+  toJSON InheritOverflow = "inherit"
+  toJSON DefaultOverflow = ""
+
+data BoxStyleValue = SuccessBox
+                   | InfoBox
+                   | WarningBox
+                   | DangerBox
+                   | DefaultBox
+
+instance ToJSON BoxStyleValue where
+  toJSON SuccessBox = "success"
+  toJSON InfoBox = "info"
+  toJSON WarningBox = "warning"
+  toJSON DangerBox = "danger"
+  toJSON DefaultBox = ""
+
+data LocationValue = StartLocation
+                   | CenterLocation
+                   | EndLocation
+                   | BaselineLocation
+                   | StretchLocation
+
+instance ToJSON LocationValue where
+  toJSON StartLocation = "start"
+  toJSON CenterLocation = "center"
+  toJSON EndLocation = "end"
+  toJSON BaselineLocation = "baseline"
+  toJSON StretchLocation = "stretch"

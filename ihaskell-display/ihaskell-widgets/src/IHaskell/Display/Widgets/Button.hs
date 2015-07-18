@@ -7,9 +7,7 @@ module IHaskell.Display.Widgets.Button (
 -- * The Button Widget
 Button, 
         -- * Create a new button
-        mkButton, 
-                  -- * Click manipulation
-                  triggerClick) where
+        mkButton) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -58,10 +56,6 @@ mkButton = do
 
   -- Return the button widget
   return button
-
--- | Artificially trigger a button click
-triggerClick :: Button -> IO ()
-triggerClick button = join $ getField button SClickHandler
 
 instance IHaskellDisplay Button where
   display b = do

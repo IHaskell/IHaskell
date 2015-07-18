@@ -3,19 +3,20 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.Selection.SelectMultiple (
--- * The SelectMultiple Widget
-SelectMultiple, 
+module IHaskell.Display.Widgets.Int.BoundedIntRange.IntRangeSlider (
+-- * The IntRangeSlider Widget
+IntRangeSlider, 
                 -- * Constructor
-                mkSelectMultiple) where
+                mkIntRangeSlider) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (fmap, join, sequence, void)
+import           Control.Monad (when, join, void)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
+import qualified Data.Scientific as Sci
 import           Data.Text (Text)
 import qualified Data.Vector as V
 import           Data.Vinyl (Rec(..), (<+>))
@@ -27,22 +28,29 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | A 'SelectMultiple' represents a SelectMultiple widget from IPython.html.widgets.
-type SelectMultiple = IPythonWidget SelectMultipleType
+-- | 'IntRangeSlider' represents an IntRangeSlider widget from IPython.html.widgets.
+type IntRangeSlider = IPythonWidget IntRangeSliderType
 
--- | Create a new SelectMultiple widget
-mkSelectMultiple :: IO SelectMultiple
-mkSelectMultiple = do
+-- | Create a new widget
+mkIntRangeSlider :: IO IntRangeSlider
+mkIntRangeSlider = do
   -- Default properties, with a random uuid
   uuid <- U.random
-  let widgetState = WidgetState $ defaultMultipleSelectionWidget "SelectMultipleView"
+
+  let boundedIntAttrs = defaultBoundedIntRangeWidget "IntSliderView"
+      sliderAttrs = (SOrientation =:: HorizontalOrientation)
+                    :& (SShowRange =:: True)
+                    :& (SReadOut =:: True)
+                    :& (SSliderColor =:: "")
+                    :& RNil
+      widgetState = WidgetState $ boundedIntAttrs <+> sliderAttrs
 
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
       initData = object
                    [ "model_name" .= str "WidgetModel"
-                   , "widget_class" .= str "IPython.SelectMultiple"
+                   , "widget_class" .= str "IPython.IntRangeSlider"
                    ]
 
   -- Open a comm for this widget, and store it in the kernel state
@@ -51,28 +59,18 @@ mkSelectMultiple = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay SelectMultiple where
+instance IHaskellDisplay IntRangeSlider where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget SelectMultiple where
+instance IHaskellWidget IntRangeSlider where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text
-        key2 = "selected_labels" :: Text
+        key2 = "value" :: Text
         Just (Object dict2) = HM.lookup key1 dict1
-        Just (Array labels) = HM.lookup key2 dict2
-        labelList = map (\(String x) -> x) $ V.toList labels
-    opts <- getField widget SOptions
-    case opts of
-      OptionLabels _ -> void $ do
-        setField' widget SSelectedLabels labelList
-        setField' widget SSelectedValues labelList
-      OptionDict ps ->
-        case sequence $ map (`lookup` ps) labelList of
-          Nothing -> return ()
-          Just valueList -> void $ do
-            setField' widget SSelectedLabels labelList
-            setField' widget SSelectedValues valueList
-    triggerSelection widget
+        Just (Array values) = HM.lookup key2 dict2
+        [x, y] = map (\(Number x) -> Sci.coefficient x) $ V.toList values
+    setField' widget SIntPairValue (x, y)
+    triggerChange widget

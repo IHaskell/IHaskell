@@ -7,9 +7,7 @@ module IHaskell.Display.Widgets.String.Text (
 -- * The Text Widget
 TextWidget, 
             -- * Constructor
-            mkTextWidget, 
-                          -- * Submit handling
-                          triggerSubmit) where
+            mkTextWidget) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -37,7 +35,7 @@ mkTextWidget = do
   -- Default properties, with a random uuid
   uuid <- U.random
   let strWidget = defaultStringWidget "TextView"
-      txtWidget = (SSubmitHandler =:: return ()) :& RNil
+      txtWidget = (SSubmitHandler =:: return ()) :& (SChangeHandler =:: return ()) :& RNil
       widgetState = WidgetState $ strWidget <+> txtWidget
 
   stateIO <- newIORef widgetState
@@ -51,9 +49,6 @@ mkTextWidget = do
   -- Return the widget
   return widget
 
-triggerSubmit :: TextWidget -> IO ()
-triggerSubmit tw = join $ getField tw SSubmitHandler
-
 instance IHaskellDisplay TextWidget where
   display b = do
     widgetSendView b
@@ -66,7 +61,7 @@ instance IHaskellWidget TextWidget where
     case Map.lookup "sync_data" dict1 of
       Just (Object dict2) ->
         case Map.lookup "value" dict2 of
-          Just (String val) -> setField' tw SStringValue val
+          Just (String val) -> setField' tw SStringValue val >> triggerChange tw
           Nothing           -> return ()
       Nothing ->
         case Map.lookup "content" dict1 of

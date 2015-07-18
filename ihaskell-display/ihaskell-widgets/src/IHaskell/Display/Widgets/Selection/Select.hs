@@ -5,14 +5,14 @@
 
 module IHaskell.Display.Widgets.Selection.Select (
 -- * The Select Widget
-SelectWidget, 
-              -- * Constructor
-              mkSelectWidget) where
+Select, 
+        -- * Constructor
+        mkSelect) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (when, join)
+import           Control.Monad (when, join, void)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
@@ -26,12 +26,12 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | A 'SelectWidget' represents a Select widget from IPython.html.widgets.
-type SelectWidget = IPythonWidget SelectType
+-- | A 'Select' represents a Select widget from IPython.html.widgets.
+type Select = IPythonWidget SelectType
 
 -- | Create a new Select widget
-mkSelectWidget :: IO SelectWidget
-mkSelectWidget = do
+mkSelect :: IO Select
+mkSelect = do
   -- Default properties, with a random uuid
   uuid <- U.random
   let widgetState = WidgetState $ defaultSelectionWidget "SelectView"
@@ -47,16 +47,12 @@ mkSelectWidget = do
   -- Return the widget
   return widget
 
--- | Artificially trigger a selection
-triggerSelection :: SelectWidget -> IO ()
-triggerSelection widget = join $ getField widget SSelectionHandler
-
-instance IHaskellDisplay SelectWidget where
+instance IHaskellDisplay Select where
   display b = do
     widgetSendView b
     return $ Display []
 
-instance IHaskellWidget SelectWidget where
+instance IHaskellWidget Select where
   getCommUUID = uuid
   comm widget (Object dict1) _ = do
     let key1 = "sync_data" :: Text
@@ -65,13 +61,13 @@ instance IHaskellWidget SelectWidget where
         Just (String label) = HM.lookup key2 dict2
     opts <- getField widget SOptions
     case opts of
-      OptionLabels _ -> do
+      OptionLabels _ -> void $ do
         setField' widget SSelectedLabel label
         setField' widget SSelectedValue label
       OptionDict ps ->
         case lookup label ps of
           Nothing -> return ()
-          Just value -> do
+          Just value -> void $ do
             setField' widget SSelectedLabel label
             setField' widget SSelectedValue value
     triggerSelection widget

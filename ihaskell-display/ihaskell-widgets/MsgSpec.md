@@ -2,14 +2,15 @@
 
 > Largely based on: https://github.com/ipython/ipython/wiki/IPEP-23:-Backbone.js-Widgets
 
-> The messaging specification as detailed is riddled with the assumptions IHaskell's widget
+> The messaging specification as detailed is riddled with assumptions IHaskell's widget
 > implementation makes. It works for us, so it should work for everyone.
 
 ## Creating widgets
 
 Let's say the user types in some code, and the only effect of that code is the creation of a widget.
 The kernel will open a comm for the widget, and store a reference to that comm inside it. Then, to
-notify the frontend about the creation of a widget, an initial state update is sent on the widget's comm.
+notify the frontend about the creation of a widget, an initial state update is sent on the widget's
+comm.
 
 > The comm should be opened with a `target_name` of `"ipython.widget"`.
 
@@ -22,7 +23,9 @@ The initial state update message looks like this:
 }
 ```
 
-Any *numeric* property initialized with the empty string is provided the default value by the frontend.
+Any *numeric* property initialized with the empty string is provided the default value by the
+frontend. Some numbers need to be sent as actual numbers (when non-null), whereas some (especially
+those used by sliders) need to be sent as strings.
 
 The initial state update must *at least* have the following fields:
 
