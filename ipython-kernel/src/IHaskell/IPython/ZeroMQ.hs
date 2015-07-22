@@ -10,7 +10,7 @@ module IHaskell.IPython.ZeroMQ
        , ZeroMQStdin(..)
        , serveProfile
        , serveStdin
-       , ZeroMQEphemeralPorts(..)
+       , ZeroMQEphemeralPorts
        , withEphemeralPorts
        ) where
 
@@ -101,6 +101,8 @@ serveProfile profile debug = do
 
   return channels
 
+-- | Describes ports used when creating an ephemeral ZeroMQ session.
+-- Used to generate the ipython JSON config file.
 data ZeroMQEphemeralPorts
    = ZeroMQEphemeralPorts { ephHbPort      :: !Port
                           , ephControlPort :: !Port
@@ -134,16 +136,21 @@ bindLocalEphemeralPort socket = do
     Just endpointIndex ->
       return endpointIndex
 
--- | Start responding on all ZeroMQ channels used to communicate with IPython
--- with ephemerally allocated ports.
--- Profide the callback with the ports chosen and a ZeroMQInterface.
+-- | @withFork thread main@ runs @thread@ in a separate
+-- thread, and kills it when @main@ finishes.
+withFork :: IO () -> (ThreadId -> IO a) -> IO a
+withFork thread = bracket (forkIO thread) killThread
+
+
+-- | Run session for communicating with an IPython instance on ephemerally allocated
+-- ZMQ4 sockets.  The sockets will be closed when the callback returns.
 withEphemeralPorts :: ByteString
                       -- ^ HMAC encryption key
-                      -> Bool
+                   -> Bool
                       -- ^ Print debug output
-                      -> (ZeroMQEphemeralPorts -> ZeroMQInterface -> IO a)
+                   -> (ZeroMQEphemeralPorts -> ZeroMQInterface -> IO a)
                       -- ^ Callback that takes the interface to the sockets.
-                      -> IO a
+                   -> IO a
 withEphemeralPorts key debug callback = do
   channels <- newZeroMQInterface key
   -- Create the ZMQ4 context
@@ -166,15 +173,13 @@ withEphemeralPorts key debug callback = do
                                         , ephIOPubPort   = iopubPort
                                         , ephSignatureKey = key
                                         }
-
        -- Launch actions to listen to communicate between channels and cockets.
-       _ <- forkIO $ forever $ heartbeat channels heartbeatSocket
-       _ <- forkIO $ forever $ control debug channels controlportSocket
-       _ <- forkIO $ forever $ shell debug channels shellportSocket
-       _ <- forkIO $ forever $ checkedIOpub debug channels iopubSocket
-
-       -- Run callback function; provide it with both ports and channels.
-       callback ports channels
+       withFork    (forever $ heartbeat channels heartbeatSocket)       $ \_ -> do
+        withFork   (forever $ control debug channels controlportSocket) $ \_ -> do
+         withFork  (forever $ shell debug channels shellportSocket)     $ \_ -> do
+          withFork (forever $ checkedIOpub debug channels iopubSocket)  $ \_ -> do
+           -- Run callback function; provide it with both ports and channels.
+           callback ports channels
 
 serveStdin :: Profile -> IO ZeroMQStdin
 serveStdin profile = do
