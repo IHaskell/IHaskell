@@ -101,6 +101,7 @@ library
                      , vector -any
                      , singletons >= 0.9.0
                      , scientific -any
+                     , unix -any
 
                        -- Waiting for the next release
                      , ihaskell -any

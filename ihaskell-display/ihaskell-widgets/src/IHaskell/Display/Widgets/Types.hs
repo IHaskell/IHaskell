@@ -52,9 +52,13 @@ module IHaskell.Display.Widgets.Types where
 -- To know more about the IPython messaging specification (as implemented in this package) take a look
 -- at the supplied MsgSpec.md.
 
-import Control.Monad (unless, join)
+import Control.Monad (unless, join, when, void)
 import Control.Applicative ((<$>))
 import qualified Control.Exception as Ex
+
+import GHC.IO.Exception
+import System.IO.Error
+import System.Posix.IO
 
 import Data.Aeson
 import Data.Aeson.Types (Pair)
@@ -593,18 +597,35 @@ properties widget = do
       convert attr = Const { getConst = _field attr }
   return $ recordToList . rmap convert . _getState $ st
 
+-- Helper function for widget to enforce their inability to fetch console input
+noStdin :: IO a -> IO ()
+noStdin action =
+  let handler :: IOException -> IO ()
+      handler e = when (ioeGetErrorType e == InvalidArgument)
+                    (error "Widgets cannot do console input, sorry :)")
+  in Ex.handle handler $ do
+    nullFd <- openFd "/dev/null" WriteOnly Nothing defaultFileFlags
+    oldStdin <- dup stdInput
+    void $ dupTo nullFd stdInput
+    closeFd nullFd
+    void action
+    void $ dupTo oldStdin stdInput
+
 -- Trigger events
+triggerEvent :: (FieldType f ~ IO (), f ∈ WidgetFields w) => SField f -> IPythonWidget w -> IO ()
+triggerEvent sfield w = noStdin . join $ getField w sfield
+
 triggerChange :: (ChangeHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
-triggerChange w = join $ getField w SChangeHandler
+triggerChange = triggerEvent SChangeHandler
 
 triggerClick :: (ClickHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
-triggerClick w = join $ getField w SClickHandler
+triggerClick = triggerEvent SClickHandler
 
 triggerSelection :: (SelectionHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
-triggerSelection w = join $ getField w SSelectionHandler
+triggerSelection = triggerEvent SSelectionHandler
 
 triggerSubmit :: (SubmitHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
-triggerSubmit w = join $ getField w SSubmitHandler
+triggerSubmit = triggerEvent SSubmitHandler
 
 triggerDisplay :: (DisplayHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
-triggerDisplay w = join $ getField w SDisplayHandler
+triggerDisplay = triggerEvent SDisplayHandler
