@@ -2,7 +2,7 @@
 
 > Largely based on: https://github.com/ipython/ipython/wiki/IPEP-23:-Backbone.js-Widgets
 
-> The messaging specification as detailed is riddled with assumptions IHaskell's widget
+> The messaging specification as detailed is riddled with assumptions the IHaskell widget
 > implementation makes. It works for us, so it should work for everyone.
 
 ## Creating widgets
@@ -100,6 +100,18 @@ two possible formats:
 
   This form is generally used to notify the kernel about events. For example, the `TextWidget` sends a
   custom message when the text is submitted by hitting the 'Enter' key.
+
+## The issue with console input
+
+Whenever the kernel needs to fetch input from the stdin, an `input_request` message is sent to the
+frontend. The format for this message requires that this message be sent in response to an
+`execute_request`, which is sent by the frontend whenever a cell is executed.
+
+If this were not so, the frontend would not be able to determine under which cell to place the text
+input widget, when an `input_request` is received.
+
+Now, widgets cannot send `execute_request` messages. They can only send `comm_data` messages, which
+means that it's not possible to fetch input through widget events.
 
 ---
 

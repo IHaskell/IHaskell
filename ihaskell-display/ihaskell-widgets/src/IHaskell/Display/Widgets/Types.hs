@@ -51,7 +51,9 @@ module IHaskell.Display.Widgets.Types where
 --
 -- To know more about the IPython messaging specification (as implemented in this package) take a look
 -- at the supplied MsgSpec.md.
-
+--
+-- Widgets are not able to do console input, the reason for that can also be found in the messaging
+-- specification
 import Control.Monad (unless, join, when, void)
 import Control.Applicative ((<$>))
 import qualified Control.Exception as Ex
