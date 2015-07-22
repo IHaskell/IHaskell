@@ -61,6 +61,22 @@ data ZeroMQStdin =
          , stdinReplyChannel :: Chan Message
          }
 
+-- | Create new channels for a ZeroMQInterface
+newZeroMQInterface :: ByteString -> IO ZeroMQInterface
+newZeroMQInterface key = do
+  shellReqChan <- newChan
+  shellRepChan <- newChan
+  controlReqChan <- dupChan shellReqChan
+  controlRepChan <- dupChan shellRepChan
+  iopubChan <- newChan
+  return $! Channels { shellRequestChannel = shellReqChan
+                     , shellReplyChannel = shellRepChan
+                     , controlRequestChannel = controlReqChan
+                     , controlReplyChannel   = controlRepChan
+                     , iopubChannel = iopubChan
+                     , hmacKey = key
+                     }
+
 -- | Start responding on all ZeroMQ channels used to communicate with IPython | via the provided
 -- profile. Return a set of channels which can be used to | communicate with IPython in a more
 -- structured manner.
@@ -68,14 +84,7 @@ serveProfile :: Profile            -- ^ The profile specifying which ports and t
              -> Bool               -- ^ Print debug output
              -> IO ZeroMQInterface -- ^ The Message-channel based interface to the sockets.
 serveProfile profile debug = do
-  -- Create all channels which will be used for higher level communication.
-  shellReqChan <- newChan
-  shellRepChan <- newChan
-  controlReqChan <- dupChan shellReqChan
-  controlRepChan <- dupChan shellRepChan
-  iopubChan <- newChan
-  let channels = Channels shellReqChan shellRepChan controlReqChan controlRepChan iopubChan
-                   (signatureKey profile)
+  channels <- newZeroMQInterface (signatureKey profile)
 
   -- Create the context in a separate thread that never finishes. If withContext or withSocket
   -- complete, the context or socket become invalid.
@@ -136,14 +145,7 @@ withEphemeralPorts :: ByteString
                       -- ^ Callback that takes the interface to the sockets.
                       -> IO a
 withEphemeralPorts key debug callback = do
-  -- Create all channels which will be used for higher level communication.
-  shellReqChan <- newChan
-  shellRepChan <- newChan
-  controlReqChan <- dupChan shellReqChan
-  controlRepChan <- dupChan shellRepChan
-  iopubChan <- newChan
-  let channels = Channels shellReqChan shellRepChan controlReqChan controlRepChan iopubChan key
-
+  channels <- newZeroMQInterface key
   -- Create the ZMQ4 context
   withContext $ \context -> do
    -- Create the sockets to communicate with.
@@ -157,18 +159,21 @@ withEphemeralPorts key debug callback = do
        controlPort <- bindLocalEphemeralPort controlportSocket
        shellPort   <- bindLocalEphemeralPort shellportSocket
        iopubPort   <- bindLocalEphemeralPort iopubSocket
-
-       _ <- forkIO $ forever $ heartbeat channels heartbeatSocket
-       _ <- forkIO $ forever $ control debug channels controlportSocket
-       _ <- forkIO $ forever $ shell debug channels shellportSocket
-       _ <- forkIO $ forever $ checkedIOpub debug channels iopubSocket
-
+       -- Create object to store ephemeral ports
        let ports = ZeroMQEphemeralPorts { ephHbPort      = hbPort
                                         , ephControlPort = controlPort
                                         , ephShellPort   = shellPort
                                         , ephIOPubPort   = iopubPort
                                         , ephSignatureKey = key
                                         }
+
+       -- Launch actions to listen to communicate between channels and cockets.
+       _ <- forkIO $ forever $ heartbeat channels heartbeatSocket
+       _ <- forkIO $ forever $ control debug channels controlportSocket
+       _ <- forkIO $ forever $ shell debug channels shellportSocket
+       _ <- forkIO $ forever $ checkedIOpub debug channels iopubSocket
+
+       -- Run callback function; provide it with both ports and channels.
        callback ports channels
 
 serveStdin :: Profile -> IO ZeroMQStdin
