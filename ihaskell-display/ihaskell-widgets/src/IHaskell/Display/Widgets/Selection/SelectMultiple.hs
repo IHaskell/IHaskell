@@ -64,15 +64,15 @@ instance IHaskellWidget SelectMultiple where
         Just (Object dict2) = HM.lookup key1 dict1
         Just (Array labels) = HM.lookup key2 dict2
         labelList = map (\(String x) -> x) $ V.toList labels
-    opts <- getField widget SOptions
+    opts <- getField widget Options
     case opts of
       OptionLabels _ -> void $ do
-        setField' widget SSelectedLabels labelList
-        setField' widget SSelectedValues labelList
+        setField' widget SelectedLabels labelList
+        setField' widget SelectedValues labelList
       OptionDict ps ->
         case sequence $ map (`lookup` ps) labelList of
           Nothing -> return ()
           Just valueList -> void $ do
-            setField' widget SSelectedLabels labelList
-            setField' widget SSelectedValues valueList
+            setField' widget SelectedLabels labelList
+            setField' widget SelectedValues valueList
     triggerSelection widget

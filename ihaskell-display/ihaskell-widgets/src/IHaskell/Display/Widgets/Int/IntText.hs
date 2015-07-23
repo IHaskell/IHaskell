@@ -61,5 +61,5 @@ instance IHaskellWidget IntText where
         key2 = "value" :: Text
         Just (Object dict2) = HM.lookup key1 dict1
         Just (Number value) = HM.lookup key2 dict2
-    setField' widget SIntValue (Sci.coefficient value)
+    setField' widget IntValue (Sci.coefficient value)
     triggerChange widget

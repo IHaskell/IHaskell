@@ -35,7 +35,7 @@ mkDropdown = do
   -- Default properties, with a random uuid
   uuid <- U.random
   let selectionAttrs = defaultSelectionWidget "DropdownView"
-      dropdownAttrs = (SButtonStyle =:: DefaultButton) :& RNil
+      dropdownAttrs = (ButtonStyle =:: DefaultButton) :& RNil
       widgetState = WidgetState $ selectionAttrs <+> dropdownAttrs
 
   stateIO <- newIORef widgetState
@@ -62,15 +62,15 @@ instance IHaskellWidget Dropdown where
         key2 = "selected_label" :: Text
         Just (Object dict2) = HM.lookup key1 dict1
         Just (String label) = HM.lookup key2 dict2
-    opts <- getField widget SOptions
+    opts <- getField widget Options
     case opts of
       OptionLabels _ -> void $ do
-        setField' widget SSelectedLabel label
-        setField' widget SSelectedValue label
+        setField' widget SelectedLabel label
+        setField' widget SelectedValue label
       OptionDict ps ->
         case lookup label ps of
           Nothing -> return ()
           Just value -> void $ do
-            setField' widget SSelectedLabel label
-            setField' widget SSelectedValue value
+            setField' widget SelectedLabel label
+            setField' widget SelectedValue value
     triggerSelection widget

@@ -36,10 +36,10 @@ mkFlexBox = do
   uuid <- U.random
 
   let boxAttrs = defaultBoxWidget "FlexBoxView"
-      flxAttrs = (SOrientation =:: HorizontalOrientation)
-                 :& (SFlex =:: 0)
-                 :& (SPack =:: StartLocation)
-                 :& (SAlign =:: StartLocation)
+      flxAttrs = (Orientation =:: HorizontalOrientation)
+                 :& (Flex =:: 0)
+                 :& (Pack =:: StartLocation)
+                 :& (Align =:: StartLocation)
                  :& RNil
       widgetState = WidgetState $ boxAttrs <+> flxAttrs
 

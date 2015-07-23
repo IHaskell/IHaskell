@@ -38,10 +38,10 @@ mkIntRangeSlider = do
   uuid <- U.random
 
   let boundedIntAttrs = defaultBoundedIntRangeWidget "IntSliderView"
-      sliderAttrs = (SOrientation =:: HorizontalOrientation)
-                    :& (SShowRange =:: True)
-                    :& (SReadOut =:: True)
-                    :& (SSliderColor =:: "")
+      sliderAttrs = (Orientation =:: HorizontalOrientation)
+                    :& (ShowRange =:: True)
+                    :& (ReadOut =:: True)
+                    :& (SliderColor =:: "")
                     :& RNil
       widgetState = WidgetState $ boundedIntAttrs <+> sliderAttrs
 
@@ -72,5 +72,5 @@ instance IHaskellWidget IntRangeSlider where
         Just (Object dict2) = HM.lookup key1 dict1
         Just (Array values) = HM.lookup key2 dict2
         [x, y] = map (\(Number x) -> Sci.coefficient x) $ V.toList values
-    setField' widget SIntPairValue (x, y)
+    setField' widget IntPairValue (x, y)
     triggerChange widget

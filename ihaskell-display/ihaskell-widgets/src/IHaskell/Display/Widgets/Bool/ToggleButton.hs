@@ -36,9 +36,9 @@ mkToggleButton = do
   uuid <- U.random
 
   let boolState = defaultBoolWidget "ToggleButtonView"
-      toggleState = (STooltip =:: "")
-                    :& (SIcon =:: "")
-                    :& (SButtonStyle =:: DefaultButton)
+      toggleState = (Tooltip =:: "")
+                    :& (Icon =:: "")
+                    :& (ButtonStyle =:: DefaultButton)
                     :& RNil
       widgetState = WidgetState (boolState <+> toggleState)
 
@@ -66,5 +66,5 @@ instance IHaskellWidget ToggleButton where
         key2 = "value" :: Text
         Just (Object dict2) = HM.lookup key1 dict1
         Just (Bool value) = HM.lookup key2 dict2
-    setField' widget SBoolValue value
+    setField' widget BoolValue value
     triggerChange widget

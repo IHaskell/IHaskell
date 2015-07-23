@@ -36,12 +36,12 @@ mkButton = do
   uuid <- U.random
 
   let dom = defaultDOMWidget "ButtonView"
-      but = (SDescription =:: "")
-            :& (STooltip =:: "")
-            :& (SDisabled =:: False)
-            :& (SIcon =:: "")
-            :& (SButtonStyle =:: DefaultButton)
-            :& (SClickHandler =:: return ())
+      but = (Description =:: "")
+            :& (Tooltip =:: "")
+            :& (Disabled =:: False)
+            :& (Icon =:: "")
+            :& (ButtonStyle =:: DefaultButton)
+            :& (ClickHandler =:: return ())
             :& RNil
       buttonState = WidgetState (dom <+> but)
 
