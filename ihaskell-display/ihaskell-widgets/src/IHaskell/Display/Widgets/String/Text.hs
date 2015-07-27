@@ -35,7 +35,7 @@ mkTextWidget = do
   -- Default properties, with a random uuid
   uuid <- U.random
   let strWidget = defaultStringWidget "TextView"
-      txtWidget = (SSubmitHandler =:: return ()) :& (SChangeHandler =:: return ()) :& RNil
+      txtWidget = (SubmitHandler =:: return ()) :& (ChangeHandler =:: return ()) :& RNil
       widgetState = WidgetState $ strWidget <+> txtWidget
 
   stateIO <- newIORef widgetState
@@ -61,7 +61,7 @@ instance IHaskellWidget TextWidget where
     case Map.lookup "sync_data" dict1 of
       Just (Object dict2) ->
         case Map.lookup "value" dict2 of
-          Just (String val) -> setField' tw SStringValue val >> triggerChange tw
+          Just (String val) -> setField' tw StringValue val >> triggerChange tw
           Nothing           -> return ()
       Nothing ->
         case Map.lookup "content" dict1 of

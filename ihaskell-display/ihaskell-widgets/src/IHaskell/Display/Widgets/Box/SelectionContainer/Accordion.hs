@@ -62,5 +62,5 @@ instance IHaskellWidget Accordion where
         key2 = "selected_index" :: Text
         Just (Object dict2) = HM.lookup key1 dict1
         Just (Number num) = HM.lookup key2 dict2
-    setField' widget SSelectedIndex (Sci.coefficient num)
+    setField' widget SelectedIndex (Sci.coefficient num)
     triggerChange widget

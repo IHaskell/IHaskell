@@ -37,8 +37,8 @@ mkImageWidget = do
   uuid <- U.random
 
   let dom = defaultDOMWidget "ImageView"
-      img = (SImageFormat =:: PNG)
-            :& (SB64Value =:: mempty)
+      img = (ImageFormat =:: PNG)
+            :& (B64Value =:: mempty)
             :& RNil
       widgetState = WidgetState (dom <+> img)
 

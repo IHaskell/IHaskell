@@ -85,6 +85,7 @@ library
 
                        IHaskell.Display.Widgets.Types
                        IHaskell.Display.Widgets.Common
+                       IHaskell.Display.Widgets.Singletons
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:    
@@ -101,6 +102,7 @@ library
                      , vector -any
                      , singletons >= 0.9.0
                      , scientific -any
+                     , unix -any
 
                        -- Waiting for the next release
                      , ihaskell -any

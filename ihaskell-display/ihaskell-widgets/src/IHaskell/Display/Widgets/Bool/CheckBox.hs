@@ -61,5 +61,5 @@ instance IHaskellWidget CheckBox where
         key2 = "value" :: Text
         Just (Object dict2) = HM.lookup key1 dict1
         Just (Bool value) = HM.lookup key2 dict2
-    setField' widget SBoolValue value
+    setField' widget BoolValue value
     triggerChange widget

@@ -65,5 +65,5 @@ instance IHaskellWidget BoundedFloatText where
         key2 = "value" :: Text
         Just (Object dict2) = HM.lookup key1 dict1
         Just (Number value) = HM.lookup key2 dict2
-    setField' widget SFloatValue (Sci.toRealFloat value)
+    setField' widget FloatValue (Sci.toRealFloat value)
     triggerChange widget

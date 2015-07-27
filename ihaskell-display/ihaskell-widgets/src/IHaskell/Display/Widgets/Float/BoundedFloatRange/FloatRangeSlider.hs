@@ -40,10 +40,10 @@ mkFloatRangeSlider = do
   uuid <- U.random
 
   let boundedFloatAttrs = defaultBoundedFloatRangeWidget "FloatSliderView"
-      sliderAttrs = (SOrientation =:: HorizontalOrientation)
-                    :& (SShowRange =:: True)
-                    :& (SReadOut =:: True)
-                    :& (SSliderColor =:: "")
+      sliderAttrs = (Orientation =:: HorizontalOrientation)
+                    :& (ShowRange =:: True)
+                    :& (ReadOut =:: True)
+                    :& (SliderColor =:: "")
                     :& RNil
       widgetState = WidgetState $ boundedFloatAttrs <+> sliderAttrs
 
@@ -74,5 +74,5 @@ instance IHaskellWidget FloatRangeSlider where
         Just (Object dict2) = HM.lookup key1 dict1
         Just (Array values) = HM.lookup key2 dict2
         [x, y] = map (\(Number x) -> Sci.toRealFloat x) $ V.toList values
-    setField' widget SFloatPairValue (x, y)
+    setField' widget FloatPairValue (x, y)
     triggerChange widget

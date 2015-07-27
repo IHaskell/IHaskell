@@ -35,7 +35,7 @@ mkTextArea = do
   -- Default properties, with a random uuid
   uuid <- U.random
   let strAttrs = defaultStringWidget "TextareaView"
-      wgtAttrs = (SChangeHandler =:: return ()) :& RNil
+      wgtAttrs = (ChangeHandler =:: return ()) :& RNil
       widgetState = WidgetState $ strAttrs <+> wgtAttrs
 
   stateIO <- newIORef widgetState
@@ -62,5 +62,5 @@ instance IHaskellWidget TextArea where
         key2 = "value" :: Text
         Just (Object dict2) = HM.lookup key1 dict1
         Just (String value) = HM.lookup key2 dict2
-    setField' widget SStringValue value
+    setField' widget StringValue value
     triggerChange widget

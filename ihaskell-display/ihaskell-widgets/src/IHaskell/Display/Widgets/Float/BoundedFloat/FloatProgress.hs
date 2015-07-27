@@ -38,7 +38,7 @@ mkFloatProgress = do
   uuid <- U.random
 
   let boundedFloatAttrs = defaultBoundedFloatWidget "ProgressView"
-      progressAttrs = (SBarStyle =:: DefaultBar) :& RNil
+      progressAttrs = (BarStyle =:: DefaultBar) :& RNil
       widgetState = WidgetState $ boundedFloatAttrs <+> progressAttrs
 
   stateIO <- newIORef widgetState
