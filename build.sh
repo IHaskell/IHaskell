@@ -8,6 +8,8 @@ print_help () {
   echo "  ./build.sh all      # Install ihaskell, dependencies, and all display packages"
   echo "  ./build.sh display  # Install ihaskell and display libraries"
   echo
+  echo "A second argument 'no-widgets' can be provided to not install ihaskell-widgets and depending packages."
+  echo
   echo "If this is your first time installing ihaskell, run './build.sh ihaskell'."
 }
 
@@ -71,12 +73,12 @@ INSTALL_DIRS=`echo $INSTALLS | tr ' ' '\n' | sed 's#^#./#' | tr ' ' '\n'`
 echo CMD: cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
 cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
 
-if [ $1 = "display" ] || [ $1 = "all" ]; then
+if [ ! $2 = "no-widgets" ] && { [ $1 = "display" ] || [ $1 = "all" ]; } then
     cabal install ihaskell-display/ihaskell-widgets
 fi
 
 if hash ihaskell 2>/dev/null; then
     ihaskell install 2>/dev/null || echo "The command \"ihaskell install\" failed. Please check your 'ipython --version'. 3.0 or up is required but it is $(ipython --version)!"
 else
-  echo "Reminder: run 'ihaskell install' to install the IHaskell kernel to Jupyter."
+    echo "Reminder: run 'ihaskell install' to install the IHaskell kernel to Jupyter."
 fi

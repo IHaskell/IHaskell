@@ -44,11 +44,14 @@ install:
 # Here starts the actual work to be performed for the package under test; any command which exits with a non-zero exit code causes the build to fail.
 script:
  - |
-   if [ ${GHCVER%.*} = "7.8" ] || [ ${GHCVER%.*} = "7.10" ]; then
+   if [ ${GHCVER%.*} = "7.8" ]; then
      travis_retry ./build.sh all
+   elif [ ${GHCVER%.*} = "7.10" ]; then
+     travis_retry ./build.sh all no-widgets
    else
      travis_retry ./build.sh ihaskell
    fi
+
 # Build and run the test suite
  - travis_retry cabal install --only-dependencies --enable-tests
  - travis_retry cabal configure --enable-tests
