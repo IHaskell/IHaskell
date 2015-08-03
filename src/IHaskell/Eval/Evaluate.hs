@@ -168,7 +168,9 @@ interpret libdir allowedStdin action = runGhc (Just libdir) $ do
 
   -- Run the rest of the interpreter
   action
-#if MIN_VERSION_ghc(7,10,0)
+#if MIN_VERSION_ghc(7,10,2)
+packageIdString' dflags pkg_key = fromMaybe "(unknown)" (packageKeyPackageIdString dflags pkg_key)
+#elif MIN_VERSION_ghc(7,10,0)
 packageIdString' dflags = packageKeyPackageIdString dflags
 #else
 packageIdString' dflags = packageIdString
