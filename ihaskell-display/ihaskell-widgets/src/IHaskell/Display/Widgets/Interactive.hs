@@ -5,13 +5,22 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
-module IHaskell.Display.Widgets.Interactive (interactive) where
+module IHaskell.Display.Widgets.Interactive (interactive, usingHList) where
 
 import           Data.Text
+import           Data.Proxy
 
+import           Data.Vinyl.Core
+import           Data.Vinyl.Functor (Identity (..), Const (..))
+import           Data.Vinyl.Derived (HList)
 import           Data.Vinyl.Lens (type (∈))
 import           Data.Vinyl.TypeLevel (RecAll)
+
+import           Data.Singletons.Prelude.List
 
 import           IHaskell.Display
 
@@ -24,14 +33,119 @@ import           IHaskell.Display.Widgets.String.Text
 import           IHaskell.Display.Widgets.Int.BoundedInt.IntSlider
 import           IHaskell.Display.Widgets.Output
 
- 
+data WidgetConf a where
+  WidgetConf :: RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs
+             => WrappedWidget (SuitableWidget a) (SuitableHandler a) (SuitableField a) a
+             -> WidgetConf a
+
+newtype WrappedConstructor a = WrappedConstructor {
+  wrappedConstructor :: IO (IPythonWidget (SuitableWidget a))
+}
+
+type family WithTypes (ts :: [*]) (r :: *) :: * where
+  WithTypes '[] r = r
+  WithTypes (x ': xs) r = (x -> WithTypes xs r)
+
+-- | Convert a function to one accepting arguments in the form of an HList
+usingHList :: WithTypes ts r -> HList ts -> r
+usingHList f RNil = f
+usingHList f (Identity x :& xs) = usingHList (f x) xs
+
+-- Phantom type variables are required to make things play nicely with vinyl
+data Constructor a where
+  Constructor :: RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs
+              => IO (IPythonWidget (SuitableWidget a)) -> Constructor a
+newtype Getter a = Getter (IPythonWidget (SuitableWidget a) -> IO a)
+newtype Setter a = Setter (IPythonWidget (SuitableWidget a) -> IO () -> IO ())
+newtype Trigger a = Trigger (IPythonWidget (SuitableWidget a) -> IO ())
+data RequiredWidget a where
+  RequiredWidget :: RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs
+                 => IPythonWidget (SuitableWidget a)
+                 -> RequiredWidget a
+
+-- Zipping vinyl records in various ways
+applyGetters :: Rec Getter ts -> Rec RequiredWidget ts -> IO (HList ts)
+applyGetters RNil RNil = return RNil
+applyGetters (Getter getter :& gs) (RequiredWidget widget :& ws) = do
+  val <- getter widget
+  rest <- applyGetters gs ws
+  return $ Identity val :& rest
+
+applySetters :: Rec Setter ts -> Rec RequiredWidget ts -> IO () -> IO ()
+applySetters RNil RNil _ = return ()
+applySetters (Setter setter :& xs) (RequiredWidget widget :& ws) handler = do
+  setter widget handler
+  applySetters xs ws handler
+
+extractConstructor :: WidgetConf x -> Constructor x
+extractConstructor (WidgetConf wr) = Constructor $ construct wr
+
+extractGetter :: WidgetConf x -> Getter x
+extractGetter (WidgetConf wr) = Getter $ getValue wr
+
+extractSetter :: WidgetConf x -> Setter x
+extractSetter (WidgetConf wr) = Setter $ setEvent wr
+
+extractTrigger :: WidgetConf x -> Trigger x
+extractTrigger (WidgetConf wr) = Trigger $ trigger wr
+
+createWidget :: Constructor a
+             -> IO (RequiredWidget a)
+createWidget (Constructor con) = fmap RequiredWidget con
+
+mkChildren :: Rec RequiredWidget a -> [ChildWidget]
+mkChildren widgets = let childRecord = rmap (\(RequiredWidget w) -> Const (ChildWidget w)) widgets
+                     in recordToList childRecord
+
+{-
+-- TODO: Finish This
+
+mkConfs SNil = RNil
+mkConfs (SCons selem srest) = WidgetConf wrapped :& mkConfs srest
+
+interactive :: (RecAll Identity ts FromWidget, IHaskellDisplay r)
+            => (HList ts -> r) -> IO FlexBox
+interactive func = let confs = mkConfs undefined
+                   in liftToWidgets func confs
+-}
+interactive = undefined
+
+-- | Lift a function (HList ts -> r) to one using widgets to fill the HList and displaying the
+-- output through the resultant widget.
+liftToWidgets :: (RecAll Identity ts FromWidget, IHaskellDisplay r)
+              => (HList ts -> r) -> Rec WidgetConf ts -> IO FlexBox
+liftToWidgets func rc = do
+  let constructors = rmap extractConstructor rc
+      getters = rmap extractGetter rc
+      setters = rmap extractSetter rc
+      triggers = rmap extractTrigger rc
+
+  bx <- mkFlexBox
+  out <- mkOutputWidget
+
+  -- Create a list of widgets
+  widgets <- rtraverse createWidget constructors
+
+  let handler = do
+        vals <- applyGetters getters widgets
+        replaceOutput out $ func vals
+
+  -- Apply handler to all widgets
+  applySetters setters widgets handler
+
+  setField out Width 500
+  setField bx Orientation VerticalOrientation
+
+  -- Set children for the FlexBox
+  let children = mkChildren widgets
+  setField bx Children $ children ++ [ChildWidget out]
+
+  return bx
+
 data WrappedWidget w h f a where
-        WrappedWidget ::
-            (FieldType h ~ IO (), FieldType f ~ a, h ∈ WidgetFields w,
-             f ∈ WidgetFields w, ToPairs (Attr h),
-             IHaskellWidget (IPythonWidget w)) =>
-            IO (IPythonWidget w) ->
-              S.SField h -> S.SField f -> WrappedWidget w h f a
+  WrappedWidget :: (FieldType h ~ IO (), FieldType f ~ a, h ∈ WidgetFields w, f ∈ WidgetFields w,
+                    ToPairs (Attr h), IHaskellWidget (IPythonWidget w))
+                => IO (IPythonWidget w) -> S.SField h -> S.SField f -> WrappedWidget w h f a
 
 construct :: WrappedWidget w h f a -> IO (IPythonWidget w)
 construct (WrappedWidget cons _ _) = cons
@@ -63,15 +177,15 @@ instance FromWidget Integer where
   type SuitableField Integer = S.IntValue
   wrapped = WrappedWidget mkIntSlider ChangeHandler IntValue
 
-interactive :: (FromWidget a, IHaskellDisplay b) => (a -> b) -> IO FlexBox
-interactive func = do
-  let wrap = wrapped
-  widget <- construct wrap
-  bx <- mkFlexBox
-  out <- mkOutputWidget
-  setEvent wrap widget $ getValue wrap widget >>= replaceOutput out . func
-  trigger wrap widget
-  setField out Width 500
-  setField bx Orientation VerticalOrientation
-  setField bx Children [ChildWidget widget, ChildWidget out]
-  return bx
+-- interactive :: (FromWidget a, IHaskellDisplay b) => (a -> b) -> IO FlexBox
+-- interactive func = do
+--   let wrap = wrapped
+--   widget <- construct wrap
+--   bx <- mkFlexBox
+--   out <- mkOutputWidget
+--   setEvent wrap widget $ getValue wrap widget >>= replaceOutput out . func
+--   trigger wrap widget
+--   setField out Width 500
+--   setField bx Orientation VerticalOrientation
+--   setField bx Children [ChildWidget widget, ChildWidget out]
+--   return bx
