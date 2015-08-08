@@ -9,7 +9,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module IHaskell.Display.Widgets.Interactive (interactive, usingHList) where
+module IHaskell.Display.Widgets.Interactive (interactive, usingHList, liftToWidgets) where
 
 import           Data.Text
 import           Data.Proxy
@@ -29,6 +29,7 @@ import           IHaskell.Display.Widgets.Common
 import qualified IHaskell.Display.Widgets.Singletons as S (SField(..), Field(..))
 
 import           IHaskell.Display.Widgets.Box.FlexBox
+import           IHaskell.Display.Widgets.Bool.CheckBox
 import           IHaskell.Display.Widgets.String.Text
 import           IHaskell.Display.Widgets.Int.BoundedInt.IntSlider
 import           IHaskell.Display.Widgets.Output
@@ -97,18 +98,24 @@ mkChildren :: Rec RequiredWidget a -> [ChildWidget]
 mkChildren widgets = let childRecord = rmap (\(RequiredWidget w) -> Const (ChildWidget w)) widgets
                      in recordToList childRecord
 
-{-
--- TODO: Finish This
+class MakeConfs (ts :: [*]) where
+  mkConfs :: proxy ts -> Rec WidgetConf ts
 
-mkConfs SNil = RNil
-mkConfs (SCons selem srest) = WidgetConf wrapped :& mkConfs srest
+instance MakeConfs '[] where
+  mkConfs _ = RNil
 
-interactive :: (RecAll Identity ts FromWidget, IHaskellDisplay r)
+instance (FromWidget t, MakeConfs ts) => MakeConfs (t ': ts) where
+  mkConfs _ = WidgetConf wrapped :& mkConfs (Proxy :: Proxy ts)
+
+-- interactive :: (RecAll Identity ts FromWidget, IHaskellDisplay r, MakeConfs ts)
+--             => WithTypes ts r -> IO FlexBox
+-- interactive = undefined
+
+-- | A version of interactive that workss with a function on HList instead of values
+interactive :: (RecAll Identity ts FromWidget, IHaskellDisplay r, MakeConfs ts)
             => (HList ts -> r) -> IO FlexBox
-interactive func = let confs = mkConfs undefined
+interactive func = let confs = mkConfs Proxy
                    in liftToWidgets func confs
--}
-interactive = undefined
 
 -- | Lift a function (HList ts -> r) to one using widgets to fill the HList and displaying the
 -- output through the resultant widget.
@@ -165,6 +172,12 @@ class RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs => FromWidget a wher
   type SuitableField a :: S.Field
   wrapped :: WrappedWidget (SuitableWidget a) (SuitableHandler a) (SuitableField a) a
 
+instance FromWidget Bool where
+  type SuitableWidget Bool = CheckBoxType
+  type SuitableHandler Bool = S.ChangeHandler
+  type SuitableField Bool = S.BoolValue
+  wrapped = WrappedWidget mkCheckBox ChangeHandler BoolValue
+
 instance FromWidget Text where
   type SuitableWidget Text = TextType
   type SuitableHandler Text = S.SubmitHandler
@@ -176,6 +189,12 @@ instance FromWidget Integer where
   type SuitableHandler Integer = S.ChangeHandler
   type SuitableField Integer = S.IntValue
   wrapped = WrappedWidget mkIntSlider ChangeHandler IntValue
+
+instance FromWidget a => FromWidget (Identity a) where
+  type SuitableWidget (Identity a) = SuitableWidget a
+  type SuitableHandler (Identity a) = SuitableHandler a
+  type SuitableField (Identity a) = SuitableField a
+  wrapped = wrapped
 
 -- interactive :: (FromWidget a, IHaskellDisplay b) => (a -> b) -> IO FlexBox
 -- interactive func = do
