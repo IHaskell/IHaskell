@@ -94,7 +94,7 @@ library
   build-depends:       aeson >=0.7 && < 0.9
                      , base >=4.7 && <4.9
                      , containers >= 0.5
-                     , ipython-kernel >= 0.6.1
+                     , ipython-kernel >= 0.6.1.1
                      , text >= 0.11
                      , unordered-containers -any
                      , nats -any
@@ -104,8 +104,7 @@ library
                      , scientific -any
                      , unix -any
 
-                       -- Waiting for the next release
-                     , ihaskell -any
+                     , ihaskell >= 0.6.4.1
   
   -- Directories containing source files.
   hs-source-dirs:      src
