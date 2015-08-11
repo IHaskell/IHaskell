@@ -141,17 +141,12 @@ bindLocalEphemeralPort socket = do
 
 -- | Run session for communicating with an IPython instance on ephemerally allocated ZMQ4 sockets.
 -- The sockets will be closed when the callback returns.
-withEphemeralPorts :: ByteString
-                   -> 
-                      -- ^ HMAC encryption key
-                      Bool
-                                           -> 
-                                              -- ^ Print debug output
-                                              (ZeroMQEphemeralPorts -> ZeroMQInterface -> IO a)
-                                                                  -> 
-                                                                     -- ^ Callback that takes the
-                                                                     -- interface to the sockets.
-                                                                     IO a
+withEphemeralPorts :: ByteString -- ^ HMAC encryption key
+                   -> Bool -- ^ Print debug output
+                   -> (ZeroMQEphemeralPorts -> ZeroMQInterface -> IO a) -- ^ Callback that takes the
+                                                                        -- interface to the
+                                                                        -- sockets.
+                   -> IO a
 withEphemeralPorts key debug callback = do
   channels <- newZeroMQInterface key
   -- Create the ZMQ4 context
