@@ -134,6 +134,7 @@ verifyIPythonVersion = do
     Just path -> do
       output <- T.unpack <$> SH.silently (SH.run path ["--version"])
       case parseVersion output of
+        Just (4:_) -> return ()
         Just (3:_) -> return ()
         Just (2:_) -> oldIPython
         Just (1:_) -> oldIPython
