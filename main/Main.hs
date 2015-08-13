@@ -71,6 +71,10 @@ ihaskell (Args InstallKernelSpec args) = showingHelp InstallKernelSpec args $ do
 ihaskell (Args (Kernel (Just filename)) args) = do
   let kernelSpecOpts = parseKernelArgs args
   runKernel kernelSpecOpts filename
+ihaskell a@(Args (Kernel Nothing) _) = do
+  hPutStrLn stderr "No kernel profile JSON specified."
+  hPutStrLn stderr "This may be a bug!"
+  hPrint a
 
 showingHelp :: IHaskellMode -> [Argument] -> IO () -> IO ()
 showingHelp mode flags act =
