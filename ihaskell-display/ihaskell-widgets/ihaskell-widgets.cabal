@@ -91,7 +91,7 @@ library
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       aeson >=0.7 && < 0.9
+  build-depends:       aeson >=0.7 && < 0.10
                      , base >=4.7 && <4.9
                      , containers >= 0.5
                      , ipython-kernel >= 0.6.1.2

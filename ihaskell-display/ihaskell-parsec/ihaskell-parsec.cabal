@@ -59,7 +59,7 @@ library
              
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.6 && <4.9,
-                       aeson >=0.7 && <0.9,
+                       aeson >=0.7 && <0.10,
                        text,
                        unordered-containers,
                        random >= 1,
