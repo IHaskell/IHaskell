@@ -74,7 +74,7 @@ ihaskell (Args (Kernel (Just filename)) args) = do
 ihaskell a@(Args (Kernel Nothing) _) = do
   hPutStrLn stderr "No kernel profile JSON specified."
   hPutStrLn stderr "This may be a bug!"
-  hPrint a
+  hPrint stderr a
 
 showingHelp :: IHaskellMode -> [Argument] -> IO () -> IO ()
 showingHelp mode flags act =
