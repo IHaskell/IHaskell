@@ -131,7 +131,8 @@ verifyIPythonVersion = do
   pathMay <- SH.which "jupyter"
   pathMay' <- SH.which "ipython"
   case (pathMay, pathMay') of
-    (Nothing, Nothing) -> badIPython "No Jupyter detected -- install Jupyter 3.0+ before using IHaskell."
+    (Nothing, Nothing) -> badIPython
+                            "No Jupyter detected -- install Jupyter 3.0+ before using IHaskell."
     (Just path, _) -> do
       SH.silently (SH.run path ["--version"])
       output <- T.unpack <$> SH.lastStderr
@@ -145,8 +146,10 @@ verifyIPythonVersion = do
     (_, Just path) -> do
       output <- T.unpack <$> SH.silently (SH.run path ["--version"])
       case parseVersion output of
-        Just (x:_) -> if x >= 3 then return () else oldIPython
-        _          -> badIPython "Detected Jupyter, but could not parse version number."
+        Just (x:_) -> if x >= 3
+                        then return ()
+                        else oldIPython
+        _ -> badIPython "Detected IPython, but could not parse version number."
 
   where
     badIPython :: Text -> SH.Sh ()
