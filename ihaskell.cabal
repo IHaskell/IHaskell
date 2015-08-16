@@ -17,7 +17,7 @@ description:         IHaskell is a Haskell backend kernel for the IPython projec
                      a console or notebook interface. Additional packages may be installed to provide richer data visualizations. 
 
 -- URL for the project homepage or repository.
-homepage:            http://gibiansky.github.io/IHaskell/
+homepage:            http://github.com/gibiansky/IHaskell
 
 -- The license under which the package is released.
 license:             MIT
