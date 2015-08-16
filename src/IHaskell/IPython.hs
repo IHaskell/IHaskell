@@ -69,7 +69,7 @@ ipython suppress args = do
   liftIO $ installHandler keyboardSignal (CatchOnce $ return ()) Nothing
 
   -- We have this because using `run` does not let us use stdin.
-  SH.runHandles "ipython" args handles doNothing
+  SH.runHandles "jupyter" args handles doNothing
 
   where
     handles = [SH.InHandle SH.Inherit, outHandle suppress, errorHandle suppress]
@@ -128,18 +128,25 @@ replaceIPythonKernelspec kernelSpecOpts = SH.shelly $ do
 -- | Verify that a proper version of IPython is installed and accessible.
 verifyIPythonVersion :: SH.Sh ()
 verifyIPythonVersion = do
-  pathMay <- SH.which "ipython"
-  case pathMay of
-    Nothing -> badIPython "No IPython detected -- install IPython 3.0+ before using IHaskell."
-    Just path -> do
-      output <- T.unpack <$> SH.silently (SH.run path ["--version"])
+  pathMay <- SH.which "jupyter"
+  pathMay' <- SH.which "ipython"
+  case (pathMay, pathMay') of
+    (Nothing, Nothing) -> badIPython "No Jupyter detected -- install Jupyter 3.0+ before using IHaskell."
+    (Just path, _) -> do
+      SH.silently (SH.run path ["--version"])
+      output <- T.unpack <$> SH.lastStderr
       case parseVersion output of
         Just (4:_) -> return ()
         Just (3:_) -> return ()
         Just (2:_) -> oldIPython
         Just (1:_) -> oldIPython
         Just (0:_) -> oldIPython
-        _          -> badIPython "Detected IPython, but could not parse version number."
+        _          -> badIPython "Detected Jupyter, but could not parse version number."
+    (_, Just path) -> do
+      output <- T.unpack <$> SH.silently (SH.run path ["--version"])
+      case parseVersion output of
+        Just (x:_) -> if x >= 3 then return () else oldIPython
+        _          -> badIPython "Detected Jupyter, but could not parse version number."
 
   where
     badIPython :: Text -> SH.Sh ()

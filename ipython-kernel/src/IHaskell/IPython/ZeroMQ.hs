@@ -143,9 +143,9 @@ bindLocalEphemeralPort socket = do
 -- The sockets will be closed when the callback returns.
 withEphemeralPorts :: ByteString -- ^ HMAC encryption key
                    -> Bool -- ^ Print debug output
-                   -> (ZeroMQEphemeralPorts -> ZeroMQInterface -> IO a) -- ^ Callback that takes the
-                                                                        -- interface to the
-                                                                        -- sockets.
+                   -> (ZeroMQEphemeralPorts
+                    -> ZeroMQInterface
+                    -> IO a) -- ^ Callback that takes the interface to the sockets.
                    -> IO a
 withEphemeralPorts key debug callback = do
   channels <- newZeroMQInterface key

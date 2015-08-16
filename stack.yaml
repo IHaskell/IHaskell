@@ -37,4 +37,4 @@ extra-deps:
 - system-argv0-0.1.1
 - vinyl-0.5.1
 - xformat-0.1.2.1
-resolver: nightly-2015-08-10
+resolver: nightly-2015-08-15
