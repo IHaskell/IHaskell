@@ -8,8 +8,15 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE PatternSynonyms #-}
 
-module IHaskell.Display.Widgets.Interactive (interactive, usingHList, liftToWidgets) where
+module IHaskell.Display.Widgets.Interactive (
+  interactive,
+  ArgList,
+  (.&),
+  pattern ArgNil,
+  uncurryArgList,
+  ) where
 
 import           Data.Text
 import           Data.Proxy
@@ -19,8 +26,6 @@ import           Data.Vinyl.Functor (Identity (..), Const (..))
 import           Data.Vinyl.Derived (HList)
 import           Data.Vinyl.Lens (type (∈))
 import           Data.Vinyl.TypeLevel (RecAll)
-
-import           Data.Singletons.Prelude.List
 
 import           IHaskell.Display
 
@@ -32,6 +37,7 @@ import           IHaskell.Display.Widgets.Box.FlexBox
 import           IHaskell.Display.Widgets.Bool.CheckBox
 import           IHaskell.Display.Widgets.String.Text
 import           IHaskell.Display.Widgets.Int.BoundedInt.IntSlider
+import           IHaskell.Display.Widgets.Float.BoundedFloat.FloatSlider
 import           IHaskell.Display.Widgets.Output
 
 data WidgetConf a where
@@ -47,17 +53,29 @@ type family WithTypes (ts :: [*]) (r :: *) :: * where
   WithTypes '[] r = r
   WithTypes (x ': xs) r = (x -> WithTypes xs r)
 
--- | Convert a function to one accepting arguments in the form of an HList
-usingHList :: WithTypes ts r -> HList ts -> r
-usingHList f RNil = f
-usingHList f (Identity x :& xs) = usingHList (f x) xs
+-- | Abstract heterogeneous list of arguments
+newtype ArgList ts = ArgList { getList :: HList ts }
 
--- Phantom type variables are required to make things play nicely with vinyl
+-- | Providing syntax to prevent having to use vinyl record style (@Identity x :& xs@) everywhere
+infixr 9 .&
+(.&) :: t -> ArgList ts -> ArgList (t ': ts)
+x .& ArgList y = ArgList (Identity x :& y)
+
+-- | Alias for empty arglist
+pattern ArgNil = ArgList RNil
+
+-- | Convert a function to one accepting an ArgList
+uncurryArgList :: WithTypes ts r -> ArgList ts -> r
+uncurryArgList f (ArgList RNil) = f
+uncurryArgList f (ArgList (Identity x :& xs)) = uncurryArgList (f x) (ArgList xs)
+
+-- Consistent type variables are required to make things play nicely with vinyl
 data Constructor a where
   Constructor :: RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs
               => IO (IPythonWidget (SuitableWidget a)) -> Constructor a
 newtype Getter a = Getter (IPythonWidget (SuitableWidget a) -> IO a)
-newtype Setter a = Setter (IPythonWidget (SuitableWidget a) -> IO () -> IO ())
+newtype EventSetter a = EventSetter (IPythonWidget (SuitableWidget a) -> IO () -> IO ())
+newtype ValueSetter a = ValueSetter (IPythonWidget (SuitableWidget a) -> a -> IO ())
 newtype Trigger a = Trigger (IPythonWidget (SuitableWidget a) -> IO ())
 data RequiredWidget a where
   RequiredWidget :: RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs
@@ -72,11 +90,17 @@ applyGetters (Getter getter :& gs) (RequiredWidget widget :& ws) = do
   rest <- applyGetters gs ws
   return $ Identity val :& rest
 
-applySetters :: Rec Setter ts -> Rec RequiredWidget ts -> IO () -> IO ()
-applySetters RNil RNil _ = return ()
-applySetters (Setter setter :& xs) (RequiredWidget widget :& ws) handler = do
+applyEventSetters :: Rec EventSetter ts -> Rec RequiredWidget ts -> IO () -> IO ()
+applyEventSetters RNil RNil _ = return ()
+applyEventSetters (EventSetter setter :& xs) (RequiredWidget widget :& ws) handler = do
   setter widget handler
-  applySetters xs ws handler
+  applyEventSetters xs ws handler
+
+applyValueSetters :: Rec ValueSetter ts -> Rec RequiredWidget ts -> HList ts -> IO ()
+applyValueSetters RNil RNil RNil = return ()
+applyValueSetters (ValueSetter setter :& xs) (RequiredWidget widget :& ws) (Identity value :& vs) = do
+  setter widget value
+  applyValueSetters xs ws vs
 
 extractConstructor :: WidgetConf x -> Constructor x
 extractConstructor (WidgetConf wr) = Constructor $ construct wr
@@ -84,11 +108,14 @@ extractConstructor (WidgetConf wr) = Constructor $ construct wr
 extractGetter :: WidgetConf x -> Getter x
 extractGetter (WidgetConf wr) = Getter $ getValue wr
 
-extractSetter :: WidgetConf x -> Setter x
-extractSetter (WidgetConf wr) = Setter $ setEvent wr
+extractEventSetter :: WidgetConf x -> EventSetter x
+extractEventSetter (WidgetConf wr) = EventSetter $ setEvent wr
 
 extractTrigger :: WidgetConf x -> Trigger x
 extractTrigger (WidgetConf wr) = Trigger $ trigger wr
+
+extractValueSetter :: WidgetConf x -> ValueSetter x
+extractValueSetter (WidgetConf wr) = ValueSetter $ setValue wr
 
 createWidget :: Constructor a
              -> IO (RequiredWidget a)
@@ -107,24 +134,22 @@ instance MakeConfs '[] where
 instance (FromWidget t, MakeConfs ts) => MakeConfs (t ': ts) where
   mkConfs _ = WidgetConf wrapped :& mkConfs (Proxy :: Proxy ts)
 
--- interactive :: (RecAll Identity ts FromWidget, IHaskellDisplay r, MakeConfs ts)
---             => WithTypes ts r -> IO FlexBox
--- interactive = undefined
-
--- | A version of interactive that workss with a function on HList instead of values
-interactive :: (RecAll Identity ts FromWidget, IHaskellDisplay r, MakeConfs ts)
-            => (HList ts -> r) -> IO FlexBox
+-- | Interacting with a function on ArgList instead of values
+interactive :: (IHaskellDisplay r, MakeConfs ts)
+            => (ArgList ts -> r) -> ArgList ts -> IO FlexBox
 interactive func = let confs = mkConfs Proxy
                    in liftToWidgets func confs
 
--- | Lift a function (HList ts -> r) to one using widgets to fill the HList and displaying the
--- output through the resultant widget.
-liftToWidgets :: (RecAll Identity ts FromWidget, IHaskellDisplay r)
-              => (HList ts -> r) -> Rec WidgetConf ts -> IO FlexBox
-liftToWidgets func rc = do
+-- | Transform a function (ArgList ts -> r) to one using widgets to fill the ArgList, accepting
+-- default values for those widgets and returning all widgets as a composite FlexBox widget with
+-- and embedded OutputWidget for display.
+liftToWidgets :: IHaskellDisplay r
+              => (ArgList ts -> r) -> Rec WidgetConf ts -> ArgList ts -> IO FlexBox
+liftToWidgets func rc defvals = do
   let constructors = rmap extractConstructor rc
       getters = rmap extractGetter rc
-      setters = rmap extractSetter rc
+      eventSetters = rmap extractEventSetter rc
+      valueSetters = rmap extractValueSetter rc
       triggers = rmap extractTrigger rc
 
   bx <- mkFlexBox
@@ -135,10 +160,13 @@ liftToWidgets func rc = do
 
   let handler = do
         vals <- applyGetters getters widgets
-        replaceOutput out $ func vals
+        replaceOutput out $ func $ ArgList vals
 
   -- Apply handler to all widgets
-  applySetters setters widgets handler
+  applyEventSetters eventSetters widgets handler
+
+  -- Set default values for all widgets
+  applyValueSetters valueSetters widgets $ getList defvals
 
   setField out Width 500
   setField bx Orientation VerticalOrientation
@@ -151,7 +179,7 @@ liftToWidgets func rc = do
 
 data WrappedWidget w h f a where
   WrappedWidget :: (FieldType h ~ IO (), FieldType f ~ a, h ∈ WidgetFields w, f ∈ WidgetFields w,
-                    ToPairs (Attr h), IHaskellWidget (IPythonWidget w))
+                    ToPairs (Attr h), IHaskellWidget (IPythonWidget w), ToPairs (Attr f))
                 => IO (IPythonWidget w) -> S.SField h -> S.SField f -> WrappedWidget w h f a
 
 construct :: WrappedWidget w h f a -> IO (IPythonWidget w)
@@ -160,13 +188,16 @@ construct (WrappedWidget cons _ _) = cons
 getValue :: WrappedWidget w h f a -> IPythonWidget w -> IO a
 getValue (WrappedWidget _ _ field) widget = getField widget field
 
+setValue :: WrappedWidget w h f a -> IPythonWidget w -> a -> IO ()
+setValue (WrappedWidget _ _ field) widget = setField widget field
+
 setEvent :: WrappedWidget w h f a -> IPythonWidget w -> IO () -> IO ()
-setEvent (WrappedWidget _ h _) = flip setField h
+setEvent (WrappedWidget _ h _) widget = setField widget h
 
 trigger :: WrappedWidget w h f a -> IPythonWidget w -> IO ()
 trigger (WrappedWidget _ h _) = triggerEvent h
 
-class RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs => FromWidget a where
+class (RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs) => FromWidget a where
   type SuitableWidget a :: WidgetType
   type SuitableHandler a :: S.Field
   type SuitableField a :: S.Field
@@ -190,21 +221,8 @@ instance FromWidget Integer where
   type SuitableField Integer = S.IntValue
   wrapped = WrappedWidget mkIntSlider ChangeHandler IntValue
 
-instance FromWidget a => FromWidget (Identity a) where
-  type SuitableWidget (Identity a) = SuitableWidget a
-  type SuitableHandler (Identity a) = SuitableHandler a
-  type SuitableField (Identity a) = SuitableField a
-  wrapped = wrapped
-
--- interactive :: (FromWidget a, IHaskellDisplay b) => (a -> b) -> IO FlexBox
--- interactive func = do
---   let wrap = wrapped
---   widget <- construct wrap
---   bx <- mkFlexBox
---   out <- mkOutputWidget
---   setEvent wrap widget $ getValue wrap widget >>= replaceOutput out . func
---   trigger wrap widget
---   setField out Width 500
---   setField bx Orientation VerticalOrientation
---   setField bx Children [ChildWidget widget, ChildWidget out]
---   return bx
+instance FromWidget Double where
+  type SuitableWidget Double = FloatSliderType
+  type SuitableHandler Double = S.ChangeHandler
+  type SuitableField Double = S.FloatValue
+  wrapped = WrappedWidget mkFloatSlider ChangeHandler FloatValue
