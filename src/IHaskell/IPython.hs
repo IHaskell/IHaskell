@@ -134,15 +134,23 @@ verifyIPythonVersion = do
     (Nothing, Nothing) -> badIPython
                             "No Jupyter detected -- install Jupyter 3.0+ before using IHaskell."
     (Just path, _) -> do
-      SH.silently (SH.run path ["--version"])
-      output <- T.unpack <$> SH.lastStderr
-      case parseVersion output of
+      stdout <- SH.silently (SH.run path ["--version"])
+      stderr <- SH.lastStderr
+      case parseVersion $ T.unpack stderr of
         Just (4:_) -> return ()
         Just (3:_) -> return ()
         Just (2:_) -> oldIPython
         Just (1:_) -> oldIPython
         Just (0:_) -> oldIPython
-        _          -> badIPython "Detected Jupyter, but could not parse version number."
+        _ -> badIPython $ T.concat
+                            [ "Detected Jupyter, but could not parse version number."
+                            , "\n"
+                            , "(stdout = "
+                            , stdout
+                            , ", stderr = "
+                            , stderr
+                            , ")"
+                            ]
     (_, Just path) -> do
       output <- T.unpack <$> SH.silently (SH.run path ["--version"])
       case parseVersion output of
