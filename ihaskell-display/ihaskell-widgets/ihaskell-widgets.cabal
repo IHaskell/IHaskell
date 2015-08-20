@@ -52,7 +52,8 @@ cabal-version:       >=1.10
 library
   -- Modules exported by the library.
   exposed-modules:     IHaskell.Display.Widgets
-  
+                       IHaskell.Display.Widgets.Interactive
+
   -- Modules included in this library but not exported.
   other-modules:       IHaskell.Display.Widgets.Button
                        IHaskell.Display.Widgets.Box.Box

@@ -380,6 +380,7 @@ rangeCheck (l, u) x
   | l <= x && x <= u = return x
   | l > x = Ex.throw Ex.Underflow
   | u < x = Ex.throw Ex.Overflow
+  | otherwise = error "The impossible happened in IHaskell.Display.Widgets.Types.rangeCheck"
 
 -- | Store a numeric value, with verification mechanism for its range.
 ranged :: (SingI f, Num (FieldType f), Ord (FieldType f))
