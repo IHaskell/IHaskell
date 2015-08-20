@@ -73,7 +73,7 @@ INSTALL_DIRS=`echo $INSTALLS | tr ' ' '\n' | sed 's#^#./#' | tr ' ' '\n'`
 echo CMD: cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
 cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
 
-if [ ! $2 = "no-widgets" ] && { [ $1 = "display" ] || [ $1 = "all" ]; } then
+if [ $2 != "no-widgets" ] && { [ $1 = "display" ] || [ $1 = "all" ]; } then
     cabal install ihaskell-display/ihaskell-widgets
 fi
 
