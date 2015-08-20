@@ -12,10 +12,9 @@
 
 module IHaskell.Display.Widgets.Interactive (
   interactive,
-  ArgList,
-  (.&),
-  pattern ArgNil,
-  uncurryArgList,
+  uncurryHList,
+  Rec (..),
+  Argument (..),
   ) where
 
 import           Data.Text
@@ -41,7 +40,7 @@ import           IHaskell.Display.Widgets.Float.BoundedFloat.FloatSlider
 import           IHaskell.Display.Widgets.Output
 
 data WidgetConf a where
-  WidgetConf :: RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs
+  WidgetConf :: (RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs, FromWidget a)
              => WrappedWidget (SuitableWidget a) (SuitableHandler a) (SuitableField a) a
              -> WidgetConf a
 
@@ -53,21 +52,9 @@ type family WithTypes (ts :: [*]) (r :: *) :: * where
   WithTypes '[] r = r
   WithTypes (x ': xs) r = (x -> WithTypes xs r)
 
--- | Abstract heterogeneous list of arguments
-newtype ArgList ts = ArgList { getList :: HList ts }
-
--- | Providing syntax to prevent having to use vinyl record style (@Identity x :& xs@) everywhere
-infixr 9 .&
-(.&) :: t -> ArgList ts -> ArgList (t ': ts)
-x .& ArgList y = ArgList (Identity x :& y)
-
--- | Alias for empty arglist
-pattern ArgNil = ArgList RNil
-
--- | Convert a function to one accepting an ArgList
-uncurryArgList :: WithTypes ts r -> ArgList ts -> r
-uncurryArgList f (ArgList RNil) = f
-uncurryArgList f (ArgList (Identity x :& xs)) = uncurryArgList (f x) (ArgList xs)
+uncurryHList :: WithTypes ts r -> HList ts -> r
+uncurryHList f RNil = f
+uncurryHList f (Identity x :& xs) = uncurryHList (f x) xs
 
 -- Consistent type variables are required to make things play nicely with vinyl
 data Constructor a where
@@ -75,7 +62,7 @@ data Constructor a where
               => IO (IPythonWidget (SuitableWidget a)) -> Constructor a
 newtype Getter a = Getter (IPythonWidget (SuitableWidget a) -> IO a)
 newtype EventSetter a = EventSetter (IPythonWidget (SuitableWidget a) -> IO () -> IO ())
-newtype ValueSetter a = ValueSetter (IPythonWidget (SuitableWidget a) -> a -> IO ())
+newtype Initializer a = Initializer (IPythonWidget (SuitableWidget a) -> Argument a -> IO ())
 newtype Trigger a = Trigger (IPythonWidget (SuitableWidget a) -> IO ())
 data RequiredWidget a where
   RequiredWidget :: RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs
@@ -96,11 +83,11 @@ applyEventSetters (EventSetter setter :& xs) (RequiredWidget widget :& ws) handl
   setter widget handler
   applyEventSetters xs ws handler
 
-applyValueSetters :: Rec ValueSetter ts -> Rec RequiredWidget ts -> HList ts -> IO ()
-applyValueSetters RNil RNil RNil = return ()
-applyValueSetters (ValueSetter setter :& xs) (RequiredWidget widget :& ws) (Identity value :& vs) = do
-  setter widget value
-  applyValueSetters xs ws vs
+setInitialValues :: Rec Initializer ts -> Rec RequiredWidget ts -> Rec Argument ts -> IO ()
+setInitialValues RNil RNil RNil = return ()
+setInitialValues (Initializer initializer :& fs) (RequiredWidget widget :& ws) (argument :& vs) = do
+  initializer widget argument
+  setInitialValues fs ws vs
 
 extractConstructor :: WidgetConf x -> Constructor x
 extractConstructor (WidgetConf wr) = Constructor $ construct wr
@@ -114,11 +101,10 @@ extractEventSetter (WidgetConf wr) = EventSetter $ setEvent wr
 extractTrigger :: WidgetConf x -> Trigger x
 extractTrigger (WidgetConf wr) = Trigger $ trigger wr
 
-extractValueSetter :: WidgetConf x -> ValueSetter x
-extractValueSetter (WidgetConf wr) = ValueSetter $ setValue wr
+extractInitializer :: WidgetConf x -> Initializer x
+extractInitializer (WidgetConf wr) = Initializer initializer
 
-createWidget :: Constructor a
-             -> IO (RequiredWidget a)
+createWidget :: Constructor a -> IO (RequiredWidget a)
 createWidget (Constructor con) = fmap RequiredWidget con
 
 mkChildren :: Rec RequiredWidget a -> [ChildWidget]
@@ -134,22 +120,22 @@ instance MakeConfs '[] where
 instance (FromWidget t, MakeConfs ts) => MakeConfs (t ': ts) where
   mkConfs _ = WidgetConf wrapped :& mkConfs (Proxy :: Proxy ts)
 
--- | Interacting with a function on ArgList instead of values
 interactive :: (IHaskellDisplay r, MakeConfs ts)
-            => (ArgList ts -> r) -> ArgList ts -> IO FlexBox
+            => (HList ts -> r) -> Rec Argument ts -> IO FlexBox
 interactive func = let confs = mkConfs Proxy
                    in liftToWidgets func confs
 
--- | Transform a function (ArgList ts -> r) to one using widgets to fill the ArgList, accepting
--- default values for those widgets and returning all widgets as a composite FlexBox widget with
--- and embedded OutputWidget for display.
+-- | Transform a function (HList ts -> r) to one which:
+-- 1) Uses widgets to accept the arguments
+-- 2) Accepts initial values for the arguments
+-- 3) Creates a compound FlexBox widget with an embedded OutputWidget for display
 liftToWidgets :: IHaskellDisplay r
-              => (ArgList ts -> r) -> Rec WidgetConf ts -> ArgList ts -> IO FlexBox
-liftToWidgets func rc defvals = do
+              => (HList ts -> r) -> Rec WidgetConf ts -> Rec Argument ts -> IO FlexBox
+liftToWidgets func rc initvals = do
   let constructors = rmap extractConstructor rc
       getters = rmap extractGetter rc
       eventSetters = rmap extractEventSetter rc
-      valueSetters = rmap extractValueSetter rc
+      initializers = rmap extractInitializer rc
       triggers = rmap extractTrigger rc
 
   bx <- mkFlexBox
@@ -160,13 +146,14 @@ liftToWidgets func rc defvals = do
 
   let handler = do
         vals <- applyGetters getters widgets
-        replaceOutput out $ func $ ArgList vals
+        replaceOutput out $ func vals
 
   -- Apply handler to all widgets
   applyEventSetters eventSetters widgets handler
 
-  -- Set default values for all widgets
-  applyValueSetters valueSetters widgets $ getList defvals
+  -- Set initial values for all widgets
+  setInitialValues initializers widgets initvals
+  -- applyValueSetters valueSetters widgets $ getList defvals
 
   setField out Width 500
   setField bx Orientation VerticalOrientation
@@ -197,32 +184,50 @@ setEvent (WrappedWidget _ h _) widget = setField widget h
 trigger :: WrappedWidget w h f a -> IPythonWidget w -> IO ()
 trigger (WrappedWidget _ h _) = triggerEvent h
 
-class (RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs) => FromWidget a where
+class RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs => FromWidget a where
   type SuitableWidget a :: WidgetType
   type SuitableHandler a :: S.Field
   type SuitableField a :: S.Field
+  data Argument a
+  initializer :: IPythonWidget (SuitableWidget a) -> Argument a -> IO ()
   wrapped :: WrappedWidget (SuitableWidget a) (SuitableHandler a) (SuitableField a) a
 
 instance FromWidget Bool where
   type SuitableWidget Bool = CheckBoxType
   type SuitableHandler Bool = S.ChangeHandler
   type SuitableField Bool = S.BoolValue
+  data Argument Bool = BoolVal Bool
+  initializer w (BoolVal b) = setField w BoolValue b
   wrapped = WrappedWidget mkCheckBox ChangeHandler BoolValue
 
 instance FromWidget Text where
   type SuitableWidget Text = TextType
   type SuitableHandler Text = S.SubmitHandler
   type SuitableField Text = S.StringValue
+  data Argument Text = TextVal Text
+  initializer w (TextVal txt) = setField w StringValue txt
   wrapped = WrappedWidget mkTextWidget SubmitHandler StringValue
 
 instance FromWidget Integer where
   type SuitableWidget Integer = IntSliderType
   type SuitableHandler Integer = S.ChangeHandler
   type SuitableField Integer = S.IntValue
+  data Argument Integer = IntVal Integer | IntRange (Integer, Integer, Integer)
   wrapped = WrappedWidget mkIntSlider ChangeHandler IntValue
+  initializer w (IntVal int) = setField w IntValue int
+  initializer w (IntRange (v, l, u)) = do
+    setField w IntValue v
+    setField w MinInt l
+    setField w MaxInt u
 
 instance FromWidget Double where
   type SuitableWidget Double = FloatSliderType
   type SuitableHandler Double = S.ChangeHandler
   type SuitableField Double = S.FloatValue
+  data Argument Double = FloatVal Double | FloatRange (Double, Double, Double)
   wrapped = WrappedWidget mkFloatSlider ChangeHandler FloatValue
+  initializer w (FloatVal d) = setField w FloatValue d
+  initializer w (FloatRange (v, l, u)) = do
+    setField w FloatValue v
+    setField w MinFloat l
+    setField w MaxFloat u
