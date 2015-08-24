@@ -12,7 +12,6 @@ module IHaskell.Eval.Evaluate (
     Interpreter,
     liftIO,
     typeCleaner,
-    globalImports,
     formatType,
     capturedIO,
     ) where
@@ -129,23 +128,26 @@ type Interpreter = Ghc
 instance MonadIO.MonadIO Interpreter where
   liftIO = MonadUtils.liftIO
 #endif
-globalImports :: [String]
-globalImports =
-  [ "import IHaskell.Display()"
-  , "import qualified Prelude as IHaskellPrelude"
+requiredGlobalImports :: [String]
+requiredGlobalImports =
+  [ "import qualified Prelude as IHaskellPrelude"
   , "import qualified System.Directory as IHaskellDirectory"
-  , "import qualified IHaskell.Display"
-  , "import qualified IHaskell.IPython.Stdin"
-  , "import qualified IHaskell.Eval.Widgets"
   , "import qualified System.Posix.IO as IHaskellIO"
   , "import qualified System.IO as IHaskellSysIO"
   , "import qualified Language.Haskell.TH as IHaskellTH"
   ]
+ihaskellGlobalImports :: [String]
+ihaskellGlobalImports =
+  [ "import IHaskell.Display()"
+  , "import qualified IHaskell.Display"
+  , "import qualified IHaskell.IPython.Stdin"
+  , "import qualified IHaskell.Eval.Widgets"
+  ]
 
 -- | Run an interpreting action. This is effectively runGhc with initialization and importing. First
 -- argument indicates whether `stdin` is handled specially, which cannot be done in a testing
--- environment.
-interpret :: String -> Bool -> Interpreter a -> IO a
+-- environment. The argument passed to the action indicates whether Haskell support libraries are available.
+interpret :: String -> Bool -> (Bool -> Interpreter a) -> IO a
 interpret libdir allowedStdin action = runGhc (Just libdir) $ do
   -- If we're in a sandbox, add the relevant package database
   sandboxPackages <- liftIO getSandboxPackageConf
@@ -156,18 +158,18 @@ interpret libdir allowedStdin action = runGhc (Just libdir) $ do
       void $ setSessionDynFlags $ dflags { verbosity = verb }
     Nothing -> return ()
 
-  initializeImports
+  hasSupportLibraries <- initializeImports
 
   -- Close stdin so it can't be used. Otherwise it'll block the kernel forever.
   dir <- liftIO getIHaskellDir
   let cmd = printf "IHaskell.IPython.Stdin.fixStdin \"%s\"" dir
-  when allowedStdin $ void $
+  when (allowedStdin && hasSupportLibraries) $ void $
     runStmt cmd RunToCompletion
 
   initializeItVariable
 
   -- Run the rest of the interpreter
-  action
+  action hasSupportLibraries
 #if MIN_VERSION_ghc(7,10,2)
 packageIdString' dflags pkg_key = fromMaybe "(unknown)" (packageKeyPackageIdString dflags pkg_key)
 #elif MIN_VERSION_ghc(7,10,0)
@@ -176,48 +178,35 @@ packageIdString' dflags = packageKeyPackageIdString dflags
 packageIdString' dflags = packageIdString
 #endif
 -- | Initialize our GHC session with imports and a value for 'it'.
-initializeImports :: Interpreter ()
+-- Return whether the IHaskell support libraries are available.
+initializeImports :: Interpreter Bool
 initializeImports = do
   -- Load packages that start with ihaskell-*, aren't just IHaskell, and depend directly on the right
   -- version of the ihaskell library. Also verify that the packages we load are not broken.
   dflags <- getSessionDynFlags
   broken <- liftIO getBrokenPackages
-  displayPackages <- liftIO $ do
-                       (dflags, _) <- initPackages dflags
-                       let Just db = pkgDatabase dflags
-                           packageNames = map (packageIdString' dflags . packageConfigId) db
+  (dflags, _) <- liftIO $ initPackages dflags
+  let Just db = pkgDatabase dflags
+      packageNames = map (packageIdString' dflags . packageConfigId) db
 
-                           initStr = "ihaskell-"
+      initStr = "ihaskell-"
 
-                           -- Name of the ihaskell package, e.g. "ihaskell-1.2.3.4"
-                           iHaskellPkgName = initStr ++ intercalate "."
-                                                          (map show (versionBranch version))
+      -- Name of the ihaskell package, e.g. "ihaskell-1.2.3.4"
+      iHaskellPkgName = initStr ++ intercalate "." (map show (versionBranch version))
 
-                           dependsOnRight pkg = not $ null $ do
-                             pkg <- db
-                             depId <- depends pkg
-                             dep <- filter ((== depId) . installedPackageId) db
-                             let idString = packageIdString' dflags (packageConfigId dep)
-                             guard (iHaskellPkgName `isPrefixOf` idString)
+      dependsOnRight pkg = not $ null $ do
+        pkg <- db
+        depId <- depends pkg
+        dep <- filter ((== depId) . installedPackageId) db
+        let idString = packageIdString' dflags (packageConfigId dep)
+        guard (iHaskellPkgName `isPrefixOf` idString)
 
+      displayPkgs = [pkgName | pkgName <- packageNames
+                            , Just (x:_) <- [stripPrefix initStr pkgName]
+                            , pkgName `notElem` broken
+                            , isAlpha x]
 
-                           -- ideally the Paths_ihaskell module could provide a way to get the hash too
-                           -- (ihaskell-0.2.0.5-f2bce922fa881611f72dfc4a854353b9), for now. Things will end badly if you also
-                           -- happen to have an ihaskell-0.2.0.5-ce34eadc18cf2b28c8d338d0f3755502 installed.
-                           iHaskellPkg =
-                             case filter (== iHaskellPkgName) packageNames of
-                               [x] -> x
-                               [] -> error
-                                       ("cannot find required haskell library: " ++ iHaskellPkgName)
-                               _ -> error
-                                      ("multiple haskell packages " ++ iHaskellPkgName ++ " found")
-
-                           displayPkgs = [pkgName | pkgName <- packageNames
-                                                  , Just (x:_) <- [stripPrefix initStr pkgName]
-                                                  , pkgName `notElem` broken
-                                                  , isAlpha x]
-
-                       return displayPkgs
+      hasIHaskellPackage = not $ null $ filter (== iHaskellPkgName) packageNames
 
   -- Generate import statements all Display modules.
   let capitalize :: String -> String
@@ -231,19 +220,23 @@ initializeImports = do
       toImportStmt :: String -> String
       toImportStmt = printf importFmt . concatMap capitalize . dropFirstAndLast . split "-"
 
-      displayImports = map toImportStmt displayPackages
+      displayImports = map toImportStmt displayPkgs
 
   -- Import implicit prelude.
   importDecl <- parseImportDecl "import Prelude"
   let implicitPrelude = importDecl { ideclImplicit = True }
 
   -- Import modules.
-  imports <- mapM parseImportDecl $ globalImports ++ displayImports
+  imports <- mapM parseImportDecl $ requiredGlobalImports ++ if hasIHaskellPackage
+                                                             then ihaskellGlobalImports ++ displayImports
+                                                             else []
   setContext $ map IIDecl $ implicitPrelude : imports
 
   -- Set -fcontext-stack to 100 (default in ghc-7.10). ghc-7.8 uses 20, which is too small.
   let contextStackFlag = printf "-fcontext-stack=%d" (100 :: Int)
   void $ setFlags [contextStackFlag]
+
+  return hasIHaskellPackage
 
 -- | Give a value for the `it` variable.
 initializeItVariable :: Interpreter ()
@@ -324,8 +317,9 @@ evaluate kernelState code output widgetHandler = do
       evalOut <- evalCommand output cmd state
 
       -- Get displayed channel outputs. Merge them with normal display outputs.
-      dispsIO <- extractValue "IHaskell.Display.displayFromChan"
-      dispsMay <- liftIO dispsIO
+      dispsMay <- if supportLibrariesAvailable state
+                  then extractValue "IHaskell.Display.displayFromChan" >>= liftIO
+                  else return Nothing
       let result =
             case dispsMay of
               Nothing    -> evalResult evalOut
@@ -341,7 +335,9 @@ evaluate kernelState code output widgetHandler = do
           tempState = evalState evalOut { evalMsgs = [] }
 
       -- Handle the widget messages
-      newState <- flushWidgetMessages tempState tempMsgs widgetHandler
+      newState <- if supportLibrariesAvailable state
+                  then flushWidgetMessages tempState tempMsgs widgetHandler 
+                  else return tempState
 
       case evalStatus evalOut of
         Success -> runUntilFailure newState rest

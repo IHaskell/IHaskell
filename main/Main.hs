@@ -16,12 +16,14 @@ import           Control.Concurrent (threadDelay)
 import           Control.Concurrent.Chan
 import           Data.Aeson
 import           System.Directory
-import           System.Exit (exitSuccess)
-import           System.Environment (getArgs)
+import           System.Process (readProcess, readProcessWithExitCode)
+import           System.Exit (exitSuccess, ExitCode(ExitSuccess))
+import           System.Environment (getArgs, setEnv)
 import           System.Posix.Signals
 import qualified Data.Map as Map
 import           Data.String.Here (hereFile)
 import qualified Data.Text.Encoding as E
+import           Data.List (break)
 
 -- IHaskell imports.
 import           IHaskell.Convert (convert)
@@ -111,6 +113,19 @@ runKernel kernelOpts profileSrc = do
   dir <- getIHaskellDir
   Stdin.recordKernelProfile dir profile
 
+  -- Detect if we have stack
+  (exitCode, stackStdout, _) <- readProcessWithExitCode "stack" [] ""
+  let stack = exitCode == ExitSuccess && "The Haskell Tool Stack" `isInfixOf` stackStdout
+
+  -- If we're in a stack directory, use `stack` to set the environment
+  when stack $ do
+    stackEnv <- lines <$> readProcess "stack" ["exec", "env"] ""
+    forM_ stackEnv $ \line ->
+      let (var, val) = break (== '=') line
+      in case tailMay val of
+           Nothing -> return ()
+           Just val' -> setEnv var val'
+
   -- Serve on all sockets and ports defined in the profile.
   interface <- serveProfile profile debug
 
@@ -120,10 +135,13 @@ runKernel kernelOpts profileSrc = do
     kernelState { kernelDebug = debug }
 
   -- Receive and reply to all messages on the shell socket.
-  interpret libdir True $ do
+  interpret libdir True $ \hasSupportLibraries -> do
     -- Ignore Ctrl-C the first time. This has to go inside the `interpret`, because GHC API resets the
     -- signal handlers for some reason (completely unknown to me).
     liftIO ignoreCtrlC
+
+    liftIO $ modifyMVar_ state $ \kernelState -> return $
+              kernelState { supportLibrariesAvailable = hasSupportLibraries }
 
     -- Initialize the context by evaluating everything we got from the command line flags.
     let noPublish _ = return ()

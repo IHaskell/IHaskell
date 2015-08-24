@@ -141,6 +141,7 @@ executable ihaskell
                        text                 >=0.11,
                        transformers         -any,
                        ghc                  >=7.6 || < 7.11,
+                       process              >=1.1,
                        here                 ==1.2.*,
                        aeson                >=0.7 && < 0.10,
                        bytestring           >=0.10,

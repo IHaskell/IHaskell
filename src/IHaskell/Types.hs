@@ -139,6 +139,7 @@ data KernelState =
          , usePager :: Bool
          , openComms :: Map UUID Widget
          , kernelDebug :: Bool
+         , supportLibrariesAvailable :: Bool
          }
   deriving Show
 
@@ -152,6 +153,7 @@ defaultKernelState = KernelState
   , usePager = True
   , openComms = mempty
   , kernelDebug = False
+  , supportLibrariesAvailable = True
   }
 
 -- | Kernel options to be set via `:set` and `:option`.
