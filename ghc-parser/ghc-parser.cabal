@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                ghc-parser
-version:             0.1.7.0
+version:             0.1.8.0
 synopsis:            Haskell source parser from GHC.
 -- description:
 homepage:            https://github.com/gibiansky/IHaskell
@@ -16,13 +16,16 @@ build-type:          Custom
 -- extra-source-files:
 cabal-version:       >=1.16
 
-
+-- hs-source-dirs doesn't work well, doesn't take union, so include all src dirs specifically
 extra-source-files:
   build-parser.sh
   HaskellParser76.y.pp
   HaskellParser782.y.pp
   HaskellParser783.y.pp
   src-7.10/Language/Haskell/GHC/HappyParser.hs
+  src-7.8.2/Language/Haskell/GHC/HappyParser.hs
+  src-7.8.3/Language/Haskell/GHC/HappyParser.hs
+  src-7.6/Language/Haskell/GHC/HappyParser.hs
 
 library
   build-tools:         happy, cpphs

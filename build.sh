@@ -78,7 +78,7 @@ if [ ! $2 = "no-widgets" ] && { [ $1 = "display" ] || [ $1 = "all" ]; } then
 fi
 
 if hash ihaskell 2>/dev/null; then
-    ihaskell install 2>/dev/null || echo "The command \"ihaskell install\" failed. Please check your 'ipython --version'. 3.0 or up is required but it is $(ipython --version)!"
+    ihaskell install 2>/dev/null || echo "The command \"ihaskell install\" failed. Please check your 'ipython --version'. 3.0 or up is required. Yours is $(ipython --version)."
 else
     echo "Reminder: run 'ihaskell install' to install the IHaskell kernel to Jupyter."
 fi

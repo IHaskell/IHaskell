@@ -30,6 +30,7 @@ import           System.Exit (exitFailure)
 import           Data.Aeson (toJSON)
 import           Data.Aeson.Encode (encodeToTextBuilder)
 import           Data.Text.Lazy.Builder (toLazyText)
+import           Control.Monad (mplus)
 
 import qualified System.IO.Strict as StrictIO
 import qualified Paths_ihaskell as Paths
@@ -61,6 +62,14 @@ kernelName = "haskell"
 kernelArgs :: [String]
 kernelArgs = ["--kernel", kernelName]
 
+ipythonCommand :: SH.Sh SH.FilePath
+ipythonCommand = do
+  jupyterMay <- SH.which "jupyter"
+  return $
+    case jupyterMay of
+      Nothing -> "ipython"
+      Just _  -> "jupyter"
+
 -- | Run the IPython command with any arguments. The kernel is set to IHaskell.
 ipython :: Bool         -- ^ Whether to suppress output.
         -> [Text]       -- ^ IPython command line arguments.
@@ -69,7 +78,8 @@ ipython suppress args = do
   liftIO $ installHandler keyboardSignal (CatchOnce $ return ()) Nothing
 
   -- We have this because using `run` does not let us use stdin.
-  SH.runHandles "jupyter" args handles doNothing
+  cmd <- ipythonCommand
+  SH.runHandles cmd args handles doNothing
 
   where
     handles = [SH.InHandle SH.Inherit, outHandle suppress, errorHandle suppress]
@@ -103,9 +113,6 @@ ihaskellDir = do
   home <- maybe (error "$HOME not defined.") SH.fromText <$> SH.get_env "HOME"
   fp <$> ensure (return (home SH.</> ".ihaskell"))
 
-ipythonDir :: SH.Sh SH.FilePath
-ipythonDir = ensure $ (SH.</> "ipython") <$> ihaskellDir
-
 notebookDir :: SH.Sh SH.FilePath
 notebookDir = ensure $ (SH.</> "notebooks") <$> ihaskellDir
 
@@ -128,43 +135,35 @@ replaceIPythonKernelspec kernelSpecOpts = SH.shelly $ do
 -- | Verify that a proper version of IPython is installed and accessible.
 verifyIPythonVersion :: SH.Sh ()
 verifyIPythonVersion = do
-  pathMay <- SH.which "jupyter"
-  pathMay' <- SH.which "ipython"
-  case (pathMay, pathMay') of
-    (Nothing, Nothing) -> badIPython
-                            "No Jupyter detected -- install Jupyter 3.0+ before using IHaskell."
-    (Just path, _) -> do
+  cmd <- ipythonCommand
+  pathMay <- SH.which cmd
+  case pathMay of
+    Nothing -> badIPython
+                 "No Jupyter / IPython detected -- install Jupyter 3.0+ before using IHaskell."
+    Just path -> do
       stdout <- SH.silently (SH.run path ["--version"])
       stderr <- SH.lastStderr
-      case parseVersion $ T.unpack stderr of
-        Just (4:_) -> return ()
-        Just (3:_) -> return ()
-        Just (2:_) -> oldIPython
-        Just (1:_) -> oldIPython
-        Just (0:_) -> oldIPython
-        _ -> badIPython $ T.concat
-                            [ "Detected Jupyter, but could not parse version number."
-                            , "\n"
-                            , "(stdout = "
-                            , stdout
-                            , ", stderr = "
-                            , stderr
-                            , ")"
-                            ]
-    (_, Just path) -> do
-      output <- T.unpack <$> SH.silently (SH.run path ["--version"])
-      case parseVersion output of
-        Just (x:_) -> if x >= 3
-                        then return ()
-                        else oldIPython
-        _ -> badIPython "Detected IPython, but could not parse version number."
+      let majorVersion = join . fmap listToMaybe . parseVersion . T.unpack
+      case mplus (majorVersion stderr) (majorVersion stdout) of
+        Nothing -> badIPython $ T.concat
+                                  [ "Detected Jupyter, but could not parse version number."
+                                  , "\n"
+                                  , "(stdout = "
+                                  , stdout
+                                  , ", stderr = "
+                                  , stderr
+                                  , ")"
+                                  ]
+
+        Just version -> when (version < 3) oldIPython
 
   where
     badIPython :: Text -> SH.Sh ()
     badIPython message = liftIO $ do
       IO.hPutStrLn IO.stderr (T.unpack message)
       exitFailure
-    oldIPython = badIPython "Detected old version of IPython. IHaskell requires 3.0.0 or up."
+    oldIPython = badIPython
+                   "Detected old version of Jupyter / IPython. IHaskell requires 3.0.0 or up."
 
 -- | Install an IHaskell kernelspec into the right location. The right location is determined by
 -- using `ipython kernelspec install --user`.

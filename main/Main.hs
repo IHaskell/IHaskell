@@ -297,6 +297,11 @@ replyTo _ HistoryRequest{} replyHeader state = do
         }
   return (state, reply)
 
+-- TODO: What else can be implemented?
+replyTo _ message _ state = do
+  liftIO $ hPutStrLn stderr $ "Unimplemented message: " ++ show message
+  return (state, SendNothing)
+
 -- | Handle comm messages
 handleComm :: (Message -> IO ()) -> KernelState -> Message -> MessageHeader -> Interpreter KernelState
 handleComm send kernelState req replyHeader = do
