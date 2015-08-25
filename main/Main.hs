@@ -117,7 +117,7 @@ runKernel kernelOpts profileSrc = do
   (exitCode, stackStdout, _) <- readProcessWithExitCode "stack" [] ""
   let stack = exitCode == ExitSuccess && "The Haskell Tool Stack" `isInfixOf` stackStdout
 
-#if MIN_VERSION_base(4,7,0)
+#if MIN_VERSION_ghc(7,8,0)
   -- If we're in a stack directory, use `stack` to set the environment
   -- We can't do this with base <= 4.6 because setEnv doesn't exist.
   when stack $ do
