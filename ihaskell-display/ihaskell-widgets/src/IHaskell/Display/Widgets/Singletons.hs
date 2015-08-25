@@ -5,12 +5,15 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE QuasiQuotes #-}
+
 module IHaskell.Display.Widgets.Singletons where
 
-import Data.Singletons.TH
+import           Data.Singletons.TH
 
 -- Widget properties
-singletons [d|
+singletons
+  [d|
+   
   data Field = ViewModule
              | ViewName
              | MsgThrottle
@@ -83,4 +86,4 @@ singletons [d|
              | Titles
              | SelectedIndex
              deriving (Eq, Ord, Show)
-             |]
+  |]

@@ -136,6 +136,7 @@ requiredGlobalImports =
   , "import qualified System.IO as IHaskellSysIO"
   , "import qualified Language.Haskell.TH as IHaskellTH"
   ]
+
 ihaskellGlobalImports :: [String]
 ihaskellGlobalImports =
   [ "import IHaskell.Display()"
@@ -146,7 +147,8 @@ ihaskellGlobalImports =
 
 -- | Run an interpreting action. This is effectively runGhc with initialization and importing. First
 -- argument indicates whether `stdin` is handled specially, which cannot be done in a testing
--- environment. The argument passed to the action indicates whether Haskell support libraries are available.
+-- environment. The argument passed to the action indicates whether Haskell support libraries are
+-- available.
 interpret :: String -> Bool -> (Bool -> Interpreter a) -> IO a
 interpret libdir allowedStdin action = runGhc (Just libdir) $ do
   -- If we're in a sandbox, add the relevant package database
@@ -177,8 +179,8 @@ packageIdString' dflags = packageKeyPackageIdString dflags
 #else
 packageIdString' dflags = packageIdString
 #endif
--- | Initialize our GHC session with imports and a value for 'it'.
--- Return whether the IHaskell support libraries are available.
+-- | Initialize our GHC session with imports and a value for 'it'. Return whether the IHaskell
+-- support libraries are available.
 initializeImports :: Interpreter Bool
 initializeImports = do
   -- Load packages that start with ihaskell-*, aren't just IHaskell, and depend directly on the right
@@ -202,9 +204,9 @@ initializeImports = do
         guard (iHaskellPkgName `isPrefixOf` idString)
 
       displayPkgs = [pkgName | pkgName <- packageNames
-                            , Just (x:_) <- [stripPrefix initStr pkgName]
-                            , pkgName `notElem` broken
-                            , isAlpha x]
+                             , Just (x:_) <- [stripPrefix initStr pkgName]
+                             , pkgName `notElem` broken
+                             , isAlpha x]
 
       hasIHaskellPackage = not $ null $ filter (== iHaskellPkgName) packageNames
 
@@ -228,8 +230,8 @@ initializeImports = do
 
   -- Import modules.
   imports <- mapM parseImportDecl $ requiredGlobalImports ++ if hasIHaskellPackage
-                                                             then ihaskellGlobalImports ++ displayImports
-                                                             else []
+                                                               then ihaskellGlobalImports ++ displayImports
+                                                               else []
   setContext $ map IIDecl $ implicitPrelude : imports
 
   -- Set -fcontext-stack to 100 (default in ghc-7.10). ghc-7.8 uses 20, which is too small.
@@ -318,8 +320,8 @@ evaluate kernelState code output widgetHandler = do
 
       -- Get displayed channel outputs. Merge them with normal display outputs.
       dispsMay <- if supportLibrariesAvailable state
-                  then extractValue "IHaskell.Display.displayFromChan" >>= liftIO
-                  else return Nothing
+                    then extractValue "IHaskell.Display.displayFromChan" >>= liftIO
+                    else return Nothing
       let result =
             case dispsMay of
               Nothing    -> evalResult evalOut
@@ -336,8 +338,8 @@ evaluate kernelState code output widgetHandler = do
 
       -- Handle the widget messages
       newState <- if supportLibrariesAvailable state
-                  then flushWidgetMessages tempState tempMsgs widgetHandler 
-                  else return tempState
+                    then flushWidgetMessages tempState tempMsgs widgetHandler
+                    else return tempState
 
       case evalStatus evalOut of
         Success -> runUntilFailure newState rest

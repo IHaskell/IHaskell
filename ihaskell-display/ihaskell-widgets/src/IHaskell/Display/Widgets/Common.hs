@@ -4,14 +4,15 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+
 module IHaskell.Display.Widgets.Common where
 
-import Data.Aeson
-import Data.Aeson.Types (emptyObject)
-import Data.Text (pack, Text)
+import           Data.Aeson
+import           Data.Aeson.Types (emptyObject)
+import           Data.Text (pack, Text)
 
-import IHaskell.Display (IHaskellWidget)
-import IHaskell.Eval.Widgets (widgetSendClose)
+import           IHaskell.Display (IHaskellWidget)
+import           IHaskell.Eval.Widgets (widgetSendClose)
 
 import qualified IHaskell.Display.Widgets.Singletons as S
 
@@ -91,7 +92,8 @@ pattern SelectedIndex = S.SSelectedIndex
 closeWidget :: IHaskellWidget w => w -> IO ()
 closeWidget w = widgetSendClose w emptyObject
 
-newtype StrInt = StrInt Integer deriving (Num, Ord, Eq, Enum)
+newtype StrInt = StrInt Integer
+  deriving (Num, Ord, Eq, Enum)
 
 instance ToJSON StrInt where
   toJSON (StrInt x) = toJSON . pack $ show x
@@ -205,7 +207,8 @@ instance ToJSON ImageFormatValue where
   toJSON = toJSON . pack . show
 
 -- | Options for selection widgets.
-data SelectionOptions = OptionLabels [Text] | OptionDict [(Text, Text)]
+data SelectionOptions = OptionLabels [Text]
+                      | OptionDict [(Text, Text)]
 
 -- | Orientation values.
 data OrientationValue = HorizontalOrientation
