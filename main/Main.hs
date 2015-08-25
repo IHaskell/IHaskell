@@ -117,7 +117,9 @@ runKernel kernelOpts profileSrc = do
   (exitCode, stackStdout, _) <- readProcessWithExitCode "stack" [] ""
   let stack = exitCode == ExitSuccess && "The Haskell Tool Stack" `isInfixOf` stackStdout
 
+#if MIN_VERSION_base(4,7,0)
   -- If we're in a stack directory, use `stack` to set the environment
+  -- We can't do this with base <= 4.6 because setEnv doesn't exist.
   when stack $ do
     stackEnv <- lines <$> readProcess "stack" ["exec", "env"] ""
     forM_ stackEnv $ \line ->
@@ -125,6 +127,7 @@ runKernel kernelOpts profileSrc = do
       in case tailMay val of
            Nothing -> return ()
            Just val' -> setEnv var val'
+#endif
 
   -- Serve on all sockets and ports defined in the profile.
   interface <- serveProfile profile debug

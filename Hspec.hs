@@ -74,7 +74,7 @@ eval string = do
 
   getTemporaryDirectory >>= setCurrentDirectory
   let state = defaultKernelState { getLintStatus = LintOff }
-  interpret libdir False $ Eval.evaluate state string publish noWidgetHandling
+  interpret libdir False $ const $ Eval.evaluate state string publish noWidgetHandling
   out <- readIORef outputAccum
   pagerOut <- readIORef pagerAccum
   return (reverse out, unlines . map extractPlain . reverse $ pagerOut)
@@ -193,9 +193,12 @@ inDirectory dirs files action = shelly $ withTmpDir $ \dirPath ->
                  return out
 
 withHsDirectory :: (Shelly.FilePath -> Interpreter a)  -> IO a
-withHsDirectory = inDirectory ["" </> "dir", "dir" </> "dir1"]
-                    [""</> "file1.hs", "dir" </> "file2.hs",  
-                     "" </> "file1.lhs", "dir" </> "file2.lhs"]
+withHsDirectory = inDirectory [p "" </> p "dir", p "dir" </> p "dir1"]
+                    [p ""</> p "file1.hs", p "dir" </> p "file2.hs",
+                     p "" </> p "file1.lhs", p "dir" </> p "file2.lhs"]
+  where
+    p :: FilePath -> FilePath
+    p = id
 
 main :: IO ()
 main = hspec $ do
