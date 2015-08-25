@@ -229,8 +229,14 @@ replyTo _ KernelInfoRequest{} replyHeader state =
   return
     (state, KernelInfoReply
               { header = replyHeader
-              , language = "haskell"
-              , versionList = ghcVersionInts
+              , implementation = "IHaskell"
+              , implementationVersion = VERSION_ipython_kernel
+              , languageInfo = LanguageInfo
+                { languageName = "haskell"
+                , languageVersion = VERSION_ghc
+                , languageFileExtension = ".hs"
+                , languageCodeMirrorMode = "ihaskell"
+                }
               })
 
 -- Reply to a shutdown request by exiting the main thread. Before shutdown, reply to the request to

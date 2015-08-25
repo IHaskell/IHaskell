@@ -70,11 +70,8 @@ import           System.IO (openFile, IOMode(ReadMode))
 data KernelConfig m output result =
        KernelConfig
          { 
-         -- | The name of the language. This field is used to calculate the name of the profile,
-         -- so it should contain characters that are reasonable to have in file names.
-         languageName :: String
-         -- | The version of the language
-         , languageVersion :: [Int]
+         -- | Info on the language of the kernel.
+         kernelLanguageInfo :: LanguageInfo
          -- | Determine the source of a profile to install using 'installProfile'. The source should be a
          -- tarball whose contents will be unpacked directly into the profile directory. For example, the
          -- file whose name is @ipython_config.py@ in the tar file for a language named @lang@ will end up in
@@ -122,7 +119,7 @@ installProfile config = do
   where
     profDir = do
       home <- liftIO getHomeDirectory
-      return $ home </> ".ipython" </> ("profile_" ++ languageName config)
+      return $ home </> ".ipython" </> ("profile_" ++ languageName (kernelLanguageInfo config))
     isInstalled = do
       prof <- profDir
       dirThere <- liftIO $ doesDirectoryExist prof
@@ -185,8 +182,9 @@ replyTo config _ _ KernelInfoRequest{} replyHeader =
   return
     KernelInfoReply
       { header = replyHeader
-      , language = languageName config
-      , versionList = languageVersion config
+      , languageInfo = kernelLanguageInfo config
+      , implementation = "ipython-kernel.EasyKernel"
+      , implementationVersion = "0.0"
       }
 replyTo config _ interface ShutdownRequest { restartPending = pending } replyHeader = do
   liftIO $ writeChan (shellReplyChannel interface) $ ShutdownReply replyHeader pending
@@ -206,10 +204,10 @@ replyTo config execCount interface req@ExecuteRequest { getCode = code } replyHe
                                       sendOutput x =
                                                       send $ PublishDisplayData
                                                                outputHeader
-                                                               (languageName config)
+                                                               (languageName $ kernelLanguageInfo config)
                                                                (displayOutput config x)
                                   in run config code clearOutput sendOutput
-  liftIO . send $ PublishDisplayData outputHeader (languageName config) (displayResult config res)
+  liftIO . send $ PublishDisplayData outputHeader (languageName $ kernelLanguageInfo config) (displayResult config res)
 
 
   idleHeader <- dupHeader replyHeader StatusMessage
@@ -230,8 +228,8 @@ replyTo config _ _ req@CompleteRequest{} replyHeader =
   -- TODO: FIX
   error "Completion: Unimplemented for IPython 3.0"
 
-replyTo _ _ _ InspectRequest{} _ = do
-  error $ "Inspection: Unimplemented for IPython 3.0"
+replyTo _ _ _ InspectRequest{} _ =
+  error "Inspection: Unimplemented for IPython 3.0"
 
 replyTo _ _ _ msg _ = do
   liftIO $ putStrLn "Unknown message: "

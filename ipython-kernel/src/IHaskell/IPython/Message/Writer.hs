@@ -16,11 +16,23 @@ import           Data.Text.Encoding
 
 import           IHaskell.IPython.Types
 
+instance ToJSON LanguageInfo where
+  toJSON info = object
+                  [ "name" .= languageName info
+                  , "version" .= languageVersion info
+                  , "file_extension" .= languageFileExtension info
+                  , "codemirror_mode" .= languageCodeMirrorMode info
+                  ]
+
 -- Convert message bodies into JSON.
 instance ToJSON Message where
-  toJSON KernelInfoReply { versionList = vers, language = language } =
-    object ["protocol_version" .= string "5.0"  -- current protocol version, major and minor
-           , "language_version" .= vers, "language" .= language]
+  toJSON rep@KernelInfoReply{} =
+    object
+      [ "protocol_version" .= string "5.0"  -- current protocol version, major and minor
+      , "implementation" .= implementation rep
+      , "implementation_version" .= implementationVersion rep
+      , "language_info" .= languageInfo rep
+      ]
 
   toJSON ExecuteReply { status = status, executionCounter = counter, pagerOutput = pager } =
     object

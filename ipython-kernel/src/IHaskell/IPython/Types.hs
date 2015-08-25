@@ -24,6 +24,7 @@ module IHaskell.IPython.Types (
     ExecuteReplyStatus(..),
     HistoryAccessType(..),
     HistoryReplyElement(..),
+    LanguageInfo(..),
     replyType,
     showMessageType,
 
@@ -246,6 +247,15 @@ instance FromJSON MessageType where
       _                     -> fail ("Unknown message type: " ++ show s)
   parseJSON _ = fail "Must be a string."
 
+data LanguageInfo =
+       LanguageInfo
+         { languageName :: String        -- ^ The language name, e.g. "haskell"
+         , languageVersion :: String        -- ^ GHC 7.6.3
+         , languageFileExtension :: String        -- ^ .hs
+         , languageCodeMirrorMode :: String        -- ^ 'ihaskell'. can be 'null'
+         }
+  deriving (Show, Eq)
+
 -- | A message used to communicate with the IPython frontend.
 data Message =
              -- | A request from a frontend for information about the kernel.
@@ -254,9 +264,9 @@ data Message =
              -- | A response to a KernelInfoRequest.
                KernelInfoReply
                  { header :: MessageHeader
-                 , versionList :: [Int]      -- ^ The version of the language, e.g. [7, 6, 3] for GHC
-                                             -- 7.6.3
-                 , language :: String        -- ^ The language name, e.g. "haskell"
+                 , implementation :: String -- ^ e.g. IHaskell
+                 , implementationVersion :: String -- ^ The version of the implementation
+                 , languageInfo :: LanguageInfo
                  }
              |
              -- | A request from a frontend to execute some code.

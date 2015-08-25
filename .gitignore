@@ -1,4 +1,5 @@
 *.hi
+Untitled*.ipynb
 main/Main
 .stack-work
 notebooks/Test.ipynb
