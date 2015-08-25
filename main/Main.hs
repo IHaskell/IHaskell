@@ -18,7 +18,10 @@ import           Data.Aeson
 import           System.Directory
 import           System.Process (readProcess, readProcessWithExitCode)
 import           System.Exit (exitSuccess, ExitCode(ExitSuccess))
-import           System.Environment (getArgs, setEnv)
+import           System.Environment (getArgs)
+#if MIN_VERSION_ghc(7,8,0)
+import           System.Environment (setEnv)
+#endif
 import           System.Posix.Signals
 import qualified Data.Map as Map
 import           Data.String.Here (hereFile)
