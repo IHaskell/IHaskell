@@ -22,7 +22,8 @@ define(['require',
                 var downArrow = 40;
                 IPython.keyboard.keycodes.down = downArrow; // space
 
-                IPython.CodeCell.options_default['cm_config']['mode'] = 'haskell';
+                IPython.CodeCell.options_default['cm_config']['mode'] = 'ihaskell';
+                IPython.CodeCell.options_default['cm_config']['autoCloseBrackets'] = '()[]{}';
 
                 utils.requireCodeMirrorMode('haskell', function(){
                     // Create a multiplexing mode that uses Haskell highlighting by default but
@@ -47,14 +48,12 @@ define(['require',
                             // This is necessary, otherwise sometimes highlighting just doesn't happen.
                             // This may be an IPython bug.
                             c.code_mirror.setOption('mode', 'ihaskell');
+                            c.code_mirror.setOption('autoCloseBrackets', '()[]{}');
                             c.force_highlight('ihaskell');
                         }
                     }
                 });
                 if(IPython.notebook.set_codemirror_mode){
-                    // this first one will not be necessary in the future
-                    // neither should the loop on all cells above
-                    IPython.notebook.set_codemirror_mode('null')
                     IPython.notebook.set_codemirror_mode('ihaskell')
                 }
 
