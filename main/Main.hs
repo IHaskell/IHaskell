@@ -18,6 +18,7 @@ import           Data.Aeson
 import           System.Directory
 import           System.Process (readProcess, readProcessWithExitCode)
 import           System.Exit (exitSuccess, ExitCode(ExitSuccess))
+import           Control.Exception (try, SomeException)
 import           System.Environment (getArgs)
 #if MIN_VERSION_ghc(7,8,0)
 import           System.Environment (setEnv)
@@ -116,11 +117,14 @@ runKernel kernelOpts profileSrc = do
   dir <- getIHaskellDir
   Stdin.recordKernelProfile dir profile
 
-  -- Detect if we have stack
-  (exitCode, stackStdout, _) <- readProcessWithExitCode "stack" [] ""
-  let stack = exitCode == ExitSuccess && "The Haskell Tool Stack" `isInfixOf` stackStdout
-
 #if MIN_VERSION_ghc(7,8,0)
+  -- Detect if we have stack
+  runResult <- try $ readProcessWithExitCode "stack" [] ""
+  let stack = 
+        case runResult :: Either SomeException (ExitCode, String, String) of 
+          Left _ -> False
+          Right (exitCode, stackStdout, _) -> exitCode == ExitSuccess && "The Haskell Tool Stack" `isInfixOf` stackStdout
+
   -- If we're in a stack directory, use `stack` to set the environment
   -- We can't do this with base <= 4.6 because setEnv doesn't exist.
   when stack $ do
