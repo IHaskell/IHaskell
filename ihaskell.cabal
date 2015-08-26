@@ -7,7 +7,7 @@ name:                ihaskell
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.7.0.1
+version:             0.7.0.2
 
 -- A short (one-line) description of the package.
 synopsis:            A Haskell backend kernel for the IPython project.
@@ -89,7 +89,7 @@ library
                        utf8-string          -any,
                        uuid                 >=1.3,
                        vector               -any,
-                       ipython-kernel       >=0.6.1
+                       ipython-kernel       >=0.7
   if flag(binPkgDb)
     build-depends:       bin-package-db
 
@@ -149,7 +149,7 @@ executable ihaskell
                        strict               >=0.3,
                        unix                 >= 2.6,
                        directory            -any,
-                       ipython-kernel       >=0.6.1
+                       ipython-kernel       >=0.7
 
   if flag(binPkgDb)
     build-depends:       bin-package-db
@@ -204,7 +204,7 @@ Test-Suite hspec
         uuid >=1.3,
         vector -any,
         setenv ==0.1.*,
-        ipython-kernel >= 0.6.1
+        ipython-kernel >= 0.7
 
     if flag(binPkgDb)
         build-depends: bin-package-db
