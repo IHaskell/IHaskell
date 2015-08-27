@@ -37,4 +37,6 @@ extra-deps:
 - system-argv0-0.1.1
 - vinyl-0.5.1
 - xformat-0.1.2.1
+- ratio-int-0.1.2
+- friday-0.2.2.0
 resolver: nightly-2015-08-15
