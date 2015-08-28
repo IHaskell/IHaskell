@@ -203,8 +203,8 @@ installKernelspec replace opts = void $ do
 
     Just ipython <- SH.which "ipython"
     let replaceFlag = ["--replace" | replace]
-        installPrefixFlag = maybe [] (\prefix -> ["--prefix", T.pack prefix]) (kernelSpecInstallPrefix opts)
-        cmd = ["kernelspec", "install", "--user", SH.toTextIgnore kernelDir] ++ replaceFlag ++ installPrefixFlag
+        installPrefixFlag = maybe ["--user"] (\prefix -> ["--prefix", T.pack prefix]) (kernelSpecInstallPrefix opts)
+        cmd = concat [["kernelspec", "install"], installPrefixFlag, [SH.toTextIgnore kernelDir], replaceFlag]
     SH.silently $ SH.run ipython cmd
 
 kernelSpecCreated :: SH.Sh Bool
