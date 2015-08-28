@@ -46,6 +46,7 @@ data KernelSpecOptions =
          { kernelSpecGhcLibdir :: String           -- ^ GHC libdir.
          , kernelSpecDebug :: Bool                 -- ^ Spew debugging output?
          , kernelSpecConfFile :: IO (Maybe String) -- ^ Filename of profile JSON file.
+         , kernelSpecInstallPrefix :: Maybe String
          }
 
 defaultKernelSpecOptions :: KernelSpecOptions
@@ -53,6 +54,7 @@ defaultKernelSpecOptions = KernelSpecOptions
   { kernelSpecGhcLibdir = GHC.Paths.libdir
   , kernelSpecDebug = False
   , kernelSpecConfFile = defaultConfFile
+  , kernelSpecInstallPrefix = Nothing
   }
 
 -- | The IPython kernel name.
@@ -201,8 +203,9 @@ installKernelspec replace opts = void $ do
 
     Just ipython <- SH.which "ipython"
     let replaceFlag = ["--replace" | replace]
-        cmd = ["kernelspec", "install", "--user", kernelDir] ++ replaceFlag
-    SH.silently $ SH.run ipython (map SH.toTextIgnore cmd)
+        installPrefixFlag = maybe [] (\prefix -> ["--prefix", T.pack prefix]) (kernelSpecInstallPrefix opts)
+        cmd = ["kernelspec", "install", "--user", SH.toTextIgnore kernelDir] ++ replaceFlag ++ installPrefixFlag
+    SH.silently $ SH.run ipython cmd
 
 kernelSpecCreated :: SH.Sh Bool
 kernelSpecCreated = do

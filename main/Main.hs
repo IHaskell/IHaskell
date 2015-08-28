@@ -100,6 +100,8 @@ parseKernelArgs = foldl' addFlag defaultKernelSpecOptions
       kernelSpecOpts { kernelSpecDebug = True }
     addFlag kernelSpecOpts (GhcLibDir libdir) =
       kernelSpecOpts { kernelSpecGhcLibdir = libdir }
+    addFlag kernelSpecOpts (KernelspecInstallPrefix prefix) =
+      kernelSpecOpts { kernelSpecInstallPrefix = Just prefix }
     addFlag kernelSpecOpts flag = error $ "Unknown flag" ++ show flag
 
 -- | Run the IHaskell language kernel.
