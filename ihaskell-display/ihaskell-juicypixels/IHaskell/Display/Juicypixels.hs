@@ -1,15 +1,12 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 
-module IHaskell.Display.Juicypixels (
-  module IHaskell.Display,
-  module Codec.Picture
-) where
+module IHaskell.Display.Juicypixels (module IHaskell.Display, module Codec.Picture) where
 
 import qualified Codec.Picture as P
-import Codec.Picture (Image(..))
-import Codec.Picture.Png (PngSavable, encodePng)
-import IHaskell.Display (IHaskellDisplay, Display(..), display, png, base64)
-import Data.ByteString.Lazy (ByteString, toStrict)
+import           Codec.Picture (Image(..))
+import           Codec.Picture.Png (PngSavable, encodePng)
+import           IHaskell.Display (IHaskellDisplay, Display(..), display, png, base64)
+import           Data.ByteString.Lazy (ByteString, toStrict)
 
 instance IHaskellDisplay (Image P.Pixel8) where
   display = return . format
