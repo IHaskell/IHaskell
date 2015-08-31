@@ -9,46 +9,31 @@
 -- a simple language that nevertheless has side effects, global state, and timing effects is
 -- included in the examples directory.
 --
--- = Profiles To run your kernel, you will need an IPython profile that causes the frontend to run
--- it. To generate a fresh profile, run the command
+-- = Kernel Specs
 --
--- > ipython profile create NAME
+-- To run your kernel, you will need to install the kernelspec into the Jupyter namespace.
+-- If your kernel name is `kernel`, you will need to run the command:
 --
--- This will create a fresh IPython profile in @~\/.ipython\/profile_NAME@. This profile must be
--- modified in two ways:
+-- > kernel install
 --
--- 1. It needs to run your kernel instead of the default ipython 2. It must have message signing
--- turned off, because 'easyKernel' doesn't support it
---
--- == Setting the executable To set the executable, modify the configuration object's
--- @KernelManager.kernel_cmd@ property. For example:
---
--- > c.KernelManager.kernel_cmd = ['my_kernel', '{connection_file}']
---
--- Your own main should arrange to parse command line arguments such
--- that the connection file is passed to easyKernel.
---
--- == Message signing
--- To turn off message signing, use the following snippet:
---
--- > c.Session.key = b''
--- > c.Session.keyfile = b''
+-- This will inform Jupyter of the kernel so that it may be used.
 --
 -- == Further profile improvements
 -- Consult the IPython documentation along with the generated profile
 -- source code for further configuration of the frontend, including
 -- syntax highlighting, logos, help text, and so forth.
-module IHaskell.IPython.EasyKernel (easyKernel, installProfile, KernelConfig(..)) where
+module IHaskell.IPython.EasyKernel (easyKernel, installKernelspec, KernelConfig(..)) where
 
-import           Data.Aeson (decode)
+import           Data.Aeson (decode, encode)
 
 import qualified Data.ByteString.Lazy as BL
 
-import qualified Codec.Archive.Tar as Tar
+import           System.IO.Temp (withTempDirectory)
+import           System.Process (rawSystem)
 
 import           Control.Concurrent (MVar, readChan, writeChan, newMVar, readMVar, modifyMVar_)
 import           Control.Monad.IO.Class (MonadIO(..))
-import           Control.Monad (forever, when, unless)
+import           Control.Monad (forever, when, unless, void)
 
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
@@ -59,7 +44,7 @@ import           IHaskell.IPython.Message.UUID as UUID
 import           IHaskell.IPython.Types
 
 import           System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist,
-                                   getHomeDirectory)
+                                   getHomeDirectory, getTemporaryDirectory)
 import           System.FilePath ((</>))
 import           System.Exit (exitSuccess)
 import           System.IO (openFile, IOMode(ReadMode))
@@ -72,22 +57,20 @@ data KernelConfig m output result =
          { 
          -- | Info on the language of the kernel.
          kernelLanguageInfo :: LanguageInfo
-         -- | Determine the source of a profile to install using 'installProfile'. The source should be a
-         -- tarball whose contents will be unpacked directly into the profile directory. For example, the
-         -- file whose name is @ipython_config.py@ in the tar file for a language named @lang@ will end up in
-         -- @~/.ipython/profile_lang/ipython_config.py@.
-         , profileSource :: IO (Maybe FilePath)
+         -- | Write all the files into the kernel directory, including `kernel.js`, `logo-64x64.png`, and any
+         -- other required files. The directory to write to will be passed to this function, and the return
+         -- value should be the kernelspec to be written to `kernel.json`.
+         , writeKernelspec :: FilePath -> IO KernelSpec
          -- | How to render intermediate output
          , displayOutput :: output -> [DisplayData]
          -- | How to render final cell results
          , displayResult :: result -> [DisplayData]
-         -- | Perform completion. The returned tuple consists of the matches, the matched text, and the
-         -- completion text. The arguments are the code in the cell, the current line as text, and the column
-         -- at which the cursor is placed.
-         , completion :: T.Text -> T.Text -> Int -> Maybe ([T.Text], T.Text, T.Text)
-         -- | Return the information or documentation for its argument. The returned tuple consists of the
-         -- name, the documentation, and the type, respectively.
-         , inspectInfo :: T.Text -> Maybe (T.Text, T.Text, T.Text)
+         -- | Perform completion. The returned tuple consists of the matched text and completions. The
+         -- arguments are the code in the cell and the position of the cursor in the cell.
+         , completion :: T.Text -> Int -> m (T.Text, [T.Text])
+         -- | Return the information or documentation for its argument, described by the cell contents and
+         -- cursor position. The returned value is simply the data to display.
+         , inspectInfo :: T.Text -> Int -> m (Maybe [DisplayData])
          -- | Execute a cell. The arguments are the contents of the cell, an IO action that will clear the
          -- current intermediate output, and an IO action that will add a new item to the intermediate
          -- output. The result consists of the actual result, the status to be sent to IPython, and the
@@ -97,34 +80,30 @@ data KernelConfig m output result =
          , debug :: Bool -- ^ Whether to print extra debugging information to
          }
 
--- the console | Attempt to install the IPython profile from the .tar file indicated by the
--- 'profileSource' field of the configuration, if it is not already installed.
-installProfile :: MonadIO m => KernelConfig m output result -> m ()
-installProfile config = do
-  installed <- isInstalled
-  unless installed $ do
-    profSrc <- liftIO $ profileSource config
-    case profSrc of
-      Nothing -> liftIO (putStrLn "No IPython profile is installed or specified")
-      Just tar -> do
-        profExists <- liftIO $ doesFileExist tar
-        profTgt <- profDir
-        if profExists
-          then do
-            liftIO $ createDirectoryIfMissing True profTgt
-            liftIO $ Tar.extract profTgt tar
-          else liftIO . putStrLn $
-            "The supplied profile source '" ++ tar ++ "' does not exist"
+-- Install the kernelspec, using the `writeKernelspec` field of the kernel configuration.
+installKernelspec :: MonadIO m
+                  => KernelConfig m output result -- ^ Kernel configuration to install
+                  -> Bool                         -- ^ Whether to use Jupyter `--replace`
+                  -> Maybe FilePath               -- ^ (Optional) prefix to install into for Jupyter `--prefix`
+                  -> m ()
+installKernelspec config replace installPrefixMay =
+  liftIO $ withTmpDir $ \tmp -> do
+    let kernelDir = tmp </> languageName (kernelLanguageInfo config)
+    createDirectoryIfMissing True kernelDir
+    kernelSpec <- writeKernelspec config kernelDir
+
+    let filename = kernelDir </> "kernel.json"
+    BL.writeFile filename $ encode $ toJSON kernelSpec
+
+    let replaceFlag = ["--replace" | replace]
+        installPrefixFlag = maybe ["--user"] (\prefix -> ["--prefix", prefix]) installPrefixMay
+        cmd = concat [["kernelspec", "install"], installPrefixFlag, [kernelDir], replaceFlag]
+    void $ rawSystem "ipython" cmd
 
   where
-    profDir = do
-      home <- liftIO getHomeDirectory
-      return $ home </> ".ipython" </> ("profile_" ++ languageName (kernelLanguageInfo config))
-    isInstalled = do
-      prof <- profDir
-      dirThere <- liftIO $ doesDirectoryExist prof
-      isProf <- liftIO . doesFileExist $ prof </> "ipython_config.py"
-      return $ dirThere && isProf
+    withTmpDir act = do
+      tmp <- getTemporaryDirectory
+      withTempDirectory tmp "easyKernel" act
 
 getProfile :: FilePath -> IO Profile
 getProfile fn = do
@@ -226,12 +205,27 @@ replyTo config execCount interface req@ExecuteRequest { getCode = code } replyHe
       , status = replyStatus
       }
 
-replyTo config _ _ req@CompleteRequest{} replyHeader =
-  -- TODO: FIX
-  error "Completion: Unimplemented for IPython 3.0"
+replyTo config _ _ req@CompleteRequest{} replyHeader = do
+  let code = getCode req
+      pos = getCursorPos req
+  (matchedText, completions) <- completion config code pos
 
-replyTo _ _ _ InspectRequest{} _ =
-  error "Inspection: Unimplemented for IPython 3.0"
+  let start = pos - T.length matchedText
+      end = pos
+      reply = CompleteReply replyHeader completions start end Map.empty True
+  return reply
+
+replyTo config _ _ req@InspectRequest{} replyHeader = do
+  result <- inspectInfo config (inspectCode req) (inspectCursorPos req)
+  let reply =
+        case result of
+          Just datas -> InspectReply
+            { header = replyHeader
+            , inspectStatus = True
+            , inspectData = datas
+            }
+          _ -> InspectReply { header = replyHeader, inspectStatus = False, inspectData = [] }
+  return reply
 
 replyTo _ _ _ msg _ = do
   liftIO $ putStrLn "Unknown message: "

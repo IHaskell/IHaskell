@@ -16,7 +16,7 @@ import           Data.Monoid ((<>))
 import qualified Data.Text as T
 
 import           IHaskell.IPython.Kernel
-import           IHaskell.IPython.EasyKernel (installProfile, easyKernel, KernelConfig(..))
+import           IHaskell.IPython.EasyKernel (installKernelspec, easyKernel, KernelConfig(..))
 
 import           System.Environment (getArgs)
 import           System.FilePath ((</>))
@@ -106,12 +106,15 @@ expr = do
 parse :: String -> Either ParseError Razor
 parse = runParser expr () "(input)"
 
--- -------------------- Language operations -------------------- | Completion
-langCompletion :: T.Text -> T.Text -> Int -> Maybe ([T.Text], T.Text, T.Text)
-langCompletion _code line col =
-  let (before, _) = T.splitAt col line
-  in fmap (\word -> (map T.pack . matchesFor $ T.unpack word, word, word))
-       (lastMaybe (T.words before))
+-------------------- Language operations -------------------- 
+--
+-- | Completion
+langCompletion :: Monad m => T.Text -> Int -> m (T.Text, [T.Text])
+langCompletion code pos = return $
+  let (before, _) = T.splitAt pos code
+  in case lastMaybe (T.words before) of
+    Nothing   -> ("", [])
+    Just word -> (word, map T.pack . matchesFor $ T.unpack word)
   where
     lastMaybe :: [a] -> Maybe a
     lastMaybe [] = Nothing
@@ -122,8 +125,8 @@ langCompletion _code line col =
     available = ["sleep", "then", "end", "count"] ++ map show [(-1000 :: Int) .. 1000]
 
 -- | Documentation lookup
-langInfo :: T.Text -> Maybe (T.Text, T.Text, T.Text)
-langInfo obj =
+langInfo :: Monad m => T.Text -> Int -> m (Maybe [DisplayData])
+langInfo code pos = return $ toDisplay $
   if | any (T.isPrefixOf obj) ["sleep", "then", "end"] -> Just (obj, sleepDocs, sleepType)
      | T.isPrefixOf obj "count" -> Just (obj, countDocs, countType)
      | obj == "+" -> Just (obj, plusDocs, plusType)
@@ -133,6 +136,12 @@ langInfo obj =
       , T.all isDigit y -> Just (obj, floatDocs obj, floatType)
      | otherwise -> Nothing
   where
+    (before, _) = T.splitAt pos code
+    obj = last $ T.words before
+
+    toDisplay Nothing = Nothing
+    toDisplay (Just (x, y, z)) = Just [DisplayData PlainText $ T.unlines [x, y, z]]
+
     sleepDocs = "sleep DURATION then VALUE end: sleep DURATION seconds, then eval VALUE"
     sleepType = "sleep FLOAT then INT end"
     plusDocs = "Perform addition"
@@ -207,9 +216,17 @@ execRazor val Count clear send = do
 mkConfig :: MVar Integer -- ^ The internal state of the execution
          -> KernelConfig IO [IntermediateEvalRes] (Either ParseError Integer)
 mkConfig var = KernelConfig
-  { languageName = "expanded_huttons_razor"
-  , languageVersion = [0, 1, 0]
-  , profileSource = Just . (</> "calc_profile.tar") <$> Paths.getDataDir
+  { kernelLanguageInfo = LanguageInfo
+    { languageName = "expanded_huttons_razor"
+    , languageVersion = "1.0.0"
+    , languageFileExtension = ".txt"
+    , languageCodeMirrorMode = "null"
+    }
+  , writeKernelspec = const $ return $ KernelSpec
+    { kernelDisplayName = "Hutton's Razor"
+    , kernelLanguage = "hutton"
+    , kernelCommand = ["simple-calc-example", "kernel", "{connection_file}"]
+    }
   , displayResult = displayRes
   , displayOutput = displayOut
   , completion = langCompletion
@@ -242,11 +259,10 @@ main = do
   case args of
     ["kernel", profileFile] ->
       easyKernel profileFile (mkConfig val)
-    ["setup"] -> do
-      putStrLn "Installing profile..."
-      installProfile (mkConfig val)
+    ["install"] -> do
+      putStrLn "Installing kernelspec..."
+      installKernelspec (mkConfig val) False Nothing
     _ -> do
       putStrLn "Usage:"
-      putStrLn "simple-calc-example setup        -- set up the profile"
-      putStrLn
-        "simple-calc-example kernel FILE  -- run a kernel with FILE for communication with the frontend"
+      putStrLn "simple-calc-example install      -- set up the kernelspec"
+      putStrLn "simple-calc-example kernel FILE  -- run a kernel with FILE for communication with the frontend"
