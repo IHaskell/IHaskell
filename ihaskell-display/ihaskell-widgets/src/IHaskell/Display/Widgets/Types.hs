@@ -57,7 +57,7 @@ module IHaskell.Display.Widgets.Types where
 -- To know more about the IPython messaging specification (as implemented in this package) take a
 -- look at the supplied MsgSpec.md.
 --
--- Widgets are not able to do console input, the reason for that can also be found in the messaging
+-- Widgets are not able to do console input, the reason for that can be found in the messaging
 -- specification
 import           Control.Monad (unless, join, when, void, mapM_)
 import           Control.Applicative ((<$>))
@@ -89,7 +89,7 @@ import qualified IHaskell.Display.Widgets.Singletons as S
 import           IHaskell.Display.Widgets.Common
 
 -- Classes from IPython's widget hierarchy. Defined as such to reduce code duplication.
-type WidgetClass = '[S.ViewModule, S.ViewName, S.MsgThrottle, S.Version,
+type WidgetClass = '[S.ViewModule, S.ViewName, S.ModelModule, S.ModelName, S.MsgThrottle, S.Version,
   S.DisplayHandler]
 
 type DOMWidgetClass = WidgetClass :++ '[S.Visible, S.CSS, S.DOMClasses, S.Width, S.Height, S.Padding,
@@ -128,10 +128,12 @@ type BoxClass = DOMWidgetClass :++ '[S.Children, S.OverflowX, S.OverflowY, S.Box
 type SelectionContainerClass = BoxClass :++ '[S.Titles, S.SelectedIndex, S.ChangeHandler]
 
 -- Types associated with Fields.
- 
+
 type family FieldType (f :: Field) :: * where
         FieldType S.ViewModule = Text
         FieldType S.ViewName = Text
+        FieldType S.ModelModule = Text
+        FieldType S.ModelName = Text
         FieldType S.MsgThrottle = Integer
         FieldType S.Version = Integer
         FieldType S.DisplayHandler = IO ()
@@ -338,6 +340,12 @@ instance ToPairs (Attr S.ViewModule) where
 
 instance ToPairs (Attr S.ViewName) where
   toPairs x = ["_view_name" .= toJSON x]
+
+instance ToPairs (Attr S.ModelModule) where
+  toPairs x = ["_model_module" .= toJSON x]
+
+instance ToPairs (Attr S.ModelName) where
+  toPairs x = ["_model_name" .= toJSON x]
 
 instance ToPairs (Attr S.MsgThrottle) where
   toPairs x = ["msg_throttle" .= toJSON x]
@@ -591,6 +599,8 @@ reflect = fromSing
 defaultWidget :: FieldType S.ViewName -> Rec Attr WidgetClass
 defaultWidget viewName = (ViewModule =:: "")
                          :& (ViewName =:: viewName)
+                         :& (ModelModule =:: "")
+                         :& (ModelName =:: "WidgetModel")
                          :& (MsgThrottle =:+ 3)
                          :& (Version =:: 0)
                          :& (DisplayHandler =:: return ())

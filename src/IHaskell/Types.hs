@@ -65,10 +65,14 @@ class IHaskellDisplay a where
 
 -- | Display as an interactive widget.
 class IHaskellDisplay a => IHaskellWidget a where
-  -- | Output target name for this widget. The actual input parameter should be ignored. By default
+  -- | Target name for this widget. The actual input parameter should be ignored. By default
   -- evaluate to "ipython.widget", which is used by IPython for its backbone widgets.
   targetName :: a -> String
   targetName _ = "ipython.widget"
+
+  -- | Target module for this widget. Evaluates to an empty string by default.
+  targetModule :: a -> String
+  targetModule _ = ""
 
   -- | Get the uuid for comm associated with this widget. The widget is responsible for storing the
   -- UUID during initialization.
@@ -102,6 +106,7 @@ instance IHaskellDisplay Widget where
 
 instance IHaskellWidget Widget where
   targetName (Widget widget) = targetName widget
+  targetModule (Widget widget) = targetModule widget
   getCommUUID (Widget widget) = getCommUUID widget
   open (Widget widget) = open widget
   comm (Widget widget) = comm widget
@@ -185,11 +190,10 @@ data LintStatus = LintOn
   deriving (Eq, Show)
 
 -- | Send JSON objects with specific formats
-data WidgetMsg = Open Widget Value Value
+data WidgetMsg = Open Widget Value
                |
                -- ^ Cause the interpreter to open a new comm, and register the associated widget in
-               -- the kernelState. Also sends a Value with comm_open, and then sends an initial
-               -- state update Value.
+               -- the kernelState. Also sends an initial state Value with comm_open.
                 Update Widget Value
                |
                -- ^ Cause the interpreter to send a comm_msg containing a state update for the

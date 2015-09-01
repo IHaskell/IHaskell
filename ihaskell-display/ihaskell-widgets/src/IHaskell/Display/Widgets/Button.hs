@@ -49,10 +49,8 @@ mkButton = do
 
   let button = IPythonWidget uuid stateIO
 
-  let initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Button"]
-
   -- Open a comm for this widget, and store it in the kernel state
-  widgetSendOpen button initData $ toJSON buttonState
+  widgetSendOpen button $ toJSON buttonState
 
   -- Return the button widget
   return button

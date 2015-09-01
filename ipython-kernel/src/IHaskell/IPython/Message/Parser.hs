@@ -159,9 +159,10 @@ inputReplyParser = requestParser $ \obj -> do
 commOpenParser :: LByteString -> Message
 commOpenParser = requestParser $ \obj -> do
   uuid <- obj .: "comm_id"
-  name <- obj .: "target_name"
+  targetName <- obj .: "target_name"
+  targetModule <- obj .: "target_module"
   value <- obj .: "data"
-  return $ CommOpen noHeader name uuid value
+  return $ CommOpen noHeader targetName targetModule uuid value
 
 commDataParser :: LByteString -> Message
 commDataParser = requestParser $ \obj -> do

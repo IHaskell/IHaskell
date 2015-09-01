@@ -375,6 +375,7 @@ data Message =
                CommOpen
                  { header :: MessageHeader
                  , commTargetName :: String
+                 , commTargetModule :: String
                  , commUuid :: UUID
                  , commData :: Value
                  }

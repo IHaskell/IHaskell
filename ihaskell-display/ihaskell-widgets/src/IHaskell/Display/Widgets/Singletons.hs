@@ -13,9 +13,11 @@ import           Data.Singletons.TH
 -- Widget properties
 singletons
   [d|
-   
+
   data Field = ViewModule
              | ViewName
+             | ModelModule
+             | ModelName
              | MsgThrottle
              | Version
              | DisplayHandler

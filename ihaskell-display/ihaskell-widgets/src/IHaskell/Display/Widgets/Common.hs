@@ -18,6 +18,8 @@ import qualified IHaskell.Display.Widgets.Singletons as S
 
 pattern ViewModule = S.SViewModule
 pattern ViewName = S.SViewName
+pattern ModelModule = S.SModelModule
+pattern ModelName = S.SModelName
 pattern MsgThrottle = S.SMsgThrottle
 pattern Version = S.SVersion
 pattern DisplayHandler = S.SDisplayHandler
