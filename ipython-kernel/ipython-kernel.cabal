@@ -64,3 +64,17 @@ executable simple-calc-example
 
   if !flag(examples)
     buildable: False
+
+executable fun-calc-example
+  hs-source-dirs: examples
+  main-is:        Simple.hs
+  build-depends:  ipython-kernel,
+                  base           >=4.6 && <4.9,
+                  filepath       >=1.2,
+                  mtl            >=2.1,
+                  parsec         >=3.1,
+                  text           >=0.11,
+                  transformers   >=0.3
+
+  if !flag(examples)
+    buildable: False

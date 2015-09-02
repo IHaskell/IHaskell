@@ -1,9 +1,58 @@
-module Simple where
+module Main where
 
-import IHaskell.IPython.EasyKernel (easyKernel, installKernelspec)
+import qualified Data.Text as T
 
-functions :: [(String, Int -> Int -> Int)]
-functions = [("plus", (+)), ("minus", (-)), ("times", (*)), ("div", div), ("exp", (^))]
+import System.Environment (getArgs)
+
+import Text.Parsec
+import Text.Parsec.String
+
+import IHaskell.IPython.EasyKernel (easyKernel, installKernelspec, KernelConfig(..))
+import IHaskell.IPython.Types
+
+-- Define the actual language!
+data Expr = Plus Expr Expr
+          | Minus Expr Expr
+          | Times Expr Expr
+          | Div Expr Expr
+          | Exp Expr Expr
+          | Val Int
+  deriving (Show, Eq)
+
+eval :: Expr -> Int
+eval (Val i) = i
+eval (Plus x y) = eval x + eval y
+eval (Minus x y) = eval x - eval y
+eval (Times x y) = eval x * eval y
+eval (Div x y) = eval x `div` eval y
+eval (Exp x y) = eval x ^ eval y
+
+parseExpr :: String -> Either String Expr
+parseExpr str =
+  case parse expr "interactive" (filter (/= ' ') str) of
+    Left err -> Left (show err)
+    Right e  -> Right e
+  where
+    expr :: Parser Expr
+    expr = val <|> op
+
+    val :: Parser Expr
+    val = Val <$> read <$> many1 (oneOf "0123456789")
+
+    op :: Parser Expr
+    op = do
+      func <- choice $ map string $ ["plus", "minus", "times", "div", "exp"]
+      char '('
+      x <- expr
+      char ','
+      y <- expr
+      char ')'
+      return $ case func of
+        "plus"  -> Plus x y
+        "minus" -> Minus x y
+        "times" -> Times x y
+        "div"   -> Div x y
+        "exp"   -> Exp x y
 
 languageConfig :: LanguageInfo
 languageConfig = LanguageInfo
@@ -45,16 +94,32 @@ languageCompletion code pos = return $
     replace ',' = ' '
     replace  x = x
 
-languageInspect :: Monad m => T.Text -> Int -> m (Maybe DisplayData)
-languageInspect _ _ = return $ Just $ DisplayData PlainText $ T.pack $ unlines $
-  [ "We support five arithmetic functions:"
-  , "   - plus  +"
-  , "   - minus -"
-  , "   - div   /"
-  , "   - times *"
-  , "   - exp   ^"
-  , "Expressions are written as f(exp, exp)"
-  ]
+languageInspect :: Monad m => T.Text -> Int -> m (Maybe [DisplayData])
+languageInspect _ _ = return $
+  Just
+    [ DisplayData PlainText $ T.pack $
+      unlines
+        [ "We support five arithmetic functions:"
+        , "   - plus  +"
+        , "   - minus -"
+        , "   - div   /"
+        , "   - times *"
+        , "   - exp   ^"
+        , "Expressions are written as f(exp, exp)"
+        ]
+    ]
+
+languageRun :: T.Text -> IO () -> (String -> IO ()) -> IO (String, ExecuteReplyStatus, String)
+languageRun code init intermediate = do
+  init
+  let expr = parseExpr $ T.unpack code
+  intermediate (show expr)
+
+  return
+    (case expr of
+       Left err   -> err
+       Right expr -> show (eval expr), IHaskell.IPython.Types.Ok, "")
+
 
 simpleConfig :: KernelConfig IO String String
 simpleConfig = KernelConfig
