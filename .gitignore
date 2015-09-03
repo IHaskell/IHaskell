@@ -22,3 +22,5 @@ cabal.sandbox.config
 .tmp1
 .tmp2
 .tmp3
+.stack-work
+ghc-parser/*

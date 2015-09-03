@@ -7,11 +7,11 @@ module IHaskell.IPython.Message.Writer (ToJSON(..)) where
 
 import           Data.Aeson
 import           Data.Map (Map)
-import           Data.Text (Text, pack)
 import           Data.Monoid (mempty)
+import           Data.Text (Text, pack)
 
-import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as L
 import           Data.Text.Encoding
 
 import           IHaskell.IPython.Types
@@ -33,6 +33,15 @@ instance ToJSON Message where
       , "implementation_version" .= implementationVersion rep
       , "language_info" .= languageInfo rep
       ]
+
+  toJSON ExecuteRequest { getCode = code, getSilent = silent, getStoreHistory = storeHistory,
+                          getAllowStdin = allowStdin, getUserVariables = userVariables,
+                          getUserExpressions = userExpressions
+                        } =
+    object ["code" .= code, "silent" .= silent, "store_history" .= storeHistory,
+            "allow_stdin" .= allowStdin, "user_variables" .= userVariables,
+            "user_expressions" .= userExpressions
+           ]
 
   toJSON ExecuteReply { status = status, executionCounter = counter, pagerOutput = pager } =
     object

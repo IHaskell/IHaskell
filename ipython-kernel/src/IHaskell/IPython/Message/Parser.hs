@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 
 -- | Description : Parsing messages received from IPython
 --
@@ -7,13 +7,16 @@
 -- the low-level 0MQ interface.
 module IHaskell.IPython.Message.Parser (parseMessage) where
 
-import           Data.Aeson ((.:), decode, Result(..), Object)
 import           Control.Applicative ((<|>), (<$>), (<*>))
-import           Data.Aeson.Types (parse)
-import           Data.ByteString
-import           Data.Map (Map)
-import           Data.Text (Text)
+import           Data.Aeson ((.:), (.:?), decode, Result(..), Object, Value(..))
+import           Data.Aeson.Types (parse, parseEither)
+import           Data.ByteString hiding (unpack)
 import qualified Data.ByteString.Lazy as Lazy
+import           Data.HashMap.Strict as HM
+import           Data.Map (Map)
+import           Data.Maybe (catMaybes, fromMaybe)
+import           Data.Text (Text, unpack, concat)
+import           Debug.Trace
 import           IHaskell.IPython.Types
 
 type LByteString = Lazy.ByteString
@@ -72,7 +75,12 @@ parser :: MessageType            -- ^ The message type being parsed.
        -> LByteString -> Message -- ^ The parser that converts the body into a message. This message
                                  -- should have an undefined header.
 parser KernelInfoRequestMessage = kernelInfoRequestParser
+parser ExecuteInputMessage = executeInputParser
 parser ExecuteRequestMessage = executeRequestParser
+parser ExecuteReplyMessage = executeReplyParser
+parser ExecuteErrorMessage = executeErrorParser
+parser ExecuteResultMessage = executeResultParser
+parser DisplayDataMessage = displayDataParser
 parser CompleteRequestMessage = completeRequestParser
 parser InspectRequestMessage = inspectRequestParser
 parser ShutdownRequestMessage = shutdownRequestParser
@@ -81,12 +89,24 @@ parser CommOpenMessage = commOpenParser
 parser CommDataMessage = commDataParser
 parser CommCloseMessage = commCloseParser
 parser HistoryRequestMessage = historyRequestParser
+parser StatusMessage = statusMessageParser
+parser StreamMessage = streamMessageParser
+parser InputMessage = inputMessageParser
+parser OutputMessage = outputMessageParser
+parser ClearOutputMessage = clearOutputMessageParser
 parser other = error $ "Unknown message type " ++ show other
 
 -- | Parse a kernel info request. A kernel info request has no auxiliary information, so ignore the
 -- body.
 kernelInfoRequestParser :: LByteString -> Message
 kernelInfoRequestParser _ = KernelInfoRequest { header = noHeader }
+
+-- | Parse an execute_input response. Fields used are:
+executeInputParser :: LByteString -> Message
+executeInputParser = requestParser $ \obj -> do
+  code <- obj .: "code"
+  executionCount <- obj .: "execution_count"
+  return $ ExecuteInput noHeader code executionCount
 
 -- | Parse an execute request. Fields used are:
 --  1. "code": the code to execute.
@@ -114,9 +134,47 @@ executeRequestParser content =
     , getUserExpressions = []
     }
 
-requestParser parser content = parsed
+-- | Parse an execute reply
+executeReplyParser :: LByteString -> Message
+executeReplyParser = requestParser $ \obj -> do
+  status <- obj .: "status"
+  executionCount <- obj .: "execution_count"
+  return $ ExecuteReply noHeader status [] executionCount
+
+-- | Parse an execute reply
+executeErrorParser :: LByteString -> Message
+executeErrorParser = requestParser $ \obj -> do
+  -- executionCount <- obj .: "execution_count"
+  traceback <- obj .: "traceback"
+  ename <- obj .: "ename"
+  evalue <- obj .: "evalue"
+  return $ ExecuteError noHeader [] traceback ename evalue
+
+makeDisplayDatas :: Object -> [DisplayData]
+makeDisplayDatas dataDict = [DisplayData (read $ unpack mimeType) content |
+                             (mimeType, String content) <- HM.toList dataDict]
+
+-- | Parse an execute result
+executeResultParser :: LByteString -> Message
+executeResultParser = requestParser $ \obj -> do
+  executionCount <- obj .: "execution_count"
+  dataDict :: Object <- obj .: "data"
+  let displayDatas = makeDisplayDatas dataDict
+  metadataDict <- obj .: "metadata"
+  return $ ExecuteResult noHeader displayDatas metadataDict executionCount
+
+-- | Parse a display data message
+displayDataParser :: LByteString -> Message
+displayDataParser = requestParser $ \obj -> do
+  dataDict :: Object <- obj .: "data"
+  let displayDatas = makeDisplayDatas dataDict
+  maybeSource <- obj .:? "source"
+  return $ PublishDisplayData noHeader (fromMaybe "" maybeSource) displayDatas
+
+requestParser parser content = case parseEither parser decoded of
+  Right parsed -> parsed
+  Left err -> trace ("Parse error: " ++ show err) SendNothing
   where
-    Success parsed = parse parser decoded
     Just decoded = decode content
 
 historyRequestParser :: LByteString -> Message
@@ -132,6 +190,43 @@ historyRequestParser = requestParser $ \obj ->
           "tail"   -> HistoryTail
           "search" -> HistorySearch
           str      -> error $ "Unknown history access type: " ++ str
+
+statusMessageParser :: LByteString -> Message
+statusMessageParser = requestParser $ \obj -> do
+  execution_state <- obj .: "execution_state"
+  return $ PublishStatus noHeader execution_state
+
+streamMessageParser :: LByteString -> Message
+streamMessageParser = requestParser $ \obj -> do
+  streamType <- obj .: "name"
+  streamContent <- obj .: "text"
+  return $ PublishStream noHeader streamType streamContent
+
+inputMessageParser :: LByteString -> Message
+inputMessageParser = requestParser $ \obj -> do
+  code <- obj .: "code"
+  executionCount <- obj .: "execution_count"
+  return $ Input noHeader code executionCount
+
+getDisplayDatas Nothing = []
+getDisplayDatas (Just dataDict) = makeDisplayDatas dataDict
+
+outputMessageParser :: LByteString -> Message
+outputMessageParser = requestParser $ \obj -> do
+  -- Handle both "data" and "text" keys
+  maybeDataDict1 :: Maybe Object <- obj .:? "data"
+  let displayDatas1 = getDisplayDatas maybeDataDict1
+
+  maybeDataDict2 :: Maybe Object <- obj .:? "text"
+  let displayDatas2 = getDisplayDatas maybeDataDict2
+
+  executionCount <- obj .: "execution_count"
+  return $ Output noHeader (displayDatas1 ++ displayDatas2) executionCount
+
+clearOutputMessageParser :: LByteString -> Message
+clearOutputMessageParser = requestParser $ \obj -> do
+  wait <- obj .: "wait"
+  return $ ClearOutput noHeader wait
 
 completeRequestParser :: LByteString -> Message
 completeRequestParser = requestParser $ \obj -> do

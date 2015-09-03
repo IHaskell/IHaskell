@@ -1,0 +1,7 @@
+flags:
+  ipython-kernel:
+    examples: false
+packages:
+- '.'
+extra-deps: []
+resolver: lts-2.19

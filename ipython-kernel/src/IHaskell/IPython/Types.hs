@@ -34,19 +34,19 @@ module IHaskell.IPython.Types (
     extractPlain,
     ) where
 
-import           Data.Aeson
 import           Control.Applicative ((<$>), (<*>))
+import           Data.Aeson
 import           Data.ByteString (ByteString)
-import qualified Data.Text as Text
-import qualified Data.Text.Encoding as Text
-import           Data.Text (Text)
-import qualified Data.String as S
-import           Data.Serialize
-import           IHaskell.IPython.Message.UUID
-import           GHC.Generics (Generic)
-import           Data.Typeable
 import           Data.List (find)
 import           Data.Map (Map)
+import           Data.Serialize
+import qualified Data.String as S
+import           Data.Text (Text)
+import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text
+import           Data.Typeable
+import           GHC.Generics (Generic)
+import           IHaskell.IPython.Message.UUID
 
 ------------------ IPython Kernel Profile Types ----------------------
 --
@@ -116,7 +116,7 @@ instance ToJSON Transport where
 -------------------- IPython Kernelspec Types ----------------------
 data KernelSpec =
        KernelSpec
-         { 
+         {
          -- | Name shown to users to describe this kernel (e.g. "Haskell")
          kernelDisplayName :: String
          -- | Name for the kernel; unique kernel identifier (e.g. "haskell")
@@ -169,8 +169,11 @@ type Metadata = Map Text Text
 -- | The type of a message, corresponding to IPython message types.
 data MessageType = KernelInfoReplyMessage
                  | KernelInfoRequestMessage
+                 | ExecuteInputMessage
                  | ExecuteReplyMessage
+                 | ExecuteErrorMessage
                  | ExecuteRequestMessage
+                 | ExecuteResultMessage
                  | StatusMessage
                  | StreamMessage
                  | DisplayDataMessage
@@ -195,8 +198,11 @@ data MessageType = KernelInfoReplyMessage
 showMessageType :: MessageType -> String
 showMessageType KernelInfoReplyMessage = "kernel_info_reply"
 showMessageType KernelInfoRequestMessage = "kernel_info_request"
+showMessageType ExecuteInputMessage = "execute_input"
 showMessageType ExecuteReplyMessage = "execute_reply"
+showMessageType ExecuteErrorMessage = "error"
 showMessageType ExecuteRequestMessage = "execute_request"
+showMessageType ExecuteResultMessage = "execute_result"
 showMessageType StatusMessage = "status"
 showMessageType StreamMessage = "stream"
 showMessageType DisplayDataMessage = "display_data"
@@ -222,8 +228,11 @@ instance FromJSON MessageType where
     case s of
       "kernel_info_reply"   -> return KernelInfoReplyMessage
       "kernel_info_request" -> return KernelInfoRequestMessage
+      "execute_input"       -> return ExecuteInputMessage
       "execute_reply"       -> return ExecuteReplyMessage
+      "error"               -> return ExecuteErrorMessage
       "execute_request"     -> return ExecuteRequestMessage
+      "execute_result"      -> return ExecuteResultMessage
       "status"              -> return StatusMessage
       "stream"              -> return StreamMessage
       "display_data"        -> return DisplayDataMessage
@@ -243,6 +252,7 @@ instance FromJSON MessageType where
       "comm_close"          -> return CommCloseMessage
       "history_request"     -> return HistoryRequestMessage
       "history_reply"       -> return HistoryReplyMessage
+      "status_message"      -> return StatusMessage
 
       _                     -> fail ("Unknown message type: " ++ show s)
   parseJSON _ = fail "Must be a string."
@@ -269,6 +279,13 @@ data Message =
                  , languageInfo :: LanguageInfo
                  }
              |
+               -- | A request from a frontend to execute some code.
+               ExecuteInput
+                 { header :: MessageHeader
+                 , getCode :: Text         -- ^ The code string.
+                 , executionCounter :: Int -- ^ The execution count, i.e. which output this is.
+                 }
+             |
              -- | A request from a frontend to execute some code.
                ExecuteRequest
                  { header :: MessageHeader
@@ -286,6 +303,23 @@ data Message =
                  , status :: ExecuteReplyStatus          -- ^ The status of the output.
                  , pagerOutput :: [DisplayData]          -- ^ The mimebundles to display in the pager.
                  , executionCounter :: Int               -- ^ The execution count, i.e. which output this is.
+                 }
+             |
+             -- | A reply to an execute request.
+               ExecuteResult
+                 { header :: MessageHeader
+                 , dataResult :: [DisplayData]           -- ^ Key/value pairs (keys are MIME types)
+                 , metadataResult :: Map String String   -- ^ Any metadata that describes the data
+                 , executionCounter :: Int               -- ^ The execution count, i.e. which output this is.
+                 }
+             |
+             -- | An error reply to an execute request
+               ExecuteError
+                 { header :: MessageHeader
+                 , pagerOutput :: [DisplayData]          -- ^ The mimebundles to display in the pager.
+                 , traceback :: [Text]
+                 , ename :: Text
+                 , evalue :: Text
                  }
              |
                PublishStatus
@@ -316,8 +350,17 @@ data Message =
                  , inCode :: String                      -- ^ Submitted input code.
                  , executionCount :: Int                 -- ^ Which input this is.
                  }
-             |
-               CompleteRequest
+             | Input
+                 { header :: MessageHeader
+                 , getCode :: Text
+                 , executionCount :: Int
+                 }
+             | Output
+                 { header :: MessageHeader
+                 , getText :: [DisplayData]
+                 , executionCount :: Int
+                 }
+             | CompleteRequest
                  { header :: MessageHeader
                  , getCode :: Text  {- ^
             The entire block of text where the line is. This may be useful in the
@@ -414,6 +457,11 @@ data ExecuteReplyStatus = Ok
                         | Err
                         | Abort
 
+instance FromJSON ExecuteReplyStatus where
+  parseJSON (String "ok") = return Ok
+  parseJSON (String "error") = return Err
+  parseJSON (String "abort") = return Abort
+
 instance Show ExecuteReplyStatus where
   show Ok = "ok"
   show Err = "error"
@@ -425,10 +473,22 @@ data ExecutionState = Busy
                     | Starting
   deriving Show
 
+instance FromJSON ExecutionState where
+  parseJSON (String "busy") = return Busy
+  parseJSON (String "idle") = return Idle
+  parseJSON (String "starting") = return Starting
+
 -- | Input and output streams.
 data StreamType = Stdin
                 | Stdout
+                | Stderr
   deriving Show
+
+instance FromJSON StreamType where
+  parseJSON (String "stdin") = return Stdin
+  parseJSON (String "stdout") = return Stdout
+  parseJSON (String "stderr") = return Stderr
+
 
 -- | Get the reply message type for a request message type.
 replyType :: MessageType -> Maybe MessageType
@@ -489,3 +549,12 @@ instance Show MimeType where
   show MimeSvg = "image/svg+xml"
   show MimeLatex = "text/latex"
   show MimeJavascript = "application/javascript"
+
+instance Read MimeType where
+  readsPrec _ "text/plain" = [(PlainText, "")]
+  readsPrec _ "text/html" = [(MimeHtml, "")]
+  readsPrec _ "image/png" = [(MimePng 50 50, "")]
+  readsPrec _ "image/jpg" = [(MimeJpg 50 50, "")]
+  readsPrec _ "image/svg+xml" = [(MimeSvg, "")]
+  readsPrec _ "text/latex" = [(MimeLatex, "")]
+  readsPrec _ "application/javascript" = [(MimeJavascript, "")]
