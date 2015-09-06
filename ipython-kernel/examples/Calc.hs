@@ -265,4 +265,5 @@ main = do
     _ -> do
       putStrLn "Usage:"
       putStrLn "simple-calc-example install      -- set up the kernelspec"
-      putStrLn "simple-calc-example kernel FILE  -- run a kernel with FILE for communication with the frontend"
+      putStrLn
+        "simple-calc-example kernel FILE  -- run a kernel with FILE for communication with the frontend"

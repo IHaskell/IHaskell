@@ -11,17 +11,16 @@
 --
 -- = Kernel Specs
 --
--- To run your kernel, you will need to install the kernelspec into the Jupyter namespace.
--- If your kernel name is `kernel`, you will need to run the command:
+-- To run your kernel, you will need to install the kernelspec into the Jupyter namespace. If your
+-- kernel name is `kernel`, you will need to run the command:
 --
 -- > kernel install
 --
 -- This will inform Jupyter of the kernel so that it may be used.
 --
--- == Further profile improvements
--- Consult the IPython documentation along with the generated profile
--- source code for further configuration of the frontend, including
--- syntax highlighting, logos, help text, and so forth.
+-- == Further profile improvements Consult the IPython documentation along with the generated
+-- profile source code for further configuration of the frontend, including syntax highlighting,
+-- logos, help text, and so forth.
 module IHaskell.IPython.EasyKernel (easyKernel, installKernelspec, KernelConfig(..)) where
 
 import           Data.Aeson (decode, encode)
@@ -99,7 +98,6 @@ installKernelspec config replace installPrefixMay =
         installPrefixFlag = maybe ["--user"] (\prefix -> ["--prefix", prefix]) installPrefixMay
         cmd = concat [["kernelspec", "install"], installPrefixFlag, [kernelDir], replaceFlag]
     void $ rawSystem "ipython" cmd
-
   where
     withTmpDir act = do
       tmp <- getTemporaryDirectory
