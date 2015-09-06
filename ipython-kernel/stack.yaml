@@ -1,7 +1,0 @@
-flags:
-  ipython-kernel:
-    examples: false
-packages:
-- '.'
-extra-deps: []
-resolver: nightly-2015-08-15

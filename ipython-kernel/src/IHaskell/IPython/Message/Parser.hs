@@ -7,7 +7,7 @@
 -- the low-level 0MQ interface.
 module IHaskell.IPython.Message.Parser (parseMessage) where
 
-import           Control.Applicative ((<|>), (<$>), (<*>))
+-- import           Control.Applicative ((<|>), (<$>), (<*>))
 import           Data.Aeson ((.:), (.:?), decode, Result(..), Object, Value(..))
 import           Data.Aeson.Types (parse, parseEither)
 import           Data.ByteString hiding (unpack)

@@ -7,12 +7,12 @@ module IHaskell.IPython.Message.Writer (ToJSON(..)) where
 
 import           Data.Aeson
 import           Data.Map (Map)
-import           Data.Monoid (mempty)
+-- import           Data.Monoid (mempty)
 import           Data.Text (Text, pack)
 
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as L
-import           Data.Text.Encoding
+-- import qualified Data.ByteString as B
+-- import qualified Data.ByteString.Lazy as L
+-- import           Data.Text.Encoding
 
 import           IHaskell.IPython.Types
 

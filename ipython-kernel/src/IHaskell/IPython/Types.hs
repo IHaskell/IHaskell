@@ -34,13 +34,13 @@ module IHaskell.IPython.Types (
     extractPlain,
     ) where
 
-import           Control.Applicative ((<$>), (<*>))
+-- import           Control.Applicative ((<$>), (<*>))
 import           Data.Aeson
 import           Data.ByteString (ByteString)
 import           Data.List (find)
 import           Data.Map (Map)
 import           Data.Serialize
-import qualified Data.String as S
+-- import qualified Data.String as S
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text

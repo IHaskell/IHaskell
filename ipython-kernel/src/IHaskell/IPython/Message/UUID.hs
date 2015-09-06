@@ -4,7 +4,7 @@
 module IHaskell.IPython.Message.UUID (UUID, random, randoms, uuidToString) where
 
 import           Control.Monad (mzero, replicateM)
-import           Control.Applicative ((<$>))
+-- import           Control.Applicative ((<$>))
 import           Data.Text (pack)
 import           Data.Aeson
 import           Data.UUID.V4 (nextRandom)
