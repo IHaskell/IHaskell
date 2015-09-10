@@ -14,6 +14,7 @@ import qualified Data.ByteString.Char8 as CBS
 -- Standard library imports.
 import           Control.Concurrent (threadDelay)
 import           Control.Concurrent.Chan
+import           Control.Arrow (second)
 import           Data.Aeson
 import           System.Directory
 import           System.Process (readProcess, readProcessWithExitCode)
@@ -332,6 +333,44 @@ replyTo _ HistoryRequest{} replyHeader state = do
         , historyReply = []
         }
   return (state, reply)
+
+-- Accomodating the workaround for retrieving list of open comms from the kernel
+--
+-- The main idea is that the frontend opens a comm at kernel startup, whose target is a widget that
+-- sends back the list of live comms and commits suicide.
+--
+-- The message needs to be written to the iopub channel, and not returned from here. If returned,
+-- the same message also gets written to the shell channel, which causes issues due to two messages
+-- having the same identifiers in their headers.
+--
+-- Sending the message only on the shell_reply channel doesn't work, so we send it as a comm message
+-- on the iopub channel and return the SendNothing message.
+replyTo interface open@CommOpen{} replyHeader state = do
+  let send msg = liftIO $ writeChan (iopubChannel interface) msg
+
+      incomingUuid = commUuid open
+      target = commTargetName open
+
+      targetMatches = target == "ipython.widget"
+      valueMatches = commData open == object ["widget_class" .= "ipywidgets.CommInfo"]
+
+      commMap = openComms state
+      uuidTargetPairs = map (second targetName) $ Map.toList commMap
+
+      pairProcessor (x, y) = T.pack (UUID.uuidToString x) .= object ["target_name" .= T.pack y]
+
+      currentComms = object $ map pairProcessor $ (incomingUuid, "comm") : uuidTargetPairs
+
+      replyValue = object [ "method" .= "custom"
+                          , "content" .= object ["comms" .= currentComms]
+                          ]
+
+      msg = CommData replyHeader (commUuid open) replyValue
+
+  -- To the iopub channel you go
+  when (targetMatches && valueMatches) $ send msg
+
+  return (state, SendNothing)
 
 -- TODO: What else can be implemented?
 replyTo _ message _ state = do

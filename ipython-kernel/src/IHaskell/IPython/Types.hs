@@ -439,6 +439,7 @@ replyType CompleteRequestMessage = Just CompleteReplyMessage
 replyType InspectRequestMessage = Just InspectReplyMessage
 replyType ShutdownRequestMessage = Just ShutdownReplyMessage
 replyType HistoryRequestMessage = Just HistoryReplyMessage
+replyType CommOpenMessage = Just CommDataMessage
 replyType _ = Nothing
 
 -- | Data for display: a string with associated MIME type.
