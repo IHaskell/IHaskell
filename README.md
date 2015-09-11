@@ -29,6 +29,8 @@ install instructions.
 
 **How to get help:** Feel free to open an issue [on Github](https://github.com/gibiansky/IHaskell/issues?direction=desc&sort=updated&state=open) or join the [Gitter channel](https://gitter.im/gibiansky/IHaskell?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).
 
+Arch Linux has a package for IHaskell: https://aur.archlinux.org/packages/ihaskell-git/
+
 ### Install Using Installation Scripts
 
 #### Ubuntu:
