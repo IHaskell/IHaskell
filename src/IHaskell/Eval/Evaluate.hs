@@ -960,6 +960,42 @@ evalCommand output (Pragma PragmaLanguage pragmas) state = do
   write state $ "Got LANGUAGE pragma " ++ show pragmas
   evalCommand output (Directive SetExtension $ unwords pragmas) state
 
+evalCommand output (Pragma PragmaOptionsGhc pragmas) state = do
+  write state $ "Got OPTIONS_GHC pragma " ++ show pragmas
+  let hasPreprocessor = "-F" `elem` pragmas
+  when hasPreprocessor $ do
+    let -- Divide a list into pairs, if its evenly divisible.
+        pairs :: [a] -> Maybe [(a, a)]
+        pairs [] = Just []
+        pairs [_] = Nothing
+        pairs (x1:x2:xs) = (:) <$> Just (x1, x2) <*> pairs xs
+
+        wrong = return . displayError . ("Error in GHC options: " ++ )
+
+        -- Process a list of arguments, returning the pgmF command and any options to it.
+        process :: [(String, String)] -> Either String (String, [String])
+        process (("-pgmF", cmd):rest) = do
+          (_, opts) <- process rest
+          Right (cmd, opts)
+        process (("-optF", opt):rest) = do
+          (cmd, opts) <- process rest
+          Right (cmd, opt:opts)
+        process [] = Right ("", [])
+        process ((arg, _):_) = Left  $ "Unknown argument " ++ arg
+
+        otherOpts = pairs $ tail pragmas
+    case otherOpts of
+      Nothing -> wrong "Not an even number of arguments after -F. Only -F -pgmF supported."
+      Just ps -> 
+        case process ps of
+          Left err -> wrong err
+          Right ("", args) -> wrong "No -pgmF specified"
+          Right (cmd, args) ->
+            setCellPreprocessor cmd args
+
+  
+  evalCommand output (Directive SetExtension $ unwords pragmas) state
+
 hoogleResults :: KernelState -> [Hoogle.HoogleResult] -> EvalOut
 hoogleResults state results =
   EvalOut

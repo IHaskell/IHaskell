@@ -65,9 +65,10 @@ data DirectiveType = GetType      -- ^ Get the type of an expression via ':type'
                    | LoadModule   -- ^ Load and unload modules via ':module'.
   deriving (Show, Eq)
 
--- | Pragma types. Only LANGUAGE pragmas are currently supported. Other pragma types are kept around
--- as a string for error reporting.
+-- | Pragma types. Only LANGUAGE and OPTIONS_GHC pragmas are currently supported. Other pragma types
+-- are kept around as a string for error reporting.
 data PragmaType = PragmaLanguage
+                | PragmaOptionsGhc
                 | PragmaUnsupported String
   deriving (Show, Eq)
 
@@ -243,6 +244,7 @@ parsePragma ('{':'-':'#':pragma) line =
     --empty string pragmas are unsupported
     [] -> Pragma (PragmaUnsupported "") []
     "LANGUAGE":xs -> Pragma PragmaLanguage xs
+    "OPTIONS_GHC":xs -> Pragma PragmaOptionsGhc xs
     x:xs -> Pragma (PragmaUnsupported x) xs
 
 -- | Parse a directive of the form :directiveName.
