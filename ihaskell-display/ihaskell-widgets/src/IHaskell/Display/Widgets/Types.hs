@@ -104,7 +104,7 @@ type BoolClass = DOMWidgetClass :++ '[S.BoolValue, S.Disabled, S.Description, S.
 type SelectionClass = DOMWidgetClass :++ '[S.Options, S.SelectedValue, S.SelectedLabel, S.Disabled,
   S.Description, S.SelectionHandler]
 
-type MultipleSelectionClass = DOMWidgetClass :++ '[S.Options, S.SelectedLabels, S.SelectedValues, S.Disabled,
+type MultipleSelectionClass = DOMWidgetClass :++ '[S.Options, S.SelectedValues, S.SelectedLabels, S.Disabled,
   S.Description, S.SelectionHandler]
 
 type IntClass = DOMWidgetClass :++ '[S.IntValue, S.Disabled, S.Description, S.ChangeHandler]
