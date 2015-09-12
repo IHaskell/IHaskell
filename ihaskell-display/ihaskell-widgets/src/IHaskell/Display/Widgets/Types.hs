@@ -89,8 +89,8 @@ import qualified IHaskell.Display.Widgets.Singletons as S
 import           IHaskell.Display.Widgets.Common
 
 -- Classes from IPython's widget hierarchy. Defined as such to reduce code duplication.
-type WidgetClass = '[S.ViewModule, S.ViewName, S.ModelModule, S.ModelName, S.MsgThrottle, S.Version,
-  S.DisplayHandler]
+type WidgetClass = '[S.ViewModule, S.ViewName, S.ModelModule, S.ModelName,
+  S.MsgThrottle, S.Version, S.DisplayHandler]
 
 type DOMWidgetClass = WidgetClass :++ '[S.Visible, S.CSS, S.DOMClasses, S.Width, S.Height, S.Padding,
   S.Margin, S.Color, S.BackgroundColor, S.BorderColor, S.BorderWidth,
@@ -128,7 +128,7 @@ type BoxClass = DOMWidgetClass :++ '[S.Children, S.OverflowX, S.OverflowY, S.Box
 type SelectionContainerClass = BoxClass :++ '[S.Titles, S.SelectedIndex, S.ChangeHandler]
 
 -- Types associated with Fields.
-
+ 
 type family FieldType (f :: Field) :: * where
         FieldType S.ViewModule = Text
         FieldType S.ViewName = Text
@@ -239,8 +239,9 @@ data WidgetType = ButtonType
                 | TextAreaType
                 | CheckBoxType
                 | ToggleButtonType
-                  -- TODO: Add 'Valid' widget
-                | DropdownType
+                |
+                -- TODO: Add 'Valid' widget
+                 DropdownType
                 | RadioButtonsType
                 | SelectType
                 | ToggleButtonsType
@@ -255,8 +256,9 @@ data WidgetType = ButtonType
                 | FloatSliderType
                 | FloatProgressType
                 | FloatRangeSliderType
-                  -- TODO: Add Proxy and PlaceProxy
-                | BoxType
+                |
+                -- TODO: Add Proxy and PlaceProxy
+                 BoxType
                 | FlexBoxType
                 | AccordionType
                 | TabType
@@ -290,7 +292,8 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
         WidgetFields IntSliderType =
                                    BoundedIntClass :++
                                      '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
-        WidgetFields IntProgressType = BoundedIntClass :++ '[S.Orientation, S.BarStyle]
+        WidgetFields IntProgressType =
+                                     BoundedIntClass :++ '[S.Orientation, S.BarStyle]
         WidgetFields IntRangeSliderType =
                                         BoundedIntRangeClass :++
                                           '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]

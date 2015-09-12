@@ -65,8 +65,8 @@ class IHaskellDisplay a where
 
 -- | Display as an interactive widget.
 class IHaskellDisplay a => IHaskellWidget a where
-  -- | Target name for this widget. The actual input parameter should be ignored. By default
-  -- evaluate to "ipython.widget", which is used by IPython for its backbone widgets.
+  -- | Target name for this widget. The actual input parameter should be ignored. By default evaluate
+  -- to "ipython.widget", which is used by IPython for its backbone widgets.
   targetName :: a -> String
   targetName _ = "ipython.widget"
 
