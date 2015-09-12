@@ -16,6 +16,8 @@ singletons
    
   data Field = ViewModule
              | ViewName
+             | ModelModule
+             | ModelName
              | MsgThrottle
              | Version
              | DisplayHandler

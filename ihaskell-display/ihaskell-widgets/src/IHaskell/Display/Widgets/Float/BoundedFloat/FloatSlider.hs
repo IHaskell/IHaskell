@@ -47,11 +47,9 @@ mkFloatSlider = do
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
-      initData = object
-                   ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.FloatSlider"]
 
   -- Open a comm for this widget, and store it in the kernel state
-  widgetSendOpen widget initData $ toJSON widgetState
+  widgetSendOpen widget $ toJSON widgetState
 
   -- Return the widget
   return widget

@@ -57,7 +57,7 @@ module IHaskell.Display.Widgets.Types where
 -- To know more about the IPython messaging specification (as implemented in this package) take a
 -- look at the supplied MsgSpec.md.
 --
--- Widgets are not able to do console input, the reason for that can also be found in the messaging
+-- Widgets are not able to do console input, the reason for that can be found in the messaging
 -- specification
 import           Control.Monad (unless, join, when, void, mapM_)
 import           Control.Applicative ((<$>))
@@ -89,8 +89,8 @@ import qualified IHaskell.Display.Widgets.Singletons as S
 import           IHaskell.Display.Widgets.Common
 
 -- Classes from IPython's widget hierarchy. Defined as such to reduce code duplication.
-type WidgetClass = '[S.ViewModule, S.ViewName, S.MsgThrottle, S.Version,
-  S.DisplayHandler]
+type WidgetClass = '[S.ViewModule, S.ViewName, S.ModelModule, S.ModelName,
+  S.MsgThrottle, S.Version, S.DisplayHandler]
 
 type DOMWidgetClass = WidgetClass :++ '[S.Visible, S.CSS, S.DOMClasses, S.Width, S.Height, S.Padding,
   S.Margin, S.Color, S.BackgroundColor, S.BorderColor, S.BorderWidth,
@@ -104,7 +104,7 @@ type BoolClass = DOMWidgetClass :++ '[S.BoolValue, S.Disabled, S.Description, S.
 type SelectionClass = DOMWidgetClass :++ '[S.Options, S.SelectedValue, S.SelectedLabel, S.Disabled,
   S.Description, S.SelectionHandler]
 
-type MultipleSelectionClass = DOMWidgetClass :++ '[S.Options, S.SelectedLabels, S.SelectedValues, S.Disabled,
+type MultipleSelectionClass = DOMWidgetClass :++ '[S.Options, S.SelectedValues, S.SelectedLabels, S.Disabled,
   S.Description, S.SelectionHandler]
 
 type IntClass = DOMWidgetClass :++ '[S.IntValue, S.Disabled, S.Description, S.ChangeHandler]
@@ -132,6 +132,8 @@ type SelectionContainerClass = BoxClass :++ '[S.Titles, S.SelectedIndex, S.Chang
 type family FieldType (f :: Field) :: * where
         FieldType S.ViewModule = Text
         FieldType S.ViewName = Text
+        FieldType S.ModelModule = Text
+        FieldType S.ModelName = Text
         FieldType S.MsgThrottle = Integer
         FieldType S.Version = Integer
         FieldType S.DisplayHandler = IO ()
@@ -237,7 +239,9 @@ data WidgetType = ButtonType
                 | TextAreaType
                 | CheckBoxType
                 | ToggleButtonType
-                | DropdownType
+                |
+                -- TODO: Add 'Valid' widget
+                 DropdownType
                 | RadioButtonsType
                 | SelectType
                 | ToggleButtonsType
@@ -252,7 +256,9 @@ data WidgetType = ButtonType
                 | FloatSliderType
                 | FloatProgressType
                 | FloatRangeSliderType
-                | BoxType
+                |
+                -- TODO: Add Proxy and PlaceProxy
+                 BoxType
                 | FlexBoxType
                 | AccordionType
                 | TabType
@@ -265,7 +271,7 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
                                   '[S.Description, S.Tooltip, S.Disabled, S.Icon, S.ButtonStyle,
                                     S.ClickHandler]
         WidgetFields ImageType =
-                               DOMWidgetClass :++ '[S.ImageFormat, S.B64Value]
+                               DOMWidgetClass :++ '[S.ImageFormat, S.Width, S.Height, S.B64Value]
         WidgetFields OutputType = DOMWidgetClass
         WidgetFields HTMLType = StringClass
         WidgetFields LatexType = StringClass
@@ -286,7 +292,8 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
         WidgetFields IntSliderType =
                                    BoundedIntClass :++
                                      '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
-        WidgetFields IntProgressType = BoundedIntClass :++ '[S.BarStyle]
+        WidgetFields IntProgressType =
+                                     BoundedIntClass :++ '[S.Orientation, S.BarStyle]
         WidgetFields IntRangeSliderType =
                                         BoundedIntRangeClass :++
                                           '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
@@ -296,7 +303,7 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
                                      BoundedFloatClass :++
                                        '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
         WidgetFields FloatProgressType =
-                                       BoundedFloatClass :++ '[S.BarStyle]
+                                       BoundedFloatClass :++ '[S.Orientation, S.BarStyle]
         WidgetFields FloatRangeSliderType =
                                           BoundedFloatRangeClass :++
                                             '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
@@ -338,6 +345,12 @@ instance ToPairs (Attr S.ViewModule) where
 
 instance ToPairs (Attr S.ViewName) where
   toPairs x = ["_view_name" .= toJSON x]
+
+instance ToPairs (Attr S.ModelModule) where
+  toPairs x = ["_model_module" .= toJSON x]
+
+instance ToPairs (Attr S.ModelName) where
+  toPairs x = ["_model_name" .= toJSON x]
 
 instance ToPairs (Attr S.MsgThrottle) where
   toPairs x = ["msg_throttle" .= toJSON x]
@@ -591,6 +604,8 @@ reflect = fromSing
 defaultWidget :: FieldType S.ViewName -> Rec Attr WidgetClass
 defaultWidget viewName = (ViewModule =:: "")
                          :& (ViewName =:: viewName)
+                         :& (ModelModule =:: "")
+                         :& (ModelName =:: "WidgetModel")
                          :& (MsgThrottle =:+ 3)
                          :& (Version =:: 0)
                          :& (DisplayHandler =:: return ())
@@ -656,8 +671,8 @@ defaultMultipleSelectionWidget :: FieldType S.ViewName -> Rec Attr MultipleSelec
 defaultMultipleSelectionWidget viewName = defaultDOMWidget viewName <+> mulSelAttrs
   where
     mulSelAttrs = (Options =:: OptionLabels [])
-                  :& (SelectedLabels =:: [])
                   :& (SelectedValues =:: [])
+                  :& (SelectedLabels =:: [])
                   :& (Disabled =:: False)
                   :& (Description =:: "")
                   :& (SelectionHandler =:: return ())
@@ -739,8 +754,10 @@ defaultBoundedFloatRangeWidget viewName = defaultFloatRangeWidget viewName <+> b
 
 -- | A record representing a widget of the _Box class from IPython
 defaultBoxWidget :: FieldType S.ViewName -> Rec Attr BoxClass
-defaultBoxWidget viewName = defaultDOMWidget viewName <+> boxAttrs
+defaultBoxWidget viewName = domAttrs <+> boxAttrs
   where
+    defaultDOM = defaultDOMWidget viewName
+    domAttrs = rput (ModelName =:: "BoxModel") defaultDOM
     boxAttrs = (Children =:: [])
                :& (OverflowX =:: DefaultOverflow)
                :& (OverflowY =:: DefaultOverflow)

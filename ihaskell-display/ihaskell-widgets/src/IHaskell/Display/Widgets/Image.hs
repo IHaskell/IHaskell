@@ -38,6 +38,8 @@ mkImageWidget = do
 
   let dom = defaultDOMWidget "ImageView"
       img = (ImageFormat =:: PNG)
+            :& (Width =:+ 0)
+            :& (Height =:+ 0)
             :& (B64Value =:: mempty)
             :& RNil
       widgetState = WidgetState (dom <+> img)
@@ -46,10 +48,8 @@ mkImageWidget = do
 
   let widget = IPythonWidget uuid stateIO
 
-  let initData = object ["model_name" .= str "WidgetModel", "widget_class" .= str "IPython.Image"]
-
   -- Open a comm for this widget, and store it in the kernel state
-  widgetSendOpen widget initData $ toJSON widgetState
+  widgetSendOpen widget $ toJSON widgetState
 
   -- Return the image widget
   return widget

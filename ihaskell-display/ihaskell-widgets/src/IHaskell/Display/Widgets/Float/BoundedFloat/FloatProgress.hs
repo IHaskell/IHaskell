@@ -38,19 +38,17 @@ mkFloatProgress = do
   uuid <- U.random
 
   let boundedFloatAttrs = defaultBoundedFloatWidget "ProgressView"
-      progressAttrs = (BarStyle =:: DefaultBar) :& RNil
+      progressAttrs = (Orientation =:: HorizontalOrientation)
+                      :& (BarStyle =:: DefaultBar)
+                      :& RNil
       widgetState = WidgetState $ boundedFloatAttrs <+> progressAttrs
 
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
-      initData = object
-                   [ "model_name" .= str "WidgetModel"
-                   , "widget_class" .= str "IPython.FloatProgress"
-                   ]
 
   -- Open a comm for this widget, and store it in the kernel state
-  widgetSendOpen widget initData $ toJSON widgetState
+  widgetSendOpen widget $ toJSON widgetState
 
   -- Return the widget
   return widget

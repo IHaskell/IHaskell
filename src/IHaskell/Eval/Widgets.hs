@@ -52,9 +52,8 @@ widgetSend :: IHaskellWidget a
 widgetSend msgType widget value = queue $ msgType (Widget widget) value
 
 -- | Send a message to open a comm
-widgetSendOpen :: IHaskellWidget a => a -> Value -> Value -> IO ()
-widgetSendOpen widget initVal stateVal =
-  queue $ Open (Widget widget) initVal stateVal
+widgetSendOpen :: IHaskellWidget a => a -> Value -> IO ()
+widgetSendOpen = widgetSend Open
 
 -- | Send a state update message
 widgetSendUpdate :: IHaskellWidget a => a -> Value -> IO ()
@@ -93,8 +92,9 @@ handleMessage :: (Message -> IO ())
               -> IO KernelState
 handleMessage send replyHeader state msg = do
   case msg of
-    Open widget initVal stateVal -> do
-      let target = targetName widget
+    Open widget value -> do
+      let target_name = targetName widget
+          target_module = targetModule widget
           uuid = getCommUUID widget
           present = isJust $ Map.lookup uuid oldComms
 
@@ -109,12 +109,9 @@ handleMessage send replyHeader state msg = do
       if present
         then return state
         else do
-          -- Send the comm open
+          -- Send the comm open, with the initial state
           header <- dupHeader replyHeader CommOpenMessage
-          send $ CommOpen header target uuid initVal
-
-          -- Initial state update
-          communicate . toJSON $ UpdateState stateVal
+          send $ CommOpen header target_name target_module uuid value
 
           -- Send anything else the widget requires.
           open widget communicate
@@ -123,8 +120,7 @@ handleMessage send replyHeader state msg = do
           return newState
 
     Close widget value -> do
-      let target = targetName widget
-          uuid = getCommUUID widget
+      let uuid = getCommUUID widget
           present = isJust $ Map.lookup uuid oldComms
 
           newComms = Map.delete uuid $ openComms state
