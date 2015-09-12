@@ -38,6 +38,8 @@ mkImageWidget = do
 
   let dom = defaultDOMWidget "ImageView"
       img = (ImageFormat =:: PNG)
+            :& (Width =:+ 0)
+            :& (Height =:+ 0)
             :& (B64Value =:: mempty)
             :& RNil
       widgetState = WidgetState (dom <+> img)

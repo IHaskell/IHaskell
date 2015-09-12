@@ -239,6 +239,7 @@ data WidgetType = ButtonType
                 | TextAreaType
                 | CheckBoxType
                 | ToggleButtonType
+                  -- TODO: Add 'Valid' widget
                 | DropdownType
                 | RadioButtonsType
                 | SelectType
@@ -254,6 +255,7 @@ data WidgetType = ButtonType
                 | FloatSliderType
                 | FloatProgressType
                 | FloatRangeSliderType
+                  -- TODO: Add Proxy and PlaceProxy
                 | BoxType
                 | FlexBoxType
                 | AccordionType
@@ -267,7 +269,7 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
                                   '[S.Description, S.Tooltip, S.Disabled, S.Icon, S.ButtonStyle,
                                     S.ClickHandler]
         WidgetFields ImageType =
-                               DOMWidgetClass :++ '[S.ImageFormat, S.B64Value]
+                               DOMWidgetClass :++ '[S.ImageFormat, S.Width, S.Height, S.B64Value]
         WidgetFields OutputType = DOMWidgetClass
         WidgetFields HTMLType = StringClass
         WidgetFields LatexType = StringClass
@@ -288,7 +290,7 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
         WidgetFields IntSliderType =
                                    BoundedIntClass :++
                                      '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
-        WidgetFields IntProgressType = BoundedIntClass :++ '[S.BarStyle]
+        WidgetFields IntProgressType = BoundedIntClass :++ '[S.Orientation, S.BarStyle]
         WidgetFields IntRangeSliderType =
                                         BoundedIntRangeClass :++
                                           '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
@@ -298,7 +300,7 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
                                      BoundedFloatClass :++
                                        '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
         WidgetFields FloatProgressType =
-                                       BoundedFloatClass :++ '[S.BarStyle]
+                                       BoundedFloatClass :++ '[S.Orientation, S.BarStyle]
         WidgetFields FloatRangeSliderType =
                                           BoundedFloatRangeClass :++
                                             '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
@@ -666,8 +668,8 @@ defaultMultipleSelectionWidget :: FieldType S.ViewName -> Rec Attr MultipleSelec
 defaultMultipleSelectionWidget viewName = defaultDOMWidget viewName <+> mulSelAttrs
   where
     mulSelAttrs = (Options =:: OptionLabels [])
-                  :& (SelectedLabels =:: [])
                   :& (SelectedValues =:: [])
+                  :& (SelectedLabels =:: [])
                   :& (Disabled =:: False)
                   :& (Description =:: "")
                   :& (SelectionHandler =:: return ())
@@ -749,8 +751,10 @@ defaultBoundedFloatRangeWidget viewName = defaultFloatRangeWidget viewName <+> b
 
 -- | A record representing a widget of the _Box class from IPython
 defaultBoxWidget :: FieldType S.ViewName -> Rec Attr BoxClass
-defaultBoxWidget viewName = defaultDOMWidget viewName <+> boxAttrs
+defaultBoxWidget viewName = domAttrs <+> boxAttrs
   where
+    defaultDOM = defaultDOMWidget viewName
+    domAttrs = rput (ModelName =:: "BoxModel") defaultDOM
     boxAttrs = (Children =:: [])
                :& (OverflowX =:: DefaultOverflow)
                :& (OverflowY =:: DefaultOverflow)

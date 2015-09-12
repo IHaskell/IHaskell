@@ -38,7 +38,9 @@ mkIntProgress = do
   uuid <- U.random
 
   let boundedIntAttrs = defaultBoundedIntWidget "ProgressView"
-      progressAttrs = (BarStyle =:: DefaultBar) :& RNil
+      progressAttrs = (Orientation =:: HorizontalOrientation)
+                      :& (BarStyle =:: DefaultBar)
+                      :& RNil
       widgetState = WidgetState $ boundedIntAttrs <+> progressAttrs
 
   stateIO <- newIORef widgetState
