@@ -13,7 +13,7 @@ import           Data.Singletons.TH
 -- Widget properties
 singletons
   [d|
-   
+
   data Field = ViewModule
              | ViewName
              | ModelModule
@@ -87,5 +87,8 @@ singletons
              | Align
              | Titles
              | SelectedIndex
+             | ReadOutMsg
+             | Child
+             | Selector
              deriving (Eq, Ord, Show)
   |]

@@ -3,12 +3,15 @@ module IHaskell.Display.Widgets (module X) where
 import           IHaskell.Display.Widgets.Button as X
 
 import           IHaskell.Display.Widgets.Box.Box as X
+import           IHaskell.Display.Widgets.Box.Proxy as X
+import           IHaskell.Display.Widgets.Box.PlaceProxy as X
 import           IHaskell.Display.Widgets.Box.FlexBox as X
 import           IHaskell.Display.Widgets.Box.SelectionContainer.Accordion as X
 import           IHaskell.Display.Widgets.Box.SelectionContainer.Tab as X
 
 import           IHaskell.Display.Widgets.Bool.CheckBox as X
 import           IHaskell.Display.Widgets.Bool.ToggleButton as X
+import           IHaskell.Display.Widgets.Bool.Valid as X
 
 import           IHaskell.Display.Widgets.Int.IntText as X
 import           IHaskell.Display.Widgets.Int.BoundedInt.BoundedIntText as X
@@ -38,8 +41,7 @@ import           IHaskell.Display.Widgets.String.Text as X
 import           IHaskell.Display.Widgets.String.TextArea as X
 
 import           IHaskell.Display.Widgets.Common as X
-import           IHaskell.Display.Widgets.Types as X (setField, getField, properties)
-
-import           IHaskell.Display.Widgets.Types as X (triggerDisplay, triggerChange, triggerClick,
+import           IHaskell.Display.Widgets.Types as X (setField, getField, properties,
+                                                      triggerDisplay, triggerChange, triggerClick,
                                                       triggerSelection, triggerSubmit,
                                                       ChildWidget(..))
