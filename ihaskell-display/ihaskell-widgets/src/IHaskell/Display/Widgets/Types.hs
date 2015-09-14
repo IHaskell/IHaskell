@@ -128,7 +128,7 @@ type BoxClass = DOMWidgetClass :++ '[S.Children, S.OverflowX, S.OverflowY, S.Box
 type SelectionContainerClass = BoxClass :++ '[S.Titles, S.SelectedIndex, S.ChangeHandler]
 
 -- Types associated with Fields.
- 
+
 type family FieldType (f :: Field) :: * where
         FieldType S.ViewModule = Text
         FieldType S.ViewName = Text
@@ -203,6 +203,9 @@ type family FieldType (f :: Field) :: * where
         FieldType S.Align = LocationValue
         FieldType S.Titles = [Text]
         FieldType S.SelectedIndex = Integer
+        FieldType S.ReadOutMsg = Text
+        FieldType S.Child = Maybe ChildWidget
+        FieldType S.Selector = Text
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
 data ChildWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => ChildWidget (IPythonWidget w)
@@ -239,9 +242,8 @@ data WidgetType = ButtonType
                 | TextAreaType
                 | CheckBoxType
                 | ToggleButtonType
-                |
-                -- TODO: Add 'Valid' widget
-                 DropdownType
+                | ValidType
+                | DropdownType
                 | RadioButtonsType
                 | SelectType
                 | ToggleButtonsType
@@ -256,15 +258,15 @@ data WidgetType = ButtonType
                 | FloatSliderType
                 | FloatProgressType
                 | FloatRangeSliderType
-                |
-                -- TODO: Add Proxy and PlaceProxy
-                 BoxType
+                | BoxType
+                | ProxyType
+                | PlaceProxyType
                 | FlexBoxType
                 | AccordionType
                 | TabType
 
 -- Fields associated with a widget
- 
+
 type family WidgetFields (w :: WidgetType) :: [Field] where
         WidgetFields ButtonType =
                                 DOMWidgetClass :++
@@ -281,6 +283,7 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
         WidgetFields CheckBoxType = BoolClass
         WidgetFields ToggleButtonType =
                                       BoolClass :++ '[S.Tooltip, S.Icon, S.ButtonStyle]
+        WidgetFields ValidType = BoolClass :++ '[S.ReadOutMsg]
         WidgetFields DropdownType = SelectionClass :++ '[S.ButtonStyle]
         WidgetFields RadioButtonsType = SelectionClass
         WidgetFields SelectType = SelectionClass
@@ -308,6 +311,8 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
                                           BoundedFloatRangeClass :++
                                             '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
         WidgetFields BoxType = BoxClass
+        WidgetFields ProxyType = WidgetClass :++ '[S.Child]
+        WidgetFields PlaceProxyType = WidgetFields ProxyType :++ '[S.Selector]
         WidgetFields FlexBoxType =
                                  BoxClass :++ '[S.Orientation, S.Flex, S.Pack, S.Align]
         WidgetFields AccordionType = SelectionContainerClass
@@ -564,6 +569,15 @@ instance ToPairs (Attr S.Titles) where
 
 instance ToPairs (Attr S.SelectedIndex) where
   toPairs x = ["selected_index" .= toJSON x]
+
+instance ToPairs (Attr S.ReadOutMsg) where
+  toPairs x = ["readout" .= toJSON x]
+
+instance ToPairs (Attr S.Child) where
+  toPairs x = ["child" .= toJSON x]
+
+instance ToPairs (Attr S.Selector) where
+  toPairs x = ["selector" .= toJSON x]
 
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.

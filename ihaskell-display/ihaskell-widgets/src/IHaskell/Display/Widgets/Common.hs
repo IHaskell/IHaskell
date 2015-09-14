@@ -89,6 +89,9 @@ pattern Pack = S.SPack
 pattern Align = S.SAlign
 pattern Titles = S.STitles
 pattern SelectedIndex = S.SSelectedIndex
+pattern ReadOutMsg = S.SReadOutMsg
+pattern Child = S.SChild
+pattern Selector = S.SSelector
 
 -- | Close a widget's comm
 closeWidget :: IHaskellWidget w => w -> IO ()
