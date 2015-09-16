@@ -48,8 +48,8 @@ module IHaskell.Display.Widgets.Types where
 --
 -- The IPython widgets expect state updates of the form {"property": value}, where an empty string
 -- for numeric values is ignored by the frontend and the default value is used instead. Some numbers
--- need to be sent as numbers (represented by @Integer@), whereas some need to be sent as Strings
--- (@StrInt@).
+-- need to be sent as numbers (represented by @Integer@), whereas some (css lengths) need to be sent
+-- as Strings (@PixCount@).
 --
 -- Child widgets are expected to be sent as strings of the form "IPY_MODEL_<uuid>", where @<uuid>@
 -- represents the uuid of the widget's comm.
@@ -58,7 +58,7 @@ module IHaskell.Display.Widgets.Types where
 -- look at the supplied MsgSpec.md.
 --
 -- Widgets are not able to do console input, the reason for that can be found in the messaging
--- specification
+-- specification.
 import           Control.Monad (unless, join, when, void, mapM_)
 import           Control.Applicative ((<$>))
 import qualified Control.Exception as Ex
@@ -140,19 +140,19 @@ type family FieldType (f :: Field) :: * where
         FieldType S.Visible = Bool
         FieldType S.CSS = [(Text, Text, Text)]
         FieldType S.DOMClasses = [Text]
-        FieldType S.Width = StrInt
-        FieldType S.Height = StrInt
-        FieldType S.Padding = StrInt
-        FieldType S.Margin = StrInt
+        FieldType S.Width = PixCount
+        FieldType S.Height = PixCount
+        FieldType S.Padding = PixCount
+        FieldType S.Margin = PixCount
         FieldType S.Color = Text
         FieldType S.BackgroundColor = Text
         FieldType S.BorderColor = Text
-        FieldType S.BorderWidth = StrInt
-        FieldType S.BorderRadius = StrInt
+        FieldType S.BorderWidth = PixCount
+        FieldType S.BorderRadius = PixCount
         FieldType S.BorderStyle = BorderStyleValue
         FieldType S.FontStyle = FontStyleValue
         FieldType S.FontWeight = FontWeightValue
-        FieldType S.FontSize = StrInt
+        FieldType S.FontSize = PixCount
         FieldType S.FontFamily = Text
         FieldType S.Description = Text
         FieldType S.ClickHandler = IO ()
@@ -220,7 +220,7 @@ class CustomBounded a where
   upperBound :: a
 
 -- Set according to what IPython widgets use
-instance CustomBounded StrInt where
+instance CustomBounded PixCount where
   upperBound = 10 ^ 16 - 1
   lowerBound = -(10 ^ 16 - 1)
 

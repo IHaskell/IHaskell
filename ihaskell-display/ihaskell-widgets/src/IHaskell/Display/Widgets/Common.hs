@@ -97,11 +97,11 @@ pattern Selector = S.SSelector
 closeWidget :: IHaskellWidget w => w -> IO ()
 closeWidget w = widgetSendClose w emptyObject
 
-newtype StrInt = StrInt Integer
+newtype PixCount = PixCount Integer
   deriving (Num, Ord, Eq, Enum)
 
-instance ToJSON StrInt where
-  toJSON (StrInt x) = toJSON . pack $ show x
+instance ToJSON PixCount where
+  toJSON (PixCount x) = toJSON . pack $ show x ++ "px"
 
 -- | Pre-defined border styles
 data BorderStyleValue = NoBorder
