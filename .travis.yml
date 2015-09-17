@@ -1,31 +1,76 @@
 # Taken from multi-ghc-travis
 # NB: don't set `language: haskell` here
 
-# The following enables several GHC versions to be tested; often it's enough to test only against the last release in a major GHC version. Feel free to omit lines listings versions you don't need/want testing for.
-env:
- - CABALVER=1.18 GHCVER=7.6.3
- - CABALVER=1.18 GHCVER=7.8.4 # see note about Alex/Happy for GHC >= 7.8
- - CABALVER=1.22 GHCVER=7.10.1
- - CABALVER=1.22 GHCVER=7.10.2
-# - CABALVER=head GHCVER=head   # see section about GHC HEAD snapshots
+# Explicitly request container-based infrastructure
+sudo: false
+
+# The build matrix.
+matrix:
+  # Builds finish as soon as a job has failed, or when the only jobs left allow faliures.
+  fast_finish: true
+
+  # Enable different GHC versions, and install them from the hvr PPA using apt.
+  include:
+    - env: CABALVER=1.18 GHCVER=7.6.3
+      addons:
+        apt:
+          sources: [hvr-ghc, chris-lea-zeromq]
+          packages:
+            - cabal-install-1.18
+            - ghc-7.6.3
+            - happy
+            - alex
+            - libmagic-dev
+            - python3
+            - zeromq3
+    - env: CABALVER=1.18 GHCVER=7.8.4
+      addons:
+        apt:
+          sources: [hvr-ghc, chris-lea-zeromq]
+          packages:
+            - cabal-install-1.18
+            - ghc-7.8.4
+            - happy-1.19.4
+            - alex-3.1.3
+            - libmagic-dev
+            - python3
+            - zeromq3
+    - env: CABALVER=1.22 GHCVER=7.10.1
+      addons:
+        apt:
+          sources: [hvr-ghc, chris-lea-zeromq]
+          packages:
+            - cabal-install-1.22
+            - ghc-7.10.1
+            - happy-1.19.4
+            - alex-3.1.3
+            - libmagic-dev
+            - python3
+            - zeromq3
+    - env: CABALVER=1.22 GHCVER=7.10.2
+      addons:
+        apt:
+          sources: [hvr-ghc, chris-lea-zeromq]
+          packages:
+            - cabal-install-1.22
+            - ghc-7.10.2
+            - happy-1.19.4
+            - alex-3.1.3
+            - libmagic-dev
+            - python3
+            - zeromq3
+
+# Stuff to cache between builds. Saving just the tarballs, might speed things up a little.
+cache:
+  directories:
+    - $HOME/.cabal/packages
 
 # Note: the distinction between `before_install` and `install` is not important.
 before_install:
- - travis_retry sudo add-apt-repository -y ppa:hvr/ghc
- - travis_retry sudo apt-get update
- - travis_retry sudo apt-get install cabal-install-$CABALVER ghc-$GHCVER # see note about happy/alex
- - travis_retry sudo apt-get install libmagic-dev
- - travis_retry sudo apt-get install python3
- - travis_retry git clone http://www.github.com/zeromq/zeromq4-x.git libzmq
- - export OLDPWD=$(pwd) && cd libzmq && travis_retry ./autogen.sh && travis_retry ./configure && make && travis_retry sudo make install && travis_retry sudo ldconfig && cd $OLDPWD
  - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$HOME/.cabal/bin:$PATH
  - |
    if [ $GHCVER = "head" ] || [ ${GHCVER%.*} = "7.8" ] || [ ${GHCVER%.*} = "7.10" ]; then
-     travis_retry sudo apt-get install happy-1.19.4 alex-3.1.3
-     travis_retry sudo apt-get install libblas-dev liblapack-dev
      export PATH=/opt/alex/3.1.3/bin:/opt/happy/1.19.4/bin:$PATH
-   else
-     travis_retry sudo apt-get install happy alex
    fi
 
 install:
