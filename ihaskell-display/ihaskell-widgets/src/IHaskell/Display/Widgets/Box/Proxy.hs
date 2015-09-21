@@ -5,9 +5,9 @@
 
 module IHaskell.Display.Widgets.Box.Proxy (
 -- * The Proxy widget
-ProxyWidget,
-     -- * Constructor
-     mkProxyWidget) where
+ProxyWidget, 
+             -- * Constructor
+             mkProxyWidget) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude

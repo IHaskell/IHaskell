@@ -128,7 +128,7 @@ type BoxClass = DOMWidgetClass :++ '[S.Children, S.OverflowX, S.OverflowY, S.Box
 type SelectionContainerClass = BoxClass :++ '[S.Titles, S.SelectedIndex, S.ChangeHandler]
 
 -- Types associated with Fields.
-
+ 
 type family FieldType (f :: Field) :: * where
         FieldType S.ViewModule = Text
         FieldType S.ViewName = Text
@@ -266,7 +266,7 @@ data WidgetType = ButtonType
                 | TabType
 
 -- Fields associated with a widget
-
+ 
 type family WidgetFields (w :: WidgetType) :: [Field] where
         WidgetFields ButtonType =
                                 DOMWidgetClass :++
@@ -312,7 +312,8 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
                                             '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
         WidgetFields BoxType = BoxClass
         WidgetFields ProxyType = WidgetClass :++ '[S.Child]
-        WidgetFields PlaceProxyType = WidgetFields ProxyType :++ '[S.Selector]
+        WidgetFields PlaceProxyType =
+                                    WidgetFields ProxyType :++ '[S.Selector]
         WidgetFields FlexBoxType =
                                  BoxClass :++ '[S.Orientation, S.Flex, S.Pack, S.Align]
         WidgetFields AccordionType = SelectionContainerClass
