@@ -7,7 +7,7 @@ name:                ihaskell
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.7.1.0
+version:             0.8.2.0
 
 -- A short (one-line) description of the package.
 synopsis:            A Haskell backend kernel for the IPython project.
@@ -55,7 +55,7 @@ library
   hs-source-dirs:      src
   default-language:    Haskell2010
   build-depends:
-                       aeson                >=0.7 && < 0.10,
+                       aeson                >=0.7 && < 0.11,
                        base                 >=4.6 && < 4.9,
                        base64-bytestring    >=1.0,
                        bytestring           >=0.10,
@@ -143,7 +143,7 @@ executable ihaskell
                        ghc                  >=7.6 || < 7.11,
                        process              >=1.1,
                        here                 ==1.2.*,
-                       aeson                >=0.7 && < 0.10,
+                       aeson                >=0.7 && < 0.11,
                        bytestring           >=0.10,
                        containers           >=0.5,
                        strict               >=0.3,
@@ -167,7 +167,7 @@ Test-Suite hspec
     default-language: Haskell2010
     build-depends:
         ihaskell,
-        aeson >=0.6 && < 0.10,
+        aeson >=0.6 && < 0.11,
         base >=4.6 && < 4.9,
         base64-bytestring >=1.0,
         bytestring >=0.10,
