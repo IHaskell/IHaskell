@@ -13,6 +13,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE AutoDeriveTypeable #-}
 
 module IHaskell.Display.Widgets.Types where
 
