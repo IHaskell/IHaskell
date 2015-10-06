@@ -38,6 +38,7 @@ data Argument = ConfFile String     -- ^ A file with commands to load at startup
               | ConvertToFormat NotebookFormat
               | ConvertLhsStyle (LhsStyle String)
               | KernelspecInstallPrefix String
+              | KernelspecUseStack
   deriving (Eq, Show)
 
 data LhsStyle string =
@@ -100,6 +101,11 @@ kernelDebugFlag = flagNone ["debug"] addDebug "Print debugging output from the k
   where
     addDebug (Args mode prev) = Args mode (KernelDebug : prev)
 
+kernelStackFlag :: Flag Args
+kernelStackFlag = flagNone ["stack"] addStack "Inherit environment from `stack` when it is installed"
+  where
+    addStack (Args mode prev) = Args mode (KernelspecUseStack : prev)
+
 confFlag :: Flag Args
 confFlag = flagReq ["conf", "c"] (store ConfFile) "<rc.hs>"
              "File with commands to execute at start; replaces ~/.ihaskell/rc.hs."
@@ -118,11 +124,11 @@ store constructor str (Args mode prev) = Right $ Args mode $ constructor str : p
 installKernelSpec :: Mode Args
 installKernelSpec =
   mode "install" (Args InstallKernelSpec []) "Install the Jupyter kernelspec." noArgs
-    [ghcLibFlag, kernelDebugFlag, confFlag, installPrefixFlag, helpFlag]
+    [ghcLibFlag, kernelDebugFlag, confFlag, installPrefixFlag, helpFlag, kernelStackFlag]
 
 kernel :: Mode Args
 kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg
-           [ghcLibFlag, kernelDebugFlag, confFlag]
+           [ghcLibFlag, kernelDebugFlag, confFlag, kernelStackFlag]
   where
     kernelArg = flagArg update "<json-kernel-file>"
     update filename (Args _ flags) = Right $ Args (Kernel $ Just filename) flags

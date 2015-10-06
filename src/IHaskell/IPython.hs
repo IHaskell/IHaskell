@@ -47,6 +47,7 @@ data KernelSpecOptions =
          , kernelSpecDebug :: Bool                 -- ^ Spew debugging output?
          , kernelSpecConfFile :: IO (Maybe String) -- ^ Filename of profile JSON file.
          , kernelSpecInstallPrefix :: Maybe String
+         , kernelSpecUseStack :: Bool              -- ^ Whether to use @stack@ environments.
          }
 
 defaultKernelSpecOptions :: KernelSpecOptions
@@ -55,6 +56,7 @@ defaultKernelSpecOptions = KernelSpecOptions
   , kernelSpecDebug = False
   , kernelSpecConfFile = defaultConfFile
   , kernelSpecInstallPrefix = Nothing
+  , kernelSpecUseStack = False
   }
 
 -- | The IPython kernel name.
@@ -188,6 +190,7 @@ installKernelspec replace opts = void $ do
            Nothing   -> []
            Just file -> ["--conf", file])
         ++ ["--ghclib", kernelSpecGhcLibdir opts]
+        ++ ["--stack" | kernelSpecUseStack opts]
 
   let kernelSpec = KernelSpec
         { kernelDisplayName = "Haskell"

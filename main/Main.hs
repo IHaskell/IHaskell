@@ -103,6 +103,8 @@ parseKernelArgs = foldl' addFlag defaultKernelSpecOptions
       kernelSpecOpts { kernelSpecGhcLibdir = libdir }
     addFlag kernelSpecOpts (KernelspecInstallPrefix prefix) =
       kernelSpecOpts { kernelSpecInstallPrefix = Just prefix }
+    addFlag kernelSpecOpts KernelspecUseStack =
+      kernelSpecOpts { kernelSpecUseStack = True }
     addFlag kernelSpecOpts flag = error $ "Unknown flag" ++ show flag
 
 -- | Run the IHaskell language kernel.
@@ -112,6 +114,7 @@ runKernel :: KernelSpecOptions -- ^ Various options from when the kernel was ins
 runKernel kernelOpts profileSrc = do
   let debug = kernelSpecDebug kernelOpts
       libdir = kernelSpecGhcLibdir kernelOpts
+      useStack = kernelSpecUseStack kernelOpts
 
   -- Parse the profile file.
   Just profile <- liftM decode $ LBS.readFile profileSrc
@@ -121,22 +124,23 @@ runKernel kernelOpts profileSrc = do
   Stdin.recordKernelProfile dir profile
 
 #if MIN_VERSION_ghc(7,8,0)
-  -- Detect if we have stack
-  runResult <- try $ readProcessWithExitCode "stack" [] ""
-  let stack = 
-        case runResult :: Either SomeException (ExitCode, String, String) of 
-          Left _ -> False
-          Right (exitCode, stackStdout, _) -> exitCode == ExitSuccess && "The Haskell Tool Stack" `isInfixOf` stackStdout
+  when useStack $ do
+    -- Detect if we have stack
+    runResult <- try $ readProcessWithExitCode "stack" [] ""
+    let stack = 
+          case runResult :: Either SomeException (ExitCode, String, String) of 
+            Left _ -> False
+            Right (exitCode, stackStdout, _) -> exitCode == ExitSuccess && "The Haskell Tool Stack" `isInfixOf` stackStdout
 
-  -- If we're in a stack directory, use `stack` to set the environment
-  -- We can't do this with base <= 4.6 because setEnv doesn't exist.
-  when stack $ do
-    stackEnv <- lines <$> readProcess "stack" ["exec", "env"] ""
-    forM_ stackEnv $ \line ->
-      let (var, val) = break (== '=') line
-      in case tailMay val of
-           Nothing -> return ()
-           Just val' -> setEnv var val'
+    -- If we're in a stack directory, use `stack` to set the environment
+    -- We can't do this with base <= 4.6 because setEnv doesn't exist.
+    when stack $ do
+      stackEnv <- lines <$> readProcess "stack" ["exec", "env"] ""
+      forM_ stackEnv $ \line ->
+        let (var, val) = break (== '=') line
+        in case tailMay val of
+            Nothing -> return ()
+            Just val' -> setEnv var val'
 #endif
 
   -- Serve on all sockets and ports defined in the profile.
