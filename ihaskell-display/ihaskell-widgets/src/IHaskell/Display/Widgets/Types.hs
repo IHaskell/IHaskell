@@ -12,6 +12,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GADTs #-}
 
 module IHaskell.Display.Widgets.Types where
 
@@ -62,15 +63,15 @@ module IHaskell.Display.Widgets.Types where
 import           Control.Monad (unless, join, when, void, mapM_)
 import           Control.Applicative ((<$>))
 import qualified Control.Exception as Ex
-
-import           GHC.IO.Exception
+import           Data.Typeable
+import           Data.IORef (IORef, readIORef, modifyIORef)
+import           Data.Text (Text, pack)
 import           System.IO.Error
 import           System.Posix.IO
+import           Text.Printf (printf)
 
 import           Data.Aeson
 import           Data.Aeson.Types (Pair)
-import           Data.IORef (IORef, readIORef, modifyIORef)
-import           Data.Text (Text, pack)
 
 import           Data.Vinyl (Rec(..), (<+>), recordToList, reifyConstraint, rmap, Dict(..))
 import           Data.Vinyl.Functor (Compose(..), Const(..))
@@ -80,10 +81,11 @@ import           Data.Vinyl.TypeLevel (RecAll)
 import           Data.Singletons.Prelude ((:++))
 import           Data.Singletons.TH
 
+import           GHC.IO.Exception
+
 import           IHaskell.Eval.Widgets (widgetSendUpdate)
 import           IHaskell.Display (Base64, IHaskellWidget(..))
 import           IHaskell.IPython.Message.UUID
-
 import           IHaskell.Display.Widgets.Singletons (Field, SField(..))
 import qualified IHaskell.Display.Widgets.Singletons as S
 import           IHaskell.Display.Widgets.Common
@@ -328,12 +330,15 @@ unwrap (Dummy x) = x
 unwrap (Real x) = x
 
 -- Wrapper around a field.
-data Attr (f :: Field) =
-       Attr
-         { _value :: AttrVal (FieldType f)
-         , _verify :: FieldType f -> IO (FieldType f)
-         , _field :: Field
-         }
+data Attr (f :: Field) where
+  Attr :: Typeable (FieldType f)
+       => { _value :: AttrVal (FieldType f)
+          , _verify :: FieldType f -> IO (FieldType f)
+          , _field :: Field
+          } -> Attr f
+
+getFieldType :: Attr f -> TypeRep
+getFieldType Attr { _value = attrval } = typeOf $ unwrap attrval
 
 instance ToJSON (FieldType f) => ToJSON (Attr f) where
   toJSON attr =
@@ -582,7 +587,7 @@ instance ToPairs (Attr S.Selector) where
 
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.
-(=::) :: SingI f => Sing f -> FieldType f -> Attr f
+(=::) :: (SingI f, Typeable (FieldType f)) => Sing f -> FieldType f -> Attr f
 s =:: x = Attr { _value = Real x, _verify = return, _field = reflect s }
 
 -- | If the number is in the range, return it. Otherwise raise the appropriate (over/under)flow
@@ -595,13 +600,13 @@ rangeCheck (l, u) x
   | otherwise = error "The impossible happened in IHaskell.Display.Widgets.Types.rangeCheck"
 
 -- | Store a numeric value, with verification mechanism for its range.
-ranged :: (SingI f, Num (FieldType f), Ord (FieldType f))
+ranged :: (SingI f, Num (FieldType f), Ord (FieldType f), Typeable (FieldType f))
        => Sing f -> (FieldType f, FieldType f) -> AttrVal (FieldType f) -> Attr f
 ranged s range x = Attr x (rangeCheck range) (reflect s)
 
 -- | Store a numeric value, with the invariant that it stays non-negative. The value set is set as a
 -- dummy value if it's equal to zero.
-(=:+) :: (SingI f, Num (FieldType f), CustomBounded (FieldType f), Ord (FieldType f))
+(=:+) :: (SingI f, Num (FieldType f), CustomBounded (FieldType f), Ord (FieldType f), Typeable (FieldType f))
       => Sing f -> FieldType f -> Attr f
 s =:+ val = Attr
               ((if val == 0
@@ -838,9 +843,12 @@ str = id
 properties :: IPythonWidget w -> IO ()
 properties widget = do
   st <- readIORef $ state widget
-  let convert :: Attr f -> Const Field f
-      convert attr = Const { getConst = _field attr }
-  mapM_ print $ recordToList . rmap convert . _getState $ st
+  let convert :: Attr f -> Const (Field, TypeRep) f
+      convert attr = Const (_field attr, getFieldType attr)
+
+      renderRow (fname, ftype) = printf "%s ::: %s" (show fname) (show ftype)
+      rows = map renderRow . recordToList . rmap convert $ _getState st
+  mapM_ putStrLn rows
 
 -- Helper function for widget to enforce their inability to fetch console input
 noStdin :: IO a -> IO ()
