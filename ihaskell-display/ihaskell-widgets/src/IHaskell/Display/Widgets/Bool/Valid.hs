@@ -4,10 +4,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Widgets.Bool.Valid (
-  -- * The Valid Widget
-  ValidWidget,
-  -- * Constructor
-  mkValidWidget) where
+-- * The Valid Widget
+ValidWidget, 
+             -- * Constructor
+             mkValidWidget) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude

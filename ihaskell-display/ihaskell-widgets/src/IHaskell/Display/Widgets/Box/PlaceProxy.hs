@@ -3,12 +3,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-
 module IHaskell.Display.Widgets.Box.PlaceProxy (
-  -- * The PlaceProxy widget
-  PlaceProxy,
-  -- * Constructor
-  mkPlaceProxy) where
+-- * The PlaceProxy widget
+PlaceProxy, 
+            -- * Constructor
+            mkPlaceProxy) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
