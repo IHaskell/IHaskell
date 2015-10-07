@@ -102,7 +102,8 @@ kernelDebugFlag = flagNone ["debug"] addDebug "Print debugging output from the k
     addDebug (Args mode prev) = Args mode (KernelDebug : prev)
 
 kernelStackFlag :: Flag Args
-kernelStackFlag = flagNone ["stack"] addStack "Inherit environment from `stack` when it is installed"
+kernelStackFlag = flagNone ["stack"] addStack
+                    "Inherit environment from `stack` when it is installed"
   where
     addStack (Args mode prev) = Args mode (KernelspecUseStack : prev)
 

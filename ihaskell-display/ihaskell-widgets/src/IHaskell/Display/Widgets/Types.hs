@@ -61,10 +61,10 @@ module IHaskell.Display.Widgets.Types where
 --
 -- Widgets are not able to do console input, the reason for that can be found in the messaging
 -- specification.
-import           Control.Monad (unless, join, when, void, mapM_)
+import           Control.Monad (unless, join, when, void)
 import           Control.Applicative ((<$>))
 import qualified Control.Exception as Ex
-import           Data.Typeable
+import           Data.Typeable (Typeable, TypeRep, typeOf)
 import           Data.IORef (IORef, readIORef, modifyIORef)
 import           Data.Text (Text, pack)
 import           System.IO.Error
@@ -87,7 +87,8 @@ import           GHC.IO.Exception
 import           IHaskell.Eval.Widgets (widgetSendUpdate)
 import           IHaskell.Display (Base64, IHaskellWidget(..))
 import           IHaskell.IPython.Message.UUID
-import           IHaskell.Display.Widgets.Singletons (Field, SField(..))
+
+import           IHaskell.Display.Widgets.Singletons (Field, SField)
 import qualified IHaskell.Display.Widgets.Singletons as S
 import           IHaskell.Display.Widgets.Common
 
@@ -131,7 +132,7 @@ type BoxClass = DOMWidgetClass :++ '[S.Children, S.OverflowX, S.OverflowY, S.Box
 type SelectionContainerClass = BoxClass :++ '[S.Titles, S.SelectedIndex, S.ChangeHandler]
 
 -- Types associated with Fields.
- 
+
 type family FieldType (f :: Field) :: * where
         FieldType S.ViewModule = Text
         FieldType S.ViewName = Text
@@ -269,7 +270,7 @@ data WidgetType = ButtonType
                 | TabType
 
 -- Fields associated with a widget
- 
+
 type family WidgetFields (w :: WidgetType) :: [Field] where
         WidgetFields ButtonType =
                                 DOMWidgetClass :++

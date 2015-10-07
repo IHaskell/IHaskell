@@ -5,12 +5,14 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE AutoDeriveTypeable #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module IHaskell.Display.Widgets.Common where
 
 import           Data.Aeson
 import           Data.Aeson.Types (emptyObject)
 import           Data.Text (pack, Text)
+import           Data.Typeable (Typeable)
 
 import           IHaskell.Display (IHaskellWidget)
 import           IHaskell.Eval.Widgets (widgetSendClose)
@@ -99,7 +101,7 @@ closeWidget :: IHaskellWidget w => w -> IO ()
 closeWidget w = widgetSendClose w emptyObject
 
 newtype PixCount = PixCount Integer
-  deriving (Num, Ord, Eq, Enum)
+  deriving (Num, Ord, Eq, Enum, Typeable)
 
 instance ToJSON PixCount where
   toJSON (PixCount x) = toJSON . pack $ show x ++ "px"
@@ -202,7 +204,7 @@ instance ToJSON BarStyleValue where
 data ImageFormatValue = PNG
                       | SVG
                       | JPG
-  deriving Eq
+  deriving (Eq, Typeable)
 
 instance Show ImageFormatValue where
   show PNG = "png"

@@ -12,11 +12,10 @@ TextWidget,
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (when, join)
+import           Control.Monad (when)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as Map
 import           Data.IORef (newIORef)
-import           Data.Text (Text)
 import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display

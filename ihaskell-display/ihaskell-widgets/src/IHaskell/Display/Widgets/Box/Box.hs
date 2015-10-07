@@ -12,19 +12,14 @@ Box,
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (when, join)
 import           Data.Aeson
-import           Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
-import           Data.Text (Text)
-import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
-import           IHaskell.Display.Widgets.Common
 
 -- | A 'Box' represents a Box widget from IPython.html.widgets.
 type Box = IPythonWidget BoxType

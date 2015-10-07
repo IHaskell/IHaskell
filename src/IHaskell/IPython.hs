@@ -190,7 +190,7 @@ installKernelspec replace opts = void $ do
            Nothing   -> []
            Just file -> ["--conf", file])
         ++ ["--ghclib", kernelSpecGhcLibdir opts]
-        ++ ["--stack" | kernelSpecUseStack opts]
+           ++ ["--stack" | kernelSpecUseStack opts]
 
   let kernelSpec = KernelSpec
         { kernelDisplayName = "Haskell"

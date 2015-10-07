@@ -12,13 +12,12 @@ SelectMultiple,
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (fmap, join, sequence, void)
+import           Control.Monad (void)
 import           Data.Aeson
 import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
 import           Data.Text (Text)
 import qualified Data.Vector as V
-import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets

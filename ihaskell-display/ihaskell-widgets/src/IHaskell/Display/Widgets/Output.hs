@@ -18,12 +18,8 @@ module IHaskell.Display.Widgets.Output (
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (when, join)
 import           Data.Aeson
-import           Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
-import           Data.Text (Text)
-import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets

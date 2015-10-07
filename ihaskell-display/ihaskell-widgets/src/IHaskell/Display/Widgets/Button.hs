@@ -12,7 +12,7 @@ Button,
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (when, join)
+import           Control.Monad (when)
 import           Data.Aeson
 import           Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
