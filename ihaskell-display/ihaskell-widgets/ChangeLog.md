@@ -4,6 +4,10 @@
 
 + The `properties` function now prints types associated with widget fields.
 
+## `v0.2.2.0`
+
++ Bump aeson upper bound to `<0.11`.
+
 ## `v0.2.0.0`
 
 > Complete version with full fleshed out API.
