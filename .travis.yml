@@ -47,7 +47,7 @@ script:
    if [ ${GHCVER%.*} = "7.8" ]; then
      travis_retry ./build.sh all
    elif [ ${GHCVER%.*} = "7.10" ]; then
-     travis_retry ./build.sh all no-widgets
+     travis_retry ./build.sh all
    else
      travis_retry ./build.sh ihaskell
    fi
