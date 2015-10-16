@@ -138,3 +138,8 @@ library
   --   ghc-7.10.* = 100
   if impl(ghc == 7.8.*)
     ghc-options:       -fcontext-stack=100
+
+  -- compile without optimizations not to run out of memory on travis
+  if impl(ghc == 7.10.*)
+    ghc-options:       -O0
+
