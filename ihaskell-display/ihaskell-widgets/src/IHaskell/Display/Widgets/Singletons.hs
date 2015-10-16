@@ -5,10 +5,13 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module IHaskell.Display.Widgets.Singletons where
 
 import           Data.Singletons.TH
+import           Data.Singletons.Prelude.Ord
 
 -- Widget properties
 singletons

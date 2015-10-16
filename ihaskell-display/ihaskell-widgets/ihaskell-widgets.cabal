@@ -95,20 +95,35 @@ library
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       aeson >=0.7 && < 0.11
-                     , base >=4.7 && <4.9
-                     , containers >= 0.5
-                     , ipython-kernel >= 0.6.1.2
-                     , text >= 0.11
-                     , unordered-containers -any
-                     , nats -any
-                     , vinyl >= 0.5
-                     , vector -any
-                     , singletons >= 0.9.0 && <2.0
-                     , scientific -any
-                     , unix -any
-
-                     , ihaskell >= 0.6.4.1
+  -- singletons 2.* require ghc 7.10.2
+  if impl(ghc >= 7.10.2)  
+    build-depends:       aeson >=0.7 && < 0.11
+                       , base >=4.7 && <4.9
+                       , containers >= 0.5
+                       , ipython-kernel >= 0.6.1.2
+                       , text >= 0.11
+                       , unordered-containers -any
+                       , nats -any
+                       , vinyl >= 0.5
+                       , vector -any
+                       , singletons >= 0.9.0 
+                       , scientific -any
+                       , unix -any
+                       , ihaskell >= 0.6.4.1
+  else
+    build-depends:       aeson >=0.7 && < 0.11
+                       , base >=4.7 && <4.9
+                       , containers >= 0.5
+                       , ipython-kernel >= 0.6.1.2
+                       , text >= 0.11
+                       , unordered-containers -any
+                       , nats -any
+                       , vinyl >= 0.5
+                       , vector -any
+                       , singletons >= 0.9.0 && <2.0
+                       , scientific -any
+                       , unix -any
+                       , ihaskell >= 0.6.4.1
   
   -- Directories containing source files.
   hs-source-dirs:      src

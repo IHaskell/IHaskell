@@ -1,5 +1,5 @@
 import           Distribution.Simple
-import           System.Cmd
+import           System.Process
 
 main = defaultMainWithHooks
          simpleUserHooks { preConf = \args confFlags -> do
