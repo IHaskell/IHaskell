@@ -61,7 +61,7 @@ library
   build-depends:       base >=4.6 && <4.9,
                        plot,
                        bytestring,
-                       hmatrix >= 0.10 && <0.17,
+                       hmatrix >= 0.10,
                        ihaskell >= 0.6.2
   
   -- Directories containing source files.
