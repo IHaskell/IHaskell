@@ -4,12 +4,15 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE AutoDeriveTypeable #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module IHaskell.Display.Widgets.Common where
 
 import           Data.Aeson
 import           Data.Aeson.Types (emptyObject)
 import           Data.Text (pack, Text)
+import           Data.Typeable (Typeable)
 
 import           IHaskell.Display (IHaskellWidget)
 import           IHaskell.Eval.Widgets (widgetSendClose)
@@ -18,6 +21,8 @@ import qualified IHaskell.Display.Widgets.Singletons as S
 
 pattern ViewModule = S.SViewModule
 pattern ViewName = S.SViewName
+pattern ModelModule = S.SModelModule
+pattern ModelName = S.SModelName
 pattern MsgThrottle = S.SMsgThrottle
 pattern Version = S.SVersion
 pattern DisplayHandler = S.SDisplayHandler
@@ -87,16 +92,19 @@ pattern Pack = S.SPack
 pattern Align = S.SAlign
 pattern Titles = S.STitles
 pattern SelectedIndex = S.SSelectedIndex
+pattern ReadOutMsg = S.SReadOutMsg
+pattern Child = S.SChild
+pattern Selector = S.SSelector
 
 -- | Close a widget's comm
 closeWidget :: IHaskellWidget w => w -> IO ()
 closeWidget w = widgetSendClose w emptyObject
 
-newtype StrInt = StrInt Integer
-  deriving (Num, Ord, Eq, Enum)
+newtype PixCount = PixCount Integer
+  deriving (Num, Ord, Eq, Enum, Typeable)
 
-instance ToJSON StrInt where
-  toJSON (StrInt x) = toJSON . pack $ show x
+instance ToJSON PixCount where
+  toJSON (PixCount x) = toJSON . pack $ show x ++ "px"
 
 -- | Pre-defined border styles
 data BorderStyleValue = NoBorder
@@ -196,7 +204,7 @@ instance ToJSON BarStyleValue where
 data ImageFormatValue = PNG
                       | SVG
                       | JPG
-  deriving Eq
+  deriving (Eq, Typeable)
 
 instance Show ImageFormatValue where
   show PNG = "png"

@@ -10,7 +10,7 @@ name:                ihaskell-widgets
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.1.0.0
+version:             0.2.2.1
 
 -- A short (one-line) description of the package.
 synopsis:            IPython standard widgets for IHaskell.
@@ -57,11 +57,14 @@ library
   -- Modules included in this library but not exported.
   other-modules:       IHaskell.Display.Widgets.Button
                        IHaskell.Display.Widgets.Box.Box
+                       IHaskell.Display.Widgets.Box.Proxy
+                       IHaskell.Display.Widgets.Box.PlaceProxy
                        IHaskell.Display.Widgets.Box.FlexBox
                        IHaskell.Display.Widgets.Box.SelectionContainer.Accordion
                        IHaskell.Display.Widgets.Box.SelectionContainer.Tab
                        IHaskell.Display.Widgets.Bool.CheckBox
                        IHaskell.Display.Widgets.Bool.ToggleButton
+                       IHaskell.Display.Widgets.Bool.Valid
                        IHaskell.Display.Widgets.Int.IntText
                        IHaskell.Display.Widgets.Int.BoundedInt.BoundedIntText
                        IHaskell.Display.Widgets.Int.BoundedInt.IntProgress
@@ -92,20 +95,35 @@ library
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       aeson >=0.7 && < 0.10
-                     , base >=4.7 && <4.9
-                     , containers >= 0.5
-                     , ipython-kernel >= 0.6.1.2
-                     , text >= 0.11
-                     , unordered-containers -any
-                     , nats -any
-                     , vinyl >= 0.5
-                     , vector -any
-                     , singletons >= 0.9.0
-                     , scientific -any
-                     , unix -any
-
-                     , ihaskell >= 0.6.4.1
+  -- singletons 2.* require ghc 7.10.2
+  if impl(ghc >= 7.10.2)  
+    build-depends:       aeson >=0.7 && < 0.11
+                       , base >=4.7 && <4.9
+                       , containers >= 0.5
+                       , ipython-kernel >= 0.6.1.2
+                       , text >= 0.11
+                       , unordered-containers -any
+                       , nats -any
+                       , vinyl >= 0.5
+                       , vector -any
+                       , singletons >= 0.9.0 
+                       , scientific -any
+                       , unix -any
+                       , ihaskell >= 0.6.4.1
+  else
+    build-depends:       aeson >=0.7 && < 0.11
+                       , base >=4.7 && <4.9
+                       , containers >= 0.5
+                       , ipython-kernel >= 0.6.1.2
+                       , text >= 0.11
+                       , unordered-containers -any
+                       , nats -any
+                       , vinyl >= 0.5
+                       , vector -any
+                       , singletons >= 0.9.0 && <2.0
+                       , scientific -any
+                       , unix -any
+                       , ihaskell >= 0.6.4.1
   
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -120,3 +138,8 @@ library
   --   ghc-7.10.* = 100
   if impl(ghc == 7.8.*)
     ghc-options:       -fcontext-stack=100
+
+  -- compile without optimizations not to run out of memory on travis
+  if impl(ghc == 7.10.*)
+    ghc-options:       -O0
+

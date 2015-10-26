@@ -2,13 +2,13 @@ module Main where
 
 import qualified Data.Text as T
 
-import System.Environment (getArgs)
+import           System.Environment (getArgs)
 
-import Text.Parsec
-import Text.Parsec.String
+import           Text.Parsec
+import           Text.Parsec.String
 
-import IHaskell.IPython.EasyKernel (easyKernel, installKernelspec, KernelConfig(..))
-import IHaskell.IPython.Types
+import           IHaskell.IPython.EasyKernel (easyKernel, installKernelspec, KernelConfig(..))
+import           IHaskell.IPython.Types
 
 -- Define the actual language!
 data Expr = Plus Expr Expr
@@ -47,12 +47,13 @@ parseExpr str =
       char ','
       y <- expr
       char ')'
-      return $ case func of
-        "plus"  -> Plus x y
-        "minus" -> Minus x y
-        "times" -> Times x y
-        "div"   -> Div x y
-        "exp"   -> Exp x y
+      return $
+        case func of
+          "plus"  -> Plus x y
+          "minus" -> Minus x y
+          "times" -> Times x y
+          "div"   -> Div x y
+          "exp"   -> Exp x y
 
 languageConfig :: LanguageInfo
 languageConfig = LanguageInfo
@@ -73,11 +74,10 @@ displayString :: String -> [DisplayData]
 displayString str = [DisplayData PlainText (T.pack str)]
 
 languageCompletion :: Monad m => T.Text -> Int -> m (T.Text, [T.Text])
-languageCompletion code pos = return $ 
+languageCompletion code pos = return $
   let (before, _) = T.splitAt pos code
       word = last $ T.words $ T.map replace before
   in (word, map T.pack $ matches $ T.unpack word)
-
   where
     matches :: String -> [String]
     matches word =
@@ -92,7 +92,7 @@ languageCompletion code pos = return $
     replace '(' = ' '
     replace ')' = ' '
     replace ',' = ' '
-    replace  x = x
+    replace x = x
 
 languageInspect :: Monad m => T.Text -> Int -> m (Maybe [DisplayData])
 languageInspect _ _ = return $
@@ -120,7 +120,6 @@ languageRun code init intermediate = do
        Left err   -> err
        Right expr -> show (eval expr), IHaskell.IPython.Types.Ok, "")
 
-
 simpleConfig :: KernelConfig IO String String
 simpleConfig = KernelConfig
   { kernelLanguageInfo = languageConfig
@@ -145,4 +144,5 @@ main = do
     _ -> do
       putStrLn "Usage:"
       putStrLn "fun-calc-example install      -- set up the kernelspec"
-      putStrLn "fun-calc-example kernel FILE  -- run a kernel with FILE for communication with the frontend"
+      putStrLn
+        "fun-calc-example kernel FILE  -- run a kernel with FILE for communication with the frontend"

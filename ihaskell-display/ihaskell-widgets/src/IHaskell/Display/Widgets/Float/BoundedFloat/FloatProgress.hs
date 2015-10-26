@@ -12,13 +12,8 @@ FloatProgress,
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Exception (throw, ArithException(LossOfPrecision))
-import           Control.Monad (when, join)
 import           Data.Aeson
-import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
-import qualified Data.Scientific as Sci
-import           Data.Text (Text)
 import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
@@ -38,19 +33,17 @@ mkFloatProgress = do
   uuid <- U.random
 
   let boundedFloatAttrs = defaultBoundedFloatWidget "ProgressView"
-      progressAttrs = (BarStyle =:: DefaultBar) :& RNil
+      progressAttrs = (Orientation =:: HorizontalOrientation)
+                      :& (BarStyle =:: DefaultBar)
+                      :& RNil
       widgetState = WidgetState $ boundedFloatAttrs <+> progressAttrs
 
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
-      initData = object
-                   [ "model_name" .= str "WidgetModel"
-                   , "widget_class" .= str "IPython.FloatProgress"
-                   ]
 
   -- Open a comm for this widget, and store it in the kernel state
-  widgetSendOpen widget initData $ toJSON widgetState
+  widgetSendOpen widget $ toJSON widgetState
 
   -- Return the widget
   return widget

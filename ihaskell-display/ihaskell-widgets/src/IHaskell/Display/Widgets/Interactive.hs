@@ -1,14 +1,11 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE PatternSynonyms #-}
 
 module IHaskell.Display.Widgets.Interactive (interactive, uncurryHList, Rec(..), Argument(..)) where
 
@@ -25,7 +22,7 @@ import           IHaskell.Display
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
-import qualified IHaskell.Display.Widgets.Singletons as S (SField(..), Field(..))
+import qualified IHaskell.Display.Widgets.Singletons as S (SField, Field(..))
 
 import           IHaskell.Display.Widgets.Box.FlexBox
 import           IHaskell.Display.Widgets.Bool.CheckBox
@@ -43,10 +40,6 @@ data WidgetConf a where
               (SuitableField a)
               a
               -> WidgetConf a
-
-newtype WrappedConstructor a =
-          WrappedConstructor
-            { wrappedConstructor :: IO (IPythonWidget (SuitableWidget a)) }
 
  
 type family WithTypes (ts :: [*]) (r :: *) :: * where
@@ -69,8 +62,6 @@ newtype Getter a = Getter (IPythonWidget (SuitableWidget a) -> IO a)
 newtype EventSetter a = EventSetter (IPythonWidget (SuitableWidget a) -> IO () -> IO ())
 
 newtype Initializer a = Initializer (IPythonWidget (SuitableWidget a) -> Argument a -> IO ())
-
-newtype Trigger a = Trigger (IPythonWidget (SuitableWidget a) -> IO ())
 
  
 data RequiredWidget a where
@@ -107,11 +98,8 @@ extractGetter (WidgetConf wr) = Getter $ getValue wr
 extractEventSetter :: WidgetConf x -> EventSetter x
 extractEventSetter (WidgetConf wr) = EventSetter $ setEvent wr
 
-extractTrigger :: WidgetConf x -> Trigger x
-extractTrigger (WidgetConf wr) = Trigger $ trigger wr
-
 extractInitializer :: WidgetConf x -> Initializer x
-extractInitializer (WidgetConf wr) = Initializer initializer
+extractInitializer WidgetConf{} = Initializer initializer
 
 createWidget :: Constructor a -> IO (RequiredWidget a)
 createWidget (Constructor con) = fmap RequiredWidget con
@@ -146,7 +134,6 @@ liftToWidgets func rc initvals = do
       getters = rmap extractGetter rc
       eventSetters = rmap extractEventSetter rc
       initializers = rmap extractInitializer rc
-      triggers = rmap extractTrigger rc
 
   bx <- mkFlexBox
   out <- mkOutputWidget
@@ -188,14 +175,8 @@ construct (WrappedWidget cons _ _) = cons
 getValue :: WrappedWidget w h f a -> IPythonWidget w -> IO a
 getValue (WrappedWidget _ _ field) widget = getField widget field
 
-setValue :: WrappedWidget w h f a -> IPythonWidget w -> a -> IO ()
-setValue (WrappedWidget _ _ field) widget = setField widget field
-
 setEvent :: WrappedWidget w h f a -> IPythonWidget w -> IO () -> IO ()
 setEvent (WrappedWidget _ h _) widget = setField widget h
-
-trigger :: WrappedWidget w h f a -> IPythonWidget w -> IO ()
-trigger (WrappedWidget _ h _) = triggerEvent h
 
 class RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs => FromWidget a where
   type SuitableWidget a :: WidgetType

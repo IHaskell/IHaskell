@@ -18,12 +18,8 @@ module IHaskell.Display.Widgets.Output (
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (when, join)
 import           Data.Aeson
-import           Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
-import           Data.Text (Text)
-import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -45,10 +41,9 @@ mkOutputWidget = do
   stateIO <- newIORef widgetState
 
   let widget = IPythonWidget uuid stateIO
-      initData = object ["model_name" .= str "WidgetModel"]
 
   -- Open a comm for this widget, and store it in the kernel state
-  widgetSendOpen widget initData $ toJSON widgetState
+  widgetSendOpen widget $ toJSON widgetState
 
   -- Return the image widget
   return widget

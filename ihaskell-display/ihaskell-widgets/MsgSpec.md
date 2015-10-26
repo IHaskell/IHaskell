@@ -8,26 +8,17 @@
 ## Creating widgets
 
 Let's say the user types in some code, and the only effect of that code is the creation of a widget.
-The kernel will open a comm for the widget, and store a reference to that comm inside it. Then, to
-notify the frontend about the creation of a widget, an initial state update is sent on the widget's
-comm.
+The kernel will open a comm for the widget, and store a reference to that comm. The comm_open message
+also holds the initial state of the widget in it, which is used by the frontend to create a model for
+the widget.
 
 > The comm should be opened with a `target_name` of `"ipython.widget"`.
 
-The initial state update message looks like this:
-
-```json
-{
-    "method": "update",
-    "state": { "<some/all widget properties>" }
-}
-```
-
 Any *numeric* property initialized with the empty string is provided the default value by the
-frontend. Some numbers need to be sent as actual numbers (when non-null), whereas some (especially
-those used by sliders) need to be sent as strings.
+frontend. Some numbers need to be sent as actual numbers (when non-null), whereas the ones representing
+lengths in CSS units need to be sent as strings.
 
-The initial state update must *at least* have the following fields:
+The initial state must *at least* have the following fields:
 
   - `msg_throttle` (default 3): To prevent the kernel from flooding with messages, the messages from
     the widget to the kernel are throttled. If `msg_throttle` messages were sent, and all are still
@@ -43,8 +34,8 @@ The initial state update must *at least* have the following fields:
 
   - Rest of the properties as required initially.
 
-This state update is also used with fragments of the overall state to sync changes between the
-frontend and the kernel.
+This state is also used with fragments of the overall state to sync changes between the frontend and
+the kernel.
 
 ## Displaying widgets
 
@@ -111,7 +102,7 @@ If this were not so, the frontend would not be able to determine under which cel
 input widget, when an `input_request` is received.
 
 Now, widgets cannot send `execute_request` messages. They can only send `comm_data` messages, which
-means that it's not possible to fetch input through widget events.
+means that it's not possible to fetch input inside widget event handlers.
 
 ---
 

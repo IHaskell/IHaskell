@@ -8,13 +8,15 @@
 -- the low-level 0MQ interface.
 module IHaskell.IPython.Message.Parser (parseMessage) where
 
-import           Data.Aeson ((.:), (.:?), decode, Result(..), Object, Value(..))
+import           Control.Applicative ((<|>), (<$>), (<*>))
+import           Data.Aeson ((.:), (.:?), (.!=), decode, Result(..), Object, Value(..))
 import           Data.Aeson.Types (parse, parseEither)
 import           Data.ByteString hiding (unpack)
 import qualified Data.ByteString.Lazy as Lazy
 import           Data.HashMap.Strict as HM
 import           Data.Map (Map)
 import           Data.Maybe (fromMaybe)
+import           Data.Text (Text)
 import           Data.Text (Text, unpack)
 import           Debug.Trace
 import           IHaskell.IPython.Types
@@ -254,9 +256,10 @@ inputReplyParser = requestParser $ \obj -> do
 commOpenParser :: LByteString -> Message
 commOpenParser = requestParser $ \obj -> do
   uuid <- obj .: "comm_id"
-  name <- obj .: "target_name"
+  targetName <- obj .: "target_name"
+  targetModule <- obj .:? "target_module" .!= ""
   value <- obj .: "data"
-  return $ CommOpen noHeader name uuid value
+  return $ CommOpen noHeader targetName targetModule uuid value
 
 commDataParser :: LByteString -> Message
 commDataParser = requestParser $ \obj -> do

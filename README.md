@@ -29,6 +29,8 @@ install instructions.
 
 **How to get help:** Feel free to open an issue [on Github](https://github.com/gibiansky/IHaskell/issues?direction=desc&sort=updated&state=open) or join the [Gitter channel](https://gitter.im/gibiansky/IHaskell?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).
 
+Arch Linux has a package for IHaskell: https://aur.archlinux.org/packages/ihaskell-git/
+
 ### Install Using Installation Scripts
 
 #### Ubuntu:
@@ -63,17 +65,23 @@ Once this is done, running `ipython --version` should print out `3.0` or above.
 Note that IHaskell *requires* 3.0 or above; IHaskell *will not work* with IPython 2 or earlier.
 
 #### Install Haskell
-Install GHC and Cabal. You must have appropriate versions of both:
+
+You can let [Stack](http://www.stackage.org/) take care of everything by running `stack setup` from within the IHaskell folder. Stack can also be used to build IHaskell later and will manage dependencies better than cabal (like in issue #578).
+
+Or you can install GHC and Cabal manually. You must have appropriate versions of both:
 ```bash
-ghc --numeric-version # Should be 7.6.* or 7.8.*
+ghc --numeric-version # Should be 7.6.* or 7.8.* or 7.10.*
 cabal --version       # Should be 1.18.* or newer
 ```
-These may be installed in a number of ways, including the [Haskell Platform](http://www.haskell.org/platform/), as a [standalone Mac app](https://github.com/ghcformacosx/ghc-dot-app), via Homebrew with `brew install ghc cabal-install`, and so on.
+GHC and Cabal may be installed in a number of other ways, including the [Haskell Platform](http://www.haskell.org/platform/), as a [standalone Mac app](https://github.com/ghcformacosx/ghc-dot-app), via Homebrew with `brew install ghc cabal-install`, and so on.
+
 
 #### Install ZeroMQ
 Install ZeroMQ, a library IHaskell uses for asynchronous communication.
 
-  - **Mac OS X**: With [Homebrew](http://brew.sh/) installed, run `brew install zeromq`. (If using 32-bit Haskell Platform, you *may* need to use `brew install zeromq --universal`. YMMV.)
+  - **Mac OS X**: 
+    - With [Homebrew](http://brew.sh/) installed, run `brew install zeromq`. (If using 32-bit Haskell Platform, you *may* need to use `brew install zeromq --universal`. YMMV.)
+    - With [MacPorts](https://www.macports.org/) installed, run `ports install zmq`
   - **Ubuntu**: Run `sudo apt-get install libzmq3-dev`.
   - **Other**: You can install ZeroMQ from source or use another package manager:
 ```bash
@@ -87,6 +95,9 @@ sudo ldconfig
 If your own platform has a package and I haven't included instructions for it, feel free to send me an email or a PR on this README.
 
 #### Install Haskell Tools
+
+*(This section can be skipped when using stack)*
+
 First, make sure that executables installed by `cabal` are on your shell `PATH`:
 ```bash
 # If you have a ~/.cabal/bin folder:
@@ -102,7 +113,12 @@ cabal install happy cpphs
 ```
 
 #### Build IHaskell
-Install IHaskell! You may install it from Hackage via `cabal install`:
+Install IHaskell! You may install it from Stackage via `stack install` (check the latest version on [http://www.stackage.org/lts-3.8]:
+```bash
+stack install ihaskell-0.6.5.0
+```
+
+Or you may install it from Hackage via `cabal install`:
 ```bash
 cabal install ihaskell --reorder-goals
 ```
@@ -142,6 +158,14 @@ stack install
 The above will install `ihaskell`, all support libraries (specified in `stack.yaml`), and their dependencies. You can also specify which libraries to install, for example:
 ```bash
 stack install ihaskell ihaskell-aeson ihaskell-diagrams
+```
+
+Mac OS X users using MacPorts may run into an [issue involving libiconv](http://blog.omega-prime.co.uk/?p=96). A solution is to add the following lines in the file stack.yaml:
+```
+extra-lib-dirs:
+- /usr/lib
+extra-include-dirs:
+- /usr/include
 ```
 
 #### Run IHaskell

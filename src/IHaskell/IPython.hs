@@ -47,6 +47,7 @@ data KernelSpecOptions =
          , kernelSpecDebug :: Bool                 -- ^ Spew debugging output?
          , kernelSpecConfFile :: IO (Maybe String) -- ^ Filename of profile JSON file.
          , kernelSpecInstallPrefix :: Maybe String
+         , kernelSpecUseStack :: Bool              -- ^ Whether to use @stack@ environments.
          }
 
 defaultKernelSpecOptions :: KernelSpecOptions
@@ -55,6 +56,7 @@ defaultKernelSpecOptions = KernelSpecOptions
   , kernelSpecDebug = False
   , kernelSpecConfFile = defaultConfFile
   , kernelSpecInstallPrefix = Nothing
+  , kernelSpecUseStack = False
   }
 
 -- | The IPython kernel name.
@@ -71,6 +73,13 @@ ipythonCommand = do
     case jupyterMay of
       Nothing -> "ipython"
       Just _  -> "jupyter"
+
+locateIPython :: SH.Sh SH.FilePath
+locateIPython = do
+  mbinary <- SH.which "ipython"
+  case mbinary of
+    Nothing      -> SH.errorExit "The IPython binary could not be located"
+    Just ipython -> return ipython
 
 -- | Run the IPython command with any arguments. The kernel is set to IHaskell.
 ipython :: Bool         -- ^ Whether to suppress output.
@@ -181,6 +190,7 @@ installKernelspec replace opts = void $ do
            Nothing   -> []
            Just file -> ["--conf", file])
         ++ ["--ghclib", kernelSpecGhcLibdir opts]
+           ++ ["--stack" | kernelSpecUseStack opts]
 
   let kernelSpec = KernelSpec
         { kernelDisplayName = "Haskell"
@@ -201,15 +211,17 @@ installKernelspec replace opts = void $ do
       src <- liftIO $ Paths.getDataFileName $ "html/" ++ file
       SH.cp (SH.fromText $ T.pack src) (tmp SH.</> kernelName SH.</> file)
 
-    Just ipython <- SH.which "ipython"
+    ipython <- locateIPython
+
     let replaceFlag = ["--replace" | replace]
         installPrefixFlag = maybe ["--user"] (\prefix -> ["--prefix", T.pack prefix]) (kernelSpecInstallPrefix opts)
         cmd = concat [["kernelspec", "install"], installPrefixFlag, [SH.toTextIgnore kernelDir], replaceFlag]
+
     SH.silently $ SH.run ipython cmd
 
 kernelSpecCreated :: SH.Sh Bool
 kernelSpecCreated = do
-  Just ipython <- SH.which "ipython"
+  ipython <- locateIPython
   out <- SH.silently $ SH.run ipython ["kernelspec", "list"]
   let kernelspecs = map T.strip $ T.lines out
   return $ T.pack kernelName `elem` kernelspecs

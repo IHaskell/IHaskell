@@ -12,6 +12,8 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE AutoDeriveTypeable #-}
 
 module IHaskell.Display.Widgets.Types where
 
@@ -48,8 +50,8 @@ module IHaskell.Display.Widgets.Types where
 --
 -- The IPython widgets expect state updates of the form {"property": value}, where an empty string
 -- for numeric values is ignored by the frontend and the default value is used instead. Some numbers
--- need to be sent as numbers (represented by @Integer@), whereas some need to be sent as Strings
--- (@StrInt@).
+-- need to be sent as numbers (represented by @Integer@), whereas some (css lengths) need to be sent
+-- as Strings (@PixCount@).
 --
 -- Child widgets are expected to be sent as strings of the form "IPY_MODEL_<uuid>", where @<uuid>@
 -- represents the uuid of the widget's comm.
@@ -57,20 +59,20 @@ module IHaskell.Display.Widgets.Types where
 -- To know more about the IPython messaging specification (as implemented in this package) take a
 -- look at the supplied MsgSpec.md.
 --
--- Widgets are not able to do console input, the reason for that can also be found in the messaging
--- specification
-import           Control.Monad (unless, join, when, void, mapM_)
+-- Widgets are not able to do console input, the reason for that can be found in the messaging
+-- specification.
+import           Control.Monad (unless, join, when, void)
 import           Control.Applicative ((<$>))
 import qualified Control.Exception as Ex
-
-import           GHC.IO.Exception
+import           Data.Typeable (Typeable, TypeRep, typeOf)
+import           Data.IORef (IORef, readIORef, modifyIORef)
+import           Data.Text (Text, pack)
 import           System.IO.Error
 import           System.Posix.IO
+import           Text.Printf (printf)
 
 import           Data.Aeson
 import           Data.Aeson.Types (Pair)
-import           Data.IORef (IORef, readIORef, modifyIORef)
-import           Data.Text (Text, pack)
 
 import           Data.Vinyl (Rec(..), (<+>), recordToList, reifyConstraint, rmap, Dict(..))
 import           Data.Vinyl.Functor (Compose(..), Const(..))
@@ -80,17 +82,19 @@ import           Data.Vinyl.TypeLevel (RecAll)
 import           Data.Singletons.Prelude ((:++))
 import           Data.Singletons.TH
 
+import           GHC.IO.Exception
+
 import           IHaskell.Eval.Widgets (widgetSendUpdate)
 import           IHaskell.Display (Base64, IHaskellWidget(..))
 import           IHaskell.IPython.Message.UUID
 
-import           IHaskell.Display.Widgets.Singletons (Field, SField(..))
+import           IHaskell.Display.Widgets.Singletons (Field, SField)
 import qualified IHaskell.Display.Widgets.Singletons as S
 import           IHaskell.Display.Widgets.Common
 
 -- Classes from IPython's widget hierarchy. Defined as such to reduce code duplication.
-type WidgetClass = '[S.ViewModule, S.ViewName, S.MsgThrottle, S.Version,
-  S.DisplayHandler]
+type WidgetClass = '[S.ViewModule, S.ViewName, S.ModelModule, S.ModelName,
+  S.MsgThrottle, S.Version, S.DisplayHandler]
 
 type DOMWidgetClass = WidgetClass :++ '[S.Visible, S.CSS, S.DOMClasses, S.Width, S.Height, S.Padding,
   S.Margin, S.Color, S.BackgroundColor, S.BorderColor, S.BorderWidth,
@@ -104,7 +108,7 @@ type BoolClass = DOMWidgetClass :++ '[S.BoolValue, S.Disabled, S.Description, S.
 type SelectionClass = DOMWidgetClass :++ '[S.Options, S.SelectedValue, S.SelectedLabel, S.Disabled,
   S.Description, S.SelectionHandler]
 
-type MultipleSelectionClass = DOMWidgetClass :++ '[S.Options, S.SelectedLabels, S.SelectedValues, S.Disabled,
+type MultipleSelectionClass = DOMWidgetClass :++ '[S.Options, S.SelectedValues, S.SelectedLabels, S.Disabled,
   S.Description, S.SelectionHandler]
 
 type IntClass = DOMWidgetClass :++ '[S.IntValue, S.Disabled, S.Description, S.ChangeHandler]
@@ -128,29 +132,31 @@ type BoxClass = DOMWidgetClass :++ '[S.Children, S.OverflowX, S.OverflowY, S.Box
 type SelectionContainerClass = BoxClass :++ '[S.Titles, S.SelectedIndex, S.ChangeHandler]
 
 -- Types associated with Fields.
- 
+
 type family FieldType (f :: Field) :: * where
         FieldType S.ViewModule = Text
         FieldType S.ViewName = Text
+        FieldType S.ModelModule = Text
+        FieldType S.ModelName = Text
         FieldType S.MsgThrottle = Integer
         FieldType S.Version = Integer
         FieldType S.DisplayHandler = IO ()
         FieldType S.Visible = Bool
         FieldType S.CSS = [(Text, Text, Text)]
         FieldType S.DOMClasses = [Text]
-        FieldType S.Width = StrInt
-        FieldType S.Height = StrInt
-        FieldType S.Padding = StrInt
-        FieldType S.Margin = StrInt
+        FieldType S.Width = PixCount
+        FieldType S.Height = PixCount
+        FieldType S.Padding = PixCount
+        FieldType S.Margin = PixCount
         FieldType S.Color = Text
         FieldType S.BackgroundColor = Text
         FieldType S.BorderColor = Text
-        FieldType S.BorderWidth = StrInt
-        FieldType S.BorderRadius = StrInt
+        FieldType S.BorderWidth = PixCount
+        FieldType S.BorderRadius = PixCount
         FieldType S.BorderStyle = BorderStyleValue
         FieldType S.FontStyle = FontStyleValue
         FieldType S.FontWeight = FontWeightValue
-        FieldType S.FontSize = StrInt
+        FieldType S.FontSize = PixCount
         FieldType S.FontFamily = Text
         FieldType S.Description = Text
         FieldType S.ClickHandler = IO ()
@@ -201,6 +207,9 @@ type family FieldType (f :: Field) :: * where
         FieldType S.Align = LocationValue
         FieldType S.Titles = [Text]
         FieldType S.SelectedIndex = Integer
+        FieldType S.ReadOutMsg = Text
+        FieldType S.Child = Maybe ChildWidget
+        FieldType S.Selector = Text
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
 data ChildWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => ChildWidget (IPythonWidget w)
@@ -215,7 +224,7 @@ class CustomBounded a where
   upperBound :: a
 
 -- Set according to what IPython widgets use
-instance CustomBounded StrInt where
+instance CustomBounded PixCount where
   upperBound = 10 ^ 16 - 1
   lowerBound = -(10 ^ 16 - 1)
 
@@ -237,6 +246,7 @@ data WidgetType = ButtonType
                 | TextAreaType
                 | CheckBoxType
                 | ToggleButtonType
+                | ValidType
                 | DropdownType
                 | RadioButtonsType
                 | SelectType
@@ -253,19 +263,21 @@ data WidgetType = ButtonType
                 | FloatProgressType
                 | FloatRangeSliderType
                 | BoxType
+                | ProxyType
+                | PlaceProxyType
                 | FlexBoxType
                 | AccordionType
                 | TabType
 
 -- Fields associated with a widget
- 
+
 type family WidgetFields (w :: WidgetType) :: [Field] where
         WidgetFields ButtonType =
                                 DOMWidgetClass :++
                                   '[S.Description, S.Tooltip, S.Disabled, S.Icon, S.ButtonStyle,
                                     S.ClickHandler]
         WidgetFields ImageType =
-                               DOMWidgetClass :++ '[S.ImageFormat, S.B64Value]
+                               DOMWidgetClass :++ '[S.ImageFormat, S.Width, S.Height, S.B64Value]
         WidgetFields OutputType = DOMWidgetClass
         WidgetFields HTMLType = StringClass
         WidgetFields LatexType = StringClass
@@ -275,6 +287,7 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
         WidgetFields CheckBoxType = BoolClass
         WidgetFields ToggleButtonType =
                                       BoolClass :++ '[S.Tooltip, S.Icon, S.ButtonStyle]
+        WidgetFields ValidType = BoolClass :++ '[S.ReadOutMsg]
         WidgetFields DropdownType = SelectionClass :++ '[S.ButtonStyle]
         WidgetFields RadioButtonsType = SelectionClass
         WidgetFields SelectType = SelectionClass
@@ -286,7 +299,8 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
         WidgetFields IntSliderType =
                                    BoundedIntClass :++
                                      '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
-        WidgetFields IntProgressType = BoundedIntClass :++ '[S.BarStyle]
+        WidgetFields IntProgressType =
+                                     BoundedIntClass :++ '[S.Orientation, S.BarStyle]
         WidgetFields IntRangeSliderType =
                                         BoundedIntRangeClass :++
                                           '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
@@ -296,11 +310,14 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
                                      BoundedFloatClass :++
                                        '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
         WidgetFields FloatProgressType =
-                                       BoundedFloatClass :++ '[S.BarStyle]
+                                       BoundedFloatClass :++ '[S.Orientation, S.BarStyle]
         WidgetFields FloatRangeSliderType =
                                           BoundedFloatRangeClass :++
                                             '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
         WidgetFields BoxType = BoxClass
+        WidgetFields ProxyType = WidgetClass :++ '[S.Child]
+        WidgetFields PlaceProxyType =
+                                    WidgetFields ProxyType :++ '[S.Selector]
         WidgetFields FlexBoxType =
                                  BoxClass :++ '[S.Orientation, S.Flex, S.Pack, S.Align]
         WidgetFields AccordionType = SelectionContainerClass
@@ -315,12 +332,15 @@ unwrap (Dummy x) = x
 unwrap (Real x) = x
 
 -- Wrapper around a field.
-data Attr (f :: Field) =
-       Attr
-         { _value :: AttrVal (FieldType f)
-         , _verify :: FieldType f -> IO (FieldType f)
-         , _field :: Field
-         }
+data Attr (f :: Field) where
+  Attr :: Typeable (FieldType f)
+       => { _value :: AttrVal (FieldType f)
+          , _verify :: FieldType f -> IO (FieldType f)
+          , _field :: Field
+          } -> Attr f
+
+getFieldType :: Attr f -> TypeRep
+getFieldType Attr { _value = attrval } = typeOf $ unwrap attrval
 
 instance ToJSON (FieldType f) => ToJSON (Attr f) where
   toJSON attr =
@@ -338,6 +358,12 @@ instance ToPairs (Attr S.ViewModule) where
 
 instance ToPairs (Attr S.ViewName) where
   toPairs x = ["_view_name" .= toJSON x]
+
+instance ToPairs (Attr S.ModelModule) where
+  toPairs x = ["_model_module" .= toJSON x]
+
+instance ToPairs (Attr S.ModelName) where
+  toPairs x = ["_model_name" .= toJSON x]
 
 instance ToPairs (Attr S.MsgThrottle) where
   toPairs x = ["msg_throttle" .= toJSON x]
@@ -552,9 +578,18 @@ instance ToPairs (Attr S.Titles) where
 instance ToPairs (Attr S.SelectedIndex) where
   toPairs x = ["selected_index" .= toJSON x]
 
+instance ToPairs (Attr S.ReadOutMsg) where
+  toPairs x = ["readout" .= toJSON x]
+
+instance ToPairs (Attr S.Child) where
+  toPairs x = ["child" .= toJSON x]
+
+instance ToPairs (Attr S.Selector) where
+  toPairs x = ["selector" .= toJSON x]
+
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.
-(=::) :: SingI f => Sing f -> FieldType f -> Attr f
+(=::) :: (SingI f, Typeable (FieldType f)) => Sing f -> FieldType f -> Attr f
 s =:: x = Attr { _value = Real x, _verify = return, _field = reflect s }
 
 -- | If the number is in the range, return it. Otherwise raise the appropriate (over/under)flow
@@ -567,13 +602,13 @@ rangeCheck (l, u) x
   | otherwise = error "The impossible happened in IHaskell.Display.Widgets.Types.rangeCheck"
 
 -- | Store a numeric value, with verification mechanism for its range.
-ranged :: (SingI f, Num (FieldType f), Ord (FieldType f))
+ranged :: (SingI f, Num (FieldType f), Ord (FieldType f), Typeable (FieldType f))
        => Sing f -> (FieldType f, FieldType f) -> AttrVal (FieldType f) -> Attr f
 ranged s range x = Attr x (rangeCheck range) (reflect s)
 
 -- | Store a numeric value, with the invariant that it stays non-negative. The value set is set as a
 -- dummy value if it's equal to zero.
-(=:+) :: (SingI f, Num (FieldType f), CustomBounded (FieldType f), Ord (FieldType f))
+(=:+) :: (SingI f, Num (FieldType f), CustomBounded (FieldType f), Ord (FieldType f), Typeable (FieldType f))
       => Sing f -> FieldType f -> Attr f
 s =:+ val = Attr
               ((if val == 0
@@ -591,6 +626,8 @@ reflect = fromSing
 defaultWidget :: FieldType S.ViewName -> Rec Attr WidgetClass
 defaultWidget viewName = (ViewModule =:: "")
                          :& (ViewName =:: viewName)
+                         :& (ModelModule =:: "")
+                         :& (ModelName =:: "WidgetModel")
                          :& (MsgThrottle =:+ 3)
                          :& (Version =:: 0)
                          :& (DisplayHandler =:: return ())
@@ -656,8 +693,8 @@ defaultMultipleSelectionWidget :: FieldType S.ViewName -> Rec Attr MultipleSelec
 defaultMultipleSelectionWidget viewName = defaultDOMWidget viewName <+> mulSelAttrs
   where
     mulSelAttrs = (Options =:: OptionLabels [])
-                  :& (SelectedLabels =:: [])
                   :& (SelectedValues =:: [])
+                  :& (SelectedLabels =:: [])
                   :& (Disabled =:: False)
                   :& (Description =:: "")
                   :& (SelectionHandler =:: return ())
@@ -739,8 +776,10 @@ defaultBoundedFloatRangeWidget viewName = defaultFloatRangeWidget viewName <+> b
 
 -- | A record representing a widget of the _Box class from IPython
 defaultBoxWidget :: FieldType S.ViewName -> Rec Attr BoxClass
-defaultBoxWidget viewName = defaultDOMWidget viewName <+> boxAttrs
+defaultBoxWidget viewName = domAttrs <+> boxAttrs
   where
+    defaultDOM = defaultDOMWidget viewName
+    domAttrs = rput (ModelName =:: "BoxModel") defaultDOM
     boxAttrs = (Children =:: [])
                :& (OverflowX =:: DefaultOverflow)
                :& (OverflowY =:: DefaultOverflow)
@@ -806,9 +845,12 @@ str = id
 properties :: IPythonWidget w -> IO ()
 properties widget = do
   st <- readIORef $ state widget
-  let convert :: Attr f -> Const Field f
-      convert attr = Const { getConst = _field attr }
-  mapM_ print $ recordToList . rmap convert . _getState $ st
+  let convert :: Attr f -> Const (Field, TypeRep) f
+      convert attr = Const (_field attr, getFieldType attr)
+
+      renderRow (fname, ftype) = printf "%s ::: %s" (show fname) (show ftype)
+      rows = map renderRow . recordToList . rmap convert $ _getState st
+  mapM_ putStrLn rows
 
 -- Helper function for widget to enforce their inability to fetch console input
 noStdin :: IO a -> IO ()

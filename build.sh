@@ -32,9 +32,6 @@ fi
 # What to install.
 INSTALLS=""
 
-# Remove my kernelspec
-rm -rf ~/.ipython/kernels/haskell
-
 # Compile dependencies.
 if [ $# -gt 0 ]; then
   if [ $1 = "all" ] || [ $1 = "ihaskell" ]; then
@@ -47,7 +44,7 @@ INSTALLS="$INSTALLS ."
 
 # Install ihaskell-display packages.
 if [ $# -gt 0 ]; then
-  if [ $1 = "display" ] || [ $1 = "all" ]; then
+    if [ $1 = "display" ] || [ $1 = "all" ]; then
         # Install all the display libraries
         cd ihaskell-display
         for dir in `ls | grep -v ihaskell-widgets`
@@ -58,25 +55,46 @@ if [ $# -gt 0 ]; then
     fi
 fi
 
-# Clean all required directories, just in case.
-TOP=`pwd`
-for pkg in $INSTALLS
-do
-    cd ./$pkg
-    cabal clean
-    cd $TOP
-done
+cleanup () {
+    # Remove old kernelspec
+    rm -rf ~/.ipython/kernels/haskell
 
-# Stick a "./" before everything.
-INSTALL_DIRS=`echo $INSTALLS | tr ' ' '\n' | sed 's#^#./#' | tr ' ' '\n'`
+    # Clean all required directories, just in case.
+    TOP=`pwd`
+    for pkg in $INSTALLS
+    do
+        cd ./$pkg
+        cabal clean
+        cd $TOP
+    done
+}
 
-echo CMD: cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
-cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
+install_selected () {
+    # Stick a "./" before everything.
+    INSTALL_DIRS=`echo $INSTALLS | tr ' ' '\n' | sed 's#^#./#' | tr ' ' '\n'`
 
-if [ $2 = "no-widgets" ]; then
-    echo 'Not installing ihaskell-widgets'
-elif [ $1 = "display" ] || [ $1 = "all" ]; then
+    echo CMD: cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
+    cabal install --constraint "arithmoi -llvm" -j $INSTALL_DIRS --force-reinstalls --max-backjumps=-1 --reorder-goals
+}
+
+install_widgets () {
+    echo CMD: cabal install ihaskell-display/ihaskell-widgets
     cabal install ihaskell-display/ihaskell-widgets
+}
+
+# Check if arguments are correct, and proceed as required
+if [ -z $2 ]; then
+    cleanup
+    install_selected
+    if [ $1 = "display" ] || [ $1 = "all" ]; then
+        install_widgets
+    fi
+elif [ $2 = "no-widgets" ]; then
+    cleanup
+    install_selected
+else
+    print_help
+    exit 1
 fi
 
 if hash ihaskell 2>/dev/null; then

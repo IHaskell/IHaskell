@@ -11,6 +11,7 @@ cabal update
 cabal install happy alex
 cabal install cpphs
 cabal install gtk2hs-buildtools
+cabal install HTTP
 
 # Build ihaskell, and all the display packages
 ./build.sh all

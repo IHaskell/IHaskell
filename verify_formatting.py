@@ -52,7 +52,10 @@ for source_dir in ["src", "ipython-kernel", "ihaskell-display"]:
             continue
 
         # Ignore IHaskellPrelude.hs, it uses CPP in weird places
-        ignored_files = ["IHaskellPrelude.hs"]
+        if widget_dir in root:
+            ignored_files = ["Types.hs"]
+        else:
+            ignored_files = ["IHaskellPrelude.hs"]
         for filename in filenames:
             if filename.endswith(".hs") and filename not in ignored_files:
                 sources.append(os.path.join(root, filename))

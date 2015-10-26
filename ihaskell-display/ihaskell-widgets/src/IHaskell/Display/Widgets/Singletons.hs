@@ -5,10 +5,13 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module IHaskell.Display.Widgets.Singletons where
 
 import           Data.Singletons.TH
+import           Data.Singletons.Prelude.Ord
 
 -- Widget properties
 singletons
@@ -16,6 +19,8 @@ singletons
    
   data Field = ViewModule
              | ViewName
+             | ModelModule
+             | ModelName
              | MsgThrottle
              | Version
              | DisplayHandler
@@ -85,5 +90,8 @@ singletons
              | Align
              | Titles
              | SelectedIndex
+             | ReadOutMsg
+             | Child
+             | Selector
              deriving (Eq, Ord, Show)
   |]

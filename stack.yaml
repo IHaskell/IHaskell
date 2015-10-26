@@ -8,7 +8,6 @@ packages:
 - ihaskell-display/ihaskell-juicypixels/
 - ihaskell-display/ihaskell-magic/
 - ihaskell-display/ihaskell-rlangqq/
-- ihaskell-display/ihaskell-parsec/
 - ihaskell-display/ihaskell-plot/
 - ihaskell-display/ihaskell-blaze/
 - ihaskell-display/ihaskell-widgets/
