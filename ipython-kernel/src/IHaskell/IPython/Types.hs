@@ -506,12 +506,8 @@ data DisplayData = DisplayData MimeType Text
 -- We can't print the actual data, otherwise this will be printed every time it gets computed
 -- because of the way the evaluator is structured. See how `displayExpr` is computed.
 instance Show DisplayData where
-  show (DisplayData PlainText t) = "DisplayData PlainText (" ++ show t ++ ")"
-  show (DisplayData (MimePng w h) t) = "DisplayData (Png " ++ show (w, h) ++ ")"
-  show (DisplayData MimeSvg t) = "DisplayData (Svg)"
-  show (DisplayData (MimeJpg w h) t) = "DisplayData (Jpg " ++ show (w, h) ++ ")"
-  show (DisplayData MimeHtml t) = "DisplayData (Html " ++ show t ++ ")"
-  show (DisplayData typ t) = "DisplayData (unknown: " ++ show typ ++ ")"
+  show _ = "DisplayData"
+
 -- Allow DisplayData serialization
 instance Serialize Text where
   put str = put (Text.encodeUtf8 str)
