@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-unused-binds -fno-warn-name-shadowing -fno-warn-unused-matches #-}
 
 -- | Description : @ToJSON@ for Messages
 --
@@ -7,13 +8,7 @@ module IHaskell.IPython.Message.Writer (ToJSON(..)) where
 
 import           Data.Aeson
 import           Data.Map (Map)
--- import           Data.Monoid (mempty)
 import           Data.Text (Text, pack)
-
--- import qualified Data.ByteString as B
--- import qualified Data.ByteString.Lazy as L
--- import           Data.Text.Encoding
-
 import           IHaskell.IPython.Types
 
 instance ToJSON LanguageInfo where

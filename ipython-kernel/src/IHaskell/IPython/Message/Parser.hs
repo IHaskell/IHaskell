@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
+{-# OPTIONS_GHC -fno-warn-unused-binds -fno-warn-name-shadowing #-}
 
 -- | Description : Parsing messages received from IPython
 --
@@ -7,15 +8,14 @@
 -- the low-level 0MQ interface.
 module IHaskell.IPython.Message.Parser (parseMessage) where
 
--- import           Control.Applicative ((<|>), (<$>), (<*>))
 import           Data.Aeson ((.:), (.:?), decode, Result(..), Object, Value(..))
 import           Data.Aeson.Types (parse, parseEither)
 import           Data.ByteString hiding (unpack)
 import qualified Data.ByteString.Lazy as Lazy
 import           Data.HashMap.Strict as HM
 import           Data.Map (Map)
-import           Data.Maybe (catMaybes, fromMaybe)
-import           Data.Text (Text, unpack, concat)
+import           Data.Maybe (fromMaybe)
+import           Data.Text (Text, unpack)
 import           Debug.Trace
 import           IHaskell.IPython.Types
 

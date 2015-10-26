@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, DeriveDataTypeable, DeriveGeneric #-}
+{-# OPTIONS_GHC -fno-warn-unused-binds -fno-warn-name-shadowing -fno-warn-unused-matches #-}
 
 -- | This module contains all types used to create an IPython language kernel.
 module IHaskell.IPython.Types (
@@ -34,13 +35,11 @@ module IHaskell.IPython.Types (
     extractPlain,
     ) where
 
--- import           Control.Applicative ((<$>), (<*>))
 import           Data.Aeson
 import           Data.ByteString (ByteString)
 import           Data.List (find)
 import           Data.Map (Map)
 import           Data.Serialize
--- import qualified Data.String as S
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
@@ -507,8 +506,12 @@ data DisplayData = DisplayData MimeType Text
 -- We can't print the actual data, otherwise this will be printed every time it gets computed
 -- because of the way the evaluator is structured. See how `displayExpr` is computed.
 instance Show DisplayData where
-  show _ = "DisplayData"
-
+  show (DisplayData PlainText t) = "DisplayData PlainText (" ++ show t ++ ")"
+  show (DisplayData (MimePng w h) t) = "DisplayData (Png " ++ show (w, h) ++ ")"
+  show (DisplayData MimeSvg t) = "DisplayData (Svg)"
+  show (DisplayData (MimeJpg w h) t) = "DisplayData (Jpg " ++ show (w, h) ++ ")"
+  show (DisplayData MimeHtml t) = "DisplayData (Html " ++ show t ++ ")"
+  show (DisplayData typ t) = "DisplayData (unknown: " ++ show typ ++ ")"
 -- Allow DisplayData serialization
 instance Serialize Text where
   put str = put (Text.encodeUtf8 str)
