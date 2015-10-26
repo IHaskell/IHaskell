@@ -20,7 +20,6 @@ instance IHaskellDisplay (QDiagram Cairo V2 Double Any) where
 
 diagramData :: Diagram Cairo -> OutputType -> IO DisplayData
 diagramData renderable format = do
-  putStrLn "About to switch to tmp dir!"
   switchToTmpDir
 
   -- Compute width and height.
@@ -30,17 +29,12 @@ diagramData renderable format = do
       imgHeight = 300
       imgWidth = aspect * imgHeight
 
-  putStrLn "Going to do renderCairo!"
-
   -- Write the image.
   let filename = ".ihaskell-diagram." ++ extension format
   renderCairo filename (mkSizeSpec2D (Just imgWidth) (Just imgHeight)) renderable
 
-  putStrLn "Did renderCairo, about to readFile"
-
   -- Convert to base64.
   imgData <- Char.readFile filename
-  putStrLn "Did readFile"
   let value =
         case format of
           PNG -> png (floor imgWidth) (floor imgHeight) $ base64 imgData
