@@ -5,10 +5,8 @@ module IHaskell.Display.Diagrams (diagram, animation) where
 import qualified Data.ByteString.Char8 as Char
 import           System.Directory
 import           System.IO.Unsafe
-
 import           Diagrams.Backend.Cairo
 import           Diagrams.Prelude
-
 import           IHaskell.Display
 import           IHaskell.Display.Diagrams.Animation
 
