@@ -2,13 +2,11 @@
 
 module IHaskell.Display.Diagrams (diagram, animation) where
 
-import           System.Directory
 import qualified Data.ByteString.Char8 as Char
+import           System.Directory
 import           System.IO.Unsafe
-
-import           Diagrams.Prelude
 import           Diagrams.Backend.Cairo
-
+import           Diagrams.Prelude
 import           IHaskell.Display
 import           IHaskell.Display.Diagrams.Animation
 

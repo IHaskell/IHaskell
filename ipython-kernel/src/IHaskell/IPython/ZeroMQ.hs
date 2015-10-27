@@ -18,9 +18,9 @@ import           Control.Concurrent
 import           Control.Exception
 import           Control.Monad
 import           Data.Aeson
-import qualified Data.ByteString.Lazy as LBS
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as Char
+import qualified Data.ByteString.Lazy as LBS
 import           Data.Char
 import           Data.Digest.Pure.SHA as SHA
 import           Data.Monoid ((<>))
@@ -28,16 +28,16 @@ import qualified Data.Text.Encoding as Text
 import           System.ZMQ4 as ZMQ4 hiding (stdin)
 import           Text.Read (readMaybe)
 
-import           IHaskell.IPython.Types
 import           IHaskell.IPython.Message.Parser
-import           IHaskell.IPython.Message.Writer
+import           IHaskell.IPython.Message.Writer ()
+import           IHaskell.IPython.Types
 
 -- | The channel interface to the ZeroMQ sockets. All communication is done via Messages, which are
 -- encoded and decoded into a lower level form before being transmitted to IPython. These channels
 -- should functionally serve as high-level sockets which speak Messages instead of ByteStrings.
 data ZeroMQInterface =
        Channels
-         { 
+         {
          -- | A channel populated with requests from the frontend.
          shellRequestChannel :: Chan Message
          -- | Writing to this channel causes a reply to be sent to the frontend.
