@@ -83,6 +83,7 @@ parser ExecuteReplyMessage = executeReplyParser
 parser ExecuteErrorMessage = executeErrorParser
 parser ExecuteResultMessage = executeResultParser
 parser DisplayDataMessage = displayDataParser
+parser IsCompleteRequestMessage = isCompleteRequestParser
 parser CompleteRequestMessage = completeRequestParser
 parser InspectRequestMessage = inspectRequestParser
 parser ShutdownRequestMessage = shutdownRequestParser
@@ -230,6 +231,11 @@ clearOutputMessageParser :: LByteString -> Message
 clearOutputMessageParser = requestParser $ \obj -> do
   wait <- obj .: "wait"
   return $ ClearOutput noHeader wait
+
+isCompleteRequestParser :: LByteString -> Message
+isCompleteRequestParser = requestParser $ \obj -> do
+  code <- obj .: "code"
+  return $ IsCompleteRequest noHeader code
 
 completeRequestParser :: LByteString -> Message
 completeRequestParser = requestParser $ \obj -> do

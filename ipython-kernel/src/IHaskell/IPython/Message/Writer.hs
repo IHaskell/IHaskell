@@ -7,6 +7,7 @@
 module IHaskell.IPython.Message.Writer (ToJSON(..)) where
 
 import           Data.Aeson
+import           Data.Aeson.Types (Pair)
 import           Data.Map (Map)
 import           Data.Monoid (mempty)
 import           Data.Text (Text, pack)
@@ -129,6 +130,18 @@ instance ToJSON Message where
       tuplify (HistoryReplyElement sess linum res) = (sess, linum, case res of
                                                                      Left inp         -> toJSON inp
                                                                      Right (inp, out) -> toJSON out)
+
+  toJSON req@IsCompleteReply{} =
+    object pairs
+    where
+      pairs =
+        case reviewResult req of
+          CodeComplete       -> status "complete"
+          CodeIncomplete ind -> status "incomplete" ++ indent ind
+          CodeInvalid        -> status "invalid"
+          CodeUnknown        -> status "unknown"
+      status x = ["status" .= pack x]
+      indent x = ["indent" .= pack x]
 
   toJSON body = error $ "Do not know how to convert to JSON for message " ++ show body
 

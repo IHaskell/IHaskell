@@ -306,6 +306,11 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
                      , status = Ok
                      })
 
+-- Always assume that the code is complete, which allows for only
+-- single line inputs for now.
+replyTo _ IsCompleteRequest{} replyHeader state = do
+  let reply = IsCompleteReply { header = replyHeader, reviewResult = CodeComplete }
+  return (state, reply)
 
 replyTo _ req@CompleteRequest{} replyHeader state = do
   let code = getCode req

@@ -18,6 +18,7 @@ module IHaskell.IPython.Types (
     Username(..),
     Metadata(..),
     MessageType(..),
+    CodeReview(..),
     Width(..),
     Height(..),
     StreamType(..),
@@ -179,6 +180,8 @@ data MessageType = KernelInfoReplyMessage
                  | DisplayDataMessage
                  | OutputMessage
                  | InputMessage
+                 | IsCompleteRequestMessage
+                 | IsCompleteReplyMessage
                  | CompleteRequestMessage
                  | CompleteReplyMessage
                  | InspectRequestMessage
@@ -208,6 +211,8 @@ showMessageType StreamMessage = "stream"
 showMessageType DisplayDataMessage = "display_data"
 showMessageType OutputMessage = "pyout"
 showMessageType InputMessage = "pyin"
+showMessageType IsCompleteRequestMessage = "is_complete_request"
+showMessageType IsCompleteReplyMessage = "is_complete_reply"
 showMessageType CompleteRequestMessage = "complete_request"
 showMessageType CompleteReplyMessage = "complete_reply"
 showMessageType InspectRequestMessage = "inspect_request"
@@ -238,6 +243,8 @@ instance FromJSON MessageType where
       "display_data"        -> return DisplayDataMessage
       "pyout"               -> return OutputMessage
       "pyin"                -> return InputMessage
+      "is_complete_request" -> return IsCompleteRequestMessage
+      "is_complete_reply"   -> return IsCompleteReplyMessage
       "complete_request"    -> return CompleteRequestMessage
       "complete_reply"      -> return CompleteReplyMessage
       "inspect_request"     -> return InspectRequestMessage
@@ -265,6 +272,12 @@ data LanguageInfo =
          , languageCodeMirrorMode :: String        -- ^ 'ihaskell'. can be 'null'
          }
   deriving (Show, Eq)
+
+data CodeReview = CodeComplete
+                | CodeIncomplete String -- ^ String to be used to indent next line of input
+                | CodeInvalid
+                | CodeUnknown
+  deriving Show
 
 -- | A message used to communicate with the IPython frontend.
 data Message =
@@ -352,6 +365,16 @@ data Message =
                  }
              | Input { header :: MessageHeader, getCode :: Text, executionCount :: Int }
              | Output { header :: MessageHeader, getText :: [DisplayData], executionCount :: Int }
+             |
+               IsCompleteRequest
+                 { header :: MessageHeader
+                 , inputToReview :: String               -- ^ The code entered in the repl.
+                 }
+             |
+               IsCompleteReply
+                 { header :: MessageHeader
+                 , reviewResult :: CodeReview            -- ^ The result of reviewing the code.
+                 }
              |
                CompleteRequest
                  { header :: MessageHeader
@@ -487,6 +510,7 @@ instance FromJSON StreamType where
 replyType :: MessageType -> Maybe MessageType
 replyType KernelInfoRequestMessage = Just KernelInfoReplyMessage
 replyType ExecuteRequestMessage = Just ExecuteReplyMessage
+replyType IsCompleteRequestMessage = Just IsCompleteReplyMessage
 replyType CompleteRequestMessage = Just CompleteReplyMessage
 replyType InspectRequestMessage = Just InspectReplyMessage
 replyType ShutdownRequestMessage = Just ShutdownReplyMessage
