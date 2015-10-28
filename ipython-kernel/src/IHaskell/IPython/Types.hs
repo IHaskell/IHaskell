@@ -115,7 +115,7 @@ instance ToJSON Transport where
 -------------------- IPython Kernelspec Types ----------------------
 data KernelSpec =
        KernelSpec
-         {
+         { 
          -- | Name shown to users to describe this kernel (e.g. "Haskell")
          kernelDisplayName :: String
          -- | Name for the kernel; unique kernel identifier (e.g. "haskell")
@@ -278,7 +278,7 @@ data Message =
                  , languageInfo :: LanguageInfo
                  }
              |
-               -- | A request from a frontend to execute some code.
+             -- | A request from a frontend to execute some code.
                ExecuteInput
                  { header :: MessageHeader
                  , getCode :: Text         -- ^ The code string.
@@ -349,17 +349,10 @@ data Message =
                  , inCode :: String                      -- ^ Submitted input code.
                  , executionCount :: Int                 -- ^ Which input this is.
                  }
-             | Input
-                 { header :: MessageHeader
-                 , getCode :: Text
-                 , executionCount :: Int
-                 }
-             | Output
-                 { header :: MessageHeader
-                 , getText :: [DisplayData]
-                 , executionCount :: Int
-                 }
-             | CompleteRequest
+             | Input { header :: MessageHeader, getCode :: Text, executionCount :: Int }
+             | Output { header :: MessageHeader, getText :: [DisplayData], executionCount :: Int }
+             |
+               CompleteRequest
                  { header :: MessageHeader
                  , getCode :: Text  {- ^
             The entire block of text where the line is. This may be useful in the
@@ -488,7 +481,6 @@ instance FromJSON StreamType where
   parseJSON (String "stdin") = return Stdin
   parseJSON (String "stdout") = return Stdout
   parseJSON (String "stderr") = return Stderr
-
 
 -- | Get the reply message type for a request message type.
 replyType :: MessageType -> Maybe MessageType

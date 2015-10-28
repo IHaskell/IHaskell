@@ -153,8 +153,8 @@ executeErrorParser = requestParser $ \obj -> do
   return $ ExecuteError noHeader [] traceback ename evalue
 
 makeDisplayDatas :: Object -> [DisplayData]
-makeDisplayDatas dataDict = [DisplayData (read $ unpack mimeType) content |
-                             (mimeType, String content) <- HM.toList dataDict]
+makeDisplayDatas dataDict = [DisplayData (read $ unpack mimeType) content | (mimeType, String content) <- HM.toList
+                                                                                                            dataDict]
 
 -- | Parse an execute result
 executeResultParser :: LByteString -> Message
@@ -173,9 +173,10 @@ displayDataParser = requestParser $ \obj -> do
   maybeSource <- obj .:? "source"
   return $ PublishDisplayData noHeader (fromMaybe "" maybeSource) displayDatas
 
-requestParser parser content = case parseEither parser decoded of
-  Right parsed -> parsed
-  Left err -> trace ("Parse error: " ++ show err) SendNothing
+requestParser parser content =
+  case parseEither parser decoded of
+    Right parsed -> parsed
+    Left err     -> trace ("Parse error: " ++ show err) SendNothing
   where
     Just decoded = decode content
 

@@ -29,14 +29,22 @@ instance ToJSON Message where
       , "language_info" .= languageInfo rep
       ]
 
-  toJSON ExecuteRequest { getCode = code, getSilent = silent, getStoreHistory = storeHistory,
-                          getAllowStdin = allowStdin, getUserVariables = userVariables,
-                          getUserExpressions = userExpressions
-                        } =
-    object ["code" .= code, "silent" .= silent, "store_history" .= storeHistory,
-            "allow_stdin" .= allowStdin, "user_variables" .= userVariables,
-            "user_expressions" .= userExpressions
-           ]
+  toJSON ExecuteRequest
+    { getCode = code
+    , getSilent = silent
+    , getStoreHistory = storeHistory
+    , getAllowStdin = allowStdin
+    , getUserVariables = userVariables
+    , getUserExpressions = userExpressions
+    } =
+    object
+      [ "code" .= code
+      , "silent" .= silent
+      , "store_history" .= storeHistory
+      , "allow_stdin" .= allowStdin
+      , "user_variables" .= userVariables
+      , "user_expressions" .= userExpressions
+      ]
 
   toJSON ExecuteReply { status = status, executionCounter = counter, pagerOutput = pager } =
     object
