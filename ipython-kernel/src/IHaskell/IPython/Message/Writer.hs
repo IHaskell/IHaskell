@@ -8,6 +8,7 @@ module IHaskell.IPython.Message.Writer (ToJSON(..)) where
 
 import           Data.Aeson
 import           Data.Map (Map)
+import           Data.Monoid (mempty)
 import           Data.Text (Text, pack)
 import           IHaskell.IPython.Types
 

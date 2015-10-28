@@ -35,6 +35,7 @@ module IHaskell.IPython.Types (
     extractPlain,
     ) where
 
+import           Control.Applicative ((<$>), (<*>))
 import           Data.Aeson
 import           Data.ByteString (ByteString)
 import           Data.List (find)
