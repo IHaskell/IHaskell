@@ -78,8 +78,8 @@ install_selected () {
 }
 
 install_widgets () {
-    echo CMD: cabal install ihaskell-display/ihaskell-widgets --force-reinstalls
-    cabal install ihaskell-display/ihaskell-widgets --force-reinstalls
+    echo CMD: cabal install ./ghc-parser ./ipython-kernel ./ihaskell-display/ihaskell-widgets --force-reinstalls
+    cabal install ./ghc-parser ./ipython-kernel ./ihaskell-display/ihaskell-widgets --force-reinstalls
 }
 
 # Check if arguments are correct, and proceed as required
