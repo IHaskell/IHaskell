@@ -71,6 +71,10 @@ brew install Caskroom/cask/xquartz
 brew install cairo
 brew install pango
 
+# make cabal install magic, which won't work correctly if done using
+# default flags, since Homebrew dumps libmagic into /usr/local/lib rather than /lib
+cabal install magic-1.1  --extra-lib /usr/local/lib --extra-include /usr/local/include
+
 # For C compiler to pick up /usr/local and X11 stuff during Cabal builds.
 # You may want to put this in your shell startup.
 export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/opt/X11/lib/pkgconfig
