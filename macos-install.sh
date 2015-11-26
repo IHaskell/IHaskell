@@ -73,7 +73,8 @@ brew install pango
 
 # make cabal install magic, which won't work correctly if done using
 # default flags, since Homebrew dumps libmagic into /usr/local/lib rather than /lib
-cabal install magic-1.1  --extra-lib /usr/local/lib --extra-include /usr/local/include
+brew_prefix=$(brew --prefix)
+cabal install magic-1.1  --extra-lib "$brew_prefix/lib" --extra-include "$brew_prefix/include"
 
 # For C compiler to pick up /usr/local and X11 stuff during Cabal builds.
 # You may want to put this in your shell startup.
