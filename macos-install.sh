@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 # Installation for Mac OS X from IHaskell repo directory.
 # TODO Split out setup for installation from Hackage released versions.
@@ -11,48 +12,50 @@
 #
 # XQuartz is needed for Cairo and Pango.
 
-brew --version >& /dev/null
-if [ $? ]; then
-    true
-else
-    echo "Homebrew needs to be installed."
-    echo "  Download from http://brew.sh/"
+function abort() {
+    for line
+    do
+        echo >&2 "$line"
+    done
     exit 1
-fi
+}
 
-brew update
+brew --version >& /dev/null || abort  \
+    "Homebrew needs to be installed." \
+    "  Download from http://brew.sh/"
 
 # Install IPython.
-pip --version >& /dev/null
-if [ $? ]; then
-    pip install -U 'ipython[all]'
+if command -v pip3 >/dev/null 2>&1
+then
+    PIP=pip3
+elif command -v pip >/dev/null 2>&1
+then
+    PIP=pip
 else
-    echo "Python pip needs to be installed."
-    echo "  One way is to install Homebrew Python:"
-    echo "  $ brew install python"
-    exit 1
+    abort \
+        "Python pip needs to be installed." \
+        "  One way is to install Homebrew Python:" \
+        "  $ brew install python"
 fi
 
-if [ -n "`brew --config | grep '^CLT:.*N/A'`" ]; then
-    echo "You need to have XCode command line tools installed."
-    echo "  $ xcode-select --install"
-fi
+$PIP --version >& /dev/null || abort \
+    "Python $PIP needs to be installed." \
+    "  One way is to install Homebrew Python:" \
+    "  $ brew install python"
 
-ghc --version >& /dev/null
-if [ $? ]; then
-    true
-else
-    echo "Please install ghc."
-    echo "  $ brew install ghc"
-fi
+$PIP install -U 'ipython[all]'
 
-cabal --version >& /dev/null
-if [ $? ]; then
-    true
-else
-    echo "Please install Cabal."
-    echo "  $ brew install cabal-install"
-fi
+[ -n "`brew --config | grep '^CLT:.*N/A'`" ] && abort \
+    "You need to have XCode command line tools installed." \
+    "  $ xcode-select --install"
+
+ghc --version >& /dev/null || abort \
+    "Please install ghc." \
+    "  $ brew install ghc"
+
+cabal --version >& /dev/null || abort \
+    "Please install Cabal." \
+    "  $ brew install cabal-install"
 
 # Make sure to have basic tools installed.
 cabal update
@@ -61,15 +64,17 @@ cabal install cpphs
 cabal install gtk2hs-buildtools
 
 # Homebrew stuff.
-brew install zeromq
-brew install libmagic
+brew update
+brew ls --versions zeromq    | grep -q . || brew install zeromq
+brew ls --versions libmagic  | grep -q . || brew install libmagic
 
 # XQuartz is required: http://xquartz.macosforge.org/landing/
 # The easiest way is through Homebrew.
-brew install Caskroom/cask/xquartz
-
-brew install cairo
-brew install pango
+brew tap caskroom/cask
+brew      ls --versions brew-cask  | grep -q . || brew install brew-cask
+brew cask ls --versions xquartz    | grep -q . || brew cask install xquartz
+brew      ls --versions cairo      | grep -q . || brew install cairo
+brew      ls --versions pango      | grep -q . || brew install pango
 
 # make cabal install magic, which won't work correctly if done using
 # default flags, since Homebrew dumps libmagic into /usr/local/lib rather than /lib
