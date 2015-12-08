@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, FlexibleContexts, QuasiQuotes, ViewPatterns #-}
+{-# LANGUAGE NoImplicitPrelude, FlexibleContexts, ViewPatterns #-}
 
 module IHaskell.Eval.Lint (lint) where
 
@@ -12,7 +12,6 @@ import qualified Data.ByteString.Char8 as CBS
 import           Prelude (head, tail, last)
 import           Control.Monad
 import           Data.List (findIndex)
-import           Data.String.Here
 import           Data.Char
 import           Data.Monoid
 import           Data.Maybe (mapMaybe)
@@ -188,16 +187,16 @@ htmlSuggestions = concatMap toHtml
             _ -> "warning"
 
     style :: String -> String -> String
-    style cls thing = [i| <div class="suggestion-${cls}">${thing}</div> |]
+    style =  printf "<div class=\"suggestion-${cls}\">%s</div>"
 
     named :: String -> String
-    named thing = [i| <div class="suggestion-name" style="clear:both;">${thing}</div> |]
+    named = printf "<div class=\"suggestion-name\" style=\"clear:both;\">%s</div>"
 
     styleId :: String -> String -> String -> String
-    styleId cls id thing = [i| <div class="${cls}" id="${id}">${thing}</div> |]
+    styleId = printf "<div class=\"%s\" id=\"%s\">%s</div>"
 
     floating :: String -> String -> String
-    floating dir thing = [i| <div class="suggestion-row" style="float: ${dir};">${thing}</div> |]
+    floating = printf "<div class=\"suggestion-row\" style=\"float: %s;\">%s</div>"
 
 showSuggestion :: String -> String
 showSuggestion = remove lintIdent . dropDo

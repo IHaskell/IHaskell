@@ -1,18 +1,13 @@
-{-# LANGUAGE QuasiQuotes #-}
-
 module IHaskell.Publish (publishResult) where
 
 import           IHaskellPrelude
 
-import           Data.String.Here (hereFile)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as E
 
 import           IHaskell.Display
 import           IHaskell.Types
-
-ihaskellCSS :: String
-ihaskellCSS = [hereFile|html/custom.css|]
+import           IHaskell.CSS (ihaskellCSS)
 
 -- | Publish evaluation results, ignore any CommMsgs. This function can be used to create a function
 -- of type (EvaluationResult -> IO ()), which can be used to publish results to the frontend. The

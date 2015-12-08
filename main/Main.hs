@@ -26,7 +26,6 @@ import           System.Environment (setEnv)
 #endif
 import           System.Posix.Signals
 import qualified Data.Map as Map
-import           Data.String.Here (hereFile)
 import qualified Data.Text.Encoding as E
 import           Data.List (break)
 

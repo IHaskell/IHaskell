@@ -16,20 +16,6 @@ packages:
 - ihaskell-display/ihaskell-aeson/
 - ihaskell-display/ihaskell-hatex/
 extra-deps:
-# - active-0.2.0.3
-# - Chart-1.5
-# - Chart-cairo-1.5
-# - diagrams-1.3
-# - diagrams-cairo-1.3.0.2
-# - diagrams-contrib-1.3.0.3
-# - diagrams-core-1.3.0.1
-# - diagrams-lib-1.3.0.1
-# - diagrams-solve-0.1
-# - diagrams-svg-1.3.1.3
-# - force-layout-0.4.0.1
-# - happy-1.19.5
-# - HList-0.4.0.0
-# - lucid-svg-0.5.0.0
 - magic-1.1
 - Rlang-QQ-0.3.1.0
 - static-canvas-0.2.0.2
@@ -38,4 +24,5 @@ extra-deps:
 - xformat-0.1.2.1
 - ratio-int-0.1.2
 - friday-0.2.2.0
+- haskell-src-exts-1.17.0
 resolver: nightly-2015-08-15
