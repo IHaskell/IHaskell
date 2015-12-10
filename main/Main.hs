@@ -26,8 +26,9 @@ import           System.Environment (setEnv)
 #endif
 import           System.Posix.Signals
 import qualified Data.Map as Map
+import           Data.String.Here (hereFile)
 import qualified Data.Text.Encoding as E
-import           Data.List (break)
+import           Data.List (break, last)
 
 -- IHaskell imports.
 import           IHaskell.Convert (convert)
@@ -305,11 +306,21 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
                      , status = Ok
                      })
 
--- Always assume that the code is complete, which allows for only
--- single line inputs for now.
-replyTo _ IsCompleteRequest{} replyHeader state = do
-  let reply = IsCompleteReply { header = replyHeader, reviewResult = CodeComplete }
+-- Check for a trailing empty line. If it doesn't exist, we assume the code is incomplete,
+-- otherwise we assume the code is complete. Todo: Implement a mechanism that only requests
+-- a trailing empty line, when multiline code is entered.
+replyTo _ req@IsCompleteRequest{} replyHeader state = do
+  isComplete <- isInputComplete
+  let reply  = IsCompleteReply { header = replyHeader, reviewResult = isComplete }
   return (state, reply)
+
+  where
+    isInputComplete = do
+      let code = lines $ inputToReview req
+      if nub (last code) == " "
+         then return CodeComplete
+         else return $ CodeIncomplete $ indent 4
+    indent n = take n $ repeat ' '
 
 replyTo _ req@CompleteRequest{} replyHeader state = do
   let code = getCode req
