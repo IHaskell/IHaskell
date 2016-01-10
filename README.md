@@ -31,6 +31,8 @@ install instructions.
 
 Arch Linux has a package for IHaskell: https://aur.archlinux.org/packages/ihaskell-git/
 
+Here is a blog post with step-by-step instructions for Ubuntu 14.04 (but should also work on other versions): https://remusao.github.io/install-ihaskell-on-ubuntu-1404-with-stack.html
+
 ### Install Using Installation Scripts
 
 #### Ubuntu:
