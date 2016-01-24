@@ -28,4 +28,4 @@ extra-deps:
 - haskell-src-exts-1.17.0
 - gnuplot-0.5.4
 - data-accessor-transformers-0.2.1.6
-resolver: nightly-2015-12-26
+resolver: lts-3.14
