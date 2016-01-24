@@ -1,0 +1,70 @@
+-- The name of the package.
+name:                ihaskell-gnuplot
+
+-- The package version.  See the Haskell package versioning policy (PVP) 
+-- for standards guiding when and how versions should be incremented.
+-- http://www.haskell.org/haskellwiki/Package_versioning_policy
+-- PVP summary:      +-+------- breaking API changes
+--                   | | +----- non-breaking API additions
+--                   | | | +--- code changes with no API change
+version:             0.1.0.0
+
+-- A short (one-line) description of the package.
+synopsis:            IHaskell display instance for Gnuplot (from gnuplot package)
+
+-- A longer description of the package.
+-- description:         
+
+-- URL for the project homepage or repository.
+homepage:            http://www.github.com/gibiansky/ihaskell
+
+-- The license under which the package is released.
+license:             MIT
+
+-- The file containing the license text.
+license-file:        LICENSE
+
+-- The package author(s).
+author:              Doro Rose <dororose@hotmail.com>
+
+-- An email address to which users can send suggestions, bug reports, and 
+-- patches.
+maintainer:          Doro Rose <dororose@hotmail.com>,
+                     Andrew Gibiansky <andrew.gibiansky@gmail.com>
+
+-- A copyright notice.
+-- copyright:           
+
+category:            Development
+
+build-type:          Simple
+
+-- Extra files to be distributed with the package, such as examples or a 
+-- README.
+-- extra-source-files:  
+
+-- Constraint on the version of Cabal needed to build this package.
+cabal-version:       >=1.16
+
+library
+  -- Modules exported by the library.
+  exposed-modules:     IHaskell.Display.Gnuplot
+  
+  -- Modules included in this library but not exported.
+  -- other-modules:       
+  
+  -- Language extensions.
+  default-extensions: DoAndIfThenElse
+              OverloadedStrings
+             
+  -- Other library packages from which modules are imported.
+  build-depends:       base >=4.6 && <4.9,
+                       bytestring,
+                       gnuplot >= 0.5.4,
+                       ihaskell >= 0.6.2
+  
+  -- Directories containing source files.
+  -- hs-source-dirs:      
+  
+  -- Base language which the package is written in.
+  default-language:    Haskell2010

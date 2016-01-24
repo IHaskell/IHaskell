@@ -15,6 +15,7 @@ packages:
 - ihaskell-display/ihaskell-basic/
 - ihaskell-display/ihaskell-aeson/
 - ihaskell-display/ihaskell-hatex/
+- ihaskell-display/ihaskell-gnuplot/
 extra-deps:
 - magic-1.1
 - Rlang-QQ-0.3.1.0
@@ -24,4 +25,7 @@ extra-deps:
 - xformat-0.1.2.1
 - ratio-int-0.1.2
 - friday-0.2.2.0
+- haskell-src-exts-1.17.0
+- gnuplot-0.5.4
+- data-accessor-transformers-0.2.1.6
 resolver: nightly-2016-03-25
