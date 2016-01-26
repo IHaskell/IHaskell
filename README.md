@@ -8,6 +8,8 @@
 # IHaskell
 
 > You can now try IHaskell directly in your browser at [try.jupyter.org](https://try.jupyter.org).
+>
+> Alternatively, watch a [talk and demo](https://fpdl.vimeocdn.com/vimeo-prod-skyfire-std-us/01/477/6/152389902/468435176.mp4?token=56a76509_0xf2421499477050d25954aaf3165dc9ebe73857be) showing off IHaskell features.
 
 IHaskell is a kernel for the [Jupyter project](http://ipython.org), which allows you to use Haskell inside Jupyter frontends (including the console and notebook).
 
