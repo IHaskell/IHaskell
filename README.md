@@ -35,9 +35,43 @@ Arch Linux has a package for IHaskell: https://aur.archlinux.org/packages/ihaske
 
 Here is a blog post with step-by-step instructions for Ubuntu 14.04 (but should also work on other versions): https://remusao.github.io/install-ihaskell-on-ubuntu-1404-with-stack.html
 
+### Docker Installation
+
+The easiest way to use IHaskell is to install it inside a Docker container, which will come with the entire necessary stack, including Jupyter notebook. To install Docker, follow the [OS-specific instructions for your OS](https://docs.docker.com/engine/installation/).
+
+To get the Docker image, pull it from the Docker Hub:
+```bash
+docker pull gibiansky/ihaskell:latest
+```
+
+You can then run IHaskell with:
+```bash
+docker run -it --volume $(pwd):/notebooks --publish 8888:8888 gibiansky/ihaskell:latest
+```
+
+If you wish to expose the Jupyter notebook on a port other than 8888, use the options `--publish 8888:$PORT` for any `PORT`.
+
+If you'd like to build the image yourself, there is a provided `Dockerfile`, which you can build using:
+
+```bash
+# Build it in the repository directory
+cd IHaskell/
+
+# Building the image from scratch may take quite a while! (an hour or more)
+docker build -t ihaskell:latest .
+
+# Run the image without the gibiansky/ prefix
+PORT=8888
+docker run -it --volume $(pwd):/notebooks --publish 8888:$PORT ihaskell:latest
+```
+
+Open `localhost:$PORT` (`localhost:8888`) in your web browser to use IHaskell. If you are running on Mac OS X, then you will likely need to account for `docker-machine` and use the local IP of the machine instead of `localhost`.
+
 ### Install Using Installation Scripts
 
 #### Ubuntu:
+
+**If you are a user, and not a developer, it is recommended you use the `docker` instructions above instead of the Ubuntu installation script.**
 
 If you are using a modern version of Ubuntu, clone the repository and then run the `ubuntu-install.sh` script:
 ```bash
