@@ -21,7 +21,6 @@ import qualified Graphics.Gnuplot.Graph.ThreeDimensional as Th
 import qualified Data.ByteString.Char8 as Char
 import           Graphics.Gnuplot.Advanced (plot)
 import           Graphics.Gnuplot.Value.Atom (C)
-import           Graphics.Gnuplot.Frame.OptionSet (size, deflt)
 import           IHaskell.Display
 
 -- Plot-types
