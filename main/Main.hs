@@ -239,6 +239,7 @@ replyTo _ KernelInfoRequest{} replyHeader state =
   return
     (state, KernelInfoReply
               { header = replyHeader
+              , protocolVersion = "5.0"
               , banner = "IHaskell " ++ VERSION_ipython_kernel ++ " GHC " ++ VERSION_ghc
               , implementation = "IHaskell"
               , implementationVersion = VERSION_ipython_kernel
