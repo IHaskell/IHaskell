@@ -26,6 +26,7 @@ instance ToJSON Message where
   toJSON rep@KernelInfoReply{} =
     object
       [ "protocol_version" .= string "5.0"  -- current protocol version, major and minor
+      , "banner" .= banner rep
       , "implementation" .= implementation rep
       , "implementation_version" .= implementationVersion rep
       , "language_info" .= languageInfo rep
