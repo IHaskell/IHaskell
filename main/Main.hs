@@ -69,7 +69,7 @@ main = do
     Right args        -> ihaskell args
 
 ihaskell :: Args -> IO ()
-ihaskell (Args (ShowHelp help) _) = putStrLn help
+ihaskell (Args (ShowDefault helpStr) args) = showDefault helpStr args
 ihaskell (Args ConvertLhs args) = showingHelp ConvertLhs args $ convert args
 ihaskell (Args InstallKernelSpec args) = showingHelp InstallKernelSpec args $ do
   let kernelSpecOpts = parseKernelArgs args
@@ -81,6 +81,14 @@ ihaskell a@(Args (Kernel Nothing) _) = do
   hPutStrLn stderr "No kernel profile JSON specified."
   hPutStrLn stderr "This may be a bug!"
   hPrint stderr a
+
+showDefault :: String -> [Argument] -> IO ()
+showDefault helpStr flags =
+  case find (== Version) flags of
+  Just _ ->
+    putStrLn VERSION_ipython_kernel
+  Nothing ->
+    putStrLn helpStr
 
 showingHelp :: IHaskellMode -> [Argument] -> IO () -> IO ()
 showingHelp mode flags act =

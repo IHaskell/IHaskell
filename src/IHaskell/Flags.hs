@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, NoImplicitPrelude, DeriveFunctor #-}
+{-# LANGUAGE NoImplicitPrelude, DeriveFunctor #-}
 
 module IHaskell.Flags (
     IHaskellMode(..),
@@ -58,7 +58,7 @@ data NotebookFormat = LhsMarkdown
   deriving (Eq, Show)
 
 -- Which mode IHaskell is being invoked in.
-data IHaskellMode = ShowHelp String
+data IHaskellMode = ShowDefault String
                   | InstallKernelSpec
                   | ConvertLhs
                   | Kernel (Maybe String)
@@ -71,9 +71,7 @@ parseFlags flags =
   in case modeIndex of
     Nothing ->
       -- Treat no mode as 'console'.
-      if "--version" `elem` flags || "-V" `elem` flags
-        then Left VERSION_ipython_kernel
-        else process ihaskellArgs flags
+      process ihaskellArgs flags
     Just 0 -> process ihaskellArgs flags
 
     Just idx ->
@@ -179,7 +177,7 @@ lhsStyleTex = LhsStyle "" "" "\\begin{code}" "\\end{code}" "\\begin{verbatim}" "
 ihaskellArgs :: Mode Args
 ihaskellArgs =
   let noMode = mode "IHaskell" defaultReport descr noArgs [helpFlag, versionFlag]
-      defaultReport = Args (ShowHelp helpStr) []
+      defaultReport = Args (ShowDefault helpStr) []
       descr = "Haskell for Interactive Computing."
       helpFlag = flagHelpSimple (add Help)
       versionFlag = flagVersion (add Version)
