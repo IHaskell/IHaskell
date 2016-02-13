@@ -32,6 +32,7 @@ data Argument = ConfFile String     -- ^ A file with commands to load at startup
               | GhcLibDir String    -- ^ Where to find the GHC libraries.
               | KernelDebug         -- ^ Spew debugging output from the kernel.
               | Help                -- ^ Display help text.
+              | Version             -- ^ Display version text.
               | ConvertFrom String
               | ConvertTo String
               | ConvertFromFormat NotebookFormat
@@ -57,7 +58,7 @@ data NotebookFormat = LhsMarkdown
   deriving (Eq, Show)
 
 -- Which mode IHaskell is being invoked in.
-data IHaskellMode = ShowHelp String
+data IHaskellMode = ShowDefault String
                   | InstallKernelSpec
                   | ConvertLhs
                   | Kernel (Maybe String)
@@ -70,9 +71,7 @@ parseFlags flags =
   in case modeIndex of
     Nothing ->
       -- Treat no mode as 'console'.
-      if "--help" `elem` flags
-        then Left $ showText (Wrap 100) $ helpText [] HelpFormatAll ihaskellArgs
-        else process ihaskellArgs flags
+      process ihaskellArgs flags
     Just 0 -> process ihaskellArgs flags
 
     Just idx ->
@@ -177,10 +176,12 @@ lhsStyleTex = LhsStyle "" "" "\\begin{code}" "\\end{code}" "\\begin{verbatim}" "
 
 ihaskellArgs :: Mode Args
 ihaskellArgs =
-  let descr = "Haskell for Interactive Computing."
+  let noMode = mode "IHaskell" defaultReport descr noArgs [helpFlag, versionFlag]
+      defaultReport = Args (ShowDefault helpStr) []
+      descr = "Haskell for Interactive Computing."
+      helpFlag = flagHelpSimple (add Help)
+      versionFlag = flagVersion (add Version)
       helpStr = showText (Wrap 100) $ helpText [] HelpFormatAll ihaskellArgs
-      onlyHelp = [flagHelpSimple (add Help)]
-      noMode = mode "IHaskell" (Args (ShowHelp helpStr) []) descr noArgs onlyHelp
   in noMode { modeGroupModes = toGroup allModes }
   where
     add flag (Args mode flags) = Args mode $ flag : flags

@@ -28,6 +28,7 @@ import           System.Posix.Signals
 import qualified Data.Map as Map
 import qualified Data.Text.Encoding as E
 import           Data.List (break, last)
+import           Data.Version (showVersion)
 
 -- IHaskell imports.
 import           IHaskell.Convert (convert)
@@ -45,6 +46,9 @@ import           IHaskell.IPython.ZeroMQ
 import           IHaskell.IPython.Types
 import qualified IHaskell.IPython.Message.UUID as UUID
 import qualified IHaskell.IPython.Stdin as Stdin
+
+-- Cabal imports.
+import           Paths_ihaskell(version)
 
 -- GHC API imports.
 import           GHC hiding (extensions, language)
@@ -69,7 +73,7 @@ main = do
     Right args        -> ihaskell args
 
 ihaskell :: Args -> IO ()
-ihaskell (Args (ShowHelp help) _) = putStrLn help
+ihaskell (Args (ShowDefault helpStr) args) = showDefault helpStr args
 ihaskell (Args ConvertLhs args) = showingHelp ConvertLhs args $ convert args
 ihaskell (Args InstallKernelSpec args) = showingHelp InstallKernelSpec args $ do
   let kernelSpecOpts = parseKernelArgs args
@@ -81,6 +85,14 @@ ihaskell a@(Args (Kernel Nothing) _) = do
   hPutStrLn stderr "No kernel profile JSON specified."
   hPutStrLn stderr "This may be a bug!"
   hPrint stderr a
+
+showDefault :: String -> [Argument] -> IO ()
+showDefault helpStr flags =
+  case find (== Version) flags of
+  Just _ ->
+    putStrLn (showVersion version)
+  Nothing ->
+    putStrLn helpStr
 
 showingHelp :: IHaskellMode -> [Argument] -> IO () -> IO ()
 showingHelp mode flags act =
@@ -240,9 +252,9 @@ replyTo _ KernelInfoRequest{} replyHeader state =
     (state, KernelInfoReply
               { header = replyHeader
               , protocolVersion = "5.0"
-              , banner = "IHaskell " ++ VERSION_ipython_kernel ++ " GHC " ++ VERSION_ghc
+              , banner = "IHaskell " ++ (showVersion version) ++ " GHC " ++ VERSION_ghc
               , implementation = "IHaskell"
-              , implementationVersion = VERSION_ipython_kernel
+              , implementationVersion = showVersion version
               , languageInfo = LanguageInfo
                 { languageName = "haskell"
                 , languageVersion = VERSION_ghc
