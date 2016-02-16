@@ -151,9 +151,9 @@ cabal install happy cpphs
 ```
 
 #### Build IHaskell
-Install IHaskell! You may install it from Stackage via `stack install` (check the latest version on [http://www.stackage.org/lts-3.8]:
+Install IHaskell! You may install it from Stackage via `stack install` (check the latest version on [http://www.stackage.org/lts]:
 ```bash
-stack install ihaskell-0.6.5.0
+stack install ihaskell
 ```
 
 Or you may install it from Hackage via `cabal install`:
