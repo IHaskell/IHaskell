@@ -37,7 +37,7 @@ import           IHaskell.IPython.Types
 -- should functionally serve as high-level sockets which speak Messages instead of ByteStrings.
 data ZeroMQInterface =
        Channels
-         { 
+         {
          -- | A channel populated with requests from the frontend.
          shellRequestChannel :: Chan Message
          -- | Writing to this channel causes a reply to be sent to the frontend.
@@ -283,8 +283,12 @@ receiveMessage debug socket = do
     putStr "Content: "
     Char.putStrLn content
 
-  let message = parseMessage idents headerData parentHeader metadata content
-  return message
+  case parseMessage idents headerData parentHeader metadata content of
+    Left s -> do
+      when debug $ do
+        putStrLn $ "Failed to parse message: " ++ s
+      receiveMessage debug socket
+    Right message -> return message
 
   where
     -- Receive the next piece of data from the socket.

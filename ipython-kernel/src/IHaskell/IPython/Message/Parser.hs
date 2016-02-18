@@ -8,13 +8,12 @@
 -- the low-level 0MQ interface.
 module IHaskell.IPython.Message.Parser (parseMessage) where
 
-import           Control.Applicative ((<|>), (<$>), (<*>))
 import           Data.Aeson ((.:), (.:?), (.!=), decode, Result(..), Object, Value(..))
 import           Data.Aeson.Types (parse, parseEither)
 import           Data.ByteString hiding (unpack)
 import qualified Data.ByteString.Lazy as Lazy
 import           Data.HashMap.Strict as HM
-import           Data.Map (Map)
+import           Data.Map (Map, empty)
 import           Data.Maybe (fromMaybe)
 import           Data.Text (Text)
 import           Data.Text (Text, unpack)
@@ -29,46 +28,49 @@ parseMessage :: [ByteString] -- ^ The list of identifiers sent with the message.
              -> ByteString   -- ^ The parent header, which is just "{}" if there is no header.
              -> ByteString   -- ^ The metadata map, also "{}" for an empty map.
              -> ByteString   -- ^ The message content.
-             -> Message      -- ^ A parsed message.
-parseMessage idents headerData parentHeader metadata content =
-  let header = parseHeader idents headerData parentHeader metadata
-      messageType = msgType header
-      messageWithoutHeader = parser messageType $ Lazy.fromStrict content
-  in messageWithoutHeader { header = header }
+             -> Either String Message      -- ^ A parsed message.
+parseMessage idents headerData parentHeader metadata content = case parseHeader idents headerData parentHeader metadata of
+  Error s -> Left s
+  Success header -> Right $ messageWithoutHeader { header = header } where
+    messageType = msgType header
+    messageWithoutHeader = parser messageType $ Lazy.fromStrict content
 
 -- --- Module internals ----- | Parse a header from its ByteString components into a MessageHeader.
 parseHeader :: [ByteString]  -- ^ The list of identifiers.
             -> ByteString    -- ^ The header data.
             -> ByteString    -- ^ The parent header, or "{}" for Nothing.
             -> ByteString    -- ^ The metadata, or "{}" for an empty map.
-            -> MessageHeader -- The resulting message header.
-parseHeader idents headerData parentHeader metadata =
-  MessageHeader
-    { identifiers = idents
-    , parentHeader = parentResult
-    , metadata = metadataMap
-    , messageId = messageUUID
-    , sessionId = sessionUUID
-    , username = username
-    , msgType = messageType
-    }
+            -> Result MessageHeader -- The resulting message header.
+parseHeader idents headerData parentHeader metadata = parsed
   where
     -- Decode the header data and the parent header data into JSON objects. If the parent header data is
     -- absent, just have Nothing instead.
     Just result = decode $ Lazy.fromStrict headerData :: Maybe Object
     parentResult = if parentHeader == "{}"
                      then Nothing
-                     else Just $ parseHeader idents parentHeader "{}" metadata
+                     else (case parseHeader idents parentHeader "{}" metadata of
+                             Success h -> Just h
+                             Error _ -> Nothing)
 
-    Success (messageType, username, messageUUID, sessionUUID) = flip parse result $ \obj -> do
-      messType <- obj .: "msg_type"
+    parsed = flip parse result $ \obj -> do
+      messageType <- obj .: "msg_type"
       username <- obj .: "username"
-      message <- obj .: "msg_id"
-      session <- obj .: "session"
-      return (messType, username, message, session)
+      messageUUID <- obj .: "msg_id"
+      sessionUUID <- obj .: "session"
 
-    -- Get metadata as a simple map.
-    Just metadataMap = decode $ Lazy.fromStrict metadata :: Maybe (Map Text Text)
+      -- Get metadata as a simple map.
+      let (Just metadataMap) = decode $ Lazy.fromStrict metadata :: Maybe (Map Text Text)
+
+      return $ MessageHeader
+        { identifiers = idents
+        , parentHeader = parentResult
+        , metadata = metadataMap
+        , messageId = messageUUID
+        , sessionId = sessionUUID
+        , username = username
+        , msgType = messageType
+        }
+
 
 noHeader :: MessageHeader
 noHeader = error "No header created"
@@ -85,6 +87,7 @@ parser ExecuteResultMessage = executeResultParser
 parser DisplayDataMessage = displayDataParser
 parser IsCompleteRequestMessage = isCompleteRequestParser
 parser CompleteRequestMessage = completeRequestParser
+parser CompleteReplyMessage = completeReplyParser
 parser InspectRequestMessage = inspectRequestParser
 parser ShutdownRequestMessage = shutdownRequestParser
 parser InputReplyMessage = inputReplyParser
@@ -154,8 +157,8 @@ executeErrorParser = requestParser $ \obj -> do
   return $ ExecuteError noHeader [] traceback ename evalue
 
 makeDisplayDatas :: Object -> [DisplayData]
-makeDisplayDatas dataDict = [DisplayData (read $ unpack mimeType) content | (mimeType, String content) <- HM.toList
-                                                                                                            dataDict]
+makeDisplayDatas dataDict = [DisplayData (read $ unpack mimeType) content |
+                             (mimeType, String content) <- HM.toList dataDict]
 
 -- | Parse an execute result
 executeResultParser :: LByteString -> Message
@@ -163,7 +166,8 @@ executeResultParser = requestParser $ \obj -> do
   executionCount <- obj .: "execution_count"
   dataDict :: Object <- obj .: "data"
   let displayDatas = makeDisplayDatas dataDict
-  metadataDict <- obj .: "metadata"
+  maybeMetadataDict <- obj .:? "metadata"
+  let metadataDict = case maybeMetadataDict of Just d -> d; Nothing -> Data.Map.empty
   return $ ExecuteResult noHeader displayDatas metadataDict executionCount
 
 -- | Parse a display data message
@@ -242,6 +246,18 @@ completeRequestParser = requestParser $ \obj -> do
   code <- obj .: "code"
   pos <- obj .: "cursor_pos"
   return $ CompleteRequest noHeader code pos
+
+completeReplyParser :: LByteString -> Message
+completeReplyParser = requestParser $ \obj -> do
+  matches <- obj .: "matches"
+  cursorStart <- obj .: "cursor_start"
+  cursorEnd <- obj .: "cursor_end"
+  metadata <- obj .: "metadata"
+  statusStr :: String <- obj .: "status"
+
+  let status = statusStr == "ok"
+
+  return $ CompleteReply noHeader matches cursorStart cursorEnd metadata status
 
 inspectRequestParser :: LByteString -> Message
 inspectRequestParser = requestParser $ \obj -> do

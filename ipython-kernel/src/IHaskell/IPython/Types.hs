@@ -36,7 +36,6 @@ module IHaskell.IPython.Types (
     extractPlain,
     ) where
 
-import           Control.Applicative ((<$>), (<*>))
 import           Data.Aeson
 import           Data.ByteString (ByteString)
 import           Data.List (find)
@@ -117,7 +116,7 @@ instance ToJSON Transport where
 -------------------- IPython Kernelspec Types ----------------------
 data KernelSpec =
        KernelSpec
-         { 
+         {
          -- | Name shown to users to describe this kernel (e.g. "Haskell")
          kernelDisplayName :: String
          -- | Name for the kernel; unique kernel identifier (e.g. "haskell")

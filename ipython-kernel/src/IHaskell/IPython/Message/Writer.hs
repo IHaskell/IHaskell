@@ -7,9 +7,7 @@
 module IHaskell.IPython.Message.Writer (ToJSON(..)) where
 
 import           Data.Aeson
-import           Data.Aeson.Types (Pair)
 import           Data.Map (Map)
-import           Data.Monoid (mempty)
 import           Data.Text (Text, pack)
 import           IHaskell.IPython.Types
 
@@ -82,6 +80,13 @@ instance ToJSON Message where
       ]
   toJSON PublishInput { executionCount = execCount, inCode = code } =
     object ["execution_count" .= execCount, "code" .= code]
+
+  toJSON (CompleteRequest _ code pos) =
+    object
+      [ "code" .= code
+      , "cursor_pos" .= pos
+      ]
+
   toJSON (CompleteReply _ matches start end metadata status) =
     object
       [ "matches" .= matches
