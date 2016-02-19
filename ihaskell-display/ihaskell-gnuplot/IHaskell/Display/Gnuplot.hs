@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 {- There are 3 types of plots to consider in haskell-gnuplot: Plot, Frame and Multiplot.
    Plot types are the actual plots, whereas Frame types are plots with additional options
    e.g. custom axes tics, graph title etc.. Multiplots are collections of 2D and/or 3D plots.
