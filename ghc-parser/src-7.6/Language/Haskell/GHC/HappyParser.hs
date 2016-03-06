@@ -26668,7 +26668,7 @@ hintMultiWayIf span = do
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}
 {-# LINE 16 "<built-in>" #-}
-{-# LINE 1 "/Users/silver/.stack/programs/x86_64-osx/ghc-7.10.2/lib/ghc-7.10.2/include/ghcversion.h" #-}
+{-# LINE 1 "/Users/silver/.stack/programs/x86_64-osx/ghc-7.10.3/lib/ghc-7.10.3/include/ghcversion.h" #-}
 
 
 
