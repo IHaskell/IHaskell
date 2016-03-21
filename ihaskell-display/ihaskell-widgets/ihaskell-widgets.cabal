@@ -96,7 +96,7 @@ library
   
   -- Other library packages from which modules are imported.
   -- singletons 2.* require ghc 7.10.2
-  build-depends:       aeson >=0.7 && < 0.11
+  build-depends:       aeson >=0.7 && < 0.12
                      , base >=4.7 && <4.9
                      , containers >= 0.5
                      , ipython-kernel >= 0.6.1.2

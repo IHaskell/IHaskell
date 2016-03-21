@@ -35,7 +35,7 @@ library
   hs-source-dirs:      src
   default-language:    Haskell2010
   build-depends:       base            >=4.6 && < 4.9,
-                       aeson           >=0.6 && < 0.11,
+                       aeson           >=0.6 && < 0.12,
                        bytestring      >=0.10,
                        cereal          >=0.3,
                        containers      >=0.5,
