@@ -180,6 +180,7 @@ Test-Suite hspec
         haskeline -any,
         hlint >=1.9 && <2.0,
         haskell-src-exts     >=1.16 && < 1.18,
+        here,
         hspec -any,
         HUnit -any,
         mtl >=2.1,
