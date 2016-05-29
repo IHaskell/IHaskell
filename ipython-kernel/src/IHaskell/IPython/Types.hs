@@ -288,7 +288,8 @@ data Message =
                KernelInfoReply
                  { header :: MessageHeader
                  , protocolVersion :: String -- ^ current protocol version, major and minor
-                 , banner :: String -- ^ Kernel information description e.g. (IHaskell 0.8.3.0 GHC 7.10.2)
+                 , banner :: String -- ^ Kernel information description e.g. (IHaskell 0.8.3.0 GHC
+                                    -- 7.10.2)
                  , implementation :: String -- ^ e.g. IHaskell
                  , implementationVersion :: String -- ^ The version of the implementation
                  , languageInfo :: LanguageInfo

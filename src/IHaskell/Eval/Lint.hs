@@ -187,7 +187,7 @@ htmlSuggestions = concatMap toHtml
             _ -> "warning"
 
     style :: String -> String -> String
-    style =  printf "<div class=\"suggestion-%s\">%s</div>"
+    style = printf "<div class=\"suggestion-%s\">%s</div>"
 
     named :: String -> String
     named = printf "<div class=\"suggestion-name\" style=\"clear:both;\">%s</div>"

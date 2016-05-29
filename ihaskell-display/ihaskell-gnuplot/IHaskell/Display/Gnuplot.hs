@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
+
 {- There are 3 types of plots to consider in haskell-gnuplot: Plot, Frame and Multiplot.
    Plot types are the actual plots, whereas Frame types are plots with additional options
    e.g. custom axes tics, graph title etc.. Multiplots are collections of 2D and/or 3D plots.
@@ -26,50 +27,51 @@ import           IHaskell.Display
 
 -- Plot-types
 instance (C x, C y) => IHaskellDisplay (P.T (Tw.T x y)) where
-    display fig = do
-       pngDisp <- graphDataPNG2P fig
-       svgDisp <- graphDataSVG2P fig
-       return $ Display [pngDisp, svgDisp]
+  display fig = do
+    pngDisp <- graphDataPNG2P fig
+    svgDisp <- graphDataSVG2P fig
+    return $ Display [pngDisp, svgDisp]
 
 instance (C x, C y, C z) => IHaskellDisplay (P.T (Th.T x y z)) where
-    display fig = do
-       pngDisp <- graphDataPNG3P fig
-       svgDisp <- graphDataSVG3P fig
-       return $ Display [pngDisp, svgDisp]
+  display fig = do
+    pngDisp <- graphDataPNG3P fig
+    svgDisp <- graphDataSVG3P fig
+    return $ Display [pngDisp, svgDisp]
 
 -- Frame-types
 instance (C x, C y) => IHaskellDisplay (F.T (Tw.T x y)) where
-    display fig = do
-       pngDisp <- graphDataPNG2F fig
-       svgDisp <- graphDataSVG2F fig
-       return $ Display [pngDisp, svgDisp]
+  display fig = do
+    pngDisp <- graphDataPNG2F fig
+    svgDisp <- graphDataSVG2F fig
+    return $ Display [pngDisp, svgDisp]
 
 instance (C x, C y, C z) => IHaskellDisplay (F.T (Th.T x y z)) where
-    display fig = do
-       pngDisp <- graphDataPNG3F fig
-       svgDisp <- graphDataSVG3F fig
-       return $ Display [pngDisp, svgDisp]
+  display fig = do
+    pngDisp <- graphDataPNG3F fig
+    svgDisp <- graphDataSVG3F fig
+    return $ Display [pngDisp, svgDisp]
 
 -- Type: Multiplot
 instance IHaskellDisplay M.T where
-    display fig = do
-       pngDisp <- graphDataPNGM fig
-       svgDisp <- graphDataSVGM fig
-       return $ Display [pngDisp, svgDisp]
+  display fig = do
+    pngDisp <- graphDataPNGM fig
+    svgDisp <- graphDataSVGM fig
+    return $ Display [pngDisp, svgDisp]
 
 -- Filename
 name = ".ihaskell-gnuplot."
 
 -- Width and height
 w = 300
+
 h = 300
-  
+
 graphDataPNG2P :: (C x, C y) => P.T (Tw.T x y) -> IO DisplayData
 graphDataPNG2P graph = do
   switchToTmpDir
 
   -- Write the image.
-  let fname =  Pn.cons $ name ++ "png"   
+  let fname = Pn.cons $ name ++ "png"
   plot fname graph
 
   -- Read back, and convert to base64.
@@ -81,7 +83,7 @@ graphDataSVG2P graph = do
   switchToTmpDir
 
   -- Write the image.
-  let fname =  Sv.cons $ name ++ "svg"    
+  let fname = Sv.cons $ name ++ "svg"
   plot fname graph
 
   -- Read back, and convert to base64.
@@ -93,7 +95,7 @@ graphDataPNG2F graph = do
   switchToTmpDir
 
   -- Write the image.
-  let fname =  Pn.cons $ name ++ "png"   
+  let fname = Pn.cons $ name ++ "png"
   plot fname graph
 
   -- Read back, and convert to base64.
@@ -105,7 +107,7 @@ graphDataSVG2F graph = do
   switchToTmpDir
 
   -- Write the image.
-  let fname =  Sv.cons $ name ++ "svg"    
+  let fname = Sv.cons $ name ++ "svg"
   plot fname graph
 
   -- Read back, and convert to base64.
@@ -117,7 +119,7 @@ graphDataPNG3P graph = do
   switchToTmpDir
 
   -- Write the image.
-  let fname =  Pn.cons $ name ++ "png" 
+  let fname = Pn.cons $ name ++ "png"
   plot fname graph
 
   -- Read back, and convert to base64.
@@ -129,11 +131,11 @@ graphDataSVG3P graph = do
   switchToTmpDir
 
   -- Write the image.
-  let fname =  Sv.cons $ name ++ "svg" 
+  let fname = Sv.cons $ name ++ "svg"
   plot fname graph
 
   -- Read back, and convert to base64.
-  imgData <- Char.readFile $ name ++ "svg" 
+  imgData <- Char.readFile $ name ++ "svg"
   return $ svg $ Char.unpack imgData
 
 graphDataPNG3F :: (C x, C y, C z) => F.T (Th.T x y z) -> IO DisplayData
@@ -141,7 +143,7 @@ graphDataPNG3F graph = do
   switchToTmpDir
 
   -- Write the image.
-  let fname =  Pn.cons $ name ++ "png" 
+  let fname = Pn.cons $ name ++ "png"
   plot fname graph
 
   -- Read back, and convert to base64.
@@ -153,20 +155,19 @@ graphDataSVG3F graph = do
   switchToTmpDir
 
   -- Write the image.
-  let fname =  Sv.cons $ name ++ "svg" 
+  let fname = Sv.cons $ name ++ "svg"
   plot fname graph
 
   -- Read back, and convert to base64.
-  imgData <- Char.readFile $ name ++ "svg" 
+  imgData <- Char.readFile $ name ++ "svg"
   return $ svg $ Char.unpack imgData
-  
 
 graphDataPNGM :: M.T -> IO DisplayData
 graphDataPNGM graph = do
   switchToTmpDir
 
   -- Write the image.
-  let fname =  Pn.cons $ name ++ "png"   
+  let fname = Pn.cons $ name ++ "png"
   plot fname graph
 
   -- Read back, and convert to base64.
@@ -178,7 +179,7 @@ graphDataSVGM graph = do
   switchToTmpDir
 
   -- Write the image.
-  let fname =  Sv.cons $ name ++ "svg"    
+  let fname = Sv.cons $ name ++ "svg"
   plot fname graph
 
   -- Read back, and convert to base64.
