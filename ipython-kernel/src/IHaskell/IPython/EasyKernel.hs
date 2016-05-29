@@ -77,6 +77,10 @@ data KernelConfig m output result =
          -- should be handled by defining an appropriate error constructor in your result type.
          , run :: T.Text -> IO () -> (output -> IO ()) -> m (result, ExecuteReplyStatus, String)
          , debug :: Bool -- ^ Whether to print extra debugging information to
+         -- | A One-line description of the kernel
+         , kernelBanner :: String
+         -- | The version of the messaging specification used by the kernel
+         , kernelProtocolVersion :: String
          }
 
 -- Install the kernelspec, using the `writeKernelspec` field of the kernel configuration.
@@ -162,7 +166,10 @@ replyTo config _ _ KernelInfoRequest{} replyHeader =
       , languageInfo = kernelLanguageInfo config
       , implementation = "ipython-kernel.EasyKernel"
       , implementationVersion = "0.0"
+      , banner = kernelBanner config
+      , protocolVersion = kernelProtocolVersion config
       }
+
 replyTo config _ interface ShutdownRequest { restartPending = pending } replyHeader = do
   liftIO $ writeChan (shellReplyChannel interface) $ ShutdownReply replyHeader pending
   liftIO exitSuccess
