@@ -81,6 +81,10 @@ data KernelConfig m output result =
          , kernelBanner :: String
          -- | The version of the messaging specification used by the kernel
          , kernelProtocolVersion :: String
+         -- | Name of the kernel implementation
+         , kernelImplName :: String
+         -- | Version of the kernel implementation
+         , kernelImplVersion :: String
          }
 
 -- Install the kernelspec, using the `writeKernelspec` field of the kernel configuration.
@@ -164,8 +168,8 @@ replyTo config _ _ KernelInfoRequest{} replyHeader =
     KernelInfoReply
       { header = replyHeader
       , languageInfo = kernelLanguageInfo config
-      , implementation = "ipython-kernel.EasyKernel"
-      , implementationVersion = "0.0"
+      , implementation = kernelImplName config
+      , implementationVersion = kernelImplVersion config
       , banner = kernelBanner config
       , protocolVersion = kernelProtocolVersion config
       }
