@@ -29,4 +29,4 @@ extra-deps:
 - gnuplot-0.5.4
 - data-accessor-transformers-0.2.1.6
 - utility-ht-0.0.11
-resolver: nightly-2016-03-25
+resolver: lts-6.1
