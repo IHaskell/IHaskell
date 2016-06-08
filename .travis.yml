@@ -55,5 +55,6 @@ install:
   - stack build --dependencies-only --resolver=$RESOLVER
 
 script:
+  - export LD_LIBRARY_PATH=$HOME/zeromq/lib
   - stack build --resolver=$RESOLVER
   - stack test --resolver=$RESOLVER
