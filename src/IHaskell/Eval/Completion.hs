@@ -107,10 +107,9 @@ complete code posOffset = do
 
                Qualified moduleName candidate -> do
                  trueName <- getTrueModuleName moduleName
-                 let prefix = intercalate "." [trueName, candidate]
+                 let prefix = intercalate "." [moduleName, candidate]
                      completions = filter (prefix `isPrefixOf`) qualNames
-                     falsifyName = replace trueName moduleName
-                 return $ map falsifyName completions
+                 return completions
 
                ModuleName previous candidate -> do
                  let prefix = if null previous

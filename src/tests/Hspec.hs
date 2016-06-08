@@ -250,7 +250,7 @@ completionTests = do
                                                  , "Control.Monad.liftM2"
                                                  , "Control.Monad.liftM5"]
        "print $ List.intercal*"  `completionHas` ["List.intercalate"]
-       "print $ Data.Maybe.cat*" `completionHas` ["Data.Maybe.catMaybes"]
+       "print $ Data.Maybe.cat*" `completionHas` []
        "print $ Maybe.catM*"     `completionHas` ["Maybe.catMaybes"]
 
     it "properly completes imports" $ do
@@ -543,7 +543,9 @@ parseStringTests = describe "Parser" $ do
 
   it "breaks without data kinds" $
     parses "data X = 3" `like` [
-#if MIN_VERSION_ghc(7, 8, 0)
+#if MIN_VERSION_ghc(7, 10, 0)
+      ParseError (Loc 1 10) "Cannot parse data constructor in a data/newtype declaration: 3"
+#elif MIN_VERSION_ghc(7, 8, 0)
       ParseError (Loc 1 10) "Illegal literal in type (use DataKinds to enable): 3"
 #else
       ParseError (Loc 1 10) "Illegal literal in type (use -XDataKinds to enable): 3"

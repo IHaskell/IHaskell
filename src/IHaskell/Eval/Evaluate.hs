@@ -7,6 +7,7 @@ This module exports all functions used for evaluation of IHaskell input.
 -}
 module IHaskell.Eval.Evaluate (
     interpret,
+    testInterpret,
     evaluate,
     flushWidgetMessages,
     Interpreter,
@@ -48,6 +49,7 @@ import qualified MonadUtils (MonadIO, liftIO)
 import           System.Environment (getEnv)
 import qualified Data.Map as Map
 
+import qualified GHC.Paths
 import           NameSet
 import           Name
 import           PprTyThing
@@ -144,6 +146,11 @@ ihaskellGlobalImports =
   , "import qualified IHaskell.IPython.Stdin"
   , "import qualified IHaskell.Eval.Widgets"
   ]
+
+
+-- | Evaluation function for testing.
+testInterpret :: Interpreter a -> IO a
+testInterpret val = interpret GHC.Paths.libdir False (const val)
 
 -- | Run an interpreting action. This is effectively runGhc with initialization and importing. First
 -- argument indicates whether `stdin` is handled specially, which cannot be done in a testing
