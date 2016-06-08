@@ -1,7 +1,7 @@
 # Test against different stack LTS versions.
 env:
- - RESOLVER=lts-6.2  # Most recent GHC 7.10 LTS
- - RESOLVER=lts-2.22 # Last GHC 7.8 LTS
+ - FORMATTING=true  RESOLVER=lts-6.2  # Most recent GHC 7.10 LTS
+ - FORMATTING=false RESOLVER=lts-2.22 # Last GHC 7.8 LTS
 
 # Choose a lightweight base image; we provide our own build tools.
 language: c
@@ -59,4 +59,4 @@ script:
   - export LD_LIBRARY_PATH=$HOME/zeromq/lib
   - stack build --resolver=$RESOLVER
   - stack test --resolver=$RESOLVER
-  - ./verify_formatting.py
+  - if $FORMATTING; then ./verify_formatting.py; fi
