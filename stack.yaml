@@ -4,5 +4,3 @@ packages:
 - './ipython-kernel'
 - './ghc-parser'
 resolver: lts-6.2
-extra-deps:
-    - system-argv0-0.1.1 # Necessary for LTS 2.22 (GHC 7.8)

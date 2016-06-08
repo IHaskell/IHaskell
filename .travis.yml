@@ -55,9 +55,11 @@ install:
   - stack setup --resolver=$RESOLVER
   - stack build --dependencies-only --resolver=$RESOLVER
 
+  # For verify_formatting.py
+  - if $FORMATTING; then stack install hindent; fi
+
 script:
   - export LD_LIBRARY_PATH=$HOME/zeromq/lib
-  - stack build --resolver=$RESOLVER
   - stack test --resolver=$RESOLVER
   - if $FORMATTING; then ./verify_formatting.py; fi
   - |

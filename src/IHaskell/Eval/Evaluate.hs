@@ -30,6 +30,7 @@ import           Data.List (findIndex, and, foldl1, nubBy)
 import           Text.Printf
 import           Data.Char as Char
 import           Data.Dynamic
+import           Data.Typeable.Internal
 import           Data.Typeable
 import qualified Data.Serialize as Serialize
 import           System.Directory
@@ -356,11 +357,18 @@ evaluate kernelState code output widgetHandler = do
 -- | Compile a string and extract a value from it. Effectively extract the result of an expression
 -- from inside the notebook environment.
 extractValue :: Typeable a => String -> Interpreter a
-extractValue expr = do
-  compiled <- dynCompileExpr expr
-  case fromDynamic compiled of
-    Nothing     -> error "Error casting types in Evaluate.hs"
-    Just result -> return result
+extractValue expr = result
+  where
+    result = do
+      compiled <- dynCompileExpr expr
+      case fromDynamic compiled of
+        Nothing -> error $
+          "Error casting types in Evaluate.hs: " ++
+          showRep (dynTypeRep compiled) ++
+          " -> " ++
+          showRep (typeRep result)
+        Just result -> return result
+    showRep rep = show $ map (tyConPackage .typeRepTyCon) $ concatMap typeRepArgs (typeRepArgs rep)
 
 flushWidgetMessages :: KernelState
                     -> [WidgetMsg]
