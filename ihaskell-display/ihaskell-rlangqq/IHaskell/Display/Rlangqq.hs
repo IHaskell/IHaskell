@@ -67,16 +67,19 @@ rOutputParsed = do
 getPlotNames :: IO [String]
 getPlotNames = do
   interactions <- rOutputParsed
-  return [p | KnitInteraction _ is <- interactions
-            , KnitImage _ p <- is]
+  return
+    [ p
+    | KnitInteraction _ is <- interactions 
+    , KnitImage _ p <- is ]
 
 getCaptions :: IO [String]
 getCaptions = do
   interactions <- rOutputParsed
   return
-    [c | KnitInteraction _ is <- interactions
-       , KnitImage c _ <- is
-       , not (isBoringCaption c)]
+    [ c
+    | KnitInteraction _ is <- interactions 
+    , KnitImage c _ <- is 
+    , not (isBoringCaption c) ]
 
 -- | true when the caption name looks like one knitr will automatically generate
 isBoringCaption :: String -> Bool
@@ -85,8 +88,10 @@ isBoringCaption s = maybe False (all isDigit) (stripPrefix "plot of chunk unname
 rDisplayAll :: IO Display
 rDisplayAll = do
   ns <- rOutputParsed
-  imgs <- sequence [displayInteraction o | KnitInteraction _ os <- ns
-                                         , o <- os]
+  imgs <- sequence
+            [ displayInteraction o
+            | KnitInteraction _ os <- ns 
+            , o <- os ]
   display (mconcat imgs)
 
 displayInteraction :: KnitOutput -> IO Display
