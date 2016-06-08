@@ -1,5 +1,5 @@
 :set -package ghc
 :set -package ghc-paths
-:set -optP-include -optPdist/build/autogen/cabal_macros.h
 :set -i. -isrc -idist/build/autogen
 :set -XDoAndIfThenElse -XOverloadedStrings
+:set prompt "\ESC[34mλ> \ESC[m"

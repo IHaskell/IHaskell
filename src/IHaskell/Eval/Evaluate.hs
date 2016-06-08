@@ -7,6 +7,7 @@ This module exports all functions used for evaluation of IHaskell input.
 -}
 module IHaskell.Eval.Evaluate (
     interpret,
+    testInterpret,
     evaluate,
     flushWidgetMessages,
     Interpreter,
@@ -29,6 +30,7 @@ import           Data.List (findIndex, and, foldl1, nubBy)
 import           Text.Printf
 import           Data.Char as Char
 import           Data.Dynamic
+import           Data.Typeable.Internal
 import           Data.Typeable
 import qualified Data.Serialize as Serialize
 import           System.Directory
@@ -48,6 +50,7 @@ import qualified MonadUtils (MonadIO, liftIO)
 import           System.Environment (getEnv)
 import qualified Data.Map as Map
 
+import qualified GHC.Paths
 import           NameSet
 import           Name
 import           PprTyThing
@@ -145,6 +148,10 @@ ihaskellGlobalImports =
   , "import qualified IHaskell.Eval.Widgets"
   ]
 
+-- | Evaluation function for testing.
+testInterpret :: Interpreter a -> IO a
+testInterpret val = interpret GHC.Paths.libdir False (const val)
+
 -- | Run an interpreting action. This is effectively runGhc with initialization and importing. First
 -- argument indicates whether `stdin` is handled specially, which cannot be done in a testing
 -- environment. The argument passed to the action indicates whether Haskell support libraries are
@@ -203,10 +210,11 @@ initializeImports = do
         let idString = packageIdString' dflags (packageConfigId dep)
         guard (iHaskellPkgName `isPrefixOf` idString)
 
-      displayPkgs = [pkgName | pkgName <- packageNames
-                             , Just (x:_) <- [stripPrefix initStr pkgName]
-                             , pkgName `notElem` broken
-                             , isAlpha x]
+      displayPkgs = [ pkgName
+                    | pkgName <- packageNames 
+                    , Just (x:_) <- [stripPrefix initStr pkgName] 
+                    , pkgName `notElem` broken 
+                    , isAlpha x ]
 
       hasIHaskellPackage = not $ null $ filter (== iHaskellPkgName) packageNames
 
@@ -350,11 +358,18 @@ evaluate kernelState code output widgetHandler = do
 -- | Compile a string and extract a value from it. Effectively extract the result of an expression
 -- from inside the notebook environment.
 extractValue :: Typeable a => String -> Interpreter a
-extractValue expr = do
-  compiled <- dynCompileExpr expr
-  case fromDynamic compiled of
-    Nothing     -> error "Error casting types in Evaluate.hs"
-    Just result -> return result
+extractValue expr = result
+  where
+    result = do
+      compiled <- dynCompileExpr expr
+      case fromDynamic compiled of
+        Nothing -> error $
+          "Error casting types in Evaluate.hs: " ++
+          showRep (dynTypeRep compiled) ++
+          " -> " ++
+          showRep (typeRep result)
+        Just result -> return result
+    showRep rep = show $ map (tyConPackage . typeRepTyCon) $ concatMap typeRepArgs (typeRepArgs rep)
 
 flushWidgetMessages :: KernelState
                     -> [WidgetMsg]
@@ -1216,7 +1231,8 @@ evalStatementOrIO publish state cmd = do
             name == "it" ||
             name == "it" ++ show (getExecutionCounter state)
           nonItNames = filter (not . isItName) allNames
-          output = [plain printed | not . null $ strip printed]
+          output = [ plain printed
+                   | not . null $ strip printed ]
 
       write state $ "Names: " ++ show allNames
 

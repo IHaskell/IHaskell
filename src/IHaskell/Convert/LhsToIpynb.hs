@@ -62,13 +62,8 @@ cellToVal (Code i o) = object
                          , "execution_count" .= Null
                          , "metadata" .= object ["collapsed" .= Bool False]
                          , "source" .= arrayFromTxt i
-                         , "outputs" .= Array
-                                          (V.fromList
-                                             [object
-                                                [ "text" .= arrayFromTxt o
-                                                , "metadata" .= object []
-                                                , "output_type" .= String "display_data"
-                                                ] | _ <- take 1 o])
+                         , "outputs" .= Array (V.fromList [ object ["text" .= arrayFromTxt o, "metadata" .= object [], "output_type" .= String "display_data"]
+                                                          | _ <- take 1 o ])
                          ]
 cellToVal (Markdown txt) = object
                              [ "cell_type" .= String "markdown"

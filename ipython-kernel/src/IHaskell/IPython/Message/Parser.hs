@@ -154,8 +154,8 @@ executeErrorParser = requestParser $ \obj -> do
   return $ ExecuteError noHeader [] traceback ename evalue
 
 makeDisplayDatas :: Object -> [DisplayData]
-makeDisplayDatas dataDict = [DisplayData (read $ unpack mimeType) content | (mimeType, String content) <- HM.toList
-                                                                                                            dataDict]
+makeDisplayDatas dataDict = [ DisplayData (read $ unpack mimeType) content
+                            | (mimeType, String content) <- HM.toList dataDict ]
 
 -- | Parse an execute result
 executeResultParser :: LByteString -> Message

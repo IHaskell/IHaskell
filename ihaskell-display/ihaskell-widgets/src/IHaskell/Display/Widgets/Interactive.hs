@@ -31,7 +31,6 @@ import           IHaskell.Display.Widgets.Int.BoundedInt.IntSlider
 import           IHaskell.Display.Widgets.Float.BoundedFloat.FloatSlider
 import           IHaskell.Display.Widgets.Output
 
- 
 data WidgetConf a where
         WidgetConf ::
             (RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs,
@@ -41,7 +40,6 @@ data WidgetConf a where
               a
               -> WidgetConf a
 
- 
 type family WithTypes (ts :: [*]) (r :: *) :: * where
         WithTypes '[] r = r
         WithTypes (x ': xs) r = (x -> WithTypes xs r)
@@ -51,7 +49,6 @@ uncurryHList f RNil = f
 uncurryHList f (Identity x :& xs) = uncurryHList (f x) xs
 
 -- Consistent type variables are required to make things play nicely with vinyl
- 
 data Constructor a where
         Constructor ::
             RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs =>
@@ -63,7 +60,6 @@ newtype EventSetter a = EventSetter (IPythonWidget (SuitableWidget a) -> IO () -
 
 newtype Initializer a = Initializer (IPythonWidget (SuitableWidget a) -> Argument a -> IO ())
 
- 
 data RequiredWidget a where
         RequiredWidget ::
             RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs =>
@@ -160,7 +156,6 @@ liftToWidgets func rc initvals = do
 
   return bx
 
- 
 data WrappedWidget w h f a where
         WrappedWidget ::
             (FieldType h ~ IO (), FieldType f ~ a, h ∈ WidgetFields w,

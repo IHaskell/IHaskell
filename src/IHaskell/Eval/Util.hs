@@ -200,7 +200,8 @@ setFlags ext = do
   -- Create the parse errors.
   let noParseErrs = map (("Could not parse: " ++) . unLoc) unrecognized
       allWarns = map unLoc warnings ++
-                 ["-package not supported yet" | packageFlags flags /= packageFlags flags']
+                 [ "-package not supported yet"
+                 | packageFlags flags /= packageFlags flags' ]
       warnErrs = map ("Warning: " ++) allWarns
   return $ noParseErrs ++ warnErrs
 

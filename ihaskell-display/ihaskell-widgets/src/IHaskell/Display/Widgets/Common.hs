@@ -20,80 +20,155 @@ import           IHaskell.Eval.Widgets (widgetSendClose)
 import qualified IHaskell.Display.Widgets.Singletons as S
 
 pattern ViewModule = S.SViewModule
+
 pattern ViewName = S.SViewName
+
 pattern ModelModule = S.SModelModule
+
 pattern ModelName = S.SModelName
+
 pattern MsgThrottle = S.SMsgThrottle
+
 pattern Version = S.SVersion
+
 pattern DisplayHandler = S.SDisplayHandler
+
 pattern Visible = S.SVisible
+
 pattern CSS = S.SCSS
+
 pattern DOMClasses = S.SDOMClasses
+
 pattern Width = S.SWidth
+
 pattern Height = S.SHeight
+
 pattern Padding = S.SPadding
+
 pattern Margin = S.SMargin
+
 pattern Color = S.SColor
+
 pattern BackgroundColor = S.SBackgroundColor
+
 pattern BorderColor = S.SBorderColor
+
 pattern BorderWidth = S.SBorderWidth
+
 pattern BorderRadius = S.SBorderRadius
+
 pattern BorderStyle = S.SBorderStyle
+
 pattern FontStyle = S.SFontStyle
+
 pattern FontWeight = S.SFontWeight
+
 pattern FontSize = S.SFontSize
+
 pattern FontFamily = S.SFontFamily
+
 pattern Description = S.SDescription
+
 pattern ClickHandler = S.SClickHandler
+
 pattern SubmitHandler = S.SSubmitHandler
+
 pattern Disabled = S.SDisabled
+
 pattern StringValue = S.SStringValue
+
 pattern Placeholder = S.SPlaceholder
+
 pattern Tooltip = S.STooltip
+
 pattern Icon = S.SIcon
+
 pattern ButtonStyle = S.SButtonStyle
+
 pattern B64Value = S.SB64Value
+
 pattern ImageFormat = S.SImageFormat
+
 pattern BoolValue = S.SBoolValue
+
 pattern Options = S.SOptions
+
 pattern SelectedLabel = S.SSelectedLabel
+
 pattern SelectedValue = S.SSelectedValue
+
 pattern SelectionHandler = S.SSelectionHandler
+
 pattern Tooltips = S.STooltips
+
 pattern Icons = S.SIcons
+
 pattern SelectedLabels = S.SSelectedLabels
+
 pattern SelectedValues = S.SSelectedValues
+
 pattern IntValue = S.SIntValue
+
 pattern StepInt = S.SStepInt
+
 pattern MaxInt = S.SMaxInt
+
 pattern MinInt = S.SMinInt
+
 pattern IntPairValue = S.SIntPairValue
+
 pattern LowerInt = S.SLowerInt
+
 pattern UpperInt = S.SUpperInt
+
 pattern FloatValue = S.SFloatValue
+
 pattern StepFloat = S.SStepFloat
+
 pattern MaxFloat = S.SMaxFloat
+
 pattern MinFloat = S.SMinFloat
+
 pattern FloatPairValue = S.SFloatPairValue
+
 pattern LowerFloat = S.SLowerFloat
+
 pattern UpperFloat = S.SUpperFloat
+
 pattern Orientation = S.SOrientation
+
 pattern ShowRange = S.SShowRange
+
 pattern ReadOut = S.SReadOut
+
 pattern SliderColor = S.SSliderColor
+
 pattern BarStyle = S.SBarStyle
+
 pattern ChangeHandler = S.SChangeHandler
+
 pattern Children = S.SChildren
+
 pattern OverflowX = S.SOverflowX
+
 pattern OverflowY = S.SOverflowY
+
 pattern BoxStyle = S.SBoxStyle
+
 pattern Flex = S.SFlex
+
 pattern Pack = S.SPack
+
 pattern Align = S.SAlign
+
 pattern Titles = S.STitles
+
 pattern SelectedIndex = S.SSelectedIndex
+
 pattern ReadOutMsg = S.SReadOutMsg
+
 pattern Child = S.SChild
+
 pattern Selector = S.SSelector
 
 -- | Close a widget's comm

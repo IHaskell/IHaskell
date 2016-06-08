@@ -94,7 +94,8 @@ installKernelspec config replace installPrefixMay =
     let filename = kernelDir </> "kernel.json"
     BL.writeFile filename $ encode $ toJSON kernelSpec
 
-    let replaceFlag = ["--replace" | replace]
+    let replaceFlag = [ "--replace"
+                      | replace ]
         installPrefixFlag = maybe ["--user"] (\prefix -> ["--prefix", prefix]) installPrefixMay
         cmd = concat [["kernelspec", "install"], installPrefixFlag, [kernelDir], replaceFlag]
     void $ rawSystem "ipython" cmd

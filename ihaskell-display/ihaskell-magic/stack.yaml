@@ -1,6 +1,4 @@
 flags: {}
 packages:
 - '.'
-- './ipython-kernel'
-- './ghc-parser'
 resolver: lts-6.2
