@@ -41,7 +41,7 @@ addons:
       - libgmp-dev
 
 install:
-  - stack setup
+  - stack setup --resolver=$RESOLVER
   - stack build --dependencies-only --resolver=$RESOLVER
 
 script:
