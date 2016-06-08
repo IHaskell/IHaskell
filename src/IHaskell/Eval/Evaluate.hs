@@ -210,10 +210,11 @@ initializeImports = do
         let idString = packageIdString' dflags (packageConfigId dep)
         guard (iHaskellPkgName `isPrefixOf` idString)
 
-      displayPkgs = [pkgName | pkgName <- packageNames
-                             , Just (x:_) <- [stripPrefix initStr pkgName]
-                             , pkgName `notElem` broken
-                             , isAlpha x]
+      displayPkgs = [ pkgName
+                    | pkgName <- packageNames 
+                    , Just (x:_) <- [stripPrefix initStr pkgName] 
+                    , pkgName `notElem` broken 
+                    , isAlpha x ]
 
       hasIHaskellPackage = not $ null $ filter (== iHaskellPkgName) packageNames
 
@@ -368,7 +369,7 @@ extractValue expr = result
           " -> " ++
           showRep (typeRep result)
         Just result -> return result
-    showRep rep = show $ map (tyConPackage .typeRepTyCon) $ concatMap typeRepArgs (typeRepArgs rep)
+    showRep rep = show $ map (tyConPackage . typeRepTyCon) $ concatMap typeRepArgs (typeRepArgs rep)
 
 flushWidgetMessages :: KernelState
                     -> [WidgetMsg]
@@ -1230,7 +1231,8 @@ evalStatementOrIO publish state cmd = do
             name == "it" ||
             name == "it" ++ show (getExecutionCounter state)
           nonItNames = filter (not . isItName) allNames
-          output = [plain printed | not . null $ strip printed]
+          output = [ plain printed
+                   | not . null $ strip printed ]
 
       write state $ "Names: " ++ show allNames
 

@@ -16,7 +16,7 @@ import           Data.Singletons.Prelude.Ord
 -- Widget properties
 singletons
   [d|
-   
+  
   data Field = ViewModule
              | ViewName
              | ModelModule

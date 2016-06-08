@@ -605,6 +605,7 @@ shouldBeAmong :: (Show a, Eq a) => [a] -> [a] -> Expectation
 -- |
 -- @sublist \`shouldbeAmong\` list@ sets the expectation that @sublist@ elements are 
 -- among those in @list@.
-sublist `shouldBeAmong` list = assertBool errorMsg $ and [x `elem` list | x <- sublist]
+sublist `shouldBeAmong` list = assertBool errorMsg $ and [ x `elem` list
+                                                         | x <- sublist ]
   where
     errorMsg = show list ++ " doesn't contain " ++ show sublist

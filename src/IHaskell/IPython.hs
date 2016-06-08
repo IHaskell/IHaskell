@@ -185,12 +185,14 @@ installKernelspec replace opts = void $ do
 
   let kernelFlags :: [String]
       kernelFlags =
-        ["--debug" | kernelSpecDebug opts] ++
+        [ "--debug"
+        | kernelSpecDebug opts ] ++
         (case confFile of
            Nothing   -> []
            Just file -> ["--conf", file])
         ++ ["--ghclib", kernelSpecGhcLibdir opts]
-           ++ ["--stack" | kernelSpecUseStack opts]
+           ++ [ "--stack"
+              | kernelSpecUseStack opts ]
 
   let kernelSpec = KernelSpec
         { kernelDisplayName = "Haskell"
@@ -213,7 +215,8 @@ installKernelspec replace opts = void $ do
 
     ipython <- locateIPython
 
-    let replaceFlag = ["--replace" | replace]
+    let replaceFlag = [ "--replace"
+                      | replace ]
         installPrefixFlag = maybe ["--user"] (\prefix -> ["--prefix", T.pack prefix]) (kernelSpecInstallPrefix opts)
         cmd = concat [["kernelspec", "install"], installPrefixFlag, [SH.toTextIgnore kernelDir], replaceFlag]
 
