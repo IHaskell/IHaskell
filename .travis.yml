@@ -10,38 +10,47 @@ language: c
 sudo: false
 
 # Caching so the next build will be fast too.
+# These caches are the same between resolvers, but this is fine, 
+# as Stack differentiates between its resolvers.
 cache:
   directories:
   - $HOME/.ghc
   - $HOME/.cabal
   - $HOME/.stack
+  - $HOME/zeromq
 
-before_install:
-    # Download and unpack the stack executable
-  - export PATH=$HOME/.local/bin:$PATH
-  - mkdir -p ~/.local/bin
-  - curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-    # Install zeromq3 -- the package is not supported yet on Travis whitelist... (06/06/2016)
-  - travis_retry git clone http://www.github.com/zeromq/zeromq4-x.git libzmq
-  - |
-    export OLDPWD=$(pwd) 
-    mkdir $HOME/zeromq
-    cd libzmq
-    travis_retry ./autogen.sh
-    travis_retry ./configure --prefix=$HOME/zeromq
-    make
-    travis_retry make install
-    travis_retry ldconfig
-    cd $OLDPWD
-
+# Enable packages we need.
+# Not all packages are available – see before_install for from-source builds. 
 addons:
   apt:
     packages:
       - libmagic-dev
       - libgmp-dev
 
+before_install:
+    # Download and unpack the stack executable
+  - export PATH=$HOME/.local/bin:$PATH
+  - mkdir -p ~/.local/bin
+  - curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+
+    # Install zeromq3 -- the package is not supported yet on Travis whitelist... (06/06/2016)
+  - |
+    if [ ! -d "$HOME/zeromq" ]; then
+        export OLDPWD=$(pwd) 
+        travis_retry git clone http://www.github.com/zeromq/zeromq4-x.git libzmq
+        mkdir $HOME/zeromq
+        cd libzmq
+        travis_retry ./autogen.sh
+        travis_retry ./configure --prefix=$HOME/zeromq
+        make
+        travis_retry make install
+        cd $OLDPWD
+    fi
+
+# This step takes the longest, and is what generates the Stack cache. 
 install:
-  - stack setup
+  - export LD_LIBRARY_PATH=$HOME/zeromq/lib
+  - stack setup --resolver=$RESOLVER
   - stack build --dependencies-only --resolver=$RESOLVER
 
 script:
