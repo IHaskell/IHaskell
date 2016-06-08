@@ -65,7 +65,7 @@ script:
   - |
     if $DISPLAY; then
         TOP=$(pwd)
-        for PACKAGE in $(ls --color=none ihaskell-display); do
+        for PACKAGE in ihaskell-display/*; do
             cd "$TOP/$PACKAGE";
             stack build --resolver=$RESOLVER;
             cd "$TOP";
