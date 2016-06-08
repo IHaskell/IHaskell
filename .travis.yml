@@ -35,7 +35,7 @@ before_install:
 
     # Install zeromq3 -- the package is not supported yet on Travis whitelist... (06/06/2016)
   - |
-    if [ ! -d "$HOME/zeromq" ]; then
+    if [ ! -d "$HOME/zeromq/lib" ]; then
         export OLDPWD=$(pwd) 
         travis_retry git clone http://www.github.com/zeromq/zeromq4-x.git libzmq
         mkdir $HOME/zeromq
@@ -51,6 +51,7 @@ before_install:
 install:
   - export LD_LIBRARY_PATH=$HOME/zeromq/lib
   - stack setup --resolver=$RESOLVER
+  - stack install zeromq4-haskell --resolver=$RESOLVER --extra-lib-dirs=$HOME/zeromq/lib --extra-include-dirs=$HOME/zeromq/include
   - stack build --dependencies-only --resolver=$RESOLVER
 
 script:
