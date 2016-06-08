@@ -50,6 +50,8 @@ before_install:
 # This step takes the longest, and is what generates the Stack cache. 
 install:
   - export LD_LIBRARY_PATH=$HOME/zeromq/lib
+  - find $HOME/zeromq -type f
+  - export PKG_CONFIG_PATH=$HOME/zeromq/lib/pkgconfig/
   - stack setup --resolver=$RESOLVER
   - stack install zeromq4-haskell --resolver=$RESOLVER --extra-lib-dirs=$HOME/zeromq/lib --extra-include-dirs=$HOME/zeromq/include
   - stack build --dependencies-only --resolver=$RESOLVER
