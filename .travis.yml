@@ -3,6 +3,9 @@ env:
  - LTS=6.2  # Most recent GHC 7.10 LTS
  - LTS=2.22 # Last GHC 7.8 LTS
 
+# Choose a lightweight base image; we provide our own build tools.
+language: c
+
 # Enable caching.
 sudo: false
 
@@ -26,7 +29,9 @@ addons:
       - zeromq3
 
 install:
-  - stack build
+  - stack setup
+  - stack build --dependencies-only --resolver=$LTS
 
 script:
-  - stack test
+  - stack build --resolver=$LTS
+  - stack test --resolver=$LTS
