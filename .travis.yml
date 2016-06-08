@@ -49,9 +49,9 @@ before_install:
 
 # This step takes the longest, and is what generates the Stack cache. 
 install:
+  # Set path for pkg-config to find zeromq, otherwise install of zeromq4-haskell fails.
   - export PKG_CONFIG_PATH=$HOME/zeromq/lib/pkgconfig/
   - stack setup --resolver=$RESOLVER
-  - stack install zeromq4-haskell --resolver=$RESOLVER
   - stack build --dependencies-only --resolver=$RESOLVER
 
 script:
