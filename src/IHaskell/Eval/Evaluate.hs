@@ -147,7 +147,6 @@ ihaskellGlobalImports =
   , "import qualified IHaskell.Eval.Widgets"
   ]
 
-
 -- | Evaluation function for testing.
 testInterpret :: Interpreter a -> IO a
 testInterpret val = interpret GHC.Paths.libdir False (const val)

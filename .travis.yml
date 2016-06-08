@@ -26,6 +26,7 @@ addons:
     packages:
       - libmagic-dev
       - libgmp-dev
+      - python3
 
 before_install:
     # Download and unpack the stack executable
@@ -58,3 +59,4 @@ script:
   - export LD_LIBRARY_PATH=$HOME/zeromq/lib
   - stack build --resolver=$RESOLVER
   - stack test --resolver=$RESOLVER
+  - ./verify_formatting.py
