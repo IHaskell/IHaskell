@@ -23,7 +23,15 @@ before_install:
   - curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
     # Install zeromq3 -- the package is not supported yet on Travis whitelist... (06/06/2016)
   - travis_retry git clone http://www.github.com/zeromq/zeromq4-x.git libzmq
-  - export OLDPWD=$(pwd) && cd libzmq && travis_retry ./autogen.sh && travis_retry ./configure && make && travis_retry make install && travis_retry ldconfig && cd $OLDPWD
+  - | export OLDPWD=$(pwd) 
+      mkdir $HOME/zeromq
+      cd libzmq
+      travis_retry ./autogen.sh
+      travis_retry ./configure --prefix=$HOME/zeromq
+      make
+      travis_retry make install
+      travis_retry ldconfig
+      cd $OLDPWD
 
 addons:
   apt:
