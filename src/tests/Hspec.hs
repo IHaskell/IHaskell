@@ -576,11 +576,11 @@ parseStringTests = describe "Parser" $ do
   where
     dataKindsError = ParseError (Loc 1 10) msg
 #if MIN_VERSION_ghc(7, 10, 0)
-      msg = "Cannot parse data constructor in a data/newtype declaration: 3"
+    msg = "Cannot parse data constructor in a data/newtype declaration: 3"
 #elif MIN_VERSION_ghc(7, 8, 0)
-      msg = "Illegal literal in type (use DataKinds to enable): 3"
+    msg = "Illegal literal in type (use DataKinds to enable): 3"
 #else
-      msg = "Illegal literal in type (use -XDataKinds to enable): 3"
+    msg = "Illegal literal in type (use -XDataKinds to enable): 3"
 #endif
 parseShellTests =
   describe "Parsing Shell Commands" $ do
