@@ -143,6 +143,10 @@ testEval =
       "import qualified Control.Monad as CM" `becomes` []
       "import Control.Monad (when)" `becomes` []
 
+    it "prints Unicode characters correctly" $ do
+      "putStrLn \"Héllö, Üñiço∂e!\"" `becomes` ["Héllö, Üñiço∂e!"]
+      "putStrLn \"Привет!\"" `becomes` ["Привет!"]
+
     it "evaluates directives" $ do
       ":typ 3" `becomes` ["3 :: forall a. Num a => a"]
       ":k Maybe" `becomes` ["Maybe :: * -> *"]

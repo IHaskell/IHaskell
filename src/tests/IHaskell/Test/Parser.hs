@@ -15,6 +15,10 @@ import           IHaskell.Eval.Parser (parseString, getModuleName, unloc, layout
                                        CodeBlock(..), DirectiveType(..), StringLoc(..))
 import           IHaskell.Eval.ParseShell (parseShell)
 
+#if !MIN_VERSION_base(4,8,0)
+import           Control.Applicative ((<$>))
+#endif
+
 
 parses :: String -> IO [CodeBlock]
 parses str = map unloc <$> ghc (parseString str)

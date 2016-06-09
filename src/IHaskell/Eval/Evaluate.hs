@@ -8,6 +8,7 @@ This module exports all functions used for evaluation of IHaskell input.
 module IHaskell.Eval.Evaluate (
     interpret,
     testInterpret,
+    testEvaluate,
     evaluate,
     flushWidgetMessages,
     Interpreter,
@@ -37,7 +38,7 @@ import           System.Directory
 import           System.Posix.IO (createPipe)
 #endif
 import           System.Posix.IO (fdToHandle)
-import           System.IO (hGetChar, hFlush)
+import           System.IO (hGetChar, hSetEncoding, utf8, hFlush)
 import           System.Random (getStdGen, randomRs)
 import           Unsafe.Coerce
 import           Control.Monad (guard)
@@ -147,9 +148,14 @@ ihaskellGlobalImports =
   , "import qualified IHaskell.Eval.Widgets"
   ]
 
--- | Evaluation function for testing.
+-- | Interpreting function for testing.
 testInterpret :: Interpreter a -> IO a
 testInterpret val = interpret GHC.Paths.libdir False (const val)
+
+-- | Evaluation function for testing.
+testEvaluate :: String -> IO ()
+testEvaluate str = void $ testInterpret $
+  evaluate defaultKernelState str (const $ return ()) (\state _ -> return state)
 
 -- | Run an interpreting action. This is effectively runGhc with initialization and importing. First
 -- argument indicates whether `stdin` is handled specially, which cannot be done in a testing
@@ -1134,7 +1140,9 @@ capturedEval output stmt = do
   -- Then convert the HValue into an executable bit, and read the value.
   pipe <- liftIO $ do
             fd <- head <$> unsafeCoerce hValues
-            fdToHandle fd
+            handle <- fdToHandle fd
+            hSetEncoding handle utf8
+            return handle
 
   -- Keep track of whether execution has completed.
   completed <- liftIO $ newMVar False

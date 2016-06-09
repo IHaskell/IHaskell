@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module IHaskell.Test.Completion (testCompletions) where
 
 import           Prelude
@@ -20,6 +21,10 @@ import           IHaskell.Eval.Evaluate (Interpreter, liftIO)
 import           IHaskell.Eval.Completion (complete, CompletionType(..), completionType,
                                            completionTarget)
 import           IHaskell.Test.Util (replace, shouldBeAmong, ghc)
+
+#if !MIN_VERSION_base(4,8,0)
+import           Control.Applicative ((<$>))
+#endif
 
 -- | @readCompletePrompt "xs*ys"@ return @(xs, i)@ where i is the location of
 -- @'*'@ in the input string. 
