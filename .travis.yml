@@ -1,7 +1,7 @@
 # Test against different stack LTS versions.
 env:
- - DISPLAY=true  FORMATTING=true  RESOLVER=lts-6.2  # Most recent GHC 7.10 LTS
- - DISPLAY=false FORMATTING=false RESOLVER=lts-2.22 # Last GHC 7.8 LTS
+ - DISPLAY=true   RESOLVER=lts-6.2  # Most recent GHC 7.10 LTS
+ - DISPLAY=false  RESOLVER=lts-2.22 # Last GHC 7.8 LTS
 
 # Choose a lightweight base image; we provide our own build tools.
 language: c
@@ -24,9 +24,10 @@ cache:
 addons:
   apt:
     packages:
-      - libmagic-dev
-      - libgmp-dev
-      - python3
+      - libmagic-dev     # magic
+      - libgmp-dev       # ghc
+      - libblas-dev      # hmatrix
+      - liblapack-dev    # hmatrix
 
 before_install:
     # Download and unpack the stack executable
@@ -55,14 +56,11 @@ install:
   - stack setup --resolver=$RESOLVER
   - stack build --dependencies-only --resolver=$RESOLVER
 
-  # For verify_formatting.py
-  - if $FORMATTING; then stack install hindent; fi
-
 script:
   - export LD_LIBRARY_PATH=$HOME/zeromq/lib
   - stack test --resolver=$RESOLVER
-  - if $FORMATTING; then ./verify_formatting.py; fi
   - |
+    set -e
     if $DISPLAY; then
         TOP=$(pwd)
         for PACKAGE in ihaskell-display/*; do
@@ -71,3 +69,4 @@ script:
             cd "$TOP";
         done
     fi
+    
