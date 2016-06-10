@@ -43,7 +43,7 @@ module IHaskell.Display (
     switchToTmpDir,
 
     -- * Internal only use
-    displayFromChan,
+    displayFromChanEncoded,
     serializeDisplay,
     Widget(..),
     ) where
@@ -151,9 +151,9 @@ displayChan = unsafePerformIO newTChanIO
 
 -- | Take everything that was put into the 'displayChan' at that point out, and make a 'Display' out
 -- of it.
-displayFromChan :: IO (Maybe Display)
-displayFromChan =
-  Just . many <$> unfoldM (atomically $ tryReadTChan displayChan)
+displayFromChanEncoded :: IO ByteString
+displayFromChanEncoded =
+  Serialize.encode <$> Just . many <$> unfoldM (atomically $ tryReadTChan displayChan)
 
 -- | Write to the display channel. The contents will be displayed in the notebook once the current
 -- execution call ends.

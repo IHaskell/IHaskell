@@ -333,7 +333,15 @@ evaluate kernelState code output widgetHandler = do
 
       -- Get displayed channel outputs. Merge them with normal display outputs.
       dispsMay <- if supportLibrariesAvailable state
-                    then extractValue "IHaskell.Display.displayFromChan" >>= liftIO
+                    then do
+                      getEncodedDisplays <- extractValue "IHaskell.Display.displayFromChanEncoded"
+                      case getEncodedDisplays of
+                        Left err -> error $ "Deserialization error (Evaluate.hs): " ++ err
+                        Right displaysIO -> do
+                          result <- liftIO displaysIO
+                          case Serialize.decode result of
+                            Left err  -> error $ "Deserialization error (Evaluate.hs): " ++ err
+                            Right res -> return res
                     else return Nothing
       let result =
             case dispsMay of
@@ -362,12 +370,27 @@ evaluate kernelState code output widgetHandler = do
 
 -- | Compile a string and extract a value from it. Effectively extract the result of an expression
 -- from inside the notebook environment.
-extractValue :: Typeable a => String -> Interpreter a
+extractValue :: Typeable a => String -> Interpreter (Either String a)
 extractValue expr = do
   compiled <- dynCompileExpr expr
   case fromDynamic compiled of
-    Nothing     -> error "Error casting types (Evaluate.hs): multiple IHaskell copies installed?"
-    Just result -> return result
+    Nothing     -> return (Left multipleIHaskells)
+    Just result -> return (Right result)
+
+  where
+    multipleIHaskells =
+      concat
+        [ "The installed IHaskell support libraries do not match"
+        , " the instance of IHaskell you are running.\n"
+        , "This *may* cause problems with functioning of widgets or rich media displays.\n"
+        , "This is most often caused by multiple copies of IHaskell"
+        , " being installed simultaneously in your environment.\n"
+        , "To resolve this issue, clear out your environment and reinstall IHaskell.\n"
+        , "If you are installing support libraries, make sure you only do so once:\n"
+        , "    # Run this without first running `stack install ihaskell`\n"
+        , "    stack install ihaskell-diagrams\n"
+        , "If you continue to have problems, please file an issue on Github."
+        ]
 
 flushWidgetMessages :: KernelState
                     -> [WidgetMsg]
@@ -375,12 +398,19 @@ flushWidgetMessages :: KernelState
                     -> Interpreter KernelState
 flushWidgetMessages state evalMsgs widgetHandler = do
   -- Capture all widget messages queued during code execution
-  messagesIO <- extractValue "IHaskell.Eval.Widgets.relayWidgetMessages"
-  messages <- liftIO messagesIO
+  extracted <- extractValue "IHaskell.Eval.Widgets.relayWidgetMessages"
+  liftIO $
+    case extracted of
+      Left err -> do
+        hPutStrLn stderr "Disabling IHaskell widget support due to an encountered error:"
+        hPutStrLn stderr err
+        return state
+      Right messagesIO -> do
+        messages <- messagesIO
 
-  -- Handle all the widget messages
-  let commMessages = evalMsgs ++ messages
-  liftIO $ widgetHandler state commMessages
+        -- Handle all the widget messages
+        let commMessages = evalMsgs ++ messages
+        widgetHandler state commMessages
 
 safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
 safely state = ghandle handler . ghandle sourceErrorHandler
