@@ -1315,17 +1315,17 @@ formatErrorWithClass :: String -> ErrMsg -> String
 formatErrorWithClass cls =
   printf "<span class='%s'>%s</span>" cls .
   replace "\n" "<br/>" .
+  fixDollarSigns .
   replace "<" "&lt;" .
   replace ">" "&gt;" .
   replace "&" "&amp;" .
   replace useDashV "" .
   replace "Ghci" "IHaskell" .
   replace "‘interactive:" "‘" .
-  fixDollarSigns .
   rstrip .
   typeCleaner
   where
-    fixDollarSigns = replace "$" "<span>$</span>"
+    fixDollarSigns = replace "$" "<span>&dollar;</span>"
     useDashV = "\nUse -v to see a list of the files searched for."
     isShowError err =
       "No instance for (Show" `isPrefixOf` err &&
