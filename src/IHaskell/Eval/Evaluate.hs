@@ -1315,6 +1315,9 @@ formatErrorWithClass :: String -> ErrMsg -> String
 formatErrorWithClass cls =
   printf "<span class='%s'>%s</span>" cls .
   replace "\n" "<br/>" .
+  replace "<" "&lt;" .
+  replace ">" "&gt;" .
+  replace "&" "&amp;" .
   replace useDashV "" .
   replace "Ghci" "IHaskell" .
   replace "‘interactive:" "‘" .
