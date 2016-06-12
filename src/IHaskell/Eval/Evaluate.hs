@@ -270,7 +270,7 @@ data EvalOut =
          { evalStatus :: ErrorOccurred
          , evalResult :: Display
          , evalState :: KernelState
-         , evalPager :: String
+         , evalPager :: [DisplayData]
          , evalMsgs :: [WidgetMsg]
          }
 
@@ -347,12 +347,11 @@ evaluate kernelState code output widgetHandler = do
             case dispsMay of
               Nothing    -> evalResult evalOut
               Just disps -> evalResult evalOut <> disps
-          helpStr = evalPager evalOut
 
       -- Output things only if they are non-empty.
-      let empty = noResults result && null helpStr
+      let empty = noResults result && null (evalPager evalOut)
       unless empty $
-        liftIO $ output $ FinalResult result [plain helpStr] []
+        liftIO $ output $ FinalResult result (evalPager evalOut) []
 
       let tempMsgs = evalMsgs evalOut
           tempState = evalState evalOut { evalMsgs = [] }
@@ -422,7 +421,7 @@ safely state = ghandle handler . ghandle sourceErrorHandler
           { evalStatus = Failure
           , evalResult = displayError $ show exception
           , evalState = state
-          , evalPager = ""
+          , evalPager = []
           , evalMsgs = []
           }
 
@@ -441,7 +440,7 @@ safely state = ghandle handler . ghandle sourceErrorHandler
           { evalStatus = Failure
           , evalResult = displayError fullErr
           , evalState = state
-          , evalPager = ""
+          , evalPager = []
           , evalMsgs = []
           }
 
@@ -455,7 +454,7 @@ wrapExecution state exec = safely state $
         { evalStatus = Success
         , evalResult = res
         , evalState = state
-        , evalPager = ""
+        , evalPager = []
         , evalMsgs = []
         }
 
@@ -545,7 +544,7 @@ evalCommand output (Directive SetDynFlag flagsStr) state = safely state $ do
                                                         ]
                            ]
           , evalState = state
-          , evalPager = ""
+          , evalPager = []
           , evalMsgs = []
           }
     else do
@@ -571,7 +570,7 @@ evalCommand output (Directive SetDynFlag flagsStr) state = safely state $ do
           { evalStatus = Success
           , evalResult = display
           , evalState = state'
-          , evalPager = ""
+          , evalPager = []
           , evalMsgs = []
           }
 
@@ -605,7 +604,7 @@ evalCommand a (Directive SetOption opts) state = do
                 { evalStatus = Failure
                 , evalResult = displayError err
                 , evalState = state
-                , evalPager = ""
+                , evalPager = []
                 , evalMsgs = []
                 }
     else let options = mapMaybe findOption $ words opts
@@ -615,7 +614,7 @@ evalCommand a (Directive SetOption opts) state = do
                 { evalStatus = Success
                 , evalResult = mempty
                 , evalState = updater state
-                , evalPager = ""
+                , evalPager = []
                 , evalMsgs = []
                 }
 
@@ -749,7 +748,7 @@ evalCommand _ (Directive GetHelp _) state = do
       { evalStatus = Success
       , evalResult = Display [out]
       , evalState = state
-      , evalPager = ""
+      , evalPager = []
       , evalMsgs = []
       }
 
@@ -781,24 +780,25 @@ evalCommand _ (Directive GetHelp _) state = do
 evalCommand _ (Directive GetInfo str) state = safely state $ do
   write state $ "Info: " ++ str
   -- Get all the info for all the names we're given.
-  strings <- getDescription str
+  strings <- unlines <$> getDescription str
 
-  -- TODO: Make pager work without html by porting to newer architecture
-  let output = unlines (map htmlify strings)
-      htmlify str =
-        printf
-          "<div style='background: rgb(247, 247, 247);'><form><textarea id='code'>%s</textarea></form></div>"
-          str
-        ++ script
-      script =
-        "<script>CodeMirror.fromTextArea(document.getElementById('code'), {mode: 'haskell', readOnly: 'nocursor'});</script>"
+  -- Make pager work without html by porting to newer architecture
+  let htmlify str =
+        html $
+          concat
+            [ "<div style='background: rgb(247, 247, 247);'><form><textarea id='code'>"
+            , str
+            , "</textarea></form></div>"
+            , "<script>CodeMirror.fromTextArea(document.getElementById('code'),"
+            , " {mode: 'haskell', readOnly: 'nocursor'});</script>"
+            ]
 
   return
     EvalOut
       { evalStatus = Success
       , evalResult = mempty
       , evalState = state
-      , evalPager = output
+      , evalPager = [plain strings, htmlify strings]
       , evalMsgs = []
       }
 
@@ -847,7 +847,7 @@ evalCommand output (Expression expr) state = do
           { evalStatus = Success
           , evalResult = mempty
           , evalState = state
-          , evalPager = ""
+          , evalPager = []
           , evalMsgs = []
           }
     else if canRunDisplay
@@ -992,7 +992,7 @@ evalCommand _ (ParseError loc err) state = do
       { evalStatus = Failure
       , evalResult = displayError $ formatParseError loc err
       , evalState = state
-      , evalPager = ""
+      , evalPager = []
       , evalMsgs = []
       }
 
@@ -1009,13 +1009,11 @@ hoogleResults state results =
     { evalStatus = Success
     , evalResult = mempty
     , evalState = state
-    , evalPager = output
+    , evalPager = [ plain $ unlines $ map (Hoogle.render Hoogle.Plain) results
+                  , html $ unlines $ map (Hoogle.render Hoogle.HTML) results
+                  ]
     , evalMsgs = []
     }
-  where
-    -- TODO: Make pager work with plaintext
-    fmt = Hoogle.HTML
-    output = unlines $ map (Hoogle.render fmt) results
 
 doLoadModule :: String -> String -> Ghc Display
 doLoadModule name modName = do

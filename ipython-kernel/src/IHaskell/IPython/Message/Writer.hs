@@ -37,7 +37,6 @@ instance ToJSON Message where
     , getSilent = silent
     , getStoreHistory = storeHistory
     , getAllowStdin = allowStdin
-    , getUserVariables = userVariables
     , getUserExpressions = userExpressions
     } =
     object
@@ -45,7 +44,6 @@ instance ToJSON Message where
       , "silent" .= silent
       , "store_history" .= storeHistory
       , "allow_stdin" .= allowStdin
-      , "user_variables" .= userVariables
       , "user_expressions" .= userExpressions
       ]
 
@@ -56,16 +54,16 @@ instance ToJSON Message where
       , "payload" .=
         if null pager
           then []
-          else map mkObj pager
-      , "user_variables" .= emptyMap
+          else mkPayload pager
       , "user_expressions" .= emptyMap
       ]
     where
-      mkObj o = object
-                  [ "source" .= string "page"
-                  , "line" .= Number 0
-                  , "data" .= object [displayDataToJson o]
-                  ]
+      mkPayload o = [ object
+                        [ "source" .= string "page"
+                        , "start" .= Number 0
+                        , "data" .= object (map displayDataToJson o)
+                        ]
+                    ]
   toJSON PublishStatus { executionState = executionState } =
     object ["execution_state" .= executionState]
   toJSON PublishStream { streamType = streamType, streamContent = content } =

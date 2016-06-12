@@ -67,7 +67,7 @@ pages :: String -> [String] -> IO ()
 pages string expected = evaluationComparing comparison string
   where
     comparison (results, pageOut) =
-      strip (stripHtml pageOut) `shouldBe` strip (unlines expected)
+      strip (stripHtml pageOut) `shouldBe` strip (fixQuotes $ unlines expected)
 
     -- A very, very hacky method for removing HTML
     stripHtml str = go str
@@ -87,6 +87,17 @@ pages string expected = evaluationComparing comparison string
           case stripPrefix "</script>" str of
             Just str -> go str
             Nothing  -> dropScriptTag $ tail str
+
+    fixQuotes :: String -> String
+#if MIN_VERSION_ghc(7, 8, 0)
+    fixQuotes = id
+#else
+    fixQuotes = map $ \char -> case char of
+      '\8216' -> '`'
+      '\8217' -> '\''
+      c       -> c
+#endif
+
 
 testEval :: Spec
 testEval =
@@ -150,8 +161,16 @@ testEval =
     it "evaluates directives" $ do
       ":typ 3" `becomes` ["3 :: forall a. Num a => a"]
       ":k Maybe" `becomes` ["Maybe :: * -> *"]
-#if MIN_VERSION_ghc(7, 8, 0)
       ":in String" `pages` ["type String = [Char] \t-- Defined in \8216GHC.Base\8217"]
-#else
-      ":in String" `pages` ["type String = [Char] \t-- Defined in `GHC.Base'"]
-#endif
+      ":info Monad" `pages` [ "class Applicative m => Monad (m :: * -> *) where"
+                            , "  (>>=) :: m a -> (a -> m b) -> m b"
+                            , "  (>>) :: m a -> m b -> m b"
+                            , "  return :: a -> m a"
+                            , "  fail :: String -> m a"
+                            , "  \t-- Defined in ‘GHC.Base’"
+                            , "instance Monad (Either e) -- Defined in ‘Data.Either’"
+                            , "instance Monad [] -- Defined in ‘GHC.Base’"
+                            , "instance Monad Maybe -- Defined in ‘GHC.Base’"
+                            , "instance Monad IO -- Defined in ‘GHC.Base’"
+                            , "instance Monad ((->) r) -- Defined in ‘GHC.Base’"
+                            ]
