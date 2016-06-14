@@ -23,10 +23,10 @@ getUniqueName = do
   putMVar uniqueCounter val'
   return $ pack $ "ihaskellStaticCanvasUniqueID" ++ show val
 
-data Canvas = Canvas { width :: Int, height :: Int, canvas :: CanvasFree () }
+data Canvas = Canvas { canvasWidth :: Int, canvasHeight :: Int, canvas :: CanvasFree () }
 
 instance IHaskellDisplay Canvas where
   display cnv = do
     name <- getUniqueName
-    let script = buildScript' (width cnv) (height cnv) name (canvas cnv)
+    let script = buildScript' (canvasWidth cnv) (canvasHeight cnv) name (canvas cnv)
     return $ Display [html $ unpack $ toLazyText script]
