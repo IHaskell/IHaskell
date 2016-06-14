@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, QuasiQuotes #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module IHaskell.Display.Aeson () where
 
@@ -13,7 +13,6 @@ import           Data.String.Here
 import           IHaskell.Display
 
 instance IHaskellDisplay Value where
-  display renderable = return $ Display [plain json, html dom]
+  display renderable = return $ Display [plain json]
     where
       json = T.unpack $ E.decodeUtf8 $ LBS.toStrict $ encodePretty renderable
-      dom = [i|<div class="highlight-code" id="javascript">${json}</div>|]
