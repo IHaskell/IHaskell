@@ -152,7 +152,7 @@ defaultKernelState :: KernelState
 defaultKernelState = KernelState
   { getExecutionCounter = 1
   , getLintStatus = LintOn
-  , useSvg = True
+  , useSvg = False
   , useShowErrors = False
   , useShowTypes = False
   , usePager = True
