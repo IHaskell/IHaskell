@@ -162,15 +162,3 @@ testEval =
       ":typ 3" `becomes` ["3 :: forall a. Num a => a"]
       ":k Maybe" `becomes` ["Maybe :: * -> *"]
       ":in String" `pages` ["type String = [Char] \t-- Defined in \8216GHC.Base\8217"]
-      ":info Monad" `pages` [ "class Applicative m => Monad (m :: * -> *) where"
-                            , "  (>>=) :: m a -> (a -> m b) -> m b"
-                            , "  (>>) :: m a -> m b -> m b"
-                            , "  return :: a -> m a"
-                            , "  fail :: String -> m a"
-                            , "  \t-- Defined in ‘GHC.Base’"
-                            , "instance Monad (Either e) -- Defined in ‘Data.Either’"
-                            , "instance Monad [] -- Defined in ‘GHC.Base’"
-                            , "instance Monad Maybe -- Defined in ‘GHC.Base’"
-                            , "instance Monad IO -- Defined in ‘GHC.Base’"
-                            , "instance Monad ((->) r) -- Defined in ‘GHC.Base’"
-                            ]
