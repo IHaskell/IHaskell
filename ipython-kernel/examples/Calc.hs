@@ -233,6 +233,10 @@ mkConfig var = KernelConfig
   , inspectInfo = langInfo
   , run = parseAndRun
   , debug = False
+  , kernelBanner = "Expanded Hutton's Razor"
+  , kernelProtocolVersion = "5.0"
+  , kernelImplName = "expanded_huttons_razor"
+  , kernelImplVersion = "0.0"
   }
   where
     displayRes (Left err) =
