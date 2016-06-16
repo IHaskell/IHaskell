@@ -130,6 +130,10 @@ simpleConfig = KernelConfig
   , inspectInfo = languageInspect
   , run = languageRun
   , debug = False
+  , kernelBanner = "Simple Arithmetic Expressions"
+  , kernelProtocolVersion = "5.0"
+  , kernelImplName = "funcalc"
+  , kernelImplVersion = "0.0"
   }
 
 main :: IO ()

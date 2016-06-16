@@ -72,6 +72,9 @@ script:
             cd "$TOP";
         done
 
+        # Ensure that ipython-kernel examples build successfully.
+        stack build ipython-kernel --flag ipython-kernel:examples
+
         # Ensure that IHaskell notebook remains unchanged.
         # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
         stack install --stack-yaml=stack-full.yaml
