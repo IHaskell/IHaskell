@@ -23,7 +23,8 @@ module Language.Haskell.GHC.Parser (
   layoutChunks,
   ) where
 
-import Data.List (intercalate, findIndex)
+import Data.List (intercalate, findIndex, isInfixOf)
+import Data.Char (isAlphaNum)
 
 import Bag
 import ErrUtils hiding (ErrMsg)
@@ -131,8 +132,10 @@ joinLines = intercalate "\n"
 -- A chunk is a line and all lines immediately following that are indented
 -- beyond the indentation of the first line. This parses Haskell layout
 -- rules properly, and allows using multiline expressions via indentation.
+--
+-- Quasiquotes are allowed via a post-processing step.
 layoutChunks :: String -> [Located String]
-layoutChunks = go 1
+layoutChunks = joinQuasiquotes . go 1
   where
     go :: LineNumber -> String -> [Located String]
     go line = filter (not . null . unloc) . map (fmap strip) . layoutLines line . lines
@@ -173,6 +176,7 @@ layoutChunks = go 1
     indentLevel "" = 100000
 
     indentLevel _ = 0
+
 
 -- | Drop comments from Haskell source.
 -- Simply gets rid of them, does not replace them in any way.
@@ -240,3 +244,40 @@ removeComments = removeOneLineComments . removeMultilineComments 0 0
       '"':rest -> "\""
       x:xs -> x:takeString xs
       [] -> []
+
+
+-- | Post processing step to combine quasiquoted blocks into single blocks.
+-- This is necessary because quasiquoted blocks don't follow normal indentation rules.
+joinQuasiquotes :: [Located String] -> [Located String]
+joinQuasiquotes = reverse . joinQuasiquotes' . reverse
+  where
+    -- This operates by finding |] and then joining blocks until a line
+    -- that has some corresponding [...|. This is still a hack, but close to
+    -- good enough.
+    joinQuasiquotes' [] = []
+    joinQuasiquotes' (block:blocks) =
+      if "|]" `isInfixOf` unloc block
+      then
+        let (pieces, rest) = break (hasQuasiquoteStart . unloc) blocks
+        in case rest of
+          [] -> block : joinQuasiquotes' blocks
+          startBlock:blocks' ->
+            concatBlocks (block : pieces ++ [startBlock]) : joinQuasiquotes blocks'
+      else block : joinQuasiquotes' blocks
+
+    -- Combine a lit of reversed blocks into a single, non-reversed block.
+    concatBlocks :: [Located String] -> Located String
+    concatBlocks blocks = Located (line $ last blocks) $ joinLines $ map unloc $ reverse blocks
+
+    -- Does this string have a [...| in it?
+    hasQuasiquoteStart :: String -> Bool
+    hasQuasiquoteStart str =
+      case break (== '[') str of
+        (_, "") -> False
+        (_, _:rest) ->
+          case break (== '|') rest of
+            (_, "") -> False
+            (chars, _) -> all isIdentChar chars
+
+    isIdentChar :: Char -> Bool
+    isIdentChar c = isAlphaNum c || c == '_' || c == '\''

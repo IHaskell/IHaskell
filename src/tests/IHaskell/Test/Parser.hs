@@ -66,6 +66,17 @@ testLayoutChunks = describe "Layout Chunk" $ do
                                  , Located 5 "third"
                                  , Located 7 "fourth"
                                  ]
+  it "deals with quasiquotes" $ do
+    let parsesAsBlocks strs = map unloc (layoutChunks $ unlines strs) `shouldBe` strs
+    parsesAsBlocks ["let x = [q|a quasiquote|]"]
+    parsesAsBlocks ["let x = [q|a quasiquote|]", "3"]
+    parsesAsBlocks ["let x = [q|a quasiquote\n|]"]
+    parsesAsBlocks ["let x = [q|\na quasiquote\n|]"]
+    parsesAsBlocks ["let x = \"[q|doesn't matter\""]
+    parsesAsBlocks ["[q|q<-[1..10]]"]
+    parsesAsBlocks ["[q|x|] [q|x|]"]
+    parsesAsBlocks ["[q|\nx\n|] [q|x|]"]
+
 
 testModuleNames :: Spec
 testModuleNames = describe "Get Module Name" $ do
