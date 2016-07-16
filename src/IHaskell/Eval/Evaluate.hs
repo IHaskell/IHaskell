@@ -26,6 +26,7 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Char8 as CBS
 
 import           Control.Concurrent (forkIO, threadDelay)
+import           Data.Foldable (foldMap)
 import           Prelude (putChar, head, tail, last, init, (!!))
 import           Data.List (findIndex, and, foldl1, nubBy)
 import           Text.Printf
@@ -77,7 +78,7 @@ import           Module hiding (Module)
 import qualified Pretty
 import           FastString
 import           Bag
-import           ErrUtils (errMsgShortDoc, errMsgExtraInfo)
+import qualified ErrUtils
 
 import           IHaskell.Types
 import           IHaskell.IPython
@@ -184,13 +185,29 @@ interpret libdir allowedStdin action = runGhc (Just libdir) $ do
 
   -- Run the rest of the interpreter
   action hasSupportLibraries
-#if MIN_VERSION_ghc(7,10,2)
-packageIdString' dflags pkg_key = fromMaybe "(unknown)" (packageKeyPackageIdString dflags pkg_key)
+
+packageIdString' :: DynFlags -> PackageConfig -> String
+packageIdString' dflags pkg_cfg =
+#if MIN_VERSION_ghc(8,0,0)
+    fromMaybe "(unknown)" (unitIdPackageIdString dflags $ packageConfigId pkg_cfg)
+#elif MIN_VERSION_ghc(7,10,2)
+    fromMaybe "(unknown)" (packageKeyPackageIdString dflags $ packageConfigId pkg_cfg)
 #elif MIN_VERSION_ghc(7,10,0)
-packageIdString' dflags = packageKeyPackageIdString dflags
+    packageKeyPackageIdString dflags . packageConfigId
 #else
-packageIdString' dflags = packageIdString
+    packageIdString . packageConfigId
 #endif
+
+getPackageConfigs :: DynFlags -> [PackageConfig]
+getPackageConfigs dflags =
+#if MIN_VERSION_ghc(8,0,0)
+    foldMap snd pkgDb
+#else
+    pkgDb
+#endif
+  where
+    Just pkgDb = pkgDatabase dflags
+
 -- | Initialize our GHC session with imports and a value for 'it'. Return whether the IHaskell
 -- support libraries are available.
 initializeImports :: Interpreter Bool
@@ -200,8 +217,8 @@ initializeImports = do
   dflags <- getSessionDynFlags
   broken <- liftIO getBrokenPackages
   (dflags, _) <- liftIO $ initPackages dflags
-  let Just db = pkgDatabase dflags
-      packageNames = map (packageIdString' dflags . packageConfigId) db
+  let db = getPackageConfigs dflags
+      packageNames = map (packageIdString' dflags) db
 
       initStr = "ihaskell-"
 
@@ -211,8 +228,8 @@ initializeImports = do
       dependsOnRight pkg = not $ null $ do
         pkg <- db
         depId <- depends pkg
-        dep <- filter ((== depId) . installedPackageId) db
-        let idString = packageIdString' dflags (packageConfigId dep)
+        dep <- filter ((== depId) . unitId) db
+        let idString = packageIdString' dflags dep
         guard (iHaskellPkgName `isPrefixOf` idString)
 
       displayPkgs = [ pkgName
@@ -411,6 +428,14 @@ flushWidgetMessages state evalMsgs widgetHandler = do
         let commMessages = evalMsgs ++ messages
         widgetHandler state commMessages
 
+
+getErrMsgDoc :: ErrUtils.ErrMsg -> SDoc
+#if MIN_VERSION_ghc(8,0,0)
+getErrMsgDoc = ErrUtils.pprLocErrMsg
+#else
+getErrMsgDoc msg = ErrUtils.errMsgShortString msg $$ ErrUtils.errMsgContext msg
+#endif
+
 safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
 safely state = ghandle handler . ghandle sourceErrorHandler
   where
@@ -428,10 +453,7 @@ safely state = ghandle handler . ghandle sourceErrorHandler
     sourceErrorHandler :: SourceError -> Interpreter EvalOut
     sourceErrorHandler srcerr = do
       let msgs = bagToList $ srcErrorMessages srcerr
-      errStrs <- forM msgs $ \msg -> do
-                   shortStr <- doc $ errMsgShortDoc msg
-                   contextStr <- doc $ errMsgExtraInfo msg
-                   return $ unlines [shortStr, contextStr]
+      errStrs <- forM msgs $ doc . getErrMsgDoc
 
       let fullErr = unlines errStrs
 
@@ -1027,7 +1049,11 @@ doLoadModule name modName = do
     setSessionDynFlags
       flags
         { hscTarget = objTarget flags
+#if MIN_VERSION_ghc(8,0,0)
+        , log_action = \dflags sev srcspan ppr _style msg -> modifyIORef' errRef (showSDoc flags msg :)
+#else
         , log_action = \dflags sev srcspan ppr msg -> modifyIORef' errRef (showSDoc flags msg :)
+#endif
         }
 
     -- Load the new target.
