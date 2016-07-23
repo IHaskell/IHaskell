@@ -10,6 +10,14 @@ cd ihaskell-magic
 cabal install
 ```
 
+On OSX:
+
+```bash
+brew install libmagic
+brew link libmagic
+stack install ihaskell-magic --extra-lib-dirs=/usr/local/lib --extra-include-dirs=/usr/local/include
+```
+
 The instances provided allow displaying images and text with markup using just one line:
 ```haskell
 import qualified Data.ByteString as B
