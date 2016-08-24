@@ -2,3 +2,5 @@ flags: {}
 packages:
 - '.'
 resolver: lts-6.12
+extra-deps:
+    - 'jupyter-0.9.0'

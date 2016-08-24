@@ -29,12 +29,17 @@ library
   build-depends:
                        aeson                >=0.7 && < 0.12,
                        base                 >=4.6 && <= 4.9,
-                       jupyter              >= 0.9
+                       jupyter              >= 0.9,
+                       transformers         >= 0.4,
+                       ghc                  -any,
+                       mtl                  >= 2.0,
+                       text                 >= 1.2
+  exposed-modules:
+                       Jupyter.IHaskell.Complete
+                       Jupyter.IHaskell.Interpreter
+  
   if flag(binPkgDb)
     build-depends:       bin-package-db
-
-  exposed-modules: IHaskell.Display
-                   Paths_ihaskell
 
 executable ihaskell
   main-is:             Main.hs
@@ -55,12 +60,18 @@ Test-Suite test-ihaskell
     ghc-options:      -threaded
     main-is:          Test.hs
     other-modules:
-                      Jupyter.IHaskell.Test.Interpreter
+                      Jupyter.IHaskell.Test.Complete
     hs-source-dirs:   tests
     default-language: Haskell2010
     build-depends:
-                      base,
-                      ihaskell
+                      base          >= 4.8,
+                      ihaskell      -any,
+                      transformers  >= 0.4,
+                      tasty         >= 0.7,
+                      tasty-hunit   >= 0.9,
+                      ghc-paths     >= 0.1,
+                      text                 >= 1.2
+
 
     if flag(binPkgDb)
         build-depends: bin-package-db
