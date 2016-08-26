@@ -29,13 +29,18 @@ library
   build-depends:
                        aeson                >=0.7 && < 0.12,
                        base                 >=4.6 && <= 4.9,
+                       containers           >= 0.5,
+                       bytestring           >= 0.5,
                        jupyter              >= 0.9,
                        transformers         >= 0.4,
                        ghc                  -any,
                        mtl                  >= 2.0,
-                       text                 >= 1.2
+                       text                 >= 1.2,
+                       directory                 >= 1.2,
+                       extra
   exposed-modules:
                        Jupyter.IHaskell.Complete
+                       Jupyter.IHaskell.Evaluate
                        Jupyter.IHaskell.Interpreter
   
   if flag(binPkgDb)
@@ -70,7 +75,9 @@ Test-Suite test-ihaskell
                       tasty         >= 0.7,
                       tasty-hunit   >= 0.9,
                       ghc-paths     >= 0.1,
-                      text                 >= 1.2
+                      text          >= 1.2,
+                      extra, 
+                      directory >= 1.2
 
 
     if flag(binPkgDb)

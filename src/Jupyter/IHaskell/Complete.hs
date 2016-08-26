@@ -10,6 +10,13 @@ import           Control.Arrow ((>>>))
 import           Data.Maybe (mapMaybe, isJust)
 import           Control.Exception (SomeException)
 import           Data.Monoid ((<>))
+import           System.Environment (getEnv)
+
+-- Imports from 'extra'
+import           Control.Monad.Extra (partitionM)
+
+-- Imports from 'directory'
+import           System.Directory (getDirectoryContents, doesDirectoryExist)
 
 -- Imports from 'transformers'
 import           Control.Monad.IO.Class (MonadIO(liftIO))
@@ -23,7 +30,7 @@ import           GHC (moduleNameString, moduleName, getSessionDynFlags, load, gu
                       LoadHowMuch(LoadAllTargets), InteractiveImport(IIDecl), simpleImportDecl,
                       getContext, setContext, mkModuleName, gbracket, Ghc)
 import           Exception (ghandle)
-import           Module (moduleEnvToList, lookupModuleEnv)
+import           Module (moduleEnvToList, moduleEnvElts, lookupModuleEnv)
 import           GhcMonad (withSession)
 import           OccName (occNameString)
 import           Name (nameOccName)
@@ -62,8 +69,6 @@ completeLine text
   | T.isPrefixOf ":!" text = completeFile text
   | T.isPrefixOf ":l" text = completeSourceFile text
   | T.isPrefixOf ":s" text = completeFlag text
-  | T.isPrefixOf ":e" text = completeExtension text
-  | T.isPrefixOf ":o" text = completeOption text
   | insideString text = completeFile text
   | T.isPrefixOf "import" text = completeImport text
   | otherwise =
@@ -78,12 +83,15 @@ lastToken :: Text -> Text
 lastToken = T.takeWhileEnd (not . delimiter)
   where
     delimiter :: Char -> Bool
-    delimiter char = isSymbol char || char `elem` (" -\n\t(),{}[]\\'\"`" :: String)
+    delimiter char = isSymbol char || char `elem` (" :!-\n\t(),{}[]\\'\"`" :: String)
 
 -- | Get the last, incomplete word in the text. A word is defined as a series of contiguous
 -- non-whitespace characters.
 lastWord :: Text -> Text
-lastWord = snd . T.breakOnEnd " "
+lastWord = T.takeWhileEnd (not . delimiter)
+  where
+    delimiter :: Char -> Bool
+    delimiter char = char `elem` (" \t\n\"" :: String)
 
 -- | Check whether the end of the text is ostensibly inside a string literal, handling an escaped
 -- double quote properly.
@@ -216,20 +224,54 @@ completeFlag text =
 
     allNames = concat [xAllNames, otherNames, fAllNames]
 
-completeExtension :: Text -> Interpreter [Completion]
-completeExtension text =
-  mkCompletions token $ filter (T.isPrefixOf token) $ xNames ++ xNoNames
+completeIdentifier :: Text -> Interpreter [Completion]
+completeIdentifier token = ghc $ withSession $ \env -> do
+  -- Module interfaces are stored in the EPS (ExternalPackageState), which contains the PIT
+  -- (package interface table), which contains a bunch of MIs (module interfaces). Module interfaces
+  -- have a list of associated exported names, which we use for completion.
+  pkgState <- liftIO $ readIORef (hsc_EPS env)
+  let pkgIfaceTable = eps_PIT pkgState
+      exports = concatMap availNames $ concatMap mi_exports $ moduleEnvElts pkgIfaceTable
+      exportNames = filter (T.isPrefixOf token) $ map (T.pack . occNameString . nameOccName) exports
+  mkCompletions token $ sortOn T.length exportNames
+
+completeQualified :: [Text] -> Interpreter [Completion]
+completeQualified names =
+  if length names < 2
+    then return []
+    else do
+      let moduleName = T.intercalate "." $ init names
+          identifier = last names
+      idents <- completeIdentifierFromModule moduleName identifier
+      modules <- completeModule $ T.intercalate "." names
+      return $ idents ++ modules
+
+completeFile :: Text -> Interpreter [Completion]
+completeFile text = liftIO $ do
+  home <- T.pack <$> getEnv "HOME"
+  let (toplevelRaw, filePrefix) = T.breakOnEnd "/" token
+      toplevel = T.unpack $ path home toplevelRaw
+  toplevelExists <- doesDirectoryExist toplevel
+  if null toplevel || not toplevelExists
+    then return []
+    else do
+      entries <- getDirectoryContents toplevel
+      let valid p = p /= "." && p /= ".." && T.isPrefixOf filePrefix (T.pack p)
+      (directories, files) <- partitionM (doesDirectoryExist . ((toplevel ++ "/") ++)) (filter valid entries)
+      let completions = sortOn (T.isPrefixOf ".") $ map T.pack $ map (++ "/") directories ++ files
+      mkCompletions token $ map (T.append toplevelRaw) completions
+
   where
     token = lastWord text
+    path home dir =
+      if T.isPrefixOf "~/" dir
+        then T.replace "~/" (home <> "/") dir
+        else if any (flip T.isPrefixOf dir) ["./", "../", "/"]
+               then dir
+               else "./" <> dir
 
-    xNames = T.pack <$> map flagSpecName xFlags
-    xNoNames = map ("No" <>) xNames
 
 completeSourceFile text = return []
-completeOption text = return []
-completeFile text = return []
-completeIdentifier identifier = return []
-completeQualified names = return []
 
 mkCompletions :: Monad m => Text -> [Text] -> m [Completion]
 mkCompletions token = return . map (Completion $ T.length token)
