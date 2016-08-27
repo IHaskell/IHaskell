@@ -1,6 +1,6 @@
 {-|
 Module      : Jupyter.Test.ZeroMQ
-Description : Miscellaneous tests for Jupyter.ZeroMQ. 
+Description : Miscellaneous tests for Jupyter.ZeroMQ.
 Copyright   : (c) Andrew Gibiansky, 2016
 License     : MIT
 Maintainer  : andrew.gibiansky@gmail.com
@@ -18,6 +18,7 @@ import           Control.Exception (bracket)
 
 -- Imports from 'text'
 import           Data.Text (Text)
+import qualified Data.Text as T
 
 -- Imports from 'directory'
 import           System.Directory (createDirectoryIfMissing)
@@ -46,7 +47,12 @@ import           Jupyter.IHaskell.Interpreter (runInterpreter, Interpreter)
 completionTests :: TestTree
 completionTests =
   testGroup "Completion"
-    [importCompletionTests, flagCompletionTests, identifierCompletionTests, pathCompletionTests]
+    [ importCompletionTests
+    , flagCompletionTests
+    , identifierCompletionTests
+    , pathCompletionTests
+    , sourceCompletionTests
+    ]
 
 importCompletionTests :: TestTree
 importCompletionTests = testCase "Imports" $ void $ runInterpreter (Just libdir) $ do
@@ -159,8 +165,81 @@ pathCompletionTests = testCase "Paths" $ inTempDir $ \tmp ->
       nothing "readFile \"Hello\" ~/test-direc/tory.number2/"
       nothing "readFile \"Hel\" \"lo\" ~/test-direc/tory.number2/"
 
-      -- Relative paths with ., relative paths without ., absolute paths
-      liftIO $ assertFailure "not implemented"
+      -- Paths with ./ in them
+      "readFile \"Hello, ./test" --> [Completion 6 "./test-direc/"]
+      "readFile \"Hello, ./" --> [Completion 2 "./test-direc/"]
+      "readFile \"Hello, ./test-direc/tory.number2/" -->
+        [Completion 26 "./test-direc/tory.number2/filename"]
+      "readFile \"Hello, ./test-direc/" -->
+        [ Completion 13 "./test-direc/tory.number2/"
+        , Completion 13 "./test-direc/tory.with-a.weird/"
+        , Completion 13 "./test-direc/filename"
+        , Completion 13 "./test-direc/.filename"
+        ]
+      "readFile \"He\"ll\"o, ./test-direc/tory.number2/" -->
+        [Completion 26 "./test-direc/tory.number2/filename"]
+      "readFile \"He\"ll\"o\", \"./test-direc/tory.number2/" -->
+        [ Completion 26 "./test-direc/tory.number2/filename" ]
+      nothing "readFile \"Hello\" ./test-direc/tory.number2/"
+      nothing "readFile \"Hel\" \"lo\" ./test-direc/tory.number2/"
+
+      -- Paths relative to current directory
+      "readFile \"Hello, test" --> [Completion 4 "test-direc/"]
+      "readFile \"Hello, test-direc/tory.number2/" -->
+        [Completion 24 "test-direc/tory.number2/filename"]
+      "readFile \"Hello, test-direc/" -->
+        [ Completion 11 "test-direc/tory.number2/"
+        , Completion 11 "test-direc/tory.with-a.weird/"
+        , Completion 11 "test-direc/filename"
+        , Completion 11 "test-direc/.filename"
+        ]
+      "readFile \"He\"ll\"o, test-direc/tory.number2/" -->
+        [Completion 24 "test-direc/tory.number2/filename"]
+      "readFile \"He\"ll\"o\", \"test-direc/tory.number2/" -->
+        [ Completion 24 "test-direc/tory.number2/filename" ]
+      nothing "readFile \"Hello, "
+      nothing "readFile \"Hello\" test-direc/tory.number2/"
+      nothing "readFile \"Hel\" \"lo\" test-direc/tory.number2/"
+
+      -- Absolute paths
+      let absolutize = T.replace "{}" (T.pack tmp)
+          len = length tmp
+      absolutize "readFile \"Hello, {}/test" --> [Completion (len + 5) $ absolutize "{}/test-direc/"]
+      absolutize "readFile \"Hello, {}/test-direc/tory.number2/" -->
+        [Completion (len + 25) $ absolutize "{}/test-direc/tory.number2/filename"]
+      absolutize "readFile \"Hello, {}/test-direc/" -->
+        [ Completion (len + 12) $ absolutize "{}/test-direc/tory.number2/"
+        , Completion (len + 12) $ absolutize "{}/test-direc/tory.with-a.weird/"
+        , Completion (len + 12) $ absolutize "{}/test-direc/filename"
+        , Completion (len + 12) $ absolutize "{}/test-direc/.filename"
+        ]
+      absolutize "readFile \"He\"ll\"o, {}/test-direc/tory.number2/" -->
+        [Completion (len + 25) $ absolutize "{}/test-direc/tory.number2/filename"]
+      absolutize "readFile \"He\"ll\"o\", \"{}/test-direc/tory.number2/" -->
+        [ Completion (len + 25) $ absolutize "{}/test-direc/tory.number2/filename" ]
+
+      nothing $ absolutize "readFile \"Hello\" {}/test-direc/tory.number2/"
+      nothing $ absolutize "readFile \"Hel\" \"lo\" {}/test-direc/tory.number2/"
+
+sourceCompletionTests :: TestTree
+sourceCompletionTests = testCase "Source" $ inTempDir $ \tmp -> do
+  createDirectoryIfMissing True "test-direc/tory.number2"
+  writeFile "test-direc/test.test" "test"
+  writeFile "test-direc/test.hs" "test"
+  writeFile "test-direc/test.lhs" "test"
+  writeFile "test-direc/tory.number2/test.test" "test"
+  writeFile "test-direc/tory.number2/test.hs" "test"
+  writeFile "test-direc/tory.number2/test.lhs" "test"
+
+  void $ runInterpreter (Just libdir) $ do
+    ":l ./test-dir" --> [Completion 10 "./test-direc/"]
+    ":load ./test-dir" --> [Completion 10 "./test-direc/"]
+    ":l ./test-direc/" --> [Completion 13 "test.hs", Completion 13 "test.lhs"]
+    ":load ./test-direc/" --> [Completion 13 "test.hs", Completion 13 "test.lhs"]
+    ":l ./test-direc/tory.number2/" --> [Completion 13 "test.hs", Completion 13 "test.lhs"]
+    ":load ./test-direc/tory.number2/" --> [Completion 13 "test.hs", Completion 13 "test.lhs"]
+
+
 
 -- | Assert that completions for a particular starting string begin with a particular set of
 -- completions.
