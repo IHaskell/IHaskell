@@ -234,10 +234,20 @@ sourceCompletionTests = testCase "Source" $ inTempDir $ \tmp -> do
   void $ runInterpreter (Just libdir) $ do
     ":l ./test-dir" --> [Completion 10 "./test-direc/"]
     ":load ./test-dir" --> [Completion 10 "./test-direc/"]
-    ":l ./test-direc/" --> [Completion 13 "test.hs", Completion 13 "test.lhs"]
-    ":load ./test-direc/" --> [Completion 13 "test.hs", Completion 13 "test.lhs"]
-    ":l ./test-direc/tory.number2/" --> [Completion 13 "test.hs", Completion 13 "test.lhs"]
-    ":load ./test-direc/tory.number2/" --> [Completion 13 "test.hs", Completion 13 "test.lhs"]
+    ":l ./test-direc/" --> [ Completion 13 "./test-direc/tory.number2/"
+                           , Completion 13 "./test-direc/test.hs"
+                           , Completion 13 "./test-direc/test.lhs"
+                           ]
+    ":load ./test-direc/" --> [ Completion 13 "./test-direc/tory.number2/"
+                              , Completion 13 "./test-direc/test.hs"
+                              , Completion 13 "./test-direc/test.lhs"
+                              ]
+    ":l ./test-direc/tory.number2/" --> [ Completion 26 "./test-direc/tory.number2/test.hs"
+                                        , Completion 26 "./test-direc/tory.number2/test.lhs"
+                                        ]
+    ":load ./test-direc/tory.number2/" --> [ Completion 26 "./test-direc/tory.number2/test.hs"
+                                           , Completion 26 "./test-direc/tory.number2/test.lhs"
+                                           ]
 
 
 

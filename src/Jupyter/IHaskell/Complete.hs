@@ -247,7 +247,10 @@ completeQualified names =
       return $ idents ++ modules
 
 completeFile :: Text -> Interpreter [Completion]
-completeFile text = liftIO $ do
+completeFile = completeFileWithFilter (const True)
+
+completeFileWithFilter :: (Text -> Bool) -> Text -> Interpreter [Completion]
+completeFileWithFilter pred text = liftIO $ do
   home <- T.pack <$> getEnv "HOME"
   let (toplevelRaw, filePrefix) = T.breakOnEnd "/" token
       toplevel = T.unpack $ path home toplevelRaw
@@ -258,7 +261,8 @@ completeFile text = liftIO $ do
       entries <- getDirectoryContents toplevel
       let valid p = p /= "." && p /= ".." && T.isPrefixOf filePrefix (T.pack p)
       (directories, files) <- partitionM (doesDirectoryExist . ((toplevel ++ "/") ++)) (filter valid entries)
-      let completions = sortOn (T.isPrefixOf ".") $ map T.pack $ map (++ "/") directories ++ files
+      let allowedFiles = filter (pred . T.pack) files
+          completions = sortOn (T.isPrefixOf ".") $ map T.pack $ map (++ "/") directories ++ allowedFiles
       mkCompletions token $ map (T.append toplevelRaw) completions
 
   where
@@ -270,8 +274,8 @@ completeFile text = liftIO $ do
                then dir
                else "./" <> dir
 
-
-completeSourceFile text = return []
+completeSourceFile :: Text -> Interpreter [Completion]
+completeSourceFile = completeFileWithFilter ((||) <$> T.isSuffixOf ".hs" <*> T.isSuffixOf ".lhs")
 
 mkCompletions :: Monad m => Text -> [Text] -> m [Completion]
 mkCompletions token = return . map (Completion $ T.length token)
