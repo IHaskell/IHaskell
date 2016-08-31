@@ -29,11 +29,7 @@ data KernelState = KernelState
 defaultKernelState :: KernelState
 defaultKernelState = KernelState
 
-data InterpreterState =
-       InterpreterState
-         { interpreterSession :: Session
-         , interpreterState :: KernelState
-         }
+data InterpreterState = InterpreterState Session KernelState
 
 instance MonadIO Interpreter where
   liftIO = Interpreter . lift . GHC.liftIO
@@ -42,14 +38,14 @@ runInterpreter :: Maybe FilePath -> Interpreter a -> IO (a, InterpreterState)
 runInterpreter libdirM interpreter =
   runGhc libdirM $ do
     flags <- getSessionDynFlags
-    setSessionDynFlags $ flags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
-    (result, state) <- runStateT (unInterpreter interpreter) defaultKernelState
+    _ <- setSessionDynFlags $ flags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
+    (result, state') <- runStateT (unInterpreter interpreter) defaultKernelState
     session <- reifyGhc return
-    return (result, InterpreterState session state)
+    return (result, InterpreterState session state')
 
 resumeInterpreter :: InterpreterState -> Interpreter a -> IO (a, InterpreterState)
-resumeInterpreter (InterpreterState session state) (Interpreter interpreter) = do
-  (result, state') <- reflectGhc (runStateT interpreter state) session
+resumeInterpreter (InterpreterState session st) (Interpreter interpreter) = do
+  (result, state') <- reflectGhc (runStateT interpreter st) session
   return (result, InterpreterState session state')
 
 ghc :: Ghc a -> Interpreter a

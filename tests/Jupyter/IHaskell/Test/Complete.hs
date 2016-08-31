@@ -11,9 +11,9 @@ Portability : POSIX
 module Jupyter.IHaskell.Test.Complete (completionTests) where
 
 -- Imports from 'base'
+import           Control.Exception (bracket)
 import           Control.Monad (when, unless, void)
 import           System.Environment (getEnv, setEnv)
-import           Control.Exception (bracket)
 
 
 -- Imports from 'text'
@@ -24,14 +24,14 @@ import qualified Data.Text as T
 import           System.Directory (createDirectoryIfMissing)
 
 -- Imports from 'extra'
-import           System.IO.Extra (withTempDir)
 import           System.Directory.Extra (withCurrentDirectory)
+import           System.IO.Extra (withTempDir)
 
 -- Imports from 'tasty'
 import           Test.Tasty (TestTree, testGroup)
 
 -- Imports from 'tasty-hunit'
-import           Test.Tasty.HUnit (testCase, (@=?), assertFailure)
+import           Test.Tasty.HUnit (testCase, assertFailure)
 
 -- Imports from 'transformers'
 import           Control.Monad.IO.Class (MonadIO(..))
@@ -54,10 +54,14 @@ completionTests =
     , sourceCompletionTests
     ]
 
+-- | Test that import statements are completed correctly.
 importCompletionTests :: TestTree
 importCompletionTests = testCase "Imports" $ void $ runInterpreter (Just libdir) $ do
+  -- Test completion of "qualified" identifier
   "import qu" --> [Completion 2 "qualified"]
   "import qualif" --> [Completion 6 "qualified"]
+
+  -- Test completion of module names
   "import Dat" --> [Completion 3 "Data."]
   "import Con" --> [Completion 3 "Control.", Completion 3 "Control.Arrow", Completion 3 "Control.Monad"]
   "import Control.Con" --> [Completion 11 "Control.Concurrent", Completion 11 "Control.Concurrent.STM"]
@@ -72,6 +76,8 @@ importCompletionTests = testCase "Imports" $ void $ runInterpreter (Just libdir)
   "import Unsafe." --> [Completion 7 "Unsafe.Coerce"]
   "import Unsafe.Co" --> [Completion 9 "Unsafe.Coerce"]
   "import Data.ByteString.L" --> [Completion 17 "Data.ByteString.Lazy"]
+
+  -- Test completion of exported identifiers
   "import Data.Monoid (m" --> [Completion 1 "mempty", Completion 1 "mappend", Completion 1 "mconcat"]
   "import Data.Monoid (mc" --> [Completion 2 "mconcat"]
   "import Data.Monoid   (me" --> [Completion 2 "mempty"]
@@ -79,10 +85,14 @@ importCompletionTests = testCase "Imports" $ void $ runInterpreter (Just libdir)
   "import Data.Monoid (mc Pro" --> [Completion 3 "Product"]
   "import Data.Monoid (mc  Pro" --> [Completion 3 "Product"]
 
+  -- Test completion of nothing on line after import is fully entered
   nothing "import Data.Monoid (mc  Pro)"
   nothing "import Data.Monoid (a, b) "
+
+  -- Test completion of nonexistent modules
   nothing "import Data.DoesntExist (abc"
 
+-- | Test that flags using :set are completed correctly.
 flagCompletionTests :: TestTree
 flagCompletionTests = testCase "Flags" $ void $ runInterpreter (Just libdir) $ do
   ":set -XNoMonom" --> [Completion 9 "-XNoMonomorphismRestriction"]
@@ -96,6 +106,7 @@ flagCompletionTests = testCase "Flags" $ void $ runInterpreter (Just libdir) $ d
 
   nothing ":set -XASDF"
 
+-- | Test that in-scope identifiers are completed correctly.
 identifierCompletionTests :: TestTree
 identifierCompletionTests = testCase "Identifiers" $ void $ runInterpreter (Just libdir) $ do
   -- Completions from Prelude
@@ -123,16 +134,19 @@ identifierCompletionTests = testCase "Identifiers" $ void $ runInterpreter (Just
   "System.Env" --> [Completion 10 "System.Environment"]
   "System.Environment.getA" --> [Completion 4 "getArgs"]
 
+  -- Completions from System.IO should not be available yet!
   nothing "1 + hGetCon"
   nothing "1 +hGetCon"
   nothing "1+hGetCon"
 
+  -- Completions from System.IO
   evalImport "import System.IO"
   "1 + hGetCon" --> [Completion 7 "hGetContents"]
   "1 +hGetCon" --> [Completion 7 "hGetContents"]
   "1+hGetCon" --> [Completion 7 "hGetContents"]
   "x::Inte" --> [Completion 4 "Integer", Completion 4 "Integral"]
 
+-- | Test that files and directories are completed correctly.
 pathCompletionTests :: TestTree
 pathCompletionTests = testCase "Paths" $ inTempDir $ \tmp ->
   bracket (getEnv "HOME") (setEnv "HOME") $ const $ do
@@ -147,7 +161,7 @@ pathCompletionTests = testCase "Paths" $ inTempDir $ \tmp ->
     writeFile "test-direc/tory.with-a.weird/name-for/filename" "test"
 
     void $ runInterpreter (Just libdir) $ do
-      -- Paths with ~ in them
+      -- Test completion of paths with ~ in them
       "readFile \"Hello, ~/test" --> [Completion 6 "~/test-direc/"]
       "readFile \"Hello, ~/" --> [Completion 2 "~/test-direc/"]
       "readFile \"Hello, ~/test-direc/tory.number2/" -->
@@ -165,7 +179,7 @@ pathCompletionTests = testCase "Paths" $ inTempDir $ \tmp ->
       nothing "readFile \"Hello\" ~/test-direc/tory.number2/"
       nothing "readFile \"Hel\" \"lo\" ~/test-direc/tory.number2/"
 
-      -- Paths with ./ in them
+      -- Test completion of paths starting with ./
       "readFile \"Hello, ./test" --> [Completion 6 "./test-direc/"]
       "readFile \"Hello, ./" --> [Completion 2 "./test-direc/"]
       "readFile \"Hello, ./test-direc/tory.number2/" -->
@@ -183,7 +197,7 @@ pathCompletionTests = testCase "Paths" $ inTempDir $ \tmp ->
       nothing "readFile \"Hello\" ./test-direc/tory.number2/"
       nothing "readFile \"Hel\" \"lo\" ./test-direc/tory.number2/"
 
-      -- Paths relative to current directory
+      -- Test completion of absolute paths paths relative to current directory
       "readFile \"Hello, test" --> [Completion 4 "test-direc/"]
       "readFile \"Hello, test-direc/tory.number2/" -->
         [Completion 24 "test-direc/tory.number2/filename"]
@@ -201,7 +215,7 @@ pathCompletionTests = testCase "Paths" $ inTempDir $ \tmp ->
       nothing "readFile \"Hello\" test-direc/tory.number2/"
       nothing "readFile \"Hel\" \"lo\" test-direc/tory.number2/"
 
-      -- Absolute paths
+      -- Test completion of absolute paths
       let absolutize = T.replace "{}" (T.pack tmp)
           len = length tmp
       absolutize "readFile \"Hello, {}/test" --> [Completion (len + 5) $ absolutize "{}/test-direc/"]
@@ -221,8 +235,12 @@ pathCompletionTests = testCase "Paths" $ inTempDir $ \tmp ->
       nothing $ absolutize "readFile \"Hello\" {}/test-direc/tory.number2/"
       nothing $ absolutize "readFile \"Hel\" \"lo\" {}/test-direc/tory.number2/"
 
+-- | Test that files and directories are completed correctly when files are restriced to source
+-- files.
 sourceCompletionTests :: TestTree
-sourceCompletionTests = testCase "Source" $ inTempDir $ \tmp -> do
+sourceCompletionTests = testCase "Source" $ inTempDir $ \_ -> do
+  -- Set up some files and directories in a temporary area. Make some source files and some non-source
+  -- files, as well as a few nested directories.
   createDirectoryIfMissing True "test-direc/tory.number2"
   writeFile "test-direc/test.test" "test"
   writeFile "test-direc/test.hs" "test"
