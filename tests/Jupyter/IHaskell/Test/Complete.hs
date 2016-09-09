@@ -1,6 +1,6 @@
 {-|
-Module      : Jupyter.Test.ZeroMQ
-Description : Miscellaneous tests for Jupyter.ZeroMQ.
+Module      : Jupyter.IHaskell.Test.Complete
+Description : Tests for Jupyter.IHaskell.Complete.
 Copyright   : (c) Andrew Gibiansky, 2016
 License     : MIT
 Maintainer  : andrew.gibiansky@gmail.com
@@ -109,6 +109,9 @@ flagCompletionTests = testCase "Flags" $ void $ runInterpreter (Just libdir) $ d
 -- | Test that in-scope identifiers are completed correctly.
 identifierCompletionTests :: TestTree
 identifierCompletionTests = testCase "Identifiers" $ void $ runInterpreter (Just libdir) $ do
+  -- Completing empty string yields no completions.
+  "" --> []
+
   -- Completions from Prelude
   evalImport "import Prelude"
   "let x = pri" --> [Completion 3 "print"]
@@ -178,6 +181,23 @@ pathCompletionTests = testCase "Paths" $ inTempDir $ \tmp ->
         [ Completion 26 "~/test-direc/tory.number2/filename" ]
       nothing "readFile \"Hello\" ~/test-direc/tory.number2/"
       nothing "readFile \"Hel\" \"lo\" ~/test-direc/tory.number2/"
+
+      -- Test completions for commands starting with :! (shell commands)
+      ":! Hello, ~/test" --> [Completion 6 "~/test-direc/"]
+      ":! Hello, ~/" --> [Completion 2 "~/test-direc/"]
+      ":! Hello, ~/test-direc/tory.number2/" -->
+        [Completion 26 "~/test-direc/tory.number2/filename"]
+      ":! Hello, ~/test-direc/" -->
+        [ Completion 13 "~/test-direc/tory.number2/"
+        , Completion 13 "~/test-direc/tory.with-a.weird/"
+        , Completion 13 "~/test-direc/filename"
+        , Completion 13 "~/test-direc/.filename"
+        ]
+      ":! He\"ll\"o, ~/test-direc/tory.number2/" -->
+        [Completion 26 "~/test-direc/tory.number2/filename"]
+      ":!He\"ll\"o\", \"~/test-direc/tory.number2/" -->
+        [ Completion 26 "~/test-direc/tory.number2/filename" ]
+
 
       -- Test completion of paths starting with ./
       "readFile \"Hello, ./test" --> [Completion 6 "./test-direc/"]
@@ -275,7 +295,8 @@ sourceCompletionTests = testCase "Source" $ inTempDir $ \_ -> do
 text --> expected = do
   observed <- complete text
   when (null observed) $
-    liftIO $ assertFailure $ "No completions for: " ++ show text
+    unless (null expected) $ 
+      liftIO $ assertFailure $ "No completions for: " ++ show text
   unless (and (zipWith (==) expected observed) && length expected <= length observed) $
     liftIO $ assertFailure $
       concat
