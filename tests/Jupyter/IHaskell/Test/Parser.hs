@@ -11,21 +11,11 @@ Portability : POSIX
 module Jupyter.IHaskell.Test.Parser (parserTests) where
 
 -- Imports from 'base'
-import           Control.Exception (bracket)
-import           Control.Monad (when, unless, void)
-import           System.Environment (getEnv, setEnv)
-
+import           Control.Monad (unless, void)
 
 -- Imports from 'text'
 import           Data.Text (Text)
 import qualified Data.Text as T
-
--- Imports from 'directory'
-import           System.Directory (createDirectoryIfMissing)
-
--- Imports from 'extra'
-import           System.Directory.Extra (withCurrentDirectory)
-import           System.IO.Extra (withTempDir)
 
 -- Imports from 'tasty'
 import           Test.Tasty (TestTree, testGroup)
@@ -40,28 +30,52 @@ import           Control.Monad.IO.Class (MonadIO(..))
 import           GHC.Paths (libdir)
 
 -- Imports from 'ihaskell'
+import           Jupyter.IHaskell.Evaluate (setExtension)
+import           Jupyter.IHaskell.Interpreter (runInterpreter, Interpreter)
 import           Jupyter.IHaskell.Parser (Loc(..), CodeBlock(..), parseCodeBlocks, ParseError(..),
                                           DirectiveType(..))
-import           Jupyter.IHaskell.Interpreter (runInterpreter, Interpreter)
-import           Jupyter.IHaskell.Evaluate (setExtension)
 
+-- | Test the IHaskell parser.
 parserTests :: TestTree
 parserTests =
   testGroup "Parser"
-    [expressionTests, quasiquoteTests, declarationTests, directiveTests, importTests, pragmaTests]
+    [ expressionTests
+    , quasiquoteTests
+    , declarationTests
+    , directiveTests
+    , importTests
+    , pragmaTests
+    , extensionTests
+    ]
 
+-- | Run a test case in the 'Interpreter' monad.
 test :: String -> Interpreter a -> TestTree
 test name action = testCase name $ void $ runInterpreter (Just libdir) action
 
+-- | Test that extensions are set and unset during parsing.
+extensionTests :: TestTree
+extensionTests = test "Extensions" $ do
+  -- Enable an extension and test that its enabled during the same parsing run.
+  ":set -XQuasiQuotes\n[q|hi|]" --> [directive 1 SetDynFlag "-XQuasiQuotes", expr 2 "[q|hi|]"]
+
+  -- Disable an extension.
+  ":set -XNoQuasiQuotes" --> [directive 1 SetDynFlag "-XNoQuasiQuotes"]
+
+  -- Test that the extension is indeed disabled.
+  "[q|hi|]" `errors` ParseError "parse error on input \8216]\8217\n" 1 7
+
+-- | Test basic expression parsing.
 expressionTests :: TestTree
 expressionTests = test "Expressions" $ do
+  -- No input should result in no parsed output. Not an error!
+  "" --> []
+
   "first\n\nsecond\nthird\n\nfourth" -->
     [ Loc 1 (Expression "first")
     , Loc 3 (Expression "second")
     , Loc 4 (Expression "third")
     , Loc 6 (Expression "fourth")
     ]
-  "" --> []
   "3 + 5" --> [expr 1 "3 + 5"]
   "3\nlet x = expr" --> [expr 1 "3", stmt 2 "let x = expr"]
   "let x = 3 in x + 3" --> [expr 1 "let x = 3 in x + 3"]
@@ -80,16 +94,18 @@ expressionTests = test "Expressions" $ do
   "show (show (do\n  Just 10\n  Nothing\n  Just 100))" -->
     [expr 1 "show (show (do\n  Just 10\n  Nothing\n  Just 100))"]
 
+-- | Test parsing IHaskell supported GHC pragmas. 
 pragmaTests :: TestTree
 pragmaTests = test "Pragmas" $ do
   "{-# LANGUAGE QuasiQuotes #-}" --> [lang 1 ["QuasiQuotes"]]
-  "{-# LANGUAGE QuasiQuotes,X #-}" --> [lang 1 ["QuasiQuotes", "X"]]
-  "{-# LANguage QuasiQuotes,X #-}" --> [lang 1 ["QuasiQuotes", "X"]]
-  "{-# language QuasiQuotes,X #-}" --> [lang 1 ["QuasiQuotes", "X"]]
-  "{-#   language     QuasiQuotes,X #-}" --> [lang 1 ["QuasiQuotes", "X"]]
-  "\n{-#   language     QuasiQuotes,X #-}" --> [lang 2 ["QuasiQuotes", "X"]]
+  "{-# LANGUAGE QuasiQuotes,EmptyDataDecls #-}" --> [lang 1 ["QuasiQuotes", "EmptyDataDecls"]]
+  "{-# LANguage QuasiQuotes,EmptyDataDecls #-}" --> [lang 1 ["QuasiQuotes", "EmptyDataDecls"]]
+  "{-# language QuasiQuotes,EmptyDataDecls #-}" --> [lang 1 ["QuasiQuotes", "EmptyDataDecls"]]
+  "{-#   language     QuasiQuotes,EmptyDataDecls #-}" --> [lang 1 ["QuasiQuotes", "EmptyDataDecls"]]
+  "\n{-#   language     QuasiQuotes,EmptyDataDecls #-}" --> [lang 2 ["QuasiQuotes", "EmptyDataDecls"]]
   "{-# PRAGMA other #-}" `errors` ParseError "Unsupported pragma: PRAGMA" 1 1
 
+-- | Test parsing quasiquotes.
 quasiquoteTests :: TestTree
 quasiquoteTests = test "Quasiquotes" $ do
   setExtension "QuasiQuotes"
@@ -102,6 +118,7 @@ quasiquoteTests = test "Quasiquotes" $ do
   "[q|x|] [q|x|]" --> [expr 1 "[q|x|] [q|x|]"]
   "[q|\nx\n|] [q|x|]" --> [expr 1 "[q|\nx\n|] [q|x|]"]
 
+-- | Test parsing import statements.
 importTests :: TestTree
 importTests = test "Imports" $ do
   "import Data.Monoid" --> [imp 1 "import Data.Monoid"]
@@ -129,6 +146,7 @@ importTests = test "Imports" $ do
   "import X\n\nprint 3" --> [imp 1 "import X", expr 3 "print 3"]
 
 
+-- | Test parsing IHaskell directives.
 directiveTests :: TestTree
 directiveTests = test "Directives" $ do
   ":type x\n:ty x" --> [directive 1 GetType "x", directive 2 GetType "x"]
@@ -138,7 +156,7 @@ directiveTests = test "Directives" $ do
   ":? x\n:help x" --> [directive 1 GetHelp "x", directive 2 GetHelp "x"]
   ":hel x\n:he x" --> [directive 1 GetHelp "x", directive 2 GetHelp "x"]
   ":h x" --> [directive 1 GetHelp "x"]
-  ":set x" --> [directive 1 SetDynFlag "x"]
+  ":set -XEmptyDataDecls" --> [directive 1 SetDynFlag "-XEmptyDataDecls"]
 
   ":hoogle x\n:hoog x\n:ho x" -->
     [directive 1 SearchHoogle "x", directive 2 SearchHoogle "x", directive 3 SearchHoogle "x"]
@@ -155,6 +173,7 @@ directiveTests = test "Directives" $ do
 
   "3\n:t expr" --> [expr 1 "3", directive 2 GetType "expr"]
 
+-- | Test parsing declarations.
 declarationTests :: TestTree
 declarationTests = test "Declarations" $ do
   "data X = Y Int" --> [decl 1 "data X = Y Int"]
@@ -180,24 +199,32 @@ declarationTests = test "Declarations" $ do
   "(+++) :: Int -> Int -> Int\n(+++) a b = a" --> [decl 1 "(+++) :: Int -> Int -> Int\n(+++) a b = a"]
   "(+++) :: Int -> Int -> Int\na +++ b = a" --> [decl 1 "(+++) :: Int -> Int -> Int\na +++ b = a"]
 
+-- | Convenient function to create an 'Import'.
 imp :: Int -> Text -> Loc CodeBlock
 imp line text = Loc line $ Import text
 
+-- | Convenient function to create a 'Statement'.
 stmt :: Int -> Text -> Loc CodeBlock
 stmt line text = Loc line $ Statement text
 
+-- | Convenient function to create a 'Declarations'.
 decl :: Int -> Text -> Loc CodeBlock
 decl line text = Loc line $ Declarations text
 
+-- | Convenient function to create a 'Directive'.
 directive :: Int -> DirectiveType -> Text -> Loc CodeBlock
 directive line dtype text = Loc line $ Directive dtype text
 
+-- | Convenient function to create a 'Expression'.
 expr :: Int -> Text -> Loc CodeBlock
 expr line text = Loc line $ Expression text
 
+-- | Convenient function to create a 'LanguagePragma'.
 lang :: Int -> [Text] -> Loc CodeBlock
 lang line exts = Loc line $ LanguagePragma exts
 
+-- | Run a single parser test. Parse a given block of text and ensure the expected output is
+-- returned.
 (-->) :: Text -> [Loc CodeBlock] -> Interpreter ()
 text --> expected = do
   result <- parseCodeBlocks text
@@ -216,6 +243,7 @@ text --> expected = do
             , show observed
             ]
 
+-- | Test that the parser returns an expected error on the provided input.
 errors :: Text -> ParseError -> Interpreter ()
 errors text errExpected = do
   result <- parseCodeBlocks text

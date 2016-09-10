@@ -1,5 +1,20 @@
+{-|
+Module      : Jupyter.IHaskell.Parser
+Description : Autocompletion for IHaskell 
+Copyright   : (c) Andrew Gibiansky, 2016
+License     : MIT
+Maintainer  : andrew.gibiansky@gmail.com
+Stability   : stable
+Portability : POSIX
+
+This module is used for parsing the input to IHaskell. IHaskell does not need a full
+parse tree of the code, since it uses GHC for evaluation, but it does need to be able to
+separate parts of the input into different chunks which are meant for different purposes (statements,
+expressions, declarations, directives, etc). This is provided by the 'parseCodeBlocks' function which,
+given text, divides it into semantically meaningful chunks.
+-}
+
 {-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Jupyter.IHaskell.Parser (
     -- Parser handling
@@ -11,7 +26,7 @@ module Jupyter.IHaskell.Parser (
     ) where
 
 -- Imports from 'base'
-import           Control.Applicative (some, many, (<|>))
+import           Control.Applicative (some, (<|>))
 import           Control.Monad (void)
 import           Data.Bifunctor (first, second)
 import           Data.Char (isAlphaNum)
@@ -45,9 +60,10 @@ import           StringBuffer (stringToStringBuffer)
 
 -- Imports from 'ihaskell'
 import           Jupyter.IHaskell.Interpreter (Interpreter, ghc)
+import           Jupyter.IHaskell.Evaluate (setExtension, setDynFlags)
 
 -- | A block of code to be evaluated. A single cell may contain many blocks, but the blocks can be
--- evaluated sequentially.
+-- evaluated sequentially (that is, they will not have dependencies on blocks after them).
 data CodeBlock = Expression Text   -- ^ A Haskell expression.
                | Declarations Text -- ^ A set of declarations.
                | Statement Text    -- ^ A Haskell statement (as if in a `do` block).
@@ -70,56 +86,93 @@ data DirectiveType = GetType      -- ^ Get the type of an expression via ':type'
                    | LoadModule   -- ^ Load and unload modules via ':module'.
   deriving (Show, Eq, Ord)
 
+-- | A parse error during parsing the input.
 data ParseError =
        ParseError
-         { parseErrorMessage :: String
-         , parseErrorLine :: Int
-         , parseErrorColumn :: Int
+         { parseErrorMessage :: String -- ^ Parse error info.
+         , parseErrorLine :: Int       -- ^ 1-based line index for the error token.
+         , parseErrorColumn :: Int     -- ^ 1-based column index for the error token.
          }
   deriving (Eq, Ord, Show)
 
--- | Store locations along with a value.
+-- | A value annotated with a line number.
 data Loc a = Loc {
-    locLine :: Int, -- Where this element is located.
-    unLoc :: a          -- Loc element.
+    locLine :: Int, -- ^ 1-based line annotation in the input code. 
+    unLoc :: a      -- ^ Element being annotated.
   } deriving (Eq, Show, Functor)
 
 
+-- | Given input text, parse it into semantically meaningful chunks, and return these as a list of
+-- 'CodeBlock' values. If parsing fails, return instead a 'ParseError' with info about why the parse
+-- failed.
+--
+-- This has a side effect: any extensions that are enabled using language pragmas or directives will
+-- be enabled during parsing. While this turns this into an impure function, it is required, since
+-- extensions will affect future parsing, and if the user sets an extension in an earlier
+-- 'CodeBlock', later 'CodeBlock's that rely on that extension being set should parse correctly.
 parseCodeBlocks :: Text -- ^ Code to parse into blocks
                 -> Interpreter (Either ParseError [Loc CodeBlock])
 parseCodeBlocks string =
-  second mergeConsecutiveDecls <$> sequence <$> mapM parseChunkLocated (layoutChunks string)
+  second mergeConsecutiveDecls <$> sequence <$> mapM processChunk (layoutChunks string)
   where
-    parseChunkLocated (Loc line txt) = do
+    -- Parse a chunk annotated with a line number. Make sure that the generated
+    -- parse errors have line numbers relative to the entire input, not just their
+    -- local text.
+    --
+    -- If this chunk should activate any extensions, do so after parsing it.
+    processChunk (Loc line txt) = do
       result <- parseChunk txt
-      return $
-        case result of
-          Left err    -> Left err { parseErrorLine = parseErrorLine err + line - 1 }
-          Right block -> Right (Loc line block)
+      case result of
+        Left err    -> return $ Left err { parseErrorLine = parseErrorLine err + line - 1 }
+        Right block -> do
+          activateExtensions block
+          return $ Right (Loc line block)
 
+    -- Activate any extensions that this code block should activate.
+    activateExtensions :: CodeBlock -> Interpreter ()
+    activateExtensions blk =
+      case blk of
+        LanguagePragma exts -> mapM_ setExtension exts
+        Directive SetDynFlag flags -> setDynFlags flags
+        _ -> return ()
+
+-- | Consecutive declarations need to be merged, because
+--
+--  1. They could be a type signature followed by the implementation,
+--     which should be interpreted together to avoid errors.
+--  2. They could be mutually recursive functions, which must also be
+--     interpreted together.
+--
+-- This function merges any two consecutive declaration 'CodeBlock' values into one, keeping the
+-- location of the first one.
 mergeConsecutiveDecls :: [Loc CodeBlock] -> [Loc CodeBlock]
 mergeConsecutiveDecls = foldr go []
   where
     go :: Loc CodeBlock -> [Loc CodeBlock] -> [Loc CodeBlock]
     go blk rest =
       case rest of
-        [] -> [blk]
-        (x:xs) ->
-          case (blk, x) of
-            (Loc line (Declarations blkText), Loc line2 (Declarations xText)) ->
-              Loc line (Declarations $ T.concat [blkText, T.replicate (line2 - line) "\n", xText]) : xs
-            _ -> blk : x : xs
+        []     -> [blk]
+        (x:xs) -> maybe (blk : x : xs) (: xs) (merge blk x)
 
+    -- Merge together two consecutive declarations. If they can't be merged, return Nothing.
+    merge :: Loc CodeBlock -> Loc CodeBlock -> Maybe (Loc CodeBlock)
+    merge (Loc l1 (Declarations x)) (Loc l2 (Declarations y)) =
+      Just $ Loc l1 $ Declarations $ T.concat [x, T.replicate (l2 - l1) "\n", y]
+    merge _ _ = Nothing
+
+-- | Parse a single chunk of text. If parsing fails, return a 'ParseError'.
+--
+-- Operates by trying all the different parsers and returning the first one that succeeds.
 parseChunk :: Text -> Interpreter (Either ParseError CodeBlock)
 parseChunk input
-  | Right parsed <- parse parseDirective "" input
-  = return $ mkDirectiveBlock parsed
+  | Right parsed <- parse parseDirective "" input =
+      return $ mkDirectiveBlock parsed
 
-  | Right parsed <- parse parsePragma "" input
-  = return $ mkPragmaBlock parsed
+  | Right parsed <- parse parsePragma "" input =
+      return $ mkPragmaBlock parsed
 
-  | otherwise
-  = first selectBestError <$> firstM ($ input) parsers
+  | otherwise =
+      first selectBestError <$> firstM ($ input) parsers
   where
     parsers :: [Text -> Interpreter (Either ParseError CodeBlock)]
     parsers =
@@ -136,17 +189,27 @@ parseChunk input
     parseChunkAs parser mkBlock text = do
       second (const $ mkBlock text) <$> runParser parser text
 
-selectBestError :: [ParseError] -> ParseError
-selectBestError = maximumBy farthestError
-  where
-    farthestError x y = comparing parseErrorLine x y <> comparing parseErrorColumn x y
+    -- A heuristic for selecting the best parse error to display when all parses fail. Usually the best
+    -- parse error is the one that happens latest in the input, since it is the one that managed to
+    -- parse the most before failing.
+    selectBestError :: [ParseError] -> ParseError
+    selectBestError = maximumBy farthestError
+      where
+        farthestError x y = comparing parseErrorLine x y <> comparing parseErrorColumn x y
 
+-- | A more complex variant of 'findM'.
+--
+-- Chooses the first 'Right' value generated by applying a monadic function @f :: a -> m (Either b
+-- c)@ to a list of @a@s. If no 'Right' values are generated, return all the generated 'Left' values
+-- as a list.
 firstM :: Monad m
-       => (a -> m (Either b c))
-       -> [a]
+       => (a -> m (Either b c)) -- ^ @f@
+       -> [a] -- ^ Elements to process
        -> m (Either [b] c)
 firstM f = go id
   where
+    -- Collect the errors as a DList, since we are processing left to right but want to append errors to
+    -- the end of the list.
     go errs xs =
       case xs of
         [] -> return (Left $ errs [])
@@ -196,6 +259,11 @@ runParser parser string = do
     printErr :: ErrMsg -> String
     printErr = unlines . map show . bagToList . unitBag
 
+-- | @megaparsec@ parser for a GHC pragma: "{-# pragmaType text #-}"
+--
+-- Not all pragmas are accepted, but invalid pragmas are rejected at a later state.
+--
+-- Return a (pragma type, pragma text) tuple.
 parsePragma :: Parser (Text, Text)
 parsePragma = do
   space
@@ -208,6 +276,19 @@ parsePragma = do
   void $ string' "#-}"
   return (T.pack pragma, T.strip $ T.pack line)
 
+-- | Having parsed a pragma using 'parsePragma', check that it is a permitted IHaskell pragma and
+-- convert it to a 'CodeBlock'.
+mkPragmaBlock :: (Text, Text) -> Either ParseError CodeBlock
+mkPragmaBlock (pragma, line) =
+  case T.toUpper pragma of
+    "LANGUAGE" -> Right $ LanguagePragma $ T.splitOn "," $ T.replace " " "" line
+    other      -> Left $ ParseError ("Unsupported pragma: " ++ T.unpack other) 1 1
+
+-- | @megaprasec@ parser for an IHaskell directive: ":directive text".
+--
+-- Not all directives are accepted, but invalid directives are rejected at a later state.
+--
+-- Return a (directive type, directive text) tuple.
 parseDirective :: Parser (Text, Text)
 parseDirective = do
   space
@@ -217,6 +298,8 @@ parseDirective = do
   line <- manyTill anyChar (void (char '\n') <|> eof)
   return (T.pack directive, T.pack line)
 
+-- | Having parsed a directive using 'parseDirective', check that it is a permitted IHaskell
+-- directive and convert it to a 'CodeBlock'.
 mkDirectiveBlock :: (Text, Text) -> Either ParseError CodeBlock
 mkDirectiveBlock (directive, line) =
   case Map.lookup directive directiveMap of
@@ -243,18 +326,12 @@ mkDirectiveBlock (directive, line) =
     directiveMap :: Map Text DirectiveType
     directiveMap = Map.fromList $ do
       (word, dirType) <- directives
-      map (,dirType) $ tail $ T.inits word
+      prefix <- tail $ T.inits word
+      return (prefix, dirType)
 
-mkPragmaBlock :: (Text, Text) -> Either ParseError CodeBlock
-mkPragmaBlock (pragma, line) =
-  case T.toUpper pragma of
-    "LANGUAGE" -> Right $ LanguagePragma $ T.splitOn "," $ T.replace " " "" line
-    other      -> Left $ ParseError ("Unsupported pragma: " ++ T.unpack other) 1 1
-
--- | Split an input string into chunks based on indentation.
--- A chunk is a line and all lines immediately following that are indented
--- beyond the indentation of the first line. This parses Haskell layout
--- rules properly, and allows using multiline expressions via indentation.
+-- | Split an input string into chunks based on indentation. A chunk is a line and all lines
+-- immediately following that are indented beyond the indentation of the first line. This parses
+-- Haskell layout rules properly, and allows using multiline expressions via indentation.
 --
 -- Quasiquotes are allowed via a post-processing step.
 layoutChunks :: Text -> [Loc Text]
@@ -293,8 +370,7 @@ layoutChunks = joinQuasiquotes . go 1 . removeComments
         _ -> 0
 
 
--- | Drop comments from Haskell source.
--- Simply gets rid of them, does not replace them in any way.
+-- | Drop comments from Haskell source. Simply gets rid of them, does not replace them in any way.
 removeComments :: Text -> Text
 removeComments = T.pack . removeOneLineComments . removeMultilineComments 0 0 . T.unpack
   where
@@ -362,8 +438,8 @@ removeComments = T.pack . removeOneLineComments . removeMultilineComments 0 0 . 
       [] -> []
 
 
--- | Post processing step to combine quasiquoted blocks into single blocks.
--- This is necessary because quasiquoted blocks don't follow normal indentation rules.
+-- | Post processing step to combine quasiquoted blocks into single blocks. This is necessary
+-- because quasiquoted blocks don't follow normal indentation rules.
 joinQuasiquotes :: [Loc Text] -> [Loc Text]
 joinQuasiquotes = reverse . joinQuasiquotes' . reverse
   where

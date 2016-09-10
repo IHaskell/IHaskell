@@ -1,5 +1,20 @@
+{-|
+Module      : Jupyter.IHaskell.Complete
+Description : Autocompletion for IHaskell 
+Copyright   : (c) Andrew Gibiansky, 2016
+License     : MIT
+Maintainer  : andrew.gibiansky@gmail.com
+Stability   : stable
+Portability : POSIX
+
+This module provides autocompletion functionality for IHaskell. The exported interface
+is purposefully kept extremely simple: the 'complete' function returns a list of completions
+for any given piece of text.
+-}
+
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
+
 module Jupyter.IHaskell.Complete (Completion(..), complete) where
 
 -- Imports from 'base'

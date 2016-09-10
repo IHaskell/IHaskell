@@ -6,6 +6,7 @@ module Jupyter.IHaskell.Evaluate (
   eval,
   evalImport,
   setExtension,
+  setDynFlags,
   ) where
 
 import Data.List (find)
@@ -72,3 +73,11 @@ setExtension ext = ghc $ do
 
     -- Check if a FlagSpec matches "No<ExtensionName>". In that case, we disable the extension.
     flagMatchesNo fs = ext == T.pack ("No" ++ flagSpecName fs)
+
+setDynFlags :: Text -> Interpreter ()
+setDynFlags text = mapM_ setFlag (T.words text)
+  where
+    setFlag flag =
+      case T.stripPrefix "-X" flag of
+        Just ext -> setExtension ext
+        _ -> fail "Unknown flag"
