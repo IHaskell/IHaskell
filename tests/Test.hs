@@ -5,6 +5,7 @@ import           Test.Tasty (defaultMain, testGroup)
 
 -- Imports from 'ihaskell'
 import           Jupyter.IHaskell.Test.Complete (completionTests)
+import           Jupyter.IHaskell.Test.Hoogle (hoogleTests)
 import           Jupyter.IHaskell.Test.Lint (lintTests)
 import           Jupyter.IHaskell.Test.Parser (parserTests)
 
@@ -12,4 +13,4 @@ import           Jupyter.IHaskell.Test.Parser (parserTests)
 main :: IO ()
 main =
   defaultMain $
-    testGroup "Tests" [parserTests, completionTests, lintTests]
+    testGroup "Tests" [parserTests, completionTests, lintTests, hoogleTests]

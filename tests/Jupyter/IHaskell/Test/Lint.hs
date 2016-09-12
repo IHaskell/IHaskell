@@ -89,7 +89,7 @@ lintTests = testCase "Linting" $ do
 block --> expected = do
   observed <- lintCodeBlock (Loc 1 block)
   unless (and (zipWith (==) expected observed) && length expected == length observed) $
-    liftIO $ assertFailure $
+    assertFailure $
       concat
         [ "Did not get expected suggestions for: "
         , show block
