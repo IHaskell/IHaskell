@@ -32,6 +32,13 @@ instance ToJSON Message where
       , "language_info" .= languageInfo rep
       ]
 
+  toJSON CommInfoReply
+    { header = header
+    , commInfo = commInfo
+    } =
+    object
+      [ "comm_info" .= commInfo ]
+
   toJSON ExecuteRequest
     { getCode = code
     , getSilent = silent

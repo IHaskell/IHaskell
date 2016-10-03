@@ -193,6 +193,8 @@ data MessageType = KernelInfoReplyMessage
                  | InputReplyMessage
                  | CommOpenMessage
                  | CommDataMessage
+                 | CommInfoRequestMessage
+                 | CommInfoReplyMessage
                  | CommCloseMessage
                  | HistoryRequestMessage
                  | HistoryReplyMessage
@@ -224,6 +226,8 @@ showMessageType InputRequestMessage = "input_request"
 showMessageType InputReplyMessage = "input_reply"
 showMessageType CommOpenMessage = "comm_open"
 showMessageType CommDataMessage = "comm_msg"
+showMessageType CommInfoRequestMessage = "comm_info_request"
+showMessageType CommInfoReplyMessage = "comm_info_reply"
 showMessageType CommCloseMessage = "comm_close"
 showMessageType HistoryRequestMessage = "history_request"
 showMessageType HistoryReplyMessage = "history_reply"
@@ -256,6 +260,8 @@ instance FromJSON MessageType where
       "input_reply"         -> return InputReplyMessage
       "comm_open"           -> return CommOpenMessage
       "comm_msg"            -> return CommDataMessage
+      "comm_info_request"   -> return CommInfoRequestMessage
+      "comm_info_reply"     -> return CommInfoReplyMessage
       "comm_close"          -> return CommCloseMessage
       "history_request"     -> return HistoryRequestMessage
       "history_reply"       -> return HistoryReplyMessage
@@ -293,6 +299,14 @@ data Message =
                  , implementation :: String -- ^ e.g. IHaskell
                  , implementationVersion :: String -- ^ The version of the implementation
                  , languageInfo :: LanguageInfo
+             |
+             -- | A request from a frontend for information about the comms.
+               CommInfoRequest { header :: MessageHeader }
+             |
+             -- | A response to a CommInfoRequest.
+               CommInfoReply
+                 { header   :: MessageHeader
+                 , commInfo :: [(String, String)] -- ^ A dictionary of the comms, indexed by uuids.
                  }
              |
              -- | A request from a frontend to execute some code.
@@ -519,6 +533,7 @@ replyType InspectRequestMessage = Just InspectReplyMessage
 replyType ShutdownRequestMessage = Just ShutdownReplyMessage
 replyType HistoryRequestMessage = Just HistoryReplyMessage
 replyType CommOpenMessage = Just CommDataMessage
+replyType CommInfoRequestMessage = Just CommInfoReplyMessage
 replyType _ = Nothing
 
 -- | Data for display: a string with associated MIME type.
