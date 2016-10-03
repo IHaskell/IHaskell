@@ -174,6 +174,12 @@ replyTo config _ _ KernelInfoRequest{} replyHeader =
       , protocolVersion = kernelProtocolVersion config
       }
 
+replyTo config _ _ CommInfoRequest{} replyHeader =
+  return
+    CommInfoReply
+      { header = replyHeader
+      , commInfo = [] }
+
 replyTo config _ interface ShutdownRequest { restartPending = pending } replyHeader = do
   liftIO $ writeChan (shellReplyChannel interface) $ ShutdownReply replyHeader pending
   liftIO exitSuccess

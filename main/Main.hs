@@ -263,6 +263,13 @@ replyTo _ KernelInfoRequest{} replyHeader state =
                 }
               })
 
+replyTo _ CommInfoRequest{} replyHeader state =
+  return
+    (state, CommInfoReply
+              { header = replyHeader
+              , commInfo = []
+              })
+
 -- Reply to a shutdown request by exiting the main thread. Before shutdown, reply to the request to
 -- let the frontend know shutdown is happening.
 replyTo interface ShutdownRequest { restartPending = restartPending } replyHeader _ = liftIO $ do

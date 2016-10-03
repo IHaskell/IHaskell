@@ -90,6 +90,7 @@ parser ShutdownRequestMessage = shutdownRequestParser
 parser InputReplyMessage = inputReplyParser
 parser CommOpenMessage = commOpenParser
 parser CommDataMessage = commDataParser
+parser CommInfoRequestMessage = commInfoRequestParser
 parser CommCloseMessage = commCloseParser
 parser HistoryRequestMessage = historyRequestParser
 parser StatusMessage = statusMessageParser
@@ -103,6 +104,11 @@ parser other = error $ "Unknown message type " ++ show other
 -- body.
 kernelInfoRequestParser :: LByteString -> Message
 kernelInfoRequestParser _ = KernelInfoRequest { header = noHeader }
+
+-- | Parse a comm info request. A comm info request has no auxiliary information, so ignore the
+-- body.
+commInfoRequestParser :: LByteString -> Message
+commInfoRequestParser _ = CommInfoRequest { header = noHeader }
 
 -- | Parse an execute_input response. Fields used are:
 executeInputParser :: LByteString -> Message
