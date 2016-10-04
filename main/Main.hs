@@ -267,7 +267,7 @@ replyTo _ CommInfoRequest{} replyHeader state =
   return
     (state, CommInfoReply
               { header = replyHeader
-              , commInfo = []
+              , commInfo = mempty
               })
 
 -- Reply to a shutdown request by exiting the main thread. Before shutdown, reply to the request to
