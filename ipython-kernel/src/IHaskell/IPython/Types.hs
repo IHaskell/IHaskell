@@ -299,6 +299,7 @@ data Message =
                  , implementation :: String -- ^ e.g. IHaskell
                  , implementationVersion :: String -- ^ The version of the implementation
                  , languageInfo :: LanguageInfo
+                 }
              |
              -- | A request from a frontend for information about the comms.
                CommInfoRequest { header :: MessageHeader }
