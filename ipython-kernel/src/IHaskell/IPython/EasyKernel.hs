@@ -178,7 +178,7 @@ replyTo config _ _ CommInfoRequest{} replyHeader =
   return
     CommInfoReply
       { header = replyHeader
-      , commInfo = mempty }
+      , commInfo = Map.empty }
 
 replyTo config _ interface ShutdownRequest { restartPending = pending } replyHeader = do
   liftIO $ writeChan (shellReplyChannel interface) $ ShutdownReply replyHeader pending
