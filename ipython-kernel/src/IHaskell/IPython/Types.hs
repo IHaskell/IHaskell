@@ -306,7 +306,7 @@ data Message =
              -- | A response to a CommInfoRequest.
                CommInfoReply
                  { header   :: MessageHeader
-                 , commInfo :: [(String, String)] -- ^ A dictionary of the comms, indexed by uuids.
+                 , commInfo :: Map String String -- ^ A dictionary of the comms, indexed by uuids.
                  }
              |
              -- | A request from a frontend to execute some code.
