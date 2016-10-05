@@ -264,10 +264,11 @@ replyTo _ KernelInfoRequest{} replyHeader state =
               })
 
 replyTo _ CommInfoRequest{} replyHeader state =
+  let comms = Map.mapKeys (UUID.uuidToString) (openComms state) in
   return
     (state, CommInfoReply
               { header = replyHeader
-              , commInfo = mempty
+              , commInfo = Map.map (\(Widget w) -> targetName w) comms
               })
 
 -- Reply to a shutdown request by exiting the main thread. Before shutdown, reply to the request to
