@@ -11,6 +11,7 @@ import           Data.Aeson.Types (Pair)
 import           Data.Map (Map)
 import           Data.Monoid (mempty)
 import           Data.Text (Text, pack)
+import qualified Data.Map               as Map
 import           IHaskell.IPython.Types
 
 instance ToJSON LanguageInfo where
@@ -37,7 +38,7 @@ instance ToJSON Message where
     , commInfo = commInfo
     } =
     object
-      [ "comm_info" .= commInfo ]
+      [ "comms" .= Map.map (\comm -> object ["target_name" .= comm]) commInfo ]
 
   toJSON ExecuteRequest
     { getCode = code
