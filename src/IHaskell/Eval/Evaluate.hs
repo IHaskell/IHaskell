@@ -225,6 +225,10 @@ initializeImports = do
       -- Name of the ihaskell package, e.g. "ihaskell-1.2.3.4"
       iHaskellPkgName = initStr ++ intercalate "." (map show (versionBranch version))
 
+#if !MIN_VERSION_ghc(8,0,0)
+      unitId = packageId
+#endif
+
       dependsOnRight pkg = not $ null $ do
         pkg <- db
         depId <- depends pkg
@@ -1168,7 +1172,6 @@ capturedEval output stmt = do
         , voidpf "IHaskellIO.closeFd %s" writeVariable
         , printf "let it = %s" itVariable
         ]
-      pipeExpr = printf "let %s = %s" (var "pipe_var_") readVariable
 
       goStmt :: String -> Ghc RunResult
       goStmt s = runStmt s RunToCompletion
@@ -1182,22 +1185,37 @@ capturedEval output stmt = do
             AnyException e -> RunException e
 
   -- Initialize evaluation context.
-  void $ forM initStmts goStmt
+  results <- forM initStmts goStmt
 
+#if __GLASGOW_HASKELL__ >= 800
+  -- This works fine on GHC 8.0 and newer
+  dyn <- dynCompileExpr readVariable
+  pipe <- case fromDynamic dyn of
+            Nothing -> fail "Evaluate: Bad pipe"
+            Just fd -> liftIO $ do
+                handle <- fdToHandle fd
+                hSetEncoding handle utf8
+                return handle
+#else
   -- Get the pipe to read printed output from. This is effectively the source code of dynCompileExpr
   -- from GHC API's InteractiveEval. However, instead of using a `Dynamic` as an intermediary, it just
   -- directly reads the value. This is incredibly unsafe! However, for some reason the `getContext`
   -- and `setContext` required by dynCompileExpr (to import and clear Data.Dynamic) cause issues with
   -- data declarations being updated (e.g. it drops newer versions of data declarations for older ones
   -- for unknown reasons). First, compile down to an HValue.
+  let pipeExpr = printf "let %s = %s" (var "pipe_var_") readVariable
   Just (_, hValues, _) <- withSession $ liftIO . flip hscStmt pipeExpr
   -- Then convert the HValue into an executable bit, and read the value.
   pipe <- liftIO $ do
-            fd <- head <$> unsafeCoerce hValues
+            fds <- unsafeCoerce hValues
+            fd <- case fds of
+              fd : _ -> return fd
+              []     -> fail "Failed to evaluate pipes"
+              _      -> fail $ "Expected one fd, saw "++show (length fds)
             handle <- fdToHandle fd
             hSetEncoding handle utf8
             return handle
-
+#endif
   -- Keep track of whether execution has completed.
   completed <- liftIO $ newMVar False
   finishedReading <- liftIO newEmptyMVar
