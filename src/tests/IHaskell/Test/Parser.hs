@@ -7,7 +7,7 @@ import           Prelude
 import           Data.String.Here (hereLit)
 
 import           Test.Hspec
-import           Test.Hspec.HUnit
+import           Test.Hspec.Contrib.HUnit
 import           Test.HUnit (assertBool, assertFailure)
 
 import           IHaskell.Test.Util (ghc, strip)

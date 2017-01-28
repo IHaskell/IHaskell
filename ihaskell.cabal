@@ -175,6 +175,7 @@ Test-Suite hspec
         ihaskell,
         here,
         hspec,
+        hspec-contrib,
         HUnit,
         ghc,
         ghc-paths,
