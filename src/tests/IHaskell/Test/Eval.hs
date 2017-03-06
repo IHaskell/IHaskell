@@ -159,6 +159,6 @@ testEval =
       "putStrLn \"Привет!\"" `becomes` ["Привет!"]
 
     it "evaluates directives" $ do
-      ":typ 3" `becomes` ["3 :: forall a. Num a => a"]
+      ":typ 3" `becomes` ["3 :: forall t. Num t => t"]
       ":k Maybe" `becomes` ["Maybe :: * -> *"]
       ":in String" `pages` ["type String = [Char] \t-- Defined in \8216GHC.Base\8217"]
