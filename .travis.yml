@@ -48,6 +48,10 @@ before_install:
         cd $OLDPWD
     fi
 
+    # Upgrades to avoid later build problems
+  - pip install -U pip
+  - pip install -U setuptools
+
     # Install nbconvert for testing the notebook
   - pip install jupyter notebook nbconvert
 
