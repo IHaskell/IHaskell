@@ -60,24 +60,20 @@ install:
   # Set path for pkg-config to find zeromq, otherwise install of zeromq4-haskell fails.
   - export PKG_CONFIG_PATH=$HOME/zeromq/lib/pkgconfig/
   - stack setup --resolver=$RESOLVER
-  - stack install gtk2hs-buildtools
-  - stack build --dependencies-only --resolver=$RESOLVER
+  - stack install gtk2hs-buildtools --fast
+  - stack build --dependencies-only --resolver=$RESOLVER --fast
 
 script:
   - export LD_LIBRARY_PATH=$HOME/zeromq/lib
-  - stack test --resolver=$RESOLVER
+  - stack test --resolver=$RESOLVER --fast
   - |
     set -e
     if $DISPLAY; then
         TOP=$(pwd)
-        for PACKAGE in ihaskell-display/*; do
-            cd "$TOP/$PACKAGE";
-            stack build --resolver=$RESOLVER;
-            cd "$TOP";
-        done
+        stack build --resolver=$RESOLVER --fast
 
         # Ensure that ipython-kernel examples build successfully.
-        stack build ipython-kernel --flag ipython-kernel:examples
+        stack build ipython-kernel --flag ipython-kernel:examples --fast
 
         # Ensure that IHaskell notebook remains unchanged.
         # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
