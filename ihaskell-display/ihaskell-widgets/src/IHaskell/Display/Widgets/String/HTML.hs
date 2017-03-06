@@ -29,7 +29,7 @@ mkHTMLWidget :: IO HTMLWidget
 mkHTMLWidget = do
   -- Default properties, with a random uuid
   uuid <- U.random
-  let widgetState = WidgetState $ defaultStringWidget "HTMLView"
+  let widgetState = WidgetState $ defaultStringWidget "HTMLView" "HTMLModel"
 
   stateIO <- newIORef widgetState
 

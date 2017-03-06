@@ -34,7 +34,7 @@ mkAccordion = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let widgetState = WidgetState $ defaultSelectionContainerWidget "AccordionView"
+  let widgetState = WidgetState $ defaultSelectionContainerWidget "AccordionView" "AccordionModel"
 
   stateIO <- newIORef widgetState
 

@@ -34,7 +34,7 @@ mkToggleButton = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let boolState = defaultBoolWidget "ToggleButtonView"
+  let boolState = defaultBoolWidget "ToggleButtonView" "ToggleButtonModel"
       toggleState = (Tooltip =:: "")
                     :& (Icon =:: "")
                     :& (ButtonStyle =:: DefaultButton)

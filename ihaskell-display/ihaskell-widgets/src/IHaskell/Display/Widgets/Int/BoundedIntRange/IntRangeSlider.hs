@@ -36,7 +36,7 @@ mkIntRangeSlider = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let boundedIntAttrs = defaultBoundedIntRangeWidget "IntSliderView"
+  let boundedIntAttrs = defaultBoundedIntRangeWidget "IntSliderView" "IntSliderModel"
       sliderAttrs = (Orientation =:: HorizontalOrientation)
                     :& (ShowRange =:: True)
                     :& (ReadOut =:: True)

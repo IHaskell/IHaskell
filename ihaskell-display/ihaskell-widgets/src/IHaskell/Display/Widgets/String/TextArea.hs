@@ -33,7 +33,7 @@ mkTextArea :: IO TextArea
 mkTextArea = do
   -- Default properties, with a random uuid
   uuid <- U.random
-  let strAttrs = defaultStringWidget "TextareaView"
+  let strAttrs = defaultStringWidget "TextareaView" "TextareaModel"
       wgtAttrs = (ChangeHandler =:: return ()) :& RNil
       widgetState = WidgetState $ strAttrs <+> wgtAttrs
 

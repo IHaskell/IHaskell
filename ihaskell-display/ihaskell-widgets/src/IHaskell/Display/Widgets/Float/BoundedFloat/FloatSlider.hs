@@ -35,7 +35,7 @@ mkFloatSlider = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let boundedFloatAttrs = defaultBoundedFloatWidget "FloatSliderView"
+  let boundedFloatAttrs = defaultBoundedFloatWidget "FloatSliderView" "FloatSliderModel"
       sliderAttrs = (Orientation =:: HorizontalOrientation)
                     :& (ShowRange =:: False)
                     :& (ReadOut =:: True)

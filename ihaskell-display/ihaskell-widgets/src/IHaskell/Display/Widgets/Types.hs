@@ -241,7 +241,7 @@ data WidgetType = ButtonType
                 | ImageType
                 | OutputType
                 | HTMLType
-                | LatexType
+                | LabelType
                 | TextType
                 | TextAreaType
                 | CheckBoxType
@@ -263,8 +263,6 @@ data WidgetType = ButtonType
                 | FloatProgressType
                 | FloatRangeSliderType
                 | BoxType
-                | ProxyType
-                | PlaceProxyType
                 | FlexBoxType
                 | AccordionType
                 | TabType
@@ -280,7 +278,7 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
                                DOMWidgetClass :++ '[S.ImageFormat, S.Width, S.Height, S.B64Value]
         WidgetFields OutputType = DOMWidgetClass
         WidgetFields HTMLType = StringClass
-        WidgetFields LatexType = StringClass
+        WidgetFields LabelType = StringClass
         WidgetFields TextType =
                               StringClass :++ '[S.SubmitHandler, S.ChangeHandler]
         WidgetFields TextAreaType = StringClass :++ '[S.ChangeHandler]
@@ -315,9 +313,6 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
                                           BoundedFloatRangeClass :++
                                             '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
         WidgetFields BoxType = BoxClass
-        WidgetFields ProxyType = WidgetClass :++ '[S.Child]
-        WidgetFields PlaceProxyType =
-                                    WidgetFields ProxyType :++ '[S.Selector]
         WidgetFields FlexBoxType =
                                  BoxClass :++ '[S.Orientation, S.Flex, S.Pack, S.Align]
         WidgetFields AccordionType = SelectionContainerClass
@@ -619,23 +614,23 @@ s =:+ val = Attr
               (reflect s)
 
 -- | Get a field from a singleton Adapted from: http://stackoverflow.com/a/28033250/2388535
-reflect :: forall (f :: Field). (SingI f, SingKind ('KProxy :: KProxy Field)) => Sing f -> Field
+reflect :: forall (f :: Field). (SingI f) => Sing f -> Field
 reflect = fromSing
 
 -- | A record representing an object of the Widget class from IPython
-defaultWidget :: FieldType S.ViewName -> Rec Attr WidgetClass
-defaultWidget viewName = (ViewModule =:: "")
-                         :& (ViewName =:: viewName)
-                         :& (ModelModule =:: "")
-                         :& (ModelName =:: "WidgetModel")
-                         :& (MsgThrottle =:+ 3)
-                         :& (Version =:: 0)
-                         :& (DisplayHandler =:: return ())
-                         :& RNil
+defaultWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr WidgetClass
+defaultWidget viewName modelName = (ViewModule =:: "jupyter-js-widgets")
+                                   :& (ViewName =:: viewName)
+                                   :& (ModelModule =:: "jupyter-js-widgets")
+                                   :& (ModelName =:: modelName)
+                                   :& (MsgThrottle =:+ 3)
+                                   :& (Version =:: 0)
+                                   :& (DisplayHandler =:: return ())
+                                   :& RNil
 
 -- | A record representing an object of the DOMWidget class from IPython
-defaultDOMWidget :: FieldType S.ViewName -> Rec Attr DOMWidgetClass
-defaultDOMWidget viewName = defaultWidget viewName <+> domAttrs
+defaultDOMWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr DOMWidgetClass
+defaultDOMWidget viewName modelName = defaultWidget viewName modelName <+> domAttrs
   where
     domAttrs = (Visible =:: True)
                :& (CSS =:: [])
@@ -657,8 +652,8 @@ defaultDOMWidget viewName = defaultWidget viewName <+> domAttrs
                :& RNil
 
 -- | A record representing a widget of the _String class from IPython
-defaultStringWidget :: FieldType S.ViewName -> Rec Attr StringClass
-defaultStringWidget viewName = defaultDOMWidget viewName <+> strAttrs
+defaultStringWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr StringClass
+defaultStringWidget viewName modelName = defaultDOMWidget viewName modelName <+> strAttrs
   where
     strAttrs = (StringValue =:: "")
                :& (Disabled =:: False)
@@ -667,8 +662,8 @@ defaultStringWidget viewName = defaultDOMWidget viewName <+> strAttrs
                :& RNil
 
 -- | A record representing a widget of the _Bool class from IPython
-defaultBoolWidget :: FieldType S.ViewName -> Rec Attr BoolClass
-defaultBoolWidget viewName = defaultDOMWidget viewName <+> boolAttrs
+defaultBoolWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr BoolClass
+defaultBoolWidget viewName modelName = defaultDOMWidget viewName modelName <+> boolAttrs
   where
     boolAttrs = (BoolValue =:: False)
                 :& (Disabled =:: False)
@@ -677,8 +672,8 @@ defaultBoolWidget viewName = defaultDOMWidget viewName <+> boolAttrs
                 :& RNil
 
 -- | A record representing a widget of the _Selection class from IPython
-defaultSelectionWidget :: FieldType S.ViewName -> Rec Attr SelectionClass
-defaultSelectionWidget viewName = defaultDOMWidget viewName <+> selectionAttrs
+defaultSelectionWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr SelectionClass
+defaultSelectionWidget viewName modelName = defaultDOMWidget viewName modelName <+> selectionAttrs
   where
     selectionAttrs = (Options =:: OptionLabels [])
                      :& (SelectedValue =:: "")
@@ -689,8 +684,8 @@ defaultSelectionWidget viewName = defaultDOMWidget viewName <+> selectionAttrs
                      :& RNil
 
 -- | A record representing a widget of the _MultipleSelection class from IPython
-defaultMultipleSelectionWidget :: FieldType S.ViewName -> Rec Attr MultipleSelectionClass
-defaultMultipleSelectionWidget viewName = defaultDOMWidget viewName <+> mulSelAttrs
+defaultMultipleSelectionWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr MultipleSelectionClass
+defaultMultipleSelectionWidget viewName modelName = defaultDOMWidget viewName modelName <+> mulSelAttrs
   where
     mulSelAttrs = (Options =:: OptionLabels [])
                   :& (SelectedValues =:: [])
@@ -701,8 +696,8 @@ defaultMultipleSelectionWidget viewName = defaultDOMWidget viewName <+> mulSelAt
                   :& RNil
 
 -- | A record representing a widget of the _Int class from IPython
-defaultIntWidget :: FieldType S.ViewName -> Rec Attr IntClass
-defaultIntWidget viewName = defaultDOMWidget viewName <+> intAttrs
+defaultIntWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr IntClass
+defaultIntWidget viewName modelName = defaultDOMWidget viewName modelName <+> intAttrs
   where
     intAttrs = (IntValue =:: 0)
                :& (Disabled =:: False)
@@ -711,8 +706,8 @@ defaultIntWidget viewName = defaultDOMWidget viewName <+> intAttrs
                :& RNil
 
 -- | A record representing a widget of the _BoundedInt class from IPython
-defaultBoundedIntWidget :: FieldType S.ViewName -> Rec Attr BoundedIntClass
-defaultBoundedIntWidget viewName = defaultIntWidget viewName <+> boundedIntAttrs
+defaultBoundedIntWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr BoundedIntClass
+defaultBoundedIntWidget viewName modelName = defaultIntWidget viewName modelName <+> boundedIntAttrs
   where
     boundedIntAttrs = (StepInt =:: 1)
                       :& (MinInt =:: 0)
@@ -720,8 +715,8 @@ defaultBoundedIntWidget viewName = defaultIntWidget viewName <+> boundedIntAttrs
                       :& RNil
 
 -- | A record representing a widget of the _BoundedInt class from IPython
-defaultIntRangeWidget :: FieldType S.ViewName -> Rec Attr IntRangeClass
-defaultIntRangeWidget viewName = defaultIntWidget viewName <+> rangeAttrs
+defaultIntRangeWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr IntRangeClass
+defaultIntRangeWidget viewName modelName = defaultIntWidget viewName modelName <+> rangeAttrs
   where
     rangeAttrs = (IntPairValue =:: (25, 75))
                  :& (LowerInt =:: 0)
@@ -729,8 +724,8 @@ defaultIntRangeWidget viewName = defaultIntWidget viewName <+> rangeAttrs
                  :& RNil
 
 -- | A record representing a widget of the _BoundedIntRange class from IPython
-defaultBoundedIntRangeWidget :: FieldType S.ViewName -> Rec Attr BoundedIntRangeClass
-defaultBoundedIntRangeWidget viewName = defaultIntRangeWidget viewName <+> boundedIntRangeAttrs
+defaultBoundedIntRangeWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr BoundedIntRangeClass
+defaultBoundedIntRangeWidget viewName modelName = defaultIntRangeWidget viewName modelName <+> boundedIntRangeAttrs
   where
     boundedIntRangeAttrs = (StepInt =:+ 1)
                            :& (MinInt =:: 0)
@@ -738,8 +733,8 @@ defaultBoundedIntRangeWidget viewName = defaultIntRangeWidget viewName <+> bound
                            :& RNil
 
 -- | A record representing a widget of the _Float class from IPython
-defaultFloatWidget :: FieldType S.ViewName -> Rec Attr FloatClass
-defaultFloatWidget viewName = defaultDOMWidget viewName <+> intAttrs
+defaultFloatWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr FloatClass
+defaultFloatWidget viewName modelName = defaultDOMWidget viewName modelName <+> intAttrs
   where
     intAttrs = (FloatValue =:: 0)
                :& (Disabled =:: False)
@@ -748,8 +743,8 @@ defaultFloatWidget viewName = defaultDOMWidget viewName <+> intAttrs
                :& RNil
 
 -- | A record representing a widget of the _BoundedFloat class from IPython
-defaultBoundedFloatWidget :: FieldType S.ViewName -> Rec Attr BoundedFloatClass
-defaultBoundedFloatWidget viewName = defaultFloatWidget viewName <+> boundedFloatAttrs
+defaultBoundedFloatWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr BoundedFloatClass
+defaultBoundedFloatWidget viewName modelName = defaultFloatWidget viewName modelName <+> boundedFloatAttrs
   where
     boundedFloatAttrs = (StepFloat =:+ 1)
                         :& (MinFloat =:: 0)
@@ -757,8 +752,8 @@ defaultBoundedFloatWidget viewName = defaultFloatWidget viewName <+> boundedFloa
                         :& RNil
 
 -- | A record representing a widget of the _BoundedFloat class from IPython
-defaultFloatRangeWidget :: FieldType S.ViewName -> Rec Attr FloatRangeClass
-defaultFloatRangeWidget viewName = defaultFloatWidget viewName <+> rangeAttrs
+defaultFloatRangeWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr FloatRangeClass
+defaultFloatRangeWidget viewName modelName = defaultFloatWidget viewName modelName <+> rangeAttrs
   where
     rangeAttrs = (FloatPairValue =:: (25, 75))
                  :& (LowerFloat =:: 0)
@@ -766,8 +761,8 @@ defaultFloatRangeWidget viewName = defaultFloatWidget viewName <+> rangeAttrs
                  :& RNil
 
 -- | A record representing a widget of the _BoundedFloatRange class from IPython
-defaultBoundedFloatRangeWidget :: FieldType S.ViewName -> Rec Attr BoundedFloatRangeClass
-defaultBoundedFloatRangeWidget viewName = defaultFloatRangeWidget viewName <+> boundedFloatRangeAttrs
+defaultBoundedFloatRangeWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr BoundedFloatRangeClass
+defaultBoundedFloatRangeWidget viewName modelName = defaultFloatRangeWidget viewName modelName <+> boundedFloatRangeAttrs
   where
     boundedFloatRangeAttrs = (StepFloat =:+ 1)
                              :& (MinFloat =:: 0)
@@ -775,20 +770,18 @@ defaultBoundedFloatRangeWidget viewName = defaultFloatRangeWidget viewName <+> b
                              :& RNil
 
 -- | A record representing a widget of the _Box class from IPython
-defaultBoxWidget :: FieldType S.ViewName -> Rec Attr BoxClass
-defaultBoxWidget viewName = domAttrs <+> boxAttrs
+defaultBoxWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr BoxClass
+defaultBoxWidget viewName modelName = defaultDOMWidget viewName modelName <+> intAttrs
   where
-    defaultDOM = defaultDOMWidget viewName
-    domAttrs = rput (ModelName =:: "BoxModel") defaultDOM
-    boxAttrs = (Children =:: [])
+    intAttrs = (Children =:: [])
                :& (OverflowX =:: DefaultOverflow)
                :& (OverflowY =:: DefaultOverflow)
                :& (BoxStyle =:: DefaultBox)
                :& RNil
 
 -- | A record representing a widget of the _SelectionContainer class from IPython
-defaultSelectionContainerWidget :: FieldType S.ViewName -> Rec Attr SelectionContainerClass
-defaultSelectionContainerWidget viewName = defaultBoxWidget viewName <+> selAttrs
+defaultSelectionContainerWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr SelectionContainerClass
+defaultSelectionContainerWidget viewName modelName = defaultBoxWidget viewName modelName <+> selAttrs
   where
     selAttrs = (Titles =:: [])
                :& (SelectedIndex =:: 0)

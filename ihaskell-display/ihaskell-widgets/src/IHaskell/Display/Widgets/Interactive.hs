@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 {-# LANGUAGE PolyKinds #-}
 
 module IHaskell.Display.Widgets.Interactive (interactive, uncurryHList, Rec(..), Argument(..)) where

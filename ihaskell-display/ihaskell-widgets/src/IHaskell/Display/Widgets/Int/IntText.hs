@@ -34,7 +34,7 @@ mkIntText = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let widgetState = WidgetState $ defaultIntWidget "IntTextView"
+  let widgetState = WidgetState $ defaultIntWidget "IntTextView" "IntTextModel"
 
   stateIO <- newIORef widgetState
 

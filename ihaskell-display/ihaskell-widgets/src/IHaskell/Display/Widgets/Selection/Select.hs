@@ -34,7 +34,7 @@ mkSelect :: IO Select
 mkSelect = do
   -- Default properties, with a random uuid
   uuid <- U.random
-  let widgetState = WidgetState $ defaultSelectionWidget "SelectView"
+  let widgetState = WidgetState $ defaultSelectionWidget "SelectView" "SelectModel"
 
   stateIO <- newIORef widgetState
 

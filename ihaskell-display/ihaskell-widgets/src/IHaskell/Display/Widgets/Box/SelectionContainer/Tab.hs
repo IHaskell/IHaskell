@@ -34,7 +34,7 @@ mkTabWidget = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let widgetState = WidgetState $ defaultSelectionContainerWidget "TabView"
+  let widgetState = WidgetState $ defaultSelectionContainerWidget "TabView" "TabModel"
 
   stateIO <- newIORef widgetState
 

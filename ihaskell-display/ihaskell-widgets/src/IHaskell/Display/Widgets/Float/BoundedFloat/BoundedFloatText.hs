@@ -35,7 +35,7 @@ mkBoundedFloatText = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let widgetState = WidgetState $ defaultBoundedFloatWidget "FloatTextView"
+  let widgetState = WidgetState $ defaultBoundedFloatWidget "FloatTextView" "FloatTextModel"
 
   stateIO <- newIORef widgetState
 

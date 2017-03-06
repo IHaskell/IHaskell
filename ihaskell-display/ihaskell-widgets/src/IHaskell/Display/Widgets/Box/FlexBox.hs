@@ -32,7 +32,7 @@ mkFlexBox = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let boxAttrs = defaultBoxWidget "FlexBoxView"
+  let boxAttrs = defaultBoxWidget "FlexBoxView" "FlexBoxModel"
       flxAttrs = (Orientation =:: HorizontalOrientation)
                  :& (Flex =:: 0)
                  :& (Pack =:: StartLocation)
