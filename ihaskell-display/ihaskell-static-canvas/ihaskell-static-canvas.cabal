@@ -60,10 +60,10 @@ library
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.7 && <4.9,
-                       ihaskell >= 0.5,
-                       static-canvas >= 0.2,
-                       text >= 1.2
+  build-depends:       base >=4.7,
+                       ihaskell,
+                       static-canvas,
+                       text
   
   -- Directories containing source files.
   hs-source-dirs:      src
