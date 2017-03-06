@@ -17,11 +17,11 @@ import           Data.Monoid
 import           Data.Maybe (mapMaybe)
 import           System.IO.Unsafe (unsafePerformIO)
 
-import           Language.Haskell.Exts.Annotated.Syntax hiding (Module)
-import qualified Language.Haskell.Exts.Annotated.Syntax as SrcExts
-import           Language.Haskell.Exts.Annotated (parseFileContentsWithMode)
-import           Language.Haskell.Exts.Annotated.Build (doE)
-import           Language.Haskell.Exts.Annotated hiding (Module)
+import           Language.Haskell.Exts.Syntax hiding (Module)
+import qualified Language.Haskell.Exts.Syntax as SrcExts
+import           Language.Haskell.Exts (parseFileContentsWithMode)
+import           Language.Haskell.Exts.Build (doE)
+import           Language.Haskell.Exts hiding (Module)
 import           Language.Haskell.Exts.SrcLoc
 
 import           Language.Haskell.HLint as HLint
@@ -149,7 +149,7 @@ createModule mode (Located line block) =
         decl = SpliceDecl loc expr
 
         expr :: Exp SrcSpanInfo
-        expr = doE loc [stmt, ret]
+        expr = Do loc [stmt, ret]
 
         stmt :: Stmt SrcSpanInfo
         ParseOk stmt = parseStmtWithMode mode stmtStr

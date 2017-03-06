@@ -37,10 +37,12 @@ data HoogleResult = SearchResult HoogleResponse
                   | NoResult String
   deriving Show
 
-instance FromJSON [HoogleResponse] where
+data HoogleResponseList = HoogleResponseList [HoogleResponse]
+
+instance FromJSON HoogleResponseList where
   parseJSON (Object obj) = do
     results <- obj .: "results"
-    mapM parseJSON results
+    HoogleResponseList <$> mapM parseJSON results
 
   parseJSON _ = fail "Expected object with 'results' field."
 
@@ -99,7 +101,7 @@ search string = do
         case eitherDecode $ LBS.fromStrict $ CBS.pack json of
           Left err -> [NoResult err]
           Right results ->
-            case map SearchResult results of
+            case map SearchResult $ (\(HoogleResponseList l) -> l) results of
               []  -> [NoResult "no matching identifiers found."]
               res -> res
 
