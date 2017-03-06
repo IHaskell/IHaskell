@@ -1,7 +1,6 @@
 # Test against different stack LTS versions.
 env:
- - DISPLAY=true   RESOLVER=lts-6.2  # Most recent GHC 7.10 LTS
- - DISPLAY=false  RESOLVER=lts-2.22 # Last GHC 7.8 LTS
+ - DISPLAY=true   RESOLVER=lts-8.3 # GHC 8.0.2
 
 # Choose a lightweight base image; we provide our own build tools.
 language: python
