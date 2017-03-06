@@ -59,7 +59,9 @@ before_install:
 install:
   # Set path for pkg-config to find zeromq, otherwise install of zeromq4-haskell fails.
   - export PKG_CONFIG_PATH=$HOME/zeromq/lib/pkgconfig/
-  - echo "apply-ghc-options: everything" >> stack.yaml
+  - |
+    echo "apply-ghc-options: everything" >> stack.yaml
+
   - stack setup --resolver=$RESOLVER
   - stack install gtk2hs-buildtools --fast
   - stack build hmatrix --resolver=$RESOLVER --fast
