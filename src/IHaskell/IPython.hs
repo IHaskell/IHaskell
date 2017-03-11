@@ -78,7 +78,7 @@ locateIPython :: SH.Sh SH.FilePath
 locateIPython = do
   mbinary <- SH.which "jupyter"
   case mbinary of
-    Nothing      -> SH.errorExit "The IPython binary could not be located"
+    Nothing      -> SH.errorExit "The Jupyter binary could not be located"
     Just ipython -> return ipython
 
 -- | Run the IPython command with any arguments. The kernel is set to IHaskell.
