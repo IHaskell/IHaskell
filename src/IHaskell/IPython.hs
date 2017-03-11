@@ -76,7 +76,7 @@ ipythonCommand = do
 
 locateIPython :: SH.Sh SH.FilePath
 locateIPython = do
-  mbinary <- SH.which "ipython"
+  mbinary <- SH.which "jupyter"
   case mbinary of
     Nothing      -> SH.errorExit "The IPython binary could not be located"
     Just ipython -> return ipython
