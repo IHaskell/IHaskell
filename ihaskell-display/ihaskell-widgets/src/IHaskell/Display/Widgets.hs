@@ -3,7 +3,6 @@ module IHaskell.Display.Widgets (module X) where
 import           IHaskell.Display.Widgets.Button as X
 
 import           IHaskell.Display.Widgets.Box.Box as X
-import           IHaskell.Display.Widgets.Box.FlexBox as X
 import           IHaskell.Display.Widgets.Box.SelectionContainer.Accordion as X
 import           IHaskell.Display.Widgets.Box.SelectionContainer.Tab as X
 

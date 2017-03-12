@@ -263,7 +263,6 @@ data WidgetType = ButtonType
                 | FloatProgressType
                 | FloatRangeSliderType
                 | BoxType
-                | FlexBoxType
                 | AccordionType
                 | TabType
 
@@ -313,8 +312,6 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
                                           BoundedFloatRangeClass :++
                                             '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
         WidgetFields BoxType = BoxClass
-        WidgetFields FlexBoxType =
-                                 BoxClass :++ '[S.Orientation, S.Flex, S.Pack, S.Align]
         WidgetFields AccordionType = SelectionContainerClass
         WidgetFields TabType = SelectionContainerClass
 
