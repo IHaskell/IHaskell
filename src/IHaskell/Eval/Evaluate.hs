@@ -1368,7 +1368,7 @@ formatErrorWithClass cls =
   typeCleaner
   where
     fixDollarSigns = replace "$" "<span>&dollar;</span>"
-    useDashV = "\nUse -v to see a list of the files searched for."
+    useDashV = "\n    Use -v to see a list of the files searched for."
     isShowError err =
       "No instance for (Show" `isPrefixOf` err &&
       isInfixOf " arising from a use of `print'" err
