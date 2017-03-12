@@ -13,8 +13,8 @@ dependencies:
     - stack setup
     - |
       echo "apply-ghc-options: everything" >> stack.yaml
-    - stack build --fast
     - stack install gtk2hs-buildtools --fast
+    - stack build --fast
     - stack install --fast
     - stack exec ihaskell -- install
     - stack test --no-run-tests --fast
