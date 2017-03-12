@@ -6,8 +6,8 @@ dependencies:
   pre:
     - rm -rf /opt/circleci/.pyenv
     - sudo apt-get install -y python3-pip git libtinfo-dev libzmq3-dev
-    - pip3 install pip --upgrade
-    - pip3 install -r requirements.txt
+    - sudo pip3 install pip --upgrade
+    - sudo pip3 install -r requirements.txt
     - curl -sSL https://get.haskellstack.org/ | sh
     - stack install gtk2hs-buildtools
     - stack install --fast
