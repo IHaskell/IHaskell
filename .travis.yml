@@ -69,12 +69,12 @@ install:
 
 script:
   - export LD_LIBRARY_PATH=$HOME/zeromq/lib
-  - stack test --resolver=$RESOLVER --fast
+  - stack test --no-terminal --resolver=$RESOLVER --fast
   - |
     set -e
     if $DISPLAY; then
         TOP=$(pwd)
-        stack build --resolver=$RESOLVER --fast
+        stack build --no-terminal --resolver=$RESOLVER --fast
 
         # Ensure that ipython-kernel examples build successfully.
         stack build ipython-kernel --flag ipython-kernel:examples --fast
