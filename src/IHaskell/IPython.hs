@@ -1,3 +1,4 @@
+{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
 {-# LANGUAGE CPP #-}
 
 -- | Description : Shell scripting wrapper using @Shelly@ for the @notebook@, and

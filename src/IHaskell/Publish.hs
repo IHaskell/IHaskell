@@ -1,3 +1,4 @@
+{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
 module IHaskell.Publish (publishResult) where
 
 import           IHaskellPrelude

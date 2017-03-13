@@ -121,12 +121,6 @@ library
                    IHaskellPrelude
                    StringUtils
 
-  default-extensions:
-      NoImplicitPrelude
-      DoAndIfThenElse
-      OverloadedStrings
-      ExtendedDefaultRules
-
 executable ihaskell
   -- .hs or .lhs file containing the Main module.
   main-is:             Main.hs
@@ -156,12 +150,6 @@ executable ihaskell
   if flag(binPkgDb)
     build-depends:       bin-package-db
 
-  default-extensions:
-      NoImplicitPrelude
-      DoAndIfThenElse
-      OverloadedStrings
-      ExtendedDefaultRules
-
 Test-Suite hspec
     Type: exitcode-stdio-1.0
     Ghc-Options: -threaded
@@ -190,11 +178,6 @@ Test-Suite hspec
 
     if flag(binPkgDb)
         build-depends: bin-package-db
-
-    default-extensions:
-        DoAndIfThenElse
-        OverloadedStrings
-        ExtendedDefaultRules
 
 source-repository head
   type:     git
