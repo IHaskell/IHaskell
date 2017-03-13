@@ -28,14 +28,14 @@ install instructions.
 Some prerequisites; adapt to your distribution.
 
 ```bash
-sudo apt-get install -y python3-pip git libtinfo-dev libzmq3-dev
+sudo apt-get install -y python3-pip git libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev
 ```
 
 ```bash
 pip3 install -r requirements.txt
 curl -sSL https://get.haskellstack.org/ | sh
-git clone https://github.com/abarbu/ihaskell
-cd ihaskell
+git clone https://github.com/abarbu/IHaskell
+cd IHaskell
 stack install gtk2hs-buildtools
 stack install --fast
 stack exec ihaskell -- install
@@ -43,13 +43,16 @@ stack exec ihaskell -- install
 
 ## Mac
 
+These haven't been tested and there may be some missing required packages. But
+they will be soon.
+
 ```bash
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 brew install python3
 brew install zeromq
 curl -sSL https://get.haskellstack.org/ | sh
-git clone https://github.com/abarbu/ihaskell
-cd ihaskell
+git clone https://github.com/abarbu/IHaskell
+cd IHaskell
 stack install gtk2hs-buildtools
 stack install --fast
 stack exec ihaskell -- install
