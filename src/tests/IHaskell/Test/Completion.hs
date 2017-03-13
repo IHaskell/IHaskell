@@ -1,3 +1,4 @@
+{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
 {-# LANGUAGE CPP #-}
 module IHaskell.Test.Completion (testCompletions) where
 
