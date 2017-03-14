@@ -45,6 +45,7 @@ import           StringUtils (replace, split)
 data KernelSpecOptions =
        KernelSpecOptions
          { kernelSpecGhcLibdir :: String           -- ^ GHC libdir.
+         , kernelSpecRTSOptions :: [String]        -- ^ Runtime options to use.
          , kernelSpecDebug :: Bool                 -- ^ Spew debugging output?
          , kernelSpecConfFile :: IO (Maybe String) -- ^ Filename of profile JSON file.
          , kernelSpecInstallPrefix :: Maybe String
@@ -54,6 +55,7 @@ data KernelSpecOptions =
 defaultKernelSpecOptions :: KernelSpecOptions
 defaultKernelSpecOptions = KernelSpecOptions
   { kernelSpecGhcLibdir = GHC.Paths.libdir
+  , kernelSpecRTSOptions = []
   , kernelSpecDebug = False
   , kernelSpecConfFile = defaultConfFile
   , kernelSpecInstallPrefix = Nothing
@@ -191,6 +193,9 @@ installKernelspec replace opts = void $ do
            Nothing   -> []
            Just file -> ["--conf", file])
         ++ ["--ghclib", kernelSpecGhcLibdir opts]
+        ++ (case kernelSpecRTSOptions opts of
+             [] -> []
+             rtsOpts -> "+RTS" : kernelSpecRTSOptions opts ++ ["-RTS"])
            ++ ["--stack" | kernelSpecUseStack opts]
 
   let kernelSpec = KernelSpec

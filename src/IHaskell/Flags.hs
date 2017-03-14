@@ -31,6 +31,8 @@ data Args = Args IHaskellMode [Argument]
 data Argument = ConfFile String     -- ^ A file with commands to load at startup.
               | OverwriteFiles      -- ^ Present when output should overwrite existing files. 
               | GhcLibDir String    -- ^ Where to find the GHC libraries.
+              | RTSFlags [String]   -- ^ Options for the GHC runtime (e.g. heap-size limit
+                                    --     or number of threads).
               | KernelDebug         -- ^ Spew debugging output from the kernel.
               | Help                -- ^ Display help text.
               | Version             -- ^ Display version text.
@@ -96,6 +98,20 @@ help mode = showText (Wrap 100) $ helpText [] HelpFormatAll $ chooseMode mode
 ghcLibFlag :: Flag Args
 ghcLibFlag = flagReq ["ghclib", "l"] (store GhcLibDir) "<path>" "Library directory for GHC."
 
+ghcRTSFlag :: Flag Args
+ghcRTSFlag = flagReq ["use-rtsopts"] storeRTS "\"<flags>\""
+                  "Runtime options (multithreading etc.). See `ghc +RTS -?`."
+ where storeRTS allRTSFlags (Args mode prev)
+          = fmap (Args mode . (:prev) . RTSFlags)
+              . parseRTS . words $ filter (/='"') allRTSFlags
+       parseRTS ("+RTS":fs)  -- Ignore if this is included (we already wrap
+           = parseRTS fs     -- the ihaskell-kernel call in +RTS <flags> -RTS anyway)
+       parseRTS ["-RTS"] = Right []
+       parseRTS ("-RTS":_)  -- Evil injection of extra arguments? Unlikely, but...
+           = Left "Adding non-RTS options to --use-rtsopts not permitted."
+       parseRTS (f:fs) = (f:) <$> parseRTS fs
+       parseRTS [] = Right []
+
 kernelDebugFlag :: Flag Args
 kernelDebugFlag = flagNone ["debug"] addDebug "Print debugging output from the kernel."
   where
@@ -125,7 +141,7 @@ store constructor str (Args mode prev) = Right $ Args mode $ constructor str : p
 installKernelSpec :: Mode Args
 installKernelSpec =
   mode "install" (Args InstallKernelSpec []) "Install the Jupyter kernelspec." noArgs
-    [ghcLibFlag, kernelDebugFlag, confFlag, installPrefixFlag, helpFlag, kernelStackFlag]
+    [ghcLibFlag, ghcRTSFlag, kernelDebugFlag, confFlag, installPrefixFlag, helpFlag, kernelStackFlag]
 
 kernel :: Mode Args
 kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg
