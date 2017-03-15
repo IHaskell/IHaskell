@@ -81,7 +81,7 @@ script:
 
         # Ensure that IHaskell notebook remains unchanged.
         # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
-        stack install
+        stack install --fast
         stack exec -- ihaskell install --stack
         stack exec -- jupyter nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
 
