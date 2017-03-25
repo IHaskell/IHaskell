@@ -179,7 +179,7 @@ interpret libdir allowedStdin action = runGhc (Just libdir) $ do
   dir <- liftIO getIHaskellDir
   let cmd = printf "IHaskell.IPython.Stdin.fixStdin \"%s\"" dir
   when (allowedStdin && hasSupportLibraries) $ void $
-    runStmt cmd RunToCompletion
+    execStmt cmd execOptions
 
   initializeItVariable
 
@@ -237,9 +237,9 @@ initializeImports = do
         guard (iHaskellPkgName `isPrefixOf` idString)
 
       displayPkgs = [ pkgName
-                    | pkgName <- packageNames 
-                    , Just (x:_) <- [stripPrefix initStr pkgName] 
-                    , pkgName `notElem` broken 
+                    | pkgName <- packageNames
+                    , Just (x:_) <- [stripPrefix initStr pkgName]
+                    , pkgName `notElem` broken
                     , isAlpha x ]
 
       hasIHaskellPackage = not $ null $ filter (== iHaskellPkgName) packageNames
@@ -279,7 +279,7 @@ initializeItVariable :: Interpreter ()
 initializeItVariable =
   -- This is required due to the way we handle `it` in the wrapper statements - if it doesn't exist,
   -- the first statement will fail.
-  void $ runStmt "let it = ()" RunToCompletion
+  void $ execStmt "let it = ()" execOptions
 
 -- | Publisher for IHaskell outputs. The first argument indicates whether this output is final
 -- (true) or intermediate (false).
@@ -515,7 +515,7 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
   -- Remember which modules we've loaded before.
   importedModules <- getContext
 
-  let 
+  let
       -- Get the dot-delimited pieces of the module name.
       moduleNameOf :: InteractiveImport -> [String]
       moduleNameOf (IIDecl decl) = split "." . moduleNameString . unLoc . ideclName $ decl
@@ -694,7 +694,7 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
           let cmd = printf "IHaskellDirectory.setCurrentDirectory \"%s\"" $
                 replace " " "\\ " $
                   replace "\"" "\\\"" directory
-          runStmt cmd RunToCompletion
+          execStmt cmd execOptions
           return mempty
         else return $ displayError $ printf "No such directory: '%s'" directory
     cmd -> liftIO $ do
@@ -711,7 +711,7 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
       outputAccum <- liftIO $ newMVar ""
 
       -- Start a loop to publish intermediate results.
-      let 
+      let
           -- Compute how long to wait between reading pieces of the output. `threadDelay` takes an
           -- argument of microseconds.
           ms = 1000
@@ -756,7 +756,7 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
                                ]
 
       loop
-      where 
+      where
 #if MIN_VERSION_base(4,8,0)
         createPipe' = createPipe
 #else
@@ -852,7 +852,7 @@ evalCommand output (Expression expr) state = do
   let widgetExpr = printf "(IHaskell.Display.Widget (%s))" expr :: String
   isWidget <- attempt $ exprType widgetExpr
 
-  -- Check if this is a template haskell declaration 
+  -- Check if this is a template haskell declaration
   let declExpr = printf "((id :: IHaskellTH.DecsQ -> IHaskellTH.DecsQ) (%s))" expr :: String
   let anyExpr = printf "((id :: IHaskellPrelude.Int -> IHaskellPrelude.Int) (%s))" expr :: String
   isTHDeclaration <- liftM2 (&&) (attempt $ exprType declExpr) (not <$> attempt (exprType anyExpr))
@@ -862,7 +862,7 @@ evalCommand output (Expression expr) state = do
   write state $ "Is Declaration: " ++ show isTHDeclaration
 
   if isTHDeclaration
-    then 
+    then
     -- If it typechecks as a DecsQ, we do not want to display the DecsQ, we just want the
     -- declaration made.
     do
@@ -877,7 +877,7 @@ evalCommand output (Expression expr) state = do
           , evalMsgs = []
           }
     else if canRunDisplay
-           then 
+           then
            -- Use the display. As a result, `it` is set to the output.
            useDisplay displayExpr
            else do
@@ -1119,7 +1119,7 @@ keepingItVariable act = do
   gen <- liftIO getStdGen
   let rand = take 20 $ randomRs ('0', '9') gen
       var name = name ++ rand
-      goStmt s = runStmt s RunToCompletion
+      goStmt s = execStmt s execOptions
       itVariable = var "it_var_temp_"
 
   goStmt $ printf "let %s = it" itVariable
@@ -1132,12 +1132,12 @@ data Captured a = CapturedStmt String
 
 capturedEval :: (String -> IO ()) -- ^ Function used to publish intermediate output.
              -> Captured a -- ^ Statement to evaluate.
-             -> Interpreter (String, RunResult) -- ^ Return the output and result.
+             -> Interpreter (String, ExecResult) -- ^ Return the output and result.
 capturedEval output stmt = do
   -- Generate random variable names to use so that we cannot accidentally override the variables by
   -- using the right names in the terminal.
   gen <- liftIO getStdGen
-  let 
+  let
       -- Variable names generation.
       rand = take 20 $ randomRs ('0', '9') gen
       var name = name ++ rand
@@ -1173,16 +1173,16 @@ capturedEval output stmt = do
         , printf "let it = %s" itVariable
         ]
 
-      goStmt :: String -> Ghc RunResult
-      goStmt s = runStmt s RunToCompletion
+      goStmt :: String -> Ghc ExecResult
+      goStmt s = execStmt s execOptions
 
       runWithResult (CapturedStmt str) = goStmt str
       runWithResult (CapturedIO io) = do
         status <- gcatch (liftIO io >> return NoException) (return . AnyException)
         return $
           case status of
-            NoException    -> RunOk []
-            AnyException e -> RunException e
+            NoException    -> ExecComplete (Right []) 0
+            AnyException e -> ExecComplete (Left e)   0
 
   -- Initialize evaluation context.
   results <- forM initStmts goStmt
@@ -1222,7 +1222,7 @@ capturedEval output stmt = do
   outputAccum <- liftIO $ newMVar ""
 
   -- Start a loop to publish intermediate results.
-  let 
+  let
       -- Compute how long to wait between reading pieces of the output. `threadDelay` takes an
       -- argument of microseconds.
       ms = 1000
@@ -1295,7 +1295,7 @@ evalStatementOrIO publish state cmd = do
 
   (printed, result) <- capturedEval output cmd
   case result of
-    RunOk names -> do
+    ExecComplete (Right names) _ -> do
       dflags <- getSessionDynFlags
 
       let allNames = map (showPpr dflags) names
@@ -1327,8 +1327,8 @@ evalStatementOrIO publish state cmd = do
               -- Return plain and html versions. Previously there was only a plain version.
               text -> Display [plain $ joined ++ "\n" ++ text, html $ htmled ++ mono text]
 
-    RunException exception -> throw exception
-    RunBreak{} -> error "Should not break."
+    ExecComplete (Left exception) _ -> throw exception
+    ExecBreak{} -> error "Should not break."
 
 -- Read from a file handle until we hit a delimiter or until we've read as many characters as
 -- requested
