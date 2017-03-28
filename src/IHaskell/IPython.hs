@@ -29,7 +29,7 @@ import qualified System.FilePath as FP
 import           System.Directory
 import           System.Exit (exitFailure)
 import           Data.Aeson (toJSON)
-import           Data.Aeson.Encode (encodeToTextBuilder)
+import           Data.Aeson.Text (encodeToTextBuilder)
 import           Data.Text.Lazy.Builder (toLazyText)
 import           Control.Monad (mplus)
 
