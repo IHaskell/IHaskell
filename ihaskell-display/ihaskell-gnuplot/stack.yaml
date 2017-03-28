@@ -1,7 +1,7 @@
 flags: {}
 packages:
 - '.'
-resolver: lts-6.2
+resolver: lts-8.6
 extra-deps:
 - 'gnuplot-0.5.4'
 - data-accessor-transformers-0.2.1.7
