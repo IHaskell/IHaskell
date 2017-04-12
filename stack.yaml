@@ -16,7 +16,6 @@ packages:
     - ./ihaskell-display/ihaskell-widgets
 resolver: lts-8.8
 extra-deps:
-    - shelly-1.6.8.3
     - data-accessor-transformers-0.2.1.7
     - gnuplot-0.5.4.1
 #    - system-argv0-0.1.1 # Necessary for LTS 2.22 (GHC 7.8)
