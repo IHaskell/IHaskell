@@ -15,10 +15,7 @@ packages:
     - ./ihaskell-display/ihaskell-static-canvas
     - ./ihaskell-display/ihaskell-widgets
 resolver: lts-8.12
-extra-deps:
-    - data-accessor-transformers-0.2.1.7
-    - gnuplot-0.5.4.1
-#    - system-argv0-0.1.1 # Necessary for LTS 2.22 (GHC 7.8)
+extra-deps: []
 flags:
   ihaskell:
     binpkgdb: false
