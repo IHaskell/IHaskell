@@ -1,6 +1,6 @@
 # Test against different stack LTS versions.
 env:
- - DISPLAY=true   RESOLVER=lts-8.11 # GHC 8.0.2
+ - DISPLAY=true   RESOLVER=lts-8.12 # GHC 8.0.2
 
 # Choose a lightweight base image; we provide our own build tools.
 language: python
