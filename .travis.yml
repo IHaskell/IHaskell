@@ -4,6 +4,8 @@ env:
 
 # Choose a lightweight base image; we provide our own build tools.
 language: python
+python:
+  - "3.6"
 
 # Enable caching.
 sudo: false
