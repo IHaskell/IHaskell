@@ -57,9 +57,6 @@ library
   -- Modules included in this library but not exported.
   other-modules:       IHaskell.Display.Widgets.Button
                        IHaskell.Display.Widgets.Box.Box
-                       IHaskell.Display.Widgets.Box.Proxy
-                       IHaskell.Display.Widgets.Box.PlaceProxy
-                       IHaskell.Display.Widgets.Box.FlexBox
                        IHaskell.Display.Widgets.Box.SelectionContainer.Accordion
                        IHaskell.Display.Widgets.Box.SelectionContainer.Tab
                        IHaskell.Display.Widgets.Bool.CheckBox
@@ -83,7 +80,7 @@ library
                        IHaskell.Display.Widgets.Selection.ToggleButtons
                        IHaskell.Display.Widgets.Selection.SelectMultiple
                        IHaskell.Display.Widgets.String.HTML
-                       IHaskell.Display.Widgets.String.Latex
+                       IHaskell.Display.Widgets.String.Label
                        IHaskell.Display.Widgets.String.Text
                        IHaskell.Display.Widgets.String.TextArea
 
@@ -96,8 +93,8 @@ library
   
   -- Other library packages from which modules are imported.
   -- singletons 2.* require ghc 7.10.2
-  build-depends:       aeson >=0.7 && < 0.12
-                     , base >=4.7 && <4.9
+  build-depends:       aeson >=0.7
+                     , base >=4.7
                      , containers >= 0.5
                      , ipython-kernel >= 0.6.1.2
                      , text >= 0.11

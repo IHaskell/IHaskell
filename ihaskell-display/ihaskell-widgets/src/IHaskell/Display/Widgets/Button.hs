@@ -35,7 +35,7 @@ mkButton = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let dom = defaultDOMWidget "ButtonView"
+  let dom = defaultDOMWidget "ButtonView" "ButtonModel"
       but = (Description =:: "")
             :& (Tooltip =:: "")
             :& (Disabled =:: False)

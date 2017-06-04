@@ -33,7 +33,7 @@ mkImageWidget = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let dom = defaultDOMWidget "ImageView"
+  let dom = defaultDOMWidget "ImageView" "ImageModel"
       img = (ImageFormat =:: PNG)
             :& (Width =:+ 0)
             :& (Height =:+ 0)

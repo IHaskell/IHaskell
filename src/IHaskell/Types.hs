@@ -1,3 +1,4 @@
+{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ExistentialQuantification #-}
@@ -66,9 +67,9 @@ class IHaskellDisplay a where
 -- | Display as an interactive widget.
 class IHaskellDisplay a => IHaskellWidget a where
   -- | Target name for this widget. The actual input parameter should be ignored. By default evaluate
-  -- to "ipython.widget", which is used by IPython for its backbone widgets.
+  -- to "jupyter.widget", which is used by IPython for its backbone widgets.
   targetName :: a -> String
-  targetName _ = "ipython.widget"
+  targetName _ = "jupyter.widget"
 
   -- | Target module for this widget. Evaluates to an empty string by default.
   targetModule :: a -> String

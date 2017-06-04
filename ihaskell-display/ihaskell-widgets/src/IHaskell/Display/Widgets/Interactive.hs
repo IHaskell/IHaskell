@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 {-# LANGUAGE PolyKinds #-}
 
 module IHaskell.Display.Widgets.Interactive (interactive, uncurryHList, Rec(..), Argument(..)) where
@@ -24,7 +25,7 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import qualified IHaskell.Display.Widgets.Singletons as S (SField, Field(..))
 
-import           IHaskell.Display.Widgets.Box.FlexBox
+import           IHaskell.Display.Widgets.Box.Box
 import           IHaskell.Display.Widgets.Bool.CheckBox
 import           IHaskell.Display.Widgets.String.Text
 import           IHaskell.Display.Widgets.Int.BoundedInt.IntSlider
@@ -119,23 +120,23 @@ instance (FromWidget t, MakeConfs ts) => MakeConfs (t ': ts) where
   mkConfs _ = WidgetConf wrapped :& mkConfs (Proxy :: Proxy ts)
 
 interactive :: (IHaskellDisplay r, MakeConfs ts)
-            => (HList ts -> r) -> Rec Argument ts -> IO FlexBox
+            => (HList ts -> r) -> Rec Argument ts -> IO Box
 interactive func =
   let confs = mkConfs Proxy
   in liftToWidgets func confs
 
 -- | Transform a function (HList ts -> r) to one which: 1) Uses widgets to accept the arguments 2)
--- Accepts initial values for the arguments 3) Creates a compound FlexBox widget with an embedded
+-- Accepts initial values for the arguments 3) Creates a compound Box widget with an embedded
 -- OutputWidget for display
 liftToWidgets :: IHaskellDisplay r
-              => (HList ts -> r) -> Rec WidgetConf ts -> Rec Argument ts -> IO FlexBox
+              => (HList ts -> r) -> Rec WidgetConf ts -> Rec Argument ts -> IO Box
 liftToWidgets func rc initvals = do
   let constructors = rmap extractConstructor rc
       getters = rmap extractGetter rc
       eventSetters = rmap extractEventSetter rc
       initializers = rmap extractInitializer rc
 
-  bx <- mkFlexBox
+  bx <- mkBox
   out <- mkOutputWidget
 
   -- Create a list of widgets
@@ -152,9 +153,11 @@ liftToWidgets func rc initvals = do
   setInitialValues initializers widgets initvals
   -- applyValueSetters valueSetters widgets $ getList defvals
   setField out Width 500
-  setField bx Orientation VerticalOrientation
+  -- TODO This can't be set right now since we switched FlexBox to a regular
+  --      Box. This is a styling/layout parameter now but these haven't been implemented yet.
+  -- setField bx Orientation VerticalOrientation
 
-  -- Set children for the FlexBox
+  -- Set children for the Box
   let children = mkChildren widgets
   setField bx Children $ children ++ [ChildWidget out]
 

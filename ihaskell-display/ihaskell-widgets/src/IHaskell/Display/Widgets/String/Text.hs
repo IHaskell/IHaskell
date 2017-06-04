@@ -33,7 +33,7 @@ mkTextWidget :: IO TextWidget
 mkTextWidget = do
   -- Default properties, with a random uuid
   uuid <- U.random
-  let strWidget = defaultStringWidget "TextView"
+  let strWidget = defaultStringWidget "TextView" "TextModel"
       txtWidget = (SubmitHandler =:: return ()) :& (ChangeHandler =:: return ()) :& RNil
       widgetState = WidgetState $ strWidget <+> txtWidget
 

@@ -32,7 +32,7 @@ mkValidWidget = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let boolState = defaultBoolWidget "ValidView"
+  let boolState = defaultBoolWidget "ValidView" "ValidModel"
       validState = (ReadOutMsg =:: "") :& RNil
       widgetState = WidgetState $ boolState <+> validState
 

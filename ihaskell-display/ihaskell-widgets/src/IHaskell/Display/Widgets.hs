@@ -3,9 +3,6 @@ module IHaskell.Display.Widgets (module X) where
 import           IHaskell.Display.Widgets.Button as X
 
 import           IHaskell.Display.Widgets.Box.Box as X
-import           IHaskell.Display.Widgets.Box.Proxy as X
-import           IHaskell.Display.Widgets.Box.PlaceProxy as X
-import           IHaskell.Display.Widgets.Box.FlexBox as X
 import           IHaskell.Display.Widgets.Box.SelectionContainer.Accordion as X
 import           IHaskell.Display.Widgets.Box.SelectionContainer.Tab as X
 
@@ -36,7 +33,7 @@ import           IHaskell.Display.Widgets.Selection.ToggleButtons as X
 import           IHaskell.Display.Widgets.Selection.SelectMultiple as X
 
 import           IHaskell.Display.Widgets.String.HTML as X
-import           IHaskell.Display.Widgets.String.Latex as X
+import           IHaskell.Display.Widgets.String.Label as X
 import           IHaskell.Display.Widgets.String.Text as X
 import           IHaskell.Display.Widgets.String.TextArea as X
 

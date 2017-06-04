@@ -1,0 +1,24 @@
+dependencies:
+  cache_directories:
+    - ~/.stack
+    - .stack-work
+    - ~/.cache/pip
+  pre:
+    - rm -rf /opt/circleci/.pyenv
+    - sudo apt-get install -y python3-pip git libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev
+    - sudo pip3 install pip --upgrade
+    - sudo pip3 install -r requirements.txt
+    - curl -sSL https://get.haskellstack.org/ | sh
+  override:
+    - stack setup
+    - |
+      echo "apply-ghc-options: everything" >> stack.yaml
+    - stack install gtk2hs-buildtools --fast
+    - stack build --fast
+    - stack install --fast
+    - stack exec ihaskell -- install
+    - stack test --no-run-tests --fast
+
+test:
+  override:
+    - stack test --fast

@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}{-# LANGUAGE CPP #-}
 module IHaskellPrelude (
   module IHaskellPrelude,
   module X,
@@ -78,7 +78,9 @@ import           GHC.Enum               as X
 import           GHC.Num                as X
 import           GHC.Real               as X
 import           GHC.Err                as X hiding (absentErr)
-#if MIN_VERSION_ghc(7,10,0)
+#if MIN_VERSION_ghc(8,0,0)
+import           GHC.Base               as X hiding (Any, mapM, foldr, sequence, many, (<|>), Module(..))
+#elif MIN_VERSION_ghc(7,10,0)
 import           GHC.Base               as X hiding (Any, mapM, foldr, sequence, many, (<|>))
 #else
 import           GHC.Base               as X hiding (Any)

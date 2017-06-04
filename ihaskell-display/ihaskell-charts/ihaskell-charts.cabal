@@ -52,13 +52,9 @@ library
   
   -- Modules included in this library but not exported.
   -- other-modules:       
-  
-  -- Language extensions.
-  default-extensions: DoAndIfThenElse
-              OverloadedStrings
              
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.6 && <4.9,
+  build-depends:       base >=4.6,
                        bytestring,
                        data-default-class,
                        directory,

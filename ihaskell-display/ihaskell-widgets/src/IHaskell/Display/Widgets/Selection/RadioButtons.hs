@@ -33,7 +33,7 @@ mkRadioButtons :: IO RadioButtons
 mkRadioButtons = do
   -- Default properties, with a random uuid
   uuid <- U.random
-  let widgetState = WidgetState $ defaultSelectionWidget "RadioButtonsView"
+  let widgetState = WidgetState $ defaultSelectionWidget "RadioButtonsView" "RadioButtonsModel"
 
   stateIO <- newIORef widgetState
 

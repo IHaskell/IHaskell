@@ -36,7 +36,7 @@ mkOutputWidget = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let widgetState = WidgetState $ defaultDOMWidget "OutputView"
+  let widgetState = WidgetState $ defaultDOMWidget "OutputView" "OutputModel"
 
   stateIO <- newIORef widgetState
 

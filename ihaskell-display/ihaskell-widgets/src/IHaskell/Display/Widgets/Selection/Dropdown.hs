@@ -34,7 +34,7 @@ mkDropdown :: IO Dropdown
 mkDropdown = do
   -- Default properties, with a random uuid
   uuid <- U.random
-  let selectionAttrs = defaultSelectionWidget "DropdownView"
+  let selectionAttrs = defaultSelectionWidget "DropdownView" "DropdownModel"
       dropdownAttrs = (ButtonStyle =:: DefaultButton) :& RNil
       widgetState = WidgetState $ selectionAttrs <+> dropdownAttrs
 

@@ -22,7 +22,7 @@ import qualified Data.ByteString.Char8 as CBS
 import           Control.Applicative ((<$>))
 import           Data.ByteString.UTF8 hiding (drop, take, lines, length)
 import           Data.Char
-import           Data.List (nub, init, last, head, elemIndex)
+import           Data.List (nub, init, last, head, elemIndex, concatMap)
 import qualified Data.List.Split as Split
 import qualified Data.List.Split.Internals as Split
 import           Data.Maybe (fromJust)
@@ -88,7 +88,11 @@ complete code posOffset = do
 
   let Just db = pkgDatabase flags
       getNames = map (moduleNameString . exposedName) . exposedModules
+#if MIN_VERSION_ghc(8,0,0)
+      moduleNames = nub $ concatMap getNames $ concatMap snd db
+#else
       moduleNames = nub $ concatMap getNames db
+#endif
 
   let target = completionTarget line pos
       completion = completionType line pos target
@@ -124,7 +128,11 @@ complete code posOffset = do
                      otherNames = ["-package", "-Wall", "-w"]
 
                      fNames = map extName fFlags ++
+#if MIN_VERSION_ghc(8,0,0)
+                              map extName wWarningFlags ++
+#else
                               map extName fWarningFlags ++
+#endif
                               map extName fLangFlags
                      fNoNames = map ("no" ++) fNames
                      fAllNames = map ("-f" ++) (fNames ++ fNoNames)

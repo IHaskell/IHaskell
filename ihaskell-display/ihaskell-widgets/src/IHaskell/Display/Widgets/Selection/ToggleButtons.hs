@@ -34,7 +34,7 @@ mkToggleButtons :: IO ToggleButtons
 mkToggleButtons = do
   -- Default properties, with a random uuid
   uuid <- U.random
-  let selectionAttrs = defaultSelectionWidget "ToggleButtonsView"
+  let selectionAttrs = defaultSelectionWidget "ToggleButtonsView" "ToggleButtonsModel"
       toggleButtonsAttrs = (Tooltips =:: [])
                            :& (Icons =:: [])
                            :& (ButtonStyle =:: DefaultButton)

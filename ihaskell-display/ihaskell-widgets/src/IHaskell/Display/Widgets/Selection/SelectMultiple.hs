@@ -34,7 +34,7 @@ mkSelectMultiple :: IO SelectMultiple
 mkSelectMultiple = do
   -- Default properties, with a random uuid
   uuid <- U.random
-  let widgetState = WidgetState $ defaultMultipleSelectionWidget "SelectMultipleView"
+  let widgetState = WidgetState $ defaultMultipleSelectionWidget "SelectMultipleView" "SelectMultipleModel"
 
   stateIO <- newIORef widgetState
 

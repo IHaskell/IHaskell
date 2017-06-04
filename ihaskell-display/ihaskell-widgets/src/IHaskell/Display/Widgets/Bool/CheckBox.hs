@@ -33,7 +33,7 @@ mkCheckBox = do
   -- Default properties, with a random uuid
   uuid <- U.random
 
-  let widgetState = WidgetState $ defaultBoolWidget "CheckboxView"
+  let widgetState = WidgetState $ defaultBoolWidget "CheckboxView" "CheckboxModel"
 
   stateIO <- newIORef widgetState
 

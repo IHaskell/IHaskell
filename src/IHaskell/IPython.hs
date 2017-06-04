@@ -1,3 +1,4 @@
+{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
 {-# LANGUAGE CPP #-}
 
 -- | Description : Shell scripting wrapper using @Shelly@ for the @notebook@, and
@@ -28,7 +29,7 @@ import qualified System.FilePath as FP
 import           System.Directory
 import           System.Exit (exitFailure)
 import           Data.Aeson (toJSON)
-import           Data.Aeson.Encode (encodeToTextBuilder)
+import           Data.Aeson.Text (encodeToTextBuilder)
 import           Data.Text.Lazy.Builder (toLazyText)
 import           Control.Monad (mplus)
 
@@ -76,9 +77,9 @@ ipythonCommand = do
 
 locateIPython :: SH.Sh SH.FilePath
 locateIPython = do
-  mbinary <- SH.which "ipython"
+  mbinary <- SH.which "jupyter"
   case mbinary of
-    Nothing      -> SH.errorExit "The IPython binary could not be located"
+    Nothing      -> SH.errorExit "The Jupyter binary could not be located"
     Just ipython -> return ipython
 
 -- | Run the IPython command with any arguments. The kernel is set to IHaskell.

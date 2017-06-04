@@ -1,3 +1,4 @@
+{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
 {-# LANGUAGE CPP, ScopedTypeVariables #-}
 
 -- | Description : Argument parsing and basic messaging loop, using Haskell
@@ -128,7 +129,8 @@ runKernel kernelOpts profileSrc = do
       useStack = kernelSpecUseStack kernelOpts
 
   -- Parse the profile file.
-  Just profile <- liftM decode $ LBS.readFile profileSrc
+  let profileErr = error $ "ihaskell: "++profileSrc++": Failed to parse profile file"
+  profile <- liftM (fromMaybe profileErr . decode) $ LBS.readFile profileSrc
 
   -- Necessary for `getLine` and their ilk to work.
   dir <- getIHaskellDir
