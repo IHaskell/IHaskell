@@ -34,7 +34,7 @@ sudo apt-get install -y python3-pip git libtinfo-dev libzmq3-dev libcairo2-dev l
 ```bash
 pip3 install -r requirements.txt
 curl -sSL https://get.haskellstack.org/ | sh
-git clone https://github.com/abarbu/IHaskell
+git clone https://github.com/gibiansky/IHaskell
 cd IHaskell
 stack install gtk2hs-buildtools
 stack install --fast
@@ -51,7 +51,7 @@ they will be soon.
 brew install python3
 brew install zeromq
 curl -sSL https://get.haskellstack.org/ | sh
-git clone https://github.com/abarbu/IHaskell
+git clone https://github.com/gibiansky/IHaskell
 cd IHaskell
 stack install gtk2hs-buildtools
 stack install --fast
