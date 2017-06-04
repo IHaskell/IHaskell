@@ -305,7 +305,7 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
 
   let execCount = getExecutionCounter state
   -- Let all frontends know the execution count and code that's about to run
-  inputHeader <- liftIO $ dupHeader replyHeader InputMessage
+  inputHeader <- liftIO $ dupHeader replyHeader ExecuteInputMessage
   send $ PublishInput inputHeader (T.unpack code) execCount
 
   -- Run code and publish to the frontend as we go.
