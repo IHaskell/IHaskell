@@ -1,4 +1,6 @@
 flags: {}
+ghc-options:
+  cryptonite: -opta-Wa,-mrelax-relocations=no
 packages:
     - .
     - ./ipython-kernel
