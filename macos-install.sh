@@ -71,7 +71,6 @@ brew ls --versions libmagic  | grep -q . || brew install libmagic
 # XQuartz is required: http://xquartz.macosforge.org/landing/
 # The easiest way is through Homebrew.
 brew tap Caskroom/cask
-brew      ls --versions brew-cask  | grep -q . || brew install brew-cask
 brew cask ls --versions xquartz    | grep -q . || brew cask install xquartz
 brew      ls --versions cairo      | grep -q . || brew install cairo
 brew      ls --versions pango      | grep -q . || brew install pango
