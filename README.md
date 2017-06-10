@@ -50,6 +50,7 @@ they will be soon.
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 brew install python3
 brew install zeromq
+brew install libmagic
 curl -sSL https://get.haskellstack.org/ | sh
 git clone https://github.com/gibiansky/IHaskell
 cd IHaskell
