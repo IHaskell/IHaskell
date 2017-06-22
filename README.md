@@ -28,7 +28,7 @@ install instructions.
 Some prerequisites; adapt to your distribution.
 
 ```bash
-sudo apt-get install -y python3-pip git libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev
+sudo apt-get install -y python3-pip git libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev libmagic-dev libblas-dev liblapack-dev
 ```
 
 ```bash
