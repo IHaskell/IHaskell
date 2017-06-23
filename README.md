@@ -38,7 +38,7 @@ git clone https://github.com/gibiansky/IHaskell
 cd IHaskell
 stack install gtk2hs-buildtools
 stack install --fast
-stack exec ihaskell -- install
+stack exec ihaskell -- install --stack
 ```
 
 ## Mac
@@ -56,7 +56,7 @@ git clone https://github.com/gibiansky/IHaskell
 cd IHaskell
 stack install gtk2hs-buildtools
 stack install --fast
-stack exec ihaskell -- install
+stack exec ihaskell -- install --stack
 ```
 
 # Running
