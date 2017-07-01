@@ -56,7 +56,7 @@ instance FromJSON HoogleResponse where
 -- an error message or the successful JSON result.
 query :: String -> IO (Either String String)
 query str = do
-  request <- parseUrlThrow $ queryUrl $ urlEncode str
+  request <- parseUrl $ queryUrl $ urlEncode str
   mgr <- newManager tlsManagerSettings
   catch
     (Right . CBS.unpack . LBS.toStrict . responseBody <$> httpLbs request mgr)
