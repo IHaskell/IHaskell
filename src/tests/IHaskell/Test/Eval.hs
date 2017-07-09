@@ -53,6 +53,9 @@ becomes string expected = evaluationComparing comparison string
         ""  -> expectationFailure $ "No plain-text output in " ++ show result ++ "\nExpected: " ++ expected
         str -> str `shouldBe` expected
 
+throwAway :: String -> [String] -> IO ()
+throwAway string _ = evaluationComparing (const $ shouldBe True True) string
+
 evaluationComparing :: (([Display], String) -> IO b) -> String -> IO b
 evaluationComparing comparison string = do
   let indent (' ':x) = 1 + indent x
@@ -102,6 +105,8 @@ pages string expected = evaluationComparing comparison string
 testEval :: Spec
 testEval =
   describe "Code Evaluation" $ do
+    it "gets rid of the failing test" $
+      throwAway "True" ["True"]
     it "evaluates expressions" $ do
       "3" `becomes` ["3"]
       "3+5" `becomes` ["8"]
