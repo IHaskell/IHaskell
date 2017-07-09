@@ -20,6 +20,15 @@ let
         "ihaskell-widgets"
       ]);
   dontCheck = pkgs.haskell.lib.dontCheck;
+  fixPaths = package: pkgs.haskell.lib.overrideCabal package (old: {
+    preBuild = ''
+      export HOME=$TMP
+    '';
+    preCheck = ''
+      export PATH=$PWD/dist/build/ihaskell:$PATH
+      export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
+    '';
+  });
   haskellPackages = pkgs.haskellPackages.override {
     overrides = self: super: {
       ihaskell       = dontCheck (
@@ -54,8 +63,7 @@ let
     ${ihaskell}/bin/ihaskell install -l $(${ihaskellEnv}/bin/ghc --print-libdir) && ${jupyter}/bin/jupyter notebook
   '';
   profile = "${ihaskell.pname}-${ihaskell.version}/profile/profile.tar";
-in
-pkgs.buildEnv {
+in pkgs.buildEnv {
   name = "ihaskell-with-packages";
   paths = [ ihaskellEnv jupyter ];
   postBuild = ''
