@@ -19,3 +19,17 @@ extra-deps: []
 flags:
   ihaskell:
     binpkgdb: false
+
+nix:
+  enable: false
+  packages:
+    - blas
+    - cairo
+    - file
+    - gcc
+    - liblapack
+    - ncurses
+    - pango
+    - pkgconfig
+    - zeromq
+    - zlib
