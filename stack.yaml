@@ -14,7 +14,7 @@ packages:
     - ./ihaskell-display/ihaskell-plot
     - ./ihaskell-display/ihaskell-static-canvas
     - ./ihaskell-display/ihaskell-widgets
-resolver: lts-8.22
+resolver: lts-8.23
 extra-deps: []
 flags:
   ihaskell:
