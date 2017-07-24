@@ -65,7 +65,7 @@ stack exec ihaskell -- install --stack
 stack exec jupyter -- notebook
 ```
 
-# Nix
+## Nix
 
 If you have the `nix` package manager installed, you can create an IHaskell
 notebook environment with one command. For example:
