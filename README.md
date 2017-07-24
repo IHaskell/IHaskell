@@ -65,6 +65,19 @@ stack exec ihaskell -- install --stack
 stack exec jupyter -- notebook
 ```
 
+# Nix
+
+If you have the `nix` package manager installed, you can create an IHaskell
+notebook environment with one command. For example:
+
+```bash
+$ nix-build release.nix --arg packages "haskellPackages: [ haskellPackages.lens ]"
+<result path>
+$ <result path>/bin/ihaskell-notebook
+```
+
+It might take a while the first time, but subsequent builds will be much faster.
+
 ## Where are my packages?
 
 Stack manages separate environments for every package. By default your notebooks
