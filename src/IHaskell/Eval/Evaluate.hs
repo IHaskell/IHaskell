@@ -489,12 +489,7 @@ evalCommand :: Publisher -> CodeBlock -> KernelState -> Interpreter EvalOut
 evalCommand _ (Import importStr) state = wrapExecution state $ do
   write state $ "Import: " ++ importStr
   evalImport importStr
-
-  -- Warn about `it` variable.
-  return $ if "Test.Hspec" `isInfixOf` importStr
-             then displayError $ "Warning: Hspec is unusable in IHaskell until the resolution of GHC bug #8639." ++
-                                 "\nThe variable `it` is shadowed and cannot be accessed, even in qualified form."
-             else mempty
+  return mempty
 
 evalCommand _ (Module contents) state = wrapExecution state $ do
   write state $ "Module:\n" ++ contents
