@@ -25,7 +25,7 @@ import           Language.Haskell.Exts hiding (Module)
 import           Language.Haskell.Exts.SrcLoc
 
 import           Language.Haskell.HLint as HLint
-import           Language.Haskell.HLint2
+import           Language.Haskell.HLint3
 
 import           IHaskell.Types
 import           IHaskell.Display
