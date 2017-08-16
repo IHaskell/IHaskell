@@ -1,7 +1,6 @@
-{ packages ? (_: []), systemPackages ? (_: []), nixpkgs ? <nixpkgs> }:
+{ packages ? (_: []), systemPackages ? (_: []), pkgs ? import <nixpkgs> {} }:
 
 let
-  pkgs = import nixpkgs {};
   src = pkgs.lib.cleanSource ./.;
   displays = self: builtins.listToAttrs (
     map
