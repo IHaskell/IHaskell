@@ -25,7 +25,7 @@ let
       ihaskell       = dontCheck (
                           self.callCabal2nix "ihaskell"          src                                   { bin-package-db = null; });
       ghc-parser        = self.callCabal2nix "ghc-parser"     "${src}/ghc-parser"                      {};
-      ipython-kernel    = self.callCabal2nix "ghc-parser"     "${src}/ipython-kernel"                  {};
+      ipython-kernel    = self.callCabal2nix "ipython-kernel" "${src}/ipython-kernel"                  {};
     } // displays self;
   };
   ihaskell = haskellPackages.ihaskell;
