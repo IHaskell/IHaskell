@@ -47,7 +47,7 @@ data-files:
     html/logo-64x64.png
 
 flag binPkgDb
-  default:             True
+  default:             False
   description:         bin-package-db package needed (needed for GHC >= 7.10)
 
 library
