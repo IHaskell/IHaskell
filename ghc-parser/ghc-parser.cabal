@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                ghc-parser
-version:             0.1.8.0
+version:             0.2.0.0
 synopsis:            Haskell source parser from GHC.
 -- description:
 homepage:            https://github.com/gibiansky/IHaskell
@@ -33,7 +33,7 @@ library
                        Language.Haskell.GHC.HappyParser
   -- other-modules:
   -- other-extensions:
-  build-depends:       base                 >=4.6,
+  build-depends:       base                 >=4.6 && < 5,
                        ghc                  >=7.6 && <8.1
 
   if   impl(ghc >= 7.6) && impl(ghc < 7.8)
