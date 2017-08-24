@@ -43,21 +43,22 @@ ihaskell install --stack
 
 ## Mac
 
-These haven't been tested and there may be some missing required packages. But
-they will be soon.
+You need to have [Homebrew](https://brew.sh) installed. 
+If you do not have it yet run `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"` in your terminal.
+
+You also need the xcode command line tools.
+You can install them by running `xcode-select --install` in the terminal and following the prompts.
 
 ```bash
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew install python3
-brew install zeromq
-brew install libmagic
-curl -sSL https://get.haskellstack.org/ | sh
+brew install python3 zeromq libmagic cairo pkg-config haskell-stack pango
 git clone https://github.com/gibiansky/IHaskell
 cd IHaskell
 stack install gtk2hs-buildtools
 stack install --fast
 ihaskell install --stack
 ```
+
+Tested on macOS Sierra (10.12.6)
 
 # Running
 
