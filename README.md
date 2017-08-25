@@ -46,7 +46,7 @@ ihaskell install --stack
 You need to have [Homebrew](https://brew.sh) installed. 
 If you do not have it yet run `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"` in your terminal.
 
-You also need the xcode command line tools.
+You also need the Xcode command line tools.
 You can install them by running `xcode-select --install` in the terminal and following the prompts.
 
 ```bash
@@ -58,7 +58,7 @@ stack install --fast
 ihaskell install --stack
 ```
 
-Tested on macOS Sierra (10.12.6)
+_Tested on macOS Sierra (10.12.6)_
 
 # Running
 
