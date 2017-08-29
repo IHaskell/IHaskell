@@ -23,7 +23,7 @@ let
   haskellPackages = pkgs.haskellPackages.override {
     overrides = self: super: {
       ihaskell       = dontCheck (
-                       self.callCabal2nix "ihaskell"          src                  { bin-package-db = null; });
+                       self.callCabal2nix "ihaskell"          src                  {});
       ghc-parser     = self.callCabal2nix "ghc-parser"     "${src}/ghc-parser"     {};
       ipython-kernel = self.callCabal2nix "ipython-kernel" "${src}/ipython-kernel" {};
     } // displays self;
