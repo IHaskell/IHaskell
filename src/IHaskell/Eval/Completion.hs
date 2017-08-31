@@ -29,7 +29,9 @@ import           Data.Maybe (fromJust)
 import           System.Environment (getEnv)
 
 import           GHC hiding (Qualified)
-#if MIN_VERSION_ghc(7,10,0)
+#if MIN_VERSION_ghc(8,2,0)
+import           GHC.PackageDb
+#elif MIN_VERSION_ghc(7,10,0)
 import           GHC.PackageDb (ExposedModule(exposedName))
 #endif
 import           DynFlags
@@ -61,6 +63,9 @@ data CompletionType = Empty
                     | KernelOption String
                     | Extension String
   deriving (Show, Eq)
+#if MIN_VERSION_ghc(8,2,0)
+exposedName = fst
+#endif
 #if MIN_VERSION_ghc(7,10,0)
 extName (FlagSpec { flagSpecName = name }) = name
 #else
