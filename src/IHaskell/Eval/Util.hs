@@ -224,7 +224,11 @@ doc :: GhcMonad m => O.SDoc -> m String
 doc sdoc = do
   flags <- getSessionDynFlags
   unqual <- getPrintUnqual
+#if MIN_VERSION_ghc(8,2,0)
+  let style = O.mkUserStyle flags unqual O.AllTheWay
+#else
   let style = O.mkUserStyle unqual O.AllTheWay
+#endif
   let cols = pprCols flags
       d = O.runSDoc sdoc (O.initSDocContext flags style)
   return $ Pretty.fullRender Pretty.PageMode cols 1.5 string_txt "" d
@@ -256,6 +260,21 @@ initGhci sandboxPackages = do
 #else
       dflags = flag Opt_ExtendedDefaultRules . unflag Opt_MonomorphismRestriction $ originalFlags
 #endif
+#if MIN_VERSION_ghc(8,2,0)
+      pkgFlags =
+        case sandboxPackages of
+          Nothing -> packageDBFlags originalFlags
+          Just path ->
+            let pkg = PackageDB $ PkgConfFile path
+            in packageDBFlags originalFlags ++ [pkg]
+
+  void $ setSessionDynFlags $ dflags
+    { hscTarget = HscInterpreted
+    , ghcLink = LinkInMemory
+    , pprCols = 300
+    , packageDBFlags = pkgFlags
+    }
+#else
       pkgConfs =
         case sandboxPackages of
           Nothing -> extraPkgConfs originalFlags
@@ -269,6 +288,7 @@ initGhci sandboxPackages = do
     , pprCols = 300
     , extraPkgConfs = pkgConfs
     }
+#endif
 
 -- | Evaluate a single import statement. If this import statement is importing a module which was
 -- previously imported implicitly (such as `Prelude`) or if this module has a `hiding` annotation,
@@ -359,7 +379,11 @@ cleanUpDuplicateInstances = modifySession $ \hscEnv ->
 -- | Get the type of an expression and convert it to a string.
 getType :: GhcMonad m => String -> m String
 getType expr = do
+#if MIN_VERSION_ghc(8,2,0)
+  result <- exprType TM_Inst expr
+#else
   result <- exprType expr
+#endif
   flags <- getSessionDynFlags
   let typeStr = O.showSDocUnqual flags $ O.ppr result
   return typeStr
