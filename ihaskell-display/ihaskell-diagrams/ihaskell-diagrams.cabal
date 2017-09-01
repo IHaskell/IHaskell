@@ -54,7 +54,7 @@ library
   other-modules:       IHaskell.Display.Diagrams.Animation
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.6 && <4.10,
+  build-depends:       base >=4.6 && <4.11,
                        text,
                        bytestring,
                        directory,

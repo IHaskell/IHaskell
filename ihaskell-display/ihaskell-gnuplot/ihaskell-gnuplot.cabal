@@ -54,7 +54,7 @@ library
   -- other-modules:       
              
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.6 && <4.10,
+  build-depends:       base >=4.6 && <4.11,
                        bytestring,
                        gnuplot >= 0.5.4,
                        ihaskell >= 0.6.2
