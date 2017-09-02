@@ -33,7 +33,7 @@ library
   -- other-modules:
   -- other-extensions:
   build-depends:       base                 >=4.6 && < 5,
-                       ghc                  >=7.6 && <8.1
+                       ghc                  >=7.6 && <8.3
 
   if   impl(ghc >= 7.6) && impl(ghc < 7.8)
     hs-source-dirs:      generic-src src-7.6
