@@ -18,7 +18,6 @@ cabal-version:       >=1.16
 
 -- hs-source-dirs doesn't work well, doesn't take union, so include all src dirs specifically
 extra-source-files:
-  build-parser.sh
   HaskellParser76.y.pp
   HaskellParser782.y.pp
   HaskellParser783.y.pp
