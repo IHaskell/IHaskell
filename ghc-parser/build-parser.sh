@@ -16,7 +16,3 @@ function make_parser {
     mkdir -p $SRCDIR/Language/Haskell/GHC
     mv Parser.hs $SRCDIR/Language/Haskell/GHC/HappyParser.hs
 }
-
-make_parser src-7.6 HaskellParser76
-make_parser src-7.8.2 HaskellParser782
-make_parser src-7.8.3 HaskellParser783
