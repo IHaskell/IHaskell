@@ -29,6 +29,8 @@ addons:
       - libgmp-dev       # ghc
       - libblas-dev      # hmatrix
       - liblapack-dev    # hmatrix
+      - libcairo2-dev    # cairo
+      - libpango1.0-dev  # pango
 
 before_install:
     # Download and unpack the stack executable
