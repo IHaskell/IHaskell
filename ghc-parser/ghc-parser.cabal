@@ -12,7 +12,7 @@ author:              Andrew Gibiansky
 maintainer:          andrew.gibiansky@gmail.com
 -- copyright:
 category:            Language
-build-type:          Custom
+build-type:          Simple
 -- extra-source-files:
 cabal-version:       >=1.16
 
