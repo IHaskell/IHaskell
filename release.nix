@@ -45,7 +45,7 @@ let
     # ihaskell-widgets
   ] ++ packages self);
   jupyter = pkgs.python3.buildEnv.override {
-    extraLibs = with pkgs.python3Packages; [ ipython ipykernel jupyter_client notebook ];
+    extraLibs = let ps = pkgs.python3Packages; in [ ps.jupyter ps.notebook ];
   };
   ihaskellSh = pkgs.writeScriptBin "ihaskell-notebook" ''
     #! ${pkgs.stdenv.shell}
