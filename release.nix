@@ -22,8 +22,15 @@ let
   dontCheck = pkgs.haskell.lib.dontCheck;
   haskellPackages = pkgs.haskellPackages.override {
     overrides = self: super: {
-      ihaskell       = dontCheck (
-                       self.callCabal2nix "ihaskell"          src                  {});
+      ihaskell       = pkgs.haskell.lib.overrideCabal (
+                       self.callCabal2nix "ihaskell"          src                  {}) (_drv: {
+        doCheck = false;
+        postPatch = ''
+          substituteInPlace ./src/IHaskell/Eval/Evaluate.hs --replace \
+            'hscTarget = objTarget flags' \
+            'hscTarget = HscInterpreted'
+        '';
+      });
       ghc-parser     = self.callCabal2nix "ghc-parser"     "${src}/ghc-parser"     {};
       ipython-kernel = self.callCabal2nix "ipython-kernel" "${src}/ipython-kernel" {};
     } // displays self;
