@@ -68,7 +68,7 @@ library
                        ghc-paths            >=0.1,
                        haskeline            -any,
                        hlint                >=1.9,
-                       haskell-src-exts     >=1.16,
+                       haskell-src-exts     >=1.18,
                        http-client          >= 0.4,
                        http-client-tls      >= 0.2,
                        mtl                  >=2.1,
