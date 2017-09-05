@@ -179,7 +179,11 @@ interpret libdir allowedStdin action = runGhc (Just libdir) $ do
   dir <- liftIO getIHaskellDir
   let cmd = printf "IHaskell.IPython.Stdin.fixStdin \"%s\"" dir
   when (allowedStdin && hasSupportLibraries) $ void $
+#if MIN_VERSION_ghc(8,0,0)
     execStmt cmd execOptions
+#else
+    runStmt cmd RunToCompletion
+#endif
 
   initializeItVariable
 
@@ -226,7 +230,7 @@ initializeImports = do
       iHaskellPkgName = initStr ++ intercalate "." (map show (versionBranch version))
 
 #if !MIN_VERSION_ghc(8,0,0)
-      unitId = packageId
+      unitId = installedPackageId
 #endif
 
       dependsOnRight pkg = not $ null $ do
@@ -279,7 +283,11 @@ initializeItVariable :: Interpreter ()
 initializeItVariable =
   -- This is required due to the way we handle `it` in the wrapper statements - if it doesn't exist,
   -- the first statement will fail.
+#if MIN_VERSION_ghc(8,0,0)
   void $ execStmt "let it = ()" execOptions
+#else
+  void $ runStmt "let it = ()" RunToCompletion
+#endif
 
 -- | Publisher for IHaskell outputs. The first argument indicates whether this output is final
 -- (true) or intermediate (false).
@@ -437,7 +445,7 @@ getErrMsgDoc :: ErrUtils.ErrMsg -> SDoc
 #if MIN_VERSION_ghc(8,0,0)
 getErrMsgDoc = ErrUtils.pprLocErrMsg
 #else
-getErrMsgDoc msg = ErrUtils.errMsgShortString msg $$ ErrUtils.errMsgContext msg
+getErrMsgDoc msg = ErrUtils.errMsgShortDoc msg $$ ErrUtils.errMsgExtraInfo msg
 #endif
 
 safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
@@ -689,7 +697,11 @@ evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
           let cmd = printf "IHaskellDirectory.setCurrentDirectory \"%s\"" $
                 replace " " "\\ " $
                   replace "\"" "\\\"" directory
+#if MIN_VERSION_ghc(8,0,0)
           execStmt cmd execOptions
+#else
+          runStmt cmd RunToCompletion
+#endif
           return mempty
         else return $ displayError $ printf "No such directory: '%s'" directory
     cmd -> liftIO $ do
@@ -1114,7 +1126,11 @@ keepingItVariable act = do
   gen <- liftIO getStdGen
   let rand = take 20 $ randomRs ('0', '9') gen
       var name = name ++ rand
+#if MIN_VERSION_ghc(8,0,0)
       goStmt s = execStmt s execOptions
+#else
+      goStmt s = runStmt s RunToCompletion
+#endif
       itVariable = var "it_var_temp_"
 
   goStmt $ printf "let %s = it" itVariable
@@ -1127,7 +1143,11 @@ data Captured a = CapturedStmt String
 
 capturedEval :: (String -> IO ()) -- ^ Function used to publish intermediate output.
              -> Captured a -- ^ Statement to evaluate.
+#if MIN_VERSION_ghc(8,0,0)
              -> Interpreter (String, ExecResult) -- ^ Return the output and result.
+#else
+             -> Interpreter (String, RunResult) -- ^ Return the output and result.
+#endif
 capturedEval output stmt = do
   -- Generate random variable names to use so that we cannot accidentally override the variables by
   -- using the right names in the terminal.
@@ -1168,16 +1188,26 @@ capturedEval output stmt = do
         , printf "let it = %s" itVariable
         ]
 
+#if MIN_VERSION_ghc(8,0,0)
       goStmt :: String -> Ghc ExecResult
       goStmt s = execStmt s execOptions
+#else
+      goStmt :: String -> Ghc RunResult
+      goStmt s = runStmt s RunToCompletion
+#endif
 
       runWithResult (CapturedStmt str) = goStmt str
       runWithResult (CapturedIO io) = do
         status <- gcatch (liftIO io >> return NoException) (return . AnyException)
         return $
           case status of
+#if MIN_VERSION_ghc(8,0,0)
             NoException    -> ExecComplete (Right []) 0
             AnyException e -> ExecComplete (Left e)   0
+#else
+            NoException    -> RunOk []
+            AnyException e -> RunException e
+#endif
 
   -- Initialize evaluation context.
   results <- forM initStmts goStmt
@@ -1290,7 +1320,11 @@ evalStatementOrIO publish state cmd = do
 
   (printed, result) <- capturedEval output cmd
   case result of
+#if MIN_VERSION_ghc(8,0,0)
     ExecComplete (Right names) _ -> do
+#else
+    RunOk names -> do
+#endif
       dflags <- getSessionDynFlags
 
       let allNames = map (showPpr dflags) names
@@ -1322,8 +1356,13 @@ evalStatementOrIO publish state cmd = do
               -- Return plain and html versions. Previously there was only a plain version.
               text -> Display [plain $ joined ++ "\n" ++ text, html $ htmled ++ mono text]
 
+#if MIN_VERSION_ghc(8,0,0)
     ExecComplete (Left exception) _ -> throw exception
     ExecBreak{} -> error "Should not break."
+#else
+    RunException exception -> throw exception
+    RunBreak{} -> error "Should not break."
+#endif
 
 -- Read from a file handle until we hit a delimiter or until we've read as many characters as
 -- requested
