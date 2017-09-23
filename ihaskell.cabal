@@ -128,7 +128,7 @@ executable ihaskell
   other-modules: 
                    IHaskellPrelude
                    Paths_ihaskell
-  ghc-options: -threaded
+  ghc-options: -threaded -rtsopts
   
   -- Other library packages from which modules are imported.
   default-language:    Haskell2010
