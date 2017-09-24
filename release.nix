@@ -1,4 +1,4 @@
-{ packages ? (_: []), systemPackages ? (_: []), pkgs ? import <nixpkgs> {} }:
+{ packages ? (_: []), systemPackages ? (_: []), pkgs ? import <nixpkgs> {}, rtsopts ? "-M3g -N2" }:
 
 let
   src = pkgs.lib.cleanSource ./.;
@@ -58,7 +58,7 @@ let
     #! ${pkgs.stdenv.shell}
     export GHC_PACKAGE_PATH="$(echo ${ihaskellEnv}/lib/*/package.conf.d| tr ' ' ':'):$GHC_PACKAGE_PATH"
     export PATH="${pkgs.stdenv.lib.makeBinPath ([ ihaskell ihaskellEnv jupyter ] ++ systemPackages pkgs)}"
-    ${ihaskell}/bin/ihaskell install -l $(${ihaskellEnv}/bin/ghc --print-libdir) && ${jupyter}/bin/jupyter notebook
+    ${ihaskell}/bin/ihaskell install -l $(${ihaskellEnv}/bin/ghc --print-libdir) --use-rtsopts="${rtsopts}" && ${jupyter}/bin/jupyter notebook
   '';
   profile = "${ihaskell.pname}-${ihaskell.version}/profile/profile.tar";
 in
