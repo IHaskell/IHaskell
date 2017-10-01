@@ -70,7 +70,9 @@ pkgs.buildEnv {
     . "${pkgs.makeWrapper}/nix-support/setup-hook"
     ln -s ${ihaskellSh}/bin/ihaskell-notebook $out/bin/
     for prg in $out/bin"/"*;do
-      wrapProgram $prg --set PYTHONPATH "$(echo ${jupyter}/lib/*/site-packages)"
+      if [[ -f $prg && -x $prg ]]; then
+        wrapProgram $prg --set PYTHONPATH "$(echo ${jupyter}/lib/*/site-packages)"
+      fi
     done
   '';
 }
