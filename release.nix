@@ -1,7 +1,24 @@
 { packages ? (_: []), systemPackages ? (_: []), pkgs ? import <nixpkgs> {}, rtsopts ? "-M3g -N2" }:
 
 let
-  src = pkgs.lib.cleanSource ./.;
+  cleanSource = name: type: let
+      baseName = baseNameOf (toString name);
+      lib = pkgs.lib;
+    in !(
+      (type == "directory" &&
+        (  baseName == ".git"
+        || baseName == "dist"
+        || baseName == ".stack-work"
+      ))                                                          ||
+      (type == "symlink"   && (lib.hasPrefix "result" baseName))  ||
+      lib.hasSuffix ".hi"    baseName                             ||
+      lib.hasSuffix ".ipynb" baseName                             ||
+      lib.hasSuffix ".nix"   baseName                             ||
+      lib.hasSuffix ".o"     baseName                             ||
+      lib.hasSuffix ".sock"  baseName                             ||
+      lib.hasSuffix ".yaml"  baseName
+    );
+  src = builtins.filterSource cleanSource ./.;
   displays = self: builtins.listToAttrs (
     map
       (display: { name = display; value = self.callCabal2nix display "${src}/ihaskell-display/${display}" {}; })
@@ -20,6 +37,8 @@ let
         "ihaskell-widgets"
       ]);
   dontCheck = pkgs.haskell.lib.dontCheck;
+  stringToReplace   = "setSessionDynFlags\n      flags";
+  replacementString = "setSessionDynFlags $ flip gopt_set Opt_BuildDynamicToo\n      flags";
   haskellPackages = pkgs.haskellPackages.override {
     overrides = self: super: {
       ihaskell       = pkgs.haskell.lib.overrideCabal (
@@ -27,8 +46,7 @@ let
         doCheck = false;
         postPatch = ''
           substituteInPlace ./src/IHaskell/Eval/Evaluate.hs --replace \
-            'hscTarget = objTarget flags' \
-            'hscTarget = HscInterpreted'
+            '${stringToReplace}' '${replacementString}'
         '';
       });
       ghc-parser     = self.callCabal2nix "ghc-parser"     "${src}/ghc-parser"     {};
@@ -69,7 +87,9 @@ pkgs.buildEnv {
     . "${pkgs.makeWrapper}/nix-support/setup-hook"
     ln -s ${ihaskellSh}/bin/ihaskell-notebook $out/bin/
     for prg in $out/bin"/"*;do
-      wrapProgram $prg --set PYTHONPATH "$(echo ${jupyter}/lib/*/site-packages)"
+      if [[ -f $prg && -x $prg ]]; then
+        wrapProgram $prg --set PYTHONPATH "$(echo ${jupyter}/lib/*/site-packages)"
+      fi
     done
   '';
 }
