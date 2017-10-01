@@ -82,9 +82,9 @@ let
 in
 pkgs.buildEnv {
   name = "ihaskell-with-packages";
+  buildInputs = [ pkgs.makeWrapper ];
   paths = [ ihaskellEnv jupyter ];
   postBuild = ''
-    . "${pkgs.makeWrapper}/nix-support/setup-hook"
     ln -s ${ihaskellSh}/bin/ihaskell-notebook $out/bin/
     for prg in $out/bin"/"*;do
       if [[ -f $prg && -x $prg ]]; then
