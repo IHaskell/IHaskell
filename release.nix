@@ -20,6 +20,8 @@ let
         "ihaskell-widgets"
       ]);
   dontCheck = pkgs.haskell.lib.dontCheck;
+  stringToReplace   = "setSessionDynFlags\n      flags";
+  replacementString = "setSessionDynFlags $ flip gopt_set Opt_BuildDynamicToo\n      flags";
   haskellPackages = pkgs.haskellPackages.override {
     overrides = self: super: {
       ihaskell       = pkgs.haskell.lib.overrideCabal (
@@ -27,8 +29,7 @@ let
         doCheck = false;
         postPatch = ''
           substituteInPlace ./src/IHaskell/Eval/Evaluate.hs --replace \
-            'hscTarget = objTarget flags' \
-            'hscTarget = HscInterpreted'
+            '${stringToReplace}' '${replacementString}'
         '';
       });
       ghc-parser     = self.callCabal2nix "ghc-parser"     "${src}/ghc-parser"     {};
