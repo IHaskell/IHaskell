@@ -37,16 +37,23 @@ let
         "ihaskell-widgets"
       ]);
   dontCheck = pkgs.haskell.lib.dontCheck;
-  stringToReplace   = "setSessionDynFlags\n      flags";
-  replacementString = "setSessionDynFlags $ flip gopt_set Opt_BuildDynamicToo\n      flags";
   haskellPackages = pkgs.haskellPackages.override {
     overrides = self: super: {
       ihaskell       = pkgs.haskell.lib.overrideCabal (
                        self.callCabal2nix "ihaskell"          src                  {}) (_drv: {
         doCheck = false;
-        postPatch = ''
+        # Nix-built IHaskell expects to load a *.dyn_o file instead of *.o,
+        # see https://github.com/gibiansky/IHaskell/issues/728
+        postPatch = let
+          original = ''
+            setSessionDynFlags
+                  flags'';
+          replacement = ''
+            setSessionDynFlags $ flip gopt_set Opt_BuildDynamicToo
+                  flags'';
+        in ''
           substituteInPlace ./src/IHaskell/Eval/Evaluate.hs --replace \
-            '${stringToReplace}' '${replacementString}'
+            '${original}' '${replacement}'
         '';
       });
       ghc-parser     = self.callCabal2nix "ghc-parser"     "${src}/ghc-parser"     {};
