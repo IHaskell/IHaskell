@@ -125,9 +125,10 @@ executeInputParser = requestParser $ \obj -> do
 executeRequestParser :: LByteString -> Message
 executeRequestParser content =
   let parser obj = do
+                     let getOrElse a k = (fromMaybe a) <$> obj .:? k
                      code <- obj .: "code"
-                     silent <- obj .: "silent"
-                     storeHistory <- obj .: "store_history"
+                     silent <- getOrElse False "silent"
+                     storeHistory <- getOrElse (not silent) "store_history"
                      allowStdin <- obj .: "allow_stdin"
 
                      return (code, silent, storeHistory, allowStdin)
