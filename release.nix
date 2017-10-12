@@ -4,18 +4,15 @@ let
   cleanSource = name: type: let
       baseName = baseNameOf (toString name);
       lib = nixpkgs.lib;
-    in !(
+    in lib.cleanSourceFilter name type && !(
       (type == "directory" &&
-        (  baseName == ".git"
-        || baseName == "dist"
+        (  baseName == "dist"
         || baseName == ".stack-work"
-      ))                                                          ||
-      (type == "symlink"   && (lib.hasPrefix "result" baseName))  ||
-      lib.hasSuffix ".hi"    baseName                             ||
-      lib.hasSuffix ".ipynb" baseName                             ||
-      lib.hasSuffix ".nix"   baseName                             ||
-      lib.hasSuffix ".o"     baseName                             ||
-      lib.hasSuffix ".sock"  baseName                             ||
+      ))                              ||
+      lib.hasSuffix ".hi"    baseName ||
+      lib.hasSuffix ".ipynb" baseName ||
+      lib.hasSuffix ".nix"   baseName ||
+      lib.hasSuffix ".sock"  baseName ||
       lib.hasSuffix ".yaml"  baseName
     );
   src = builtins.filterSource cleanSource ./.;
