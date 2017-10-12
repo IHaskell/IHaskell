@@ -1,9 +1,9 @@
-{ packages ? (_: []), systemPackages ? (_: []), pkgs ? import <nixpkgs> {}, rtsopts ? "-M3g -N2" }:
+{ nixpkgs ? import <nixpkgs> {}, packages ? (_: []), rtsopts ? "-M3g -N2", systemPackages ? (_: []) }:
 
 let
   cleanSource = name: type: let
       baseName = baseNameOf (toString name);
-      lib = pkgs.lib;
+      lib = nixpkgs.lib;
     in !(
       (type == "directory" &&
         (  baseName == ".git"
@@ -36,10 +36,10 @@ let
         "ihaskell-static-canvas"
         "ihaskell-widgets"
       ]);
-  dontCheck = pkgs.haskell.lib.dontCheck;
-  haskellPackages = pkgs.haskellPackages.override {
+  dontCheck = nixpkgs.haskell.lib.dontCheck;
+  haskellPackages = nixpkgs.haskellPackages.override {
     overrides = self: super: {
-      ihaskell       = pkgs.haskell.lib.overrideCabal (
+      ihaskell       = nixpkgs.haskell.lib.overrideCabal (
                        self.callCabal2nix "ihaskell"          src                  {}) (_drv: {
         doCheck = false;
         # Nix-built IHaskell expects to load a *.dyn_o file instead of *.o,
@@ -76,19 +76,19 @@ let
     ihaskell-static-canvas
     # ihaskell-widgets
   ] ++ packages self);
-  jupyter = pkgs.python3.buildEnv.override {
-    extraLibs = let ps = pkgs.python3Packages; in [ ps.jupyter ps.notebook ];
+  jupyter = nixpkgs.python3.buildEnv.override {
+    extraLibs = let ps = nixpkgs.python3Packages; in [ ps.jupyter ps.notebook ];
   };
-  ihaskellSh = pkgs.writeScriptBin "ihaskell-notebook" ''
-    #! ${pkgs.stdenv.shell}
+  ihaskellSh = nixpkgs.writeScriptBin "ihaskell-notebook" ''
+    #! ${nixpkgs.stdenv.shell}
     export GHC_PACKAGE_PATH="$(echo ${ihaskellEnv}/lib/*/package.conf.d| tr ' ' ':'):$GHC_PACKAGE_PATH"
-    export PATH="${pkgs.stdenv.lib.makeBinPath ([ ihaskell ihaskellEnv jupyter ] ++ systemPackages pkgs)}"
+    export PATH="${nixpkgs.stdenv.lib.makeBinPath ([ ihaskell ihaskellEnv jupyter ] ++ systemPackages nixpkgs)}"
     ${ihaskell}/bin/ihaskell install -l $(${ihaskellEnv}/bin/ghc --print-libdir) --use-rtsopts="${rtsopts}" && ${jupyter}/bin/jupyter notebook
   '';
 in
-pkgs.buildEnv {
+nixpkgs.buildEnv {
   name = "ihaskell-with-packages";
-  buildInputs = [ pkgs.makeWrapper ];
+  buildInputs = [ nixpkgs.makeWrapper ];
   paths = [ ihaskellEnv jupyter ];
   postBuild = ''
     ln -s ${ihaskellSh}/bin/ihaskell-notebook $out/bin/
