@@ -1,5 +1,5 @@
 flags: {}
 packages:
 - '.'
-resolver: lts-9.6
+resolver: lts-9.8
 extra-deps: []
