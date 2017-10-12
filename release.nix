@@ -1,22 +1,16 @@
 { nixpkgs ? import <nixpkgs> {}, packages ? (_: []), rtsopts ? "-M3g -N2", systemPackages ? (_: []) }:
 
 let
+  inherit (builtins) any elem filterSource listToAttrs;
   cleanSource = name: type: let
-      baseName = baseNameOf (toString name);
-      lib = nixpkgs.lib;
-    in lib.cleanSourceFilter name type && !(
-      (type == "directory" &&
-        (  baseName == "dist"
-        || baseName == ".stack-work"
-      ))                              ||
-      lib.hasSuffix ".hi"    baseName ||
-      lib.hasSuffix ".ipynb" baseName ||
-      lib.hasSuffix ".nix"   baseName ||
-      lib.hasSuffix ".sock"  baseName ||
-      lib.hasSuffix ".yaml"  baseName
-    );
-  src = builtins.filterSource cleanSource ./.;
-  displays = self: builtins.listToAttrs (
+    baseName = baseNameOf (toString name);
+    lib = nixpkgs.lib;
+  in lib.cleanSourceFilter name type && !(
+    (type == "directory" && (elem baseName [ ".stack-work" "dist"])) ||
+    any (lib.flip lib.hasSuffix baseName) [ ".hi" ".ipynb" ".nix" ".sock" ".yaml" ]
+  );
+  src = filterSource cleanSource ./.;
+  displays = self: listToAttrs (
     map
       (display: { name = display; value = self.callCabal2nix display "${src}/ihaskell-display/${display}" {}; })
       [
