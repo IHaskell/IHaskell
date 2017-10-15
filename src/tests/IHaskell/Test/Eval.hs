@@ -159,6 +159,11 @@ testEval =
       "putStrLn \"Привет!\"" `becomes` ["Привет!"]
 
     it "evaluates directives" $ do
+#if MIN_VERSION_ghc(8,2,0)
+      -- It's `p` instead of `t` for some reason
+      ":typ 3" `becomes` ["3 :: forall p. Num p => p"]
+#else
       ":typ 3" `becomes` ["3 :: forall t. Num t => t"]
+#endif
       ":k Maybe" `becomes` ["Maybe :: * -> *"]
       ":in String" `pages` ["type String = [Char] \t-- Defined in \8216GHC.Base\8217"]

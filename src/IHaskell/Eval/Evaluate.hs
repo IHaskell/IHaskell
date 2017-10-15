@@ -188,7 +188,13 @@ interpret libdir allowedStdin action = runGhc (Just libdir) $ do
 
 packageIdString' :: DynFlags -> PackageConfig -> String
 packageIdString' dflags pkg_cfg =
-#if MIN_VERSION_ghc(8,0,0)
+#if MIN_VERSION_ghc(8,2,0)
+    case (lookupPackage dflags $ packageConfigId pkg_cfg) of
+      Nothing -> "(unknown)"
+      Just cfg -> let
+        PackageName name = packageName cfg
+        in unpackFS name
+#elif MIN_VERSION_ghc(8,0,0)
     fromMaybe "(unknown)" (unitIdPackageIdString dflags $ packageConfigId pkg_cfg)
 #elif MIN_VERSION_ghc(7,10,2)
     fromMaybe "(unknown)" (packageKeyPackageIdString dflags $ packageConfigId pkg_cfg)
@@ -222,8 +228,13 @@ initializeImports = do
 
       initStr = "ihaskell-"
 
+#if MIN_VERSION_ghc(8,2,0)
+      -- Name of the ihaskell package, i.e. "ihaskell"
+      iHaskellPkgName = "ihaskell"
+#else
       -- Name of the ihaskell package, e.g. "ihaskell-1.2.3.4"
       iHaskellPkgName = initStr ++ intercalate "." (map show (versionBranch version))
+#endif
 
 #if !MIN_VERSION_ghc(8,0,0)
       unitId = packageId
@@ -254,7 +265,11 @@ initializeImports = do
       dropFirstAndLast = reverse . drop 1 . reverse . drop 1
 
       toImportStmt :: String -> String
+#if MIN_VERSION_ghc(8,2,0)
+      toImportStmt = printf importFmt . concatMap capitalize . drop 1 . split "-"
+#else
       toImportStmt = printf importFmt . concatMap capitalize . dropFirstAndLast . split "-"
+#endif
 
       displayImports = map toImportStmt displayPkgs
 
@@ -841,16 +856,28 @@ evalCommand output (Expression expr) state = do
   -- is no appropriate typeclass instance, this will throw an exception and thus `attempt` will return
   -- False, and we just resort to plaintext.
   let displayExpr = printf "(IHaskell.Display.display (%s))" expr :: String
+#if MIN_VERSION_ghc(8,2,0)
+  canRunDisplay <- attempt $ exprType TM_Inst displayExpr
+#else
   canRunDisplay <- attempt $ exprType displayExpr
+#endif
 
   -- Check if this is a widget.
   let widgetExpr = printf "(IHaskell.Display.Widget (%s))" expr :: String
+#if MIN_VERSION_ghc(8,2,0)
+  isWidget <- attempt $ exprType TM_Inst widgetExpr
+#else
   isWidget <- attempt $ exprType widgetExpr
+#endif
 
   -- Check if this is a template haskell declaration
   let declExpr = printf "((id :: IHaskellTH.DecsQ -> IHaskellTH.DecsQ) (%s))" expr :: String
   let anyExpr = printf "((id :: IHaskellPrelude.Int -> IHaskellPrelude.Int) (%s))" expr :: String
+#if MIN_VERSION_ghc(8,2,0)
+  isTHDeclaration <- liftM2 (&&) (attempt $ exprType TM_Inst declExpr) (not <$> attempt (exprType TM_Inst anyExpr))
+#else
   isTHDeclaration <- liftM2 (&&) (attempt $ exprType declExpr) (not <$> attempt (exprType anyExpr))
+#endif
 
   write state $ "Can Display: " ++ show canRunDisplay
   write state $ "Is Widget: " ++ show isWidget
@@ -946,7 +973,11 @@ evalCommand output (Expression expr) state = do
                       then display :: Display
                       else removeSvg display
 
+#if MIN_VERSION_ghc(8,2,0)
+    isIO expr = attempt $ exprType TM_Inst $ printf "((\\x -> x) :: IO a -> IO a) (%s)" expr
+#else
     isIO expr = attempt $ exprType $ printf "((\\x -> x) :: IO a -> IO a) (%s)" expr
+#endif
 
     postprocessShowError :: EvalOut -> EvalOut
     postprocessShowError evalOut = evalOut { evalResult = Display $ map postprocess disps }
@@ -996,7 +1027,11 @@ evalCommand _ (Declaration decl) state = wrapExecution state $ do
       -- Get all the type strings.
       dflags <- getSessionDynFlags
       types <- forM nonDataNames $ \name -> do
+#if MIN_VERSION_ghc(8,2,0)
+                 theType <- showSDocUnqual dflags . ppr <$> exprType TM_Inst name
+#else
                  theType <- showSDocUnqual dflags . ppr <$> exprType name
+#endif
                  return $ name ++ " :: " ++ theType
 
       return $ Display [html $ unlines $ map formatGetType types]
@@ -1309,7 +1344,11 @@ evalStatementOrIO publish state cmd = do
         else do
           -- Get all the type strings.
           types <- forM nonItNames $ \name -> do
+#if MIN_VERSION_ghc(8,2,0)
+                     theType <- showSDocUnqual dflags . ppr <$> exprType TM_Inst name
+#else
                      theType <- showSDocUnqual dflags . ppr <$> exprType name
+#endif
                      return $ name ++ " :: " ++ theType
 
           let joined = unlines types
