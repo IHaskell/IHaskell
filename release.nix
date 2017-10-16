@@ -7,7 +7,7 @@ let
     lib = nixpkgs.lib;
   in lib.cleanSourceFilter name type && !(
     (type == "directory" && (elem baseName [ ".stack-work" "dist"])) ||
-    any (lib.flip lib.hasSuffix baseName) [ ".hi" ".ipynb" ".nix" ".sock" ".yaml" ]
+    any (lib.flip lib.hasSuffix baseName) [ ".hi" ".ipynb" ".nix" ".sock" ".yaml" ".yml" ]
   );
   src = filterSource cleanSource ./.;
   displays = self: listToAttrs (
