@@ -72,7 +72,6 @@ install:
     echo "apply-ghc-options: everything" >> stack.yaml
 
   - stack setup
-  - stack install gtk2hs-buildtools --fast
   - stack build hmatrix --fast
   - stack build --dependencies-only --fast
 
