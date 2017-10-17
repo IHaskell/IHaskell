@@ -1,6 +1,7 @@
 # Test against different stack LTS versions.
 env:
- - DISPLAY=true   RESOLVER=lts-9.9 # GHC 8.0.2
+ - DISPLAY=true   USE_STACK_YAML="stack.yaml"     # GHC 8.0.2
+ - DISPLAY=true   USE_STACK_YAML="stack-8.2.yaml" # GHC 8.2.1
 
 # Choose a lightweight base image; we provide our own build tools.
 language: python
@@ -64,21 +65,25 @@ install:
   # Set path for pkg-config to find zeromq, otherwise install of zeromq4-haskell fails.
   - export PKG_CONFIG_PATH=$HOME/zeromq/lib/pkgconfig/
   - |
+    # Used to avoid 'source and destination file are the same' error
+    mv $USE_STACK_YAML intermediate-stack.yaml
+    mv intermediate-stack.yaml stack.yaml
+
     echo "apply-ghc-options: everything" >> stack.yaml
 
-  - stack setup --resolver=$RESOLVER
+  - stack setup
   - stack install gtk2hs-buildtools --fast
-  - stack build hmatrix --resolver=$RESOLVER --fast
-  - stack build --dependencies-only --resolver=$RESOLVER --fast
+  - stack build hmatrix --fast
+  - stack build --dependencies-only --fast
 
 script:
   - export LD_LIBRARY_PATH=$HOME/zeromq/lib
-  - stack test --no-terminal --resolver=$RESOLVER --fast
+  - stack test --no-terminal --fast
   - |
     set -e
     if $DISPLAY; then
         TOP=$(pwd)
-        stack build --no-terminal --resolver=$RESOLVER --fast
+        stack build --no-terminal --fast
 
         # Ensure that ipython-kernel examples build successfully.
         stack build ipython-kernel --flag ipython-kernel:examples --fast
