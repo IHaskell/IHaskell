@@ -2,14 +2,22 @@
 
 let
   inherit (builtins) any elem filterSource listToAttrs;
+  lib = nixpkgs.lib;
   cleanSource = name: type: let
     baseName = baseNameOf (toString name);
-    lib = nixpkgs.lib;
   in lib.cleanSourceFilter name type && !(
     (type == "directory" && (elem baseName [ ".stack-work" "dist"])) ||
     any (lib.flip lib.hasSuffix baseName) [ ".hi" ".ipynb" ".nix" ".sock" ".yaml" ".yml" ]
   );
-  src = filterSource cleanSource ./.;
+  ihaskellSourceFilter = src: name: type: let
+    relPath = lib.removePrefix (toString src + "/") (toString name);
+  in cleanSource name type && ( any (lib.flip lib.hasPrefix relPath) [
+    "src" "main" "html" "Setup.hs" "ihaskell.cabal" "LICENSE"
+  ]);
+  ihaskell-src         = filterSource (ihaskellSourceFilter ./.) ./.;
+  ipython-kernel-src   = filterSource cleanSource ./ipython-kernel;
+  ghc-parser-src       = filterSource cleanSource ./ghc-parser;
+  ihaskell-display-src = filterSource cleanSource ./ihaskell-display;
   plot = nixpkgs.fetchFromGitHub {
     owner  = "amcphail";
     repo   = "plot";
@@ -18,7 +26,7 @@ let
   };
   displays = self: builtins.listToAttrs (
     map
-      (display: { name = display; value = self.callCabal2nix display "${src}/ihaskell-display/${display}" {}; })
+      (display: { name = display; value = self.callCabal2nix display "${ihaskell-display-src}/${display}" {}; })
       [
         "ihaskell-aeson"
         "ihaskell-blaze"
@@ -36,7 +44,7 @@ let
   haskellPackages = nixpkgs.haskell.packages.ghc821.override {
     overrides = self: super: rec {
       ihaskell       = nixpkgs.haskell.lib.overrideCabal (
-                       self.callCabal2nix "ihaskell"          src                  {}) (_drv: {
+                       self.callCabal2nix "ihaskell"          ihaskell-src       {}) (_drv: {
         postPatch = let
           # Nix-built IHaskell expects to load a *.dyn_o file instead of *.o,
           # see https://github.com/gibiansky/IHaskell/issues/728
@@ -67,8 +75,8 @@ let
           export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
         '';
       });
-      ghc-parser        = self.callCabal2nix "ghc-parser"     "${src}/ghc-parser"     {};
-      ipython-kernel    = self.callCabal2nix "ghc-parser"     "${src}/ipython-kernel" {};
+      ghc-parser        = self.callCabal2nix "ghc-parser"     ghc-parser-src     {};
+      ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
       shelly = nixpkgs.haskell.lib.doJailbreak super.shelly;
 
       plot              = self.callCabal2nix "plot"               plot             { inherit cairo pango; };
