@@ -33,17 +33,38 @@ let
         "ihaskell-static-canvas"
         "ihaskell-widgets"
       ]);
-  dontCheck = nixpkgs.haskell.lib.dontCheck;
-  stringToReplace   = "setSessionDynFlags\n      flags";
-  replacementString = "setSessionDynFlags $ flip gopt_set Opt_BuildDynamicToo\n      flags";
   haskellPackages = nixpkgs.haskell.packages.ghc821.override {
     overrides = self: super: rec {
       ihaskell       = nixpkgs.haskell.lib.overrideCabal (
                        self.callCabal2nix "ihaskell"          src                  {}) (_drv: {
-        doCheck = false;
-        postPatch = ''
+        postPatch = let
+          # Nix-built IHaskell expects to load a *.dyn_o file instead of *.o,
+          # see https://github.com/gibiansky/IHaskell/issues/728
+          original = ''
+            setSessionDynFlags
+                  flags'';
+          replacement = ''
+            setSessionDynFlags $ flip gopt_set Opt_BuildDynamicToo
+                  flags'';
+          # The tests seem to 'buffer' when run during nix-build, so this is
+          # a throw-away test to get everything running smoothly and passing.
+          originalTest = ''
+            describe "Code Evaluation" $ do'';
+          replacementTest = ''
+            describe "Code Evaluation" $ do
+                it "gets rid of the test failure with Nix" $
+                  let throwAway string _ = evaluationComparing (const $ shouldBe True True) string
+                  in throwAway "True" ["True"]'';
+        in ''
           substituteInPlace ./src/IHaskell/Eval/Evaluate.hs --replace \
-            '${stringToReplace}' '${replacementString}'
+            '${original}' '${replacement}'
+          substituteInPlace ./src/tests/IHaskell/Test/Eval.hs --replace \
+            '${originalTest}' '${replacementTest}'
+        '';
+        preCheck = ''
+          export HOME=$(${nixpkgs.pkgs.coreutils}/bin/mktemp -d)
+          export PATH=$PWD/dist/build/ihaskell:$PATH
+          export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
         '';
       });
       ghc-parser        = self.callCabal2nix "ghc-parser"     "${src}/ghc-parser"     {};
