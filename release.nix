@@ -35,7 +35,6 @@ let
         "ihaskell-static-canvas"
         "ihaskell-widgets"
       ]);
-  dontCheck = nixpkgs.haskell.lib.dontCheck;
   haskellPackages = nixpkgs.haskellPackages.override {
     overrides = self: super: {
       ihaskell       = nixpkgs.haskell.lib.overrideCabal (
