@@ -1,4 +1,14 @@
-{ nixpkgs ? import <nixpkgs> {}, packages ? (_: []), rtsopts ? "-M3g -N2", systemPackages ? (_: []) }:
+let
+  overlay = self: super: {
+    all-cabal-hashes = super.fetchFromGitHub {
+      owner  = "commercialhaskell";
+      repo   = "all-cabal-hashes";
+      rev    = "a7e38c265b7927a921fbc06b977c1e254cb3142b";
+      sha256 = "0n4703mbfdgwnmy5cbzahgg0vmqpin25aafcf30fyl49gbzyjr6g";
+    };
+  };
+  overlaid = import <nixpkgs> { overlays = [ overlay ]; };
+in { nixpkgs ? overlaid, packages ? (_: []), rtsopts ? "-M3g -N2", systemPackages ? (_: []) }:
 
 let
   inherit (builtins) any elem filterSource listToAttrs;
@@ -24,6 +34,12 @@ let
     rev    = "cc5cdff696aa99e1001124917c3b87b95529c4e3";
     sha256 = "13abrymry4nqyl9gmjrj8lhplbg4xag7x41n89yyw822360d3drh";
   };
+  gtk2hs = nixpkgs.fetchFromGitHub {
+    owner  = "gtk2hs";
+    repo   = "gtk2hs";
+    rev    = "f066503df2c6d8d57e06630615d2097741d09d39";
+    sha256 = "1drqwz5ry8i9sv34kkywl5hj0p4yffbjgzb5fgpp4dzdgfxl0cqk";
+  };
   displays = self: builtins.listToAttrs (
     map
       (display: { name = display; value = self.callCabal2nix display "${ihaskell-display-src}/${display}" {}; })
@@ -42,7 +58,7 @@ let
         "ihaskell-widgets"
       ]);
   haskellPackages = nixpkgs.haskell.packages.ghc821.override {
-    overrides = self: super: rec {
+    overrides = self: super: {
       ihaskell       = nixpkgs.haskell.lib.overrideCabal (
                        self.callCabal2nix "ihaskell"          ihaskell-src       {}) (_drv: {
         postPatch = let
@@ -75,17 +91,27 @@ let
           export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
         '';
       });
-      ghc-parser        = self.callCabal2nix "ghc-parser"     ghc-parser-src     {};
+      ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
       ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
-      shelly = nixpkgs.haskell.lib.doJailbreak super.shelly;
+      plot              = self.callCabal2nix "plot" plot {};
 
-      plot              = self.callCabal2nix "plot"               plot             { inherit cairo pango; };
+      shelly            = nixpkgs.haskell.lib.doJailbreak super.shelly;
+      testing-feat      = nixpkgs.haskell.lib.doJailbreak super.testing-feat;
+
+      cairo             = nixpkgs.lib.overrideDerivation super.cairo (drv: {
+        src = "${gtk2hs}/cairo";
+      });
+      glib              = nixpkgs.lib.overrideDerivation super.glib (drv: {
+        src = "${gtk2hs}/glib";
+      });
+      pango             = nixpkgs.lib.overrideDerivation super.pango (drv: {
+        src = "${gtk2hs}/pango";
+      });
 
       Chart             = super.callHackage "Chart" "1.8.2" {};
       Chart-cairo       = super.callHackage "Chart-cairo" "1.8.2" {};
-      cairo             = super.callHackage "cairo" "0.13.3.0" {};
       cubicbezier       = super.callHackage "cubicbezier" "0.6.0.4" {};
-      diagrams          = super.callHackage "diagrams" "1.4" {};
+      diagrams          = nixpkgs.haskell.lib.dontHaddock (super.callHackage "diagrams" "1.4" {});
       diagrams-cairo    = super.callHackage "diagrams-cairo" "1.4" {};
       diagrams-contrib  = super.callHackage "diagrams-contrib" "1.4.1" {};
       diagrams-core     = super.callHackage "diagrams-core" "1.4.0.1" {};
@@ -94,11 +120,9 @@ let
       diagrams-svg      = super.callHackage "diagrams-svg" "1.4.1" {};
       dual-tree         = super.callHackage "dual-tree" "0.2.1" {};
       fast-math         = super.callHackage "fast-math" "1.0.2" {};
-      glib              = super.callHackage "glib" "0.13.5.0"  {};
-      gtk2hs-buildtools = super.callHackage "gtk2hs-buildtools" "0.13.2.2" {};
+      gtk2hs-buildtools = super.callHackage "gtk2hs-buildtools" "0.13.3.0" {};
       magic             = super.callHackage "magic" "1.1" {};
       mfsolve           = super.callHackage "mfsolve" "0.3.2.0" {};
-      pango             = super.callHackage "pango" "0.13.4.0" {};
       statestack        = super.callHackage "statestack" "0.2.0.5" {};
       static-canvas     = super.callHackage "static-canvas" "0.2.0.3" {};
       svg-builder       = super.callHackage "svg-builder" "0.1.0.2" {};
@@ -109,8 +133,8 @@ let
     ihaskell
     ihaskell-aeson
     ihaskell-blaze
-    # ihaskell-charts
-    # ihaskell-diagrams
+    ihaskell-charts
+    ihaskell-diagrams
     ihaskell-gnuplot
     ihaskell-hatex
     ihaskell-juicypixels
