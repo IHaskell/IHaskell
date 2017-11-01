@@ -95,6 +95,7 @@ let
       ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
       plot              = self.callCabal2nix "plot" plot {};
 
+      diagrams-cairo    = nixpkgs.haskell.lib.doJailbreak super.diagrams-cairo;
       shelly            = nixpkgs.haskell.lib.doJailbreak super.shelly;
       testing-feat      = nixpkgs.haskell.lib.doJailbreak super.testing-feat;
 
@@ -108,25 +109,8 @@ let
         src = "${gtk2hs}/pango";
       });
 
-      Chart             = super.callHackage "Chart" "1.8.2" {};
-      Chart-cairo       = super.callHackage "Chart-cairo" "1.8.2" {};
-      cubicbezier       = super.callHackage "cubicbezier" "0.6.0.4" {};
-      diagrams          = nixpkgs.haskell.lib.dontHaddock (super.callHackage "diagrams" "1.4" {});
-      diagrams-cairo    = super.callHackage "diagrams-cairo" "1.4" {};
-      diagrams-contrib  = super.callHackage "diagrams-contrib" "1.4.1" {};
-      diagrams-core     = super.callHackage "diagrams-core" "1.4.0.1" {};
-      diagrams-lib      = super.callHackage "diagrams-lib" "1.4.1.2" {};
-      diagrams-solve    = super.callHackage "diagrams-solve" "0.1.1" {};
-      diagrams-svg      = super.callHackage "diagrams-svg" "1.4.1" {};
-      dual-tree         = super.callHackage "dual-tree" "0.2.1" {};
-      fast-math         = super.callHackage "fast-math" "1.0.2" {};
       gtk2hs-buildtools = super.callHackage "gtk2hs-buildtools" "0.13.3.0" {};
       hmatrix           = super.hmatrix_0_18_1_0;
-      magic             = super.callHackage "magic" "1.1" {};
-      mfsolve           = super.callHackage "mfsolve" "0.3.2.0" {};
-      statestack        = super.callHackage "statestack" "0.2.0.5" {};
-      static-canvas     = super.callHackage "static-canvas" "0.2.0.3" {};
-      svg-builder       = super.callHackage "svg-builder" "0.1.0.2" {};
     } // displays self;
   };
   ihaskell = haskellPackages.ihaskell;
