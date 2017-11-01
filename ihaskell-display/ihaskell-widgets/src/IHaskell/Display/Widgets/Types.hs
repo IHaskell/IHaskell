@@ -15,8 +15,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE AutoDeriveTypeable #-}
 
-module IHaskell.Display.Widgets.Types where
-
 -- | This module houses all the type-trickery needed to make widgets happen.
 --
 -- All widgets have a corresponding 'WidgetType', and some fields/attributes/properties as defined
@@ -61,6 +59,8 @@ module IHaskell.Display.Widgets.Types where
 --
 -- Widgets are not able to do console input, the reason for that can be found in the messaging
 -- specification.
+module IHaskell.Display.Widgets.Types where
+
 import           Control.Monad (unless, join, when, void)
 import           Control.Applicative ((<$>))
 import qualified Control.Exception as Ex
