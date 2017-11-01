@@ -97,6 +97,7 @@ let
 
       diagrams-cairo    = nixpkgs.haskell.lib.doJailbreak super.diagrams-cairo;
       shelly            = nixpkgs.haskell.lib.doJailbreak super.shelly;
+      static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
       testing-feat      = nixpkgs.haskell.lib.doJailbreak super.testing-feat;
 
       cairo             = nixpkgs.lib.overrideDerivation super.cairo (drv: {
@@ -126,7 +127,7 @@ let
     ihaskell-magic
     ihaskell-plot
     # ihaskell-rlangqq
-    # ihaskell-static-canvas
+    ihaskell-static-canvas
     # ihaskell-widgets
   ] ++ packages self);
   jupyter = nixpkgs.python3.buildEnv.override {
