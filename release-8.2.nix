@@ -130,7 +130,7 @@ let
     ihaskell-plot
     # ihaskell-rlangqq
     ihaskell-static-canvas
-    ihaskell-widgets
+    # ihaskell-widgets
   ] ++ packages self);
   jupyter = nixpkgs.python3.buildEnv.override {
     extraLibs = with nixpkgs; [ python3Packages.jupyter python3Packages.notebook ];
