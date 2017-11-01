@@ -112,6 +112,8 @@ let
 
       gtk2hs-buildtools = super.callHackage "gtk2hs-buildtools" "0.13.3.0" {};
       hmatrix           = super.hmatrix_0_18_1_0;
+      singletons        = super.callHackage "singletons" "2.3.1" {};
+      th-desugar        = super.callHackage "th-desugar" "1.7" {};
     } // displays self;
   };
   ihaskell = haskellPackages.ihaskell;
@@ -128,7 +130,7 @@ let
     ihaskell-plot
     # ihaskell-rlangqq
     ihaskell-static-canvas
-    # ihaskell-widgets
+    ihaskell-widgets
   ] ++ packages self);
   jupyter = nixpkgs.python3.buildEnv.override {
     extraLibs = with nixpkgs; [ python3Packages.jupyter python3Packages.notebook ];
