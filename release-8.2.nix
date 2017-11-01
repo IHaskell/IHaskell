@@ -121,6 +121,7 @@ let
       dual-tree         = super.callHackage "dual-tree" "0.2.1" {};
       fast-math         = super.callHackage "fast-math" "1.0.2" {};
       gtk2hs-buildtools = super.callHackage "gtk2hs-buildtools" "0.13.3.0" {};
+      hmatrix           = super.hmatrix_0_18_1_0;
       magic             = super.callHackage "magic" "1.1" {};
       mfsolve           = super.callHackage "mfsolve" "0.3.2.0" {};
       statestack        = super.callHackage "statestack" "0.2.0.5" {};
@@ -139,7 +140,7 @@ let
     ihaskell-hatex
     ihaskell-juicypixels
     ihaskell-magic
-    # ihaskell-plot
+    ihaskell-plot
     # ihaskell-rlangqq
     # ihaskell-static-canvas
     # ihaskell-widgets
