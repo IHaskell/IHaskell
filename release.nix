@@ -79,9 +79,7 @@ let
     ihaskell-static-canvas
     # ihaskell-widgets
   ] ++ packages self);
-  jupyter = nixpkgs.python3.buildEnv.override {
-    extraLibs = let ps = nixpkgs.python3Packages; in [ ps.jupyter ps.notebook ];
-  };
+  jupyter = nixpkgs.python3.withPackages (ps: [ ps.jupyter ps.notebook ]);
   ihaskellSh = nixpkgs.writeScriptBin "ihaskell-notebook" ''
     #! ${nixpkgs.stdenv.shell}
     export GHC_PACKAGE_PATH="$(echo ${ihaskellEnv}/lib/*/package.conf.d| tr ' ' ':'):$GHC_PACKAGE_PATH"
