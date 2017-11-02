@@ -204,7 +204,23 @@ matrix:
         - export NIX_CONF_DIR=~
         - echo "binary-caches = http://128.199.234.106:3000" >> $NIX_CONF_DIR/nix.conf
         - echo "binary-cache-public-keys = 128.199.234.106:jzUyrIQHov5i6f94jQVriqPDLuPYlZPAsga3W3k+L8E=" >> $NIX_CONF_DIR/nix.conf
-      script: nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/a0b50eab599005127476e7b3b4ae8bd2d363091b.tar.gz $RELEASE_NIX
+      script:
+        - >
+          nix-build
+          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/a0b50eab599005127476e7b3b4ae8bd2d363091b.tar.gz
+          $RELEASE_NIX
+          --arg packages '(p: with p; [
+            ihaskell-aeson
+            ihaskell-blaze
+            ihaskell-charts
+            ihaskell-diagrams
+            ihaskell-gnuplot
+            ihaskell-hatex
+            ihaskell-juicypixels
+            ihaskell-magic
+            ihaskell-plot
+            ihaskell-static-canvas
+          ])'
     - language: nix
       env: RELEASE_NIX="release-8.2.nix"
       cache:
@@ -214,4 +230,20 @@ matrix:
         - export NIX_CONF_DIR=~
         - echo "binary-caches = http://128.199.234.106:3000" >> $NIX_CONF_DIR/nix.conf
         - echo "binary-cache-public-keys = 128.199.234.106:jzUyrIQHov5i6f94jQVriqPDLuPYlZPAsga3W3k+L8E=" >> $NIX_CONF_DIR/nix.conf
-      script: nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/a0b50eab599005127476e7b3b4ae8bd2d363091b.tar.gz $RELEASE_NIX
+      script:
+        - >
+          nix-build
+          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/a0b50eab599005127476e7b3b4ae8bd2d363091b.tar.gz
+          $RELEASE_NIX
+          --arg packages '(p: with p; [
+            ihaskell-aeson
+            ihaskell-blaze
+            ihaskell-charts
+            ihaskell-diagrams
+            ihaskell-gnuplot
+            ihaskell-hatex
+            ihaskell-juicypixels
+            ihaskell-magic
+            ihaskell-plot
+            ihaskell-static-canvas
+          ])'

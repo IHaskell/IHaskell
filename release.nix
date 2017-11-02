@@ -64,21 +64,7 @@ let
     } // displays self;
   };
   ihaskell = haskellPackages.ihaskell;
-  ihaskellEnv = haskellPackages.ghcWithPackages (self: with self; [
-    ihaskell
-    ihaskell-aeson
-    ihaskell-blaze
-    ihaskell-charts
-    ihaskell-diagrams
-    ihaskell-gnuplot
-    ihaskell-hatex
-    ihaskell-juicypixels
-    ihaskell-magic
-    ihaskell-plot
-    # ihaskell-rlangqq
-    ihaskell-static-canvas
-    # ihaskell-widgets
-  ] ++ packages self);
+  ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
   jupyter = nixpkgs.python3.withPackages (ps: [ ps.jupyter ps.notebook ]);
   ihaskellSh = nixpkgs.writeScriptBin "ihaskell-notebook" ''
     #! ${nixpkgs.stdenv.shell}
