@@ -62,14 +62,6 @@ let
       ihaskell       = nixpkgs.haskell.lib.overrideCabal (
                        self.callCabal2nix "ihaskell"          ihaskell-src       {}) (_drv: {
         postPatch = let
-          # Nix-built IHaskell expects to load a *.dyn_o file instead of *.o,
-          # see https://github.com/gibiansky/IHaskell/issues/728
-          original = ''
-            setSessionDynFlags
-                  flags'';
-          replacement = ''
-            setSessionDynFlags $ flip gopt_set Opt_BuildDynamicToo
-                  flags'';
           # The tests seem to 'buffer' when run during nix-build, so this is
           # a throw-away test to get everything running smoothly and passing.
           originalTest = ''
@@ -80,8 +72,6 @@ let
                   let throwAway string _ = evaluationComparing (const $ shouldBe True True) string
                   in throwAway "True" ["True"]'';
         in ''
-          substituteInPlace ./src/IHaskell/Eval/Evaluate.hs --replace \
-            '${original}' '${replacement}'
           substituteInPlace ./src/tests/IHaskell/Test/Eval.hs --replace \
             '${originalTest}' '${replacementTest}'
         '';

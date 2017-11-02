@@ -1080,7 +1080,7 @@ doLoadModule name modName = do
     -- Compile loaded modules.
     flags <- getSessionDynFlags
     errRef <- liftIO $ newIORef []
-    setSessionDynFlags
+    setSessionDynFlags $ flip gopt_set Opt_BuildDynamicToo
       flags
         { hscTarget = objTarget flags
 #if MIN_VERSION_ghc(8,0,0)
