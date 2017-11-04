@@ -18,7 +18,7 @@ packages:
         git: https://github.com/amcphail/plot.git
         commit: cc5cdff696aa99e1001124917c3b87b95529c4e3
       extra-dep: true
-resolver: nightly-2017-10-11
+resolver: nightly-2017-11-04
 allow-newer: true
 extra-deps:
 - cairo-0.13.4.1
