@@ -61,7 +61,7 @@ lint blocks = do
   -- Initialize hlint settings
   initialized <- not <$> isEmptyMVar hlintSettings
   unless initialized $
-    autoSettings >>= putMVar hlintSettings
+    autoSettings' >>= putMVar hlintSettings
 
   -- Get hlint settings
   (flags, classify, hint) <- readMVar hlintSettings
@@ -76,6 +76,11 @@ lint blocks = do
     if null suggestions
       then []
       else [plain $ concatMap plainSuggestion suggestions, html $ htmlSuggestions suggestions]
+  where
+    autoSettings' = do
+      (fixities, classify, hints) <- autoSettings
+      let hidingIgnore = Classify Ignore "Unnecessary hiding" "" ""
+      return (fixities, hidingIgnore:classify, hints)
 
 showIdea :: Idea -> Maybe LintSuggestion
 showIdea idea =
