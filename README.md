@@ -32,10 +32,10 @@ sudo apt-get install -y python3-pip git libtinfo-dev libzmq3-dev libcairo2-dev l
 ```
 
 ```bash
-pip3 install -r requirements.txt
 curl -sSL https://get.haskellstack.org/ | sh
 git clone https://github.com/gibiansky/IHaskell
 cd IHaskell
+pip3 install -r requirements.txt
 stack install gtk2hs-buildtools
 stack install --fast
 ihaskell install --stack
@@ -53,6 +53,7 @@ You can install them by running `xcode-select --install` in the terminal and fol
 brew install python3 zeromq libmagic cairo pkg-config haskell-stack pango
 git clone https://github.com/gibiansky/IHaskell
 cd IHaskell
+pip3 install -r requirements.txt
 stack install gtk2hs-buildtools
 stack install --fast
 ihaskell install --stack
