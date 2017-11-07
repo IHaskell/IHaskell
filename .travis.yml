@@ -207,7 +207,7 @@ matrix:
       script:
         - >
           nix-build
-          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/a0b50eab599005127476e7b3b4ae8bd2d363091b.tar.gz
+          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/a09358f9c01549ded8f7f9825b7b214eb148ac76.tar.gz
           $RELEASE_NIX
           --arg packages '(p: with p; [
             ihaskell-aeson
@@ -233,7 +233,7 @@ matrix:
       script:
         - >
           nix-build
-          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/a0b50eab599005127476e7b3b4ae8bd2d363091b.tar.gz
+          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/a09358f9c01549ded8f7f9825b7b214eb148ac76.tar.gz
           $RELEASE_NIX
           --arg packages '(p: with p; [
             ihaskell-aeson
