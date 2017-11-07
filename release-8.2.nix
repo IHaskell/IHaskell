@@ -1,14 +1,4 @@
-let
-  overlay = self: super: {
-    all-cabal-hashes = super.fetchFromGitHub {
-      owner  = "commercialhaskell";
-      repo   = "all-cabal-hashes";
-      rev    = "a7e38c265b7927a921fbc06b977c1e254cb3142b";
-      sha256 = "0n4703mbfdgwnmy5cbzahgg0vmqpin25aafcf30fyl49gbzyjr6g";
-    };
-  };
-  overlaid = import <nixpkgs> { overlays = [ overlay ]; };
-in { nixpkgs ? overlaid, packages ? (_: []), rtsopts ? "-M3g -N2", systemPackages ? (_: []) }:
+{ nixpkgs ? import <nixpkgs> {}, packages ? (_: []), rtsopts ? "-M3g -N2", systemPackages ? (_: []) }:
 
 let
   inherit (builtins) any elem filterSource listToAttrs;
