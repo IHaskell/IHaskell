@@ -49,8 +49,8 @@ let
       ]);
   haskellPackages = nixpkgs.haskell.packages.ghc821.override {
     overrides = self: super: {
-      ihaskell       = nixpkgs.haskell.lib.overrideCabal (
-                       self.callCabal2nix "ihaskell"          ihaskell-src       {}) (_drv: {
+      ihaskell          = nixpkgs.haskell.lib.overrideCabal (
+                          self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
         postPatch = let
           # The tests seem to 'buffer' when run during nix-build, so this is
           # a throw-away test to get everything running smoothly and passing.
@@ -80,13 +80,13 @@ let
       static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
       testing-feat      = nixpkgs.haskell.lib.doJailbreak super.testing-feat;
 
-      cairo             = nixpkgs.lib.overrideDerivation super.cairo (drv: {
+      cairo             = nixpkgs.lib.overrideDerivation super.cairo (_drv: {
         src = "${gtk2hs}/cairo";
       });
-      glib              = nixpkgs.lib.overrideDerivation super.glib (drv: {
+      glib              = nixpkgs.lib.overrideDerivation super.glib (_drv: {
         src = "${gtk2hs}/glib";
       });
-      pango             = nixpkgs.lib.overrideDerivation super.pango (drv: {
+      pango             = nixpkgs.lib.overrideDerivation super.pango (_drv: {
         src = "${gtk2hs}/pango";
       });
 
