@@ -24,12 +24,6 @@ let
     rev    = "cc5cdff696aa99e1001124917c3b87b95529c4e3";
     sha256 = "13abrymry4nqyl9gmjrj8lhplbg4xag7x41n89yyw822360d3drh";
   };
-  gtk2hs = nixpkgs.fetchFromGitHub {
-    owner  = "gtk2hs";
-    repo   = "gtk2hs";
-    rev    = "f066503df2c6d8d57e06630615d2097741d09d39";
-    sha256 = "1drqwz5ry8i9sv34kkywl5hj0p4yffbjgzb5fgpp4dzdgfxl0cqk";
-  };
   displays = self: builtins.listToAttrs (
     map
       (display: { name = display; value = self.callCabal2nix display "${ihaskell-display-src}/${display}" {}; })
@@ -80,17 +74,6 @@ let
       static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
       testing-feat      = nixpkgs.haskell.lib.doJailbreak super.testing-feat;
 
-      cairo             = nixpkgs.lib.overrideDerivation super.cairo (_drv: {
-        src = "${gtk2hs}/cairo";
-      });
-      glib              = nixpkgs.lib.overrideDerivation super.glib (_drv: {
-        src = "${gtk2hs}/glib";
-      });
-      pango             = nixpkgs.lib.overrideDerivation super.pango (_drv: {
-        src = "${gtk2hs}/pango";
-      });
-
-      gtk2hs-buildtools = super.callHackage "gtk2hs-buildtools" "0.13.3.0" {};
       hmatrix           = super.hmatrix_0_18_1_0;
       singletons        = super.callHackage "singletons" "2.3.1" {};
       th-desugar        = super.callHackage "th-desugar" "1.7" {};
