@@ -1,10 +1,10 @@
-FROM ubuntu:14.04
+FROM ubuntu:16.04
 
 # Install all necessary Ubuntu packages
-RUN apt-get update && apt-get install -y python-dev python-setuptools libmagic-dev libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev libblas-dev liblapack-dev gcc g++
+RUN apt-get update && apt-get install -y python3-pip libmagic-dev libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev libblas-dev liblapack-dev gcc g++
 
 # Install Jupyter notebook
-RUN easy_install -U pip && pip install -U jupyter
+RUN pip3 install -U jupyter
 
 # Install stack from the FPComplete repositories.
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 575159689BEFB442 && \
@@ -37,7 +37,7 @@ RUN stack build && stack install
 
 # Run the notebook
 RUN mkdir /notebooks
-ENV PATH /ihaskell/.stack-work/install/x86_64-linux/nightly-2015-08-15/7.10.2/bin:/root/.stack/snapshots/x86_64-linux/nightly-2015-08-15/7.10.2/bin:/root/.stack/programs/x86_64-linux/ghc-7.10.2/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV PATH /ihaskell/.stack-work/install/x86_64-linux/lts-9.12/8.0.2/bin:/root/.stack/snapshots/x86_64-linux/lts-9.12/8.0.2/bin:/root/.stack/programs/x86_64-linux/ghc-8.0.2/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 RUN ihaskell install
-ENTRYPOINT stack exec -- jupyter notebook --NotebookApp.port=8888 '--NotebookApp.ip=*' --NotebookApp.notebook_dir=/notebooks
+ENTRYPOINT stack exec -- jupyter notebook --allow-root --NotebookApp.port=8888 '--NotebookApp.ip=*' --NotebookApp.notebook_dir=/notebooks
 EXPOSE 8888
