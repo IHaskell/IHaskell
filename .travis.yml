@@ -21,7 +21,6 @@ matrix:
         - $HOME/.ghc
         - $HOME/.cabal
         - $HOME/.stack
-        - $HOME/zeromq
 
       # Enable packages we need.
       # Not all packages are available – see before_install for from-source builds. 
@@ -34,26 +33,13 @@ matrix:
             - liblapack-dev    # hmatrix
             - libcairo2-dev    # cairo
             - libpango1.0-dev  # pango
+            - libzmq3-dev      # zmq
 
       before_install:
           # Download and unpack the stack executable
         - export PATH=$HOME/.local/bin:$PATH
         - mkdir -p ~/.local/bin
         - curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-
-          # Install zeromq3 -- the package is not supported yet on Travis whitelist... (06/06/2016)
-        - |
-          if [ ! -d "$HOME/zeromq/lib" ]; then
-              export OLDPWD=$(pwd) 
-              travis_retry git clone http://www.github.com/zeromq/zeromq4-x.git libzmq
-              mkdir $HOME/zeromq
-              cd libzmq
-              travis_retry ./autogen.sh
-              travis_retry ./configure --prefix=$HOME/zeromq
-              make
-              travis_retry make install
-              cd $OLDPWD
-          fi
 
           # Upgrades to avoid later build problems
         - pip install -U pip
@@ -64,8 +50,6 @@ matrix:
 
       # This step takes the longest, and is what generates the Stack cache. 
       install:
-        # Set path for pkg-config to find zeromq, otherwise install of zeromq4-haskell fails.
-        - export PKG_CONFIG_PATH=$HOME/zeromq/lib/pkgconfig/
         - |
           # Used to avoid 'source and destination file are the same' error
           mv $USE_STACK_YAML intermediate-stack.yaml
@@ -79,7 +63,6 @@ matrix:
         - stack build --dependencies-only --fast
 
       script:
-        - export LD_LIBRARY_PATH=$HOME/zeromq/lib
         - stack test --no-terminal --fast
         - |
           set -e
@@ -117,7 +100,6 @@ matrix:
         - $HOME/.ghc
         - $HOME/.cabal
         - $HOME/.stack
-        - $HOME/zeromq
 
       # Enable packages we need.
       # Not all packages are available – see before_install for from-source builds. 
@@ -130,26 +112,13 @@ matrix:
             - liblapack-dev    # hmatrix
             - libcairo2-dev    # cairo
             - libpango1.0-dev  # pango
+            - libzmq3-dev      # zmq
 
       before_install:
           # Download and unpack the stack executable
         - export PATH=$HOME/.local/bin:$PATH
         - mkdir -p ~/.local/bin
         - curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-
-          # Install zeromq3 -- the package is not supported yet on Travis whitelist... (06/06/2016)
-        - |
-          if [ ! -d "$HOME/zeromq/lib" ]; then
-              export OLDPWD=$(pwd) 
-              travis_retry git clone http://www.github.com/zeromq/zeromq4-x.git libzmq
-              mkdir $HOME/zeromq
-              cd libzmq
-              travis_retry ./autogen.sh
-              travis_retry ./configure --prefix=$HOME/zeromq
-              make
-              travis_retry make install
-              cd $OLDPWD
-          fi
 
           # Upgrades to avoid later build problems
         - pip install -U pip
@@ -160,8 +129,6 @@ matrix:
 
       # This step takes the longest, and is what generates the Stack cache. 
       install:
-        # Set path for pkg-config to find zeromq, otherwise install of zeromq4-haskell fails.
-        - export PKG_CONFIG_PATH=$HOME/zeromq/lib/pkgconfig/
         - |
           # Used to avoid 'source and destination file are the same' error
           mv $USE_STACK_YAML intermediate-stack.yaml
@@ -175,7 +142,6 @@ matrix:
         - stack build --dependencies-only --fast
 
       script:
-        - export LD_LIBRARY_PATH=$HOME/zeromq/lib
         - stack test --no-terminal --fast
         - |
           set -e
