@@ -166,6 +166,7 @@ matrix:
       cache:
         directories:
         - /nix/store
+        timeout: 1000
       install:
         - export NIX_CONF_DIR=~
         - echo "binary-caches = http://128.199.234.106:3000" >> $NIX_CONF_DIR/nix.conf
@@ -192,6 +193,7 @@ matrix:
       cache:
         directories:
         - /nix/store
+        timeout: 1000
       install:
         - export NIX_CONF_DIR=~
         - echo "binary-caches = http://128.199.234.106:3000" >> $NIX_CONF_DIR/nix.conf
