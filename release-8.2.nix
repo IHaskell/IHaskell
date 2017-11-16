@@ -80,13 +80,13 @@ let
       static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
       testing-feat      = nixpkgs.haskell.lib.doJailbreak super.testing-feat;
 
-      cairo             = nixpkgs.lib.overrideDerivation super.cairo (_drv: {
+      cairo             = super.cairo.overrideAttrs (oldAttrs: {
         src = "${gtk2hs}/cairo";
       });
-      glib              = nixpkgs.lib.overrideDerivation super.glib (_drv: {
+      glib              = super.glib.overrideAttrs (oldAttrs: {
         src = "${gtk2hs}/glib";
       });
-      pango             = nixpkgs.lib.overrideDerivation super.pango (_drv: {
+      pango             = super.pango.overrideAttrs (oldAttrs: {
         src = "${gtk2hs}/pango";
       });
 
