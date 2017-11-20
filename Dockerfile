@@ -37,7 +37,7 @@ RUN stack build && stack install
 
 # Run the notebook
 RUN mkdir /notebooks
-ENV PATH /ihaskell/.stack-work/install/x86_64-linux/lts-9.13/8.0.2/bin:/root/.stack/snapshots/x86_64-linux/lts-9.13/8.0.2/bin:/root/.stack/programs/x86_64-linux/ghc-8.0.2/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV PATH /ihaskell/.stack-work/install/x86_64-linux/lts-9.14/8.0.2/bin:/root/.stack/snapshots/x86_64-linux/lts-9.14/8.0.2/bin:/root/.stack/programs/x86_64-linux/ghc-8.0.2/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 RUN ihaskell install
 ENTRYPOINT stack exec -- jupyter notebook --allow-root --NotebookApp.port=8888 '--NotebookApp.ip=*' --NotebookApp.notebook_dir=/notebooks
 EXPOSE 8888
