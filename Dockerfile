@@ -1,16 +1,13 @@
 FROM ubuntu:16.04
 
 # Install all necessary Ubuntu packages
-RUN apt-get update && apt-get install -y python3-pip libmagic-dev libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev libblas-dev liblapack-dev gcc g++
+RUN apt-get update && apt-get install -y python3-pip libgmp-dev libmagic-dev libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev libblas-dev liblapack-dev gcc g++
 
 # Install Jupyter notebook
 RUN pip3 install -U jupyter
 
-# Install stack from the FPComplete repositories.
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 575159689BEFB442 && \
-    echo 'deb http://download.fpcomplete.com/ubuntu trusty main' > /etc/apt/sources.list.d/fpco.list && \
-    apt-get update && \
-    apt-get install -y stack
+# Install stack from Stackage
+RUN curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C /usr/bin '*/stack'
 
 # Set up a working directory for IHaskell
 RUN mkdir /ihaskell
