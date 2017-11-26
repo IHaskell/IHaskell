@@ -67,6 +67,20 @@ _Tested on macOS Sierra (10.12.6)_
 stack exec jupyter -- notebook
 ```
 
+## Docker
+
+If you prefer a Docker-based workflow, you can use it to create an IHaskell
+notebook environment. For example:
+
+```bash
+$ docker build -t ihaskell:latest .
+$ docker run -it -p8888:8888 ihaskell:latest
+```
+
+Currently the component that takes the longest time to compile is
+`ihaskell-widgets`, so if you're in a hurry you may want to comment that out in
+`stack.yaml`.
+
 ## Nix
 
 If you have the `nix` package manager installed, you can create an IHaskell
