@@ -27,8 +27,8 @@ let
   gtk2hs = nixpkgs.fetchFromGitHub {
     owner  = "gtk2hs";
     repo   = "gtk2hs";
-    rev    = "f066503df2c6d8d57e06630615d2097741d09d39";
-    sha256 = "1drqwz5ry8i9sv34kkywl5hj0p4yffbjgzb5fgpp4dzdgfxl0cqk";
+    rev    = "ba28ee939b6321c89d11ac2480a5065b7c05a0ea";
+    sha256 = "0cx9fs05c3sscywn4zg6g0kag64xyq7x4y38khir3516fgnj7zaa";
   };
   displays = self: builtins.listToAttrs (
     map
