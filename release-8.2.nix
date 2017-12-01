@@ -98,12 +98,14 @@ let
   };
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
   jupyter = nixpkgs.python3.withPackages (ps: [ ps.jupyter ps.notebook ]);
-  ihaskellSh = nixpkgs.writeScriptBin "ihaskell-notebook" ''
+  jupyterSh = name: cmd: nixpkgs.writeScriptBin name ''
     #! ${nixpkgs.stdenv.shell}
     export GHC_PACKAGE_PATH="$(echo ${ihaskellEnv}/lib/*/package.conf.d| tr ' ' ':'):$GHC_PACKAGE_PATH"
     export PATH="${nixpkgs.stdenv.lib.makeBinPath ([ ihaskellEnv jupyter ] ++ systemPackages nixpkgs)}"
-    ${ihaskellEnv}/bin/ihaskell install -l $(${ihaskellEnv}/bin/ghc --print-libdir) --use-rtsopts="${rtsopts}" && ${jupyter}/bin/jupyter notebook
+    ${ihaskellEnv}/bin/ihaskell install -l $(${ihaskellEnv}/bin/ghc --print-libdir) --use-rtsopts="${rtsopts}" && ${jupyter}/bin/jupyter ${cmd} "$@"
   '';
+  ihaskellSh = jupyterSh "ihaskell-notebook" "notebook";
+  nbconvertSh = jupyterSh "ihaskell-nbconvert" "nbconvert";
 in
 nixpkgs.buildEnv {
   name = "ihaskell-with-packages";
@@ -111,6 +113,7 @@ nixpkgs.buildEnv {
   paths = [ ihaskellEnv jupyter ];
   postBuild = ''
     ln -s ${ihaskellSh}/bin/ihaskell-notebook $out/bin/
+    ln -s ${nbconvertSh}/bin/ihaskell-nbconvert $out/bin/
     for prg in $out/bin"/"*;do
       if [[ -f $prg && -x $prg ]]; then
         wrapProgram $prg --set PYTHONPATH "$(echo ${jupyter}/lib/*/site-packages)"

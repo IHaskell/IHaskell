@@ -188,6 +188,8 @@ matrix:
             ihaskell-plot
             ihaskell-static-canvas
           ])'
+        - result/bin/ihaskell-nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
+        - diff <(grep -v image/png ~/ihaskell-out.ipynb) <(grep -v image/png notebooks/IHaskell.ipynb)
     - language: nix
       env: RELEASE_NIX="release-8.2.nix"
       cache:
@@ -215,3 +217,5 @@ matrix:
             ihaskell-plot
             ihaskell-static-canvas
           ])'
+        - result/bin/ihaskell-nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
+        - diff <(grep -v image/png ~/ihaskell-out.ipynb) <(grep -v image/png notebooks/IHaskell.ipynb)
