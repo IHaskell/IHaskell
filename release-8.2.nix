@@ -47,7 +47,7 @@ let
         "ihaskell-static-canvas"
         "ihaskell-widgets"
       ]);
-  haskellPackages = nixpkgs.haskell.packages.ghc821.override {
+  haskellPackages = nixpkgs.haskell.packages.ghc822.override {
     overrides = self: super: {
       ihaskell          = nixpkgs.haskell.lib.overrideCabal (
                           self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
