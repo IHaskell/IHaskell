@@ -171,10 +171,11 @@ matrix:
         - export NIX_CONF_DIR=~
         - echo "binary-caches = http://128.199.234.106:3000" >> $NIX_CONF_DIR/nix.conf
         - echo "binary-cache-public-keys = 128.199.234.106:jzUyrIQHov5i6f94jQVriqPDLuPYlZPAsga3W3k+L8E=" >> $NIX_CONF_DIR/nix.conf
+        - nix-env -i curl jq
       script:
         - >
           nix-build
-          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/a09358f9c01549ded8f7f9825b7b214eb148ac76.tar.gz
+          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/$(curl "https://api.github.com/repos/NixOS/nixpkgs-channels/branches/nixos-17.09" | jq -r '.commit.sha').tar.gz
           $RELEASE_NIX
           --arg packages '(p: with p; [
             ihaskell-aeson
@@ -200,10 +201,11 @@ matrix:
         - export NIX_CONF_DIR=~
         - echo "binary-caches = http://128.199.234.106:3000" >> $NIX_CONF_DIR/nix.conf
         - echo "binary-cache-public-keys = 128.199.234.106:jzUyrIQHov5i6f94jQVriqPDLuPYlZPAsga3W3k+L8E=" >> $NIX_CONF_DIR/nix.conf
+        - nix-env -i curl jq
       script:
         - >
           nix-build
-          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/a09358f9c01549ded8f7f9825b7b214eb148ac76.tar.gz
+          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/$(curl "https://api.github.com/repos/NixOS/nixpkgs-channels/branches/nixos-17.09" | jq -r '.commit.sha').tar.gz
           $RELEASE_NIX
           --arg packages '(p: with p; [
             ihaskell-aeson
