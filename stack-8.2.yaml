@@ -14,13 +14,10 @@ packages:
     - ./ihaskell-display/ihaskell-plot
     - ./ihaskell-display/ihaskell-static-canvas
     - ./ihaskell-display/ihaskell-widgets
-    - location:
-        git: https://github.com/amcphail/plot.git
-        commit: cc5cdff696aa99e1001124917c3b87b95529c4e3
-      extra-dep: true
 resolver: nightly-2017-11-28
 allow-newer: true
 extra-deps:
+- plot-0.2.3.9
 - static-canvas-0.2.0.3
 
 nix:
