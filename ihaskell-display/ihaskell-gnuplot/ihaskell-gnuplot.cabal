@@ -7,7 +7,7 @@ name:                ihaskell-gnuplot
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.1.0.0
+version:             0.1.0.1
 
 -- A short (one-line) description of the package.
 synopsis:            IHaskell display instance for Gnuplot (from gnuplot package)
@@ -54,7 +54,7 @@ library
   -- other-modules:       
              
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.6 && <4.11,
+  build-depends:       base >=4.6 && <5,
                        bytestring,
                        gnuplot >= 0.5.4,
                        ihaskell >= 0.6.2
