@@ -94,7 +94,9 @@ $ <result path>/bin/ihaskell-notebook
 
 It might take a while the first time, but subsequent builds will be much faster.
 
-## Where are my packages?
+# Troubleshooting
+
+## Where are my packages? (IHaskell + Stack)
 
 Stack manages separate environments for every package. By default your notebooks
 will only have access to a few packages that happen to be required for
@@ -120,3 +122,12 @@ name even if it's local.
     hg: https://example.com/hg/repo
     commit: da39a3ee5e6b4b0d3255bfef95601890afd80709
 ```
+
+## The kernel keeps dying (IHaskell + Stack)
+
+The default instructions globally install IHaskell with support for only one
+version of GHC. If you've e.g. installed an `lts-10` IHaskell and are using it
+with an `lts-9` project the mismatch between GHC 8.2 and GHC 8.0 will cause
+this error. Stack also has the notion of a 'global project' located at
+`~/.stack/global-project/` and the `stack.yaml` for that project should be on
+the same LTS as the version of IHaskell installed to avoid this issue.
