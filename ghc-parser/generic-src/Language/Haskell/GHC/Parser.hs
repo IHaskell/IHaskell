@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
 module Language.Haskell.GHC.Parser (
   -- Parser handling
@@ -29,7 +30,11 @@ import Data.Char (isAlphaNum)
 import Bag
 import ErrUtils hiding (ErrMsg)
 import FastString
+#if MIN_VERSION_ghc(8,4,0)
+import GHC hiding (Located, Parsed)
+#else
 import GHC hiding (Located)
+#endif
 import Lexer
 import OrdList
 import Outputable hiding ((<>))
@@ -89,13 +94,21 @@ runParser flags (Parser parser) str =
     toParseOut $ unP parser parseState
   where
     toParseOut :: ParseResult a -> ParseOutput a
+#if MIN_VERSION_ghc(8,4,0)
+    toParseOut (PFailed _ span@(RealSrcSpan realSpan) err) =
+#else
     toParseOut (PFailed span@(RealSrcSpan realSpan) err) =
+#endif
       let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags span err
           line = srcLocLine $ realSrcSpanStart realSpan
           col = srcLocCol $ realSrcSpanStart realSpan
         in Failure errMsg $ Loc line col
 
+#if MIN_VERSION_ghc(8,4,0)
+    toParseOut (PFailed _ span err) =
+#else
     toParseOut (PFailed span err) =
+#endif
       let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags span err
         in Failure errMsg $ Loc 0 0
 
