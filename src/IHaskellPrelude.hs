@@ -67,7 +67,8 @@ module IHaskellPrelude (
 
 import           Prelude
 
-import           Data.Monoid            as X
+import           Data.Semigroup         as X
+import           Data.Monoid            as X hiding ((<>), First(..), Last(..))
 import           Data.Tuple             as X
 import           Control.Monad          as X
 import           Data.Maybe             as X

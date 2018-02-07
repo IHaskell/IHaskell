@@ -49,6 +49,7 @@ import           Data.Aeson (Value, (.=), object)
 import           Data.Aeson.Types (emptyObject)
 import qualified Data.ByteString.Char8 as Char
 import           Data.Function (on)
+import           Data.Semigroup
 import           Data.Serialize
 import           GHC.Generics
 
@@ -127,12 +128,15 @@ data Display = Display [DisplayData]
 
 instance Serialize Display
 
+instance Semigroup Display where
+  ManyDisplay a <> ManyDisplay b = ManyDisplay (a ++ b)
+  ManyDisplay a <> b = ManyDisplay (a ++ [b])
+  a <> ManyDisplay b = ManyDisplay (a : b)
+  a <> b = ManyDisplay [a, b]
+
 instance Monoid Display where
   mempty = Display []
-  ManyDisplay a `mappend` ManyDisplay b = ManyDisplay (a ++ b)
-  ManyDisplay a `mappend` b = ManyDisplay (a ++ [b])
-  a `mappend` ManyDisplay b = ManyDisplay (a : b)
-  a `mappend` b = ManyDisplay [a, b]
+  mappend = (<>)
 
 -- | All state stored in the kernel between executions.
 data KernelState =

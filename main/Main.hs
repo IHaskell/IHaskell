@@ -52,7 +52,11 @@ import qualified IHaskell.IPython.Stdin as Stdin
 import           Paths_ihaskell(version)
 
 -- GHC API imports.
+#if MIN_VERSION_ghc(8,4,0)
+import           GHC hiding (extensions, language, convert)
+#else
 import           GHC hiding (extensions, language)
+#endif
 
 -- | Compute the GHC API version number using the dist/build/autogen/cabal_macros.h
 ghcVersionInts :: [Int]

@@ -11,7 +11,6 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Char8 as CBS
 
 import           Data.Aeson (decode, Object, Value(Array, Object, String))
-import           Data.Monoid ((<>), Monoid(mempty))
 import           Data.Vector (Vector)
 import           Data.HashMap.Strict (lookup)
 
