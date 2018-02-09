@@ -12,7 +12,7 @@ module IHaskell.Flags (
     help,
     ) where
 
-import           IHaskellPrelude
+import           IHaskellPrelude hiding (Arg(..))
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.ByteString as BS

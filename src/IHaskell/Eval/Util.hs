@@ -59,6 +59,10 @@ import           Data.List (nubBy)
 
 import           StringUtils (replace)
 
+#if MIN_VERSION_ghc(8,4,0)
+import           CmdLineParser (warnMsg)
+#endif
+
 #if MIN_VERSION_ghc(8,0,1)
 import           GHC.LanguageExtensions
 
@@ -128,7 +132,11 @@ pprDynFlags show_all dflags =
         is_on = test f dflags
         quiet = not show_all && test f default_dflags == is_on
     
+#if MIN_VERSION_ghc(8,4,0)
+    default_dflags = defaultDynFlags (settings dflags) (llvmTargets dflags)
+#else
     default_dflags = defaultDynFlags (settings dflags)
+#endif
     
     fstr, fnostr :: String -> O.SDoc
     fstr str = O.text "-f" O.<> O.text str
@@ -176,7 +184,11 @@ pprLanguages show_all dflags =
         quiet = not show_all && test f default_dflags == is_on
 
     default_dflags =
+#if MIN_VERSION_ghc(8,4,0)
+      defaultDynFlags (settings dflags) (llvmTargets dflags) `lang_set`
+#else
       defaultDynFlags (settings dflags) `lang_set`
+#endif
       case language dflags of
         Nothing -> Just Haskell2010
         other   -> other
@@ -211,7 +223,11 @@ setFlags ext = do
 
   -- Create the parse errors.
   let noParseErrs = map (("Could not parse: " ++) . unLoc) unrecognized
+#if MIN_VERSION_ghc(8,4,0)
+      allWarns = map (unLoc . warnMsg) warnings ++
+#else
       allWarns = map unLoc warnings ++
+#endif
                  ["-package not supported yet" | packageFlags flags /= packageFlags flags']
       warnErrs = map ("Warning: " ++) allWarns
   return $ noParseErrs ++ warnErrs
@@ -311,18 +327,30 @@ evalImport imports = do
 
   where
     -- Check whether an import is the same as another import (same module).
+#if MIN_VERSION_ghc(8,4,0)
+    importOf :: ImportDecl GhcPs -> InteractiveImport -> Bool
+#else
     importOf :: ImportDecl RdrName -> InteractiveImport -> Bool
+#endif
     importOf _ (IIModule _) = False
     importOf imp (IIDecl decl) =
       ((==) `on` (unLoc . ideclName)) decl imp && not (ideclQualified decl)
 
     -- Check whether an import is an *implicit* import of something.
+#if MIN_VERSION_ghc(8,4,0)
+    implicitImportOf :: ImportDecl GhcPs -> InteractiveImport -> Bool
+#else
     implicitImportOf :: ImportDecl RdrName -> InteractiveImport -> Bool
+#endif
     implicitImportOf _ (IIModule _) = False
     implicitImportOf imp (IIDecl decl) = ideclImplicit decl && imp `importOf` IIDecl decl
 
     -- Check whether an import is hidden.
+#if MIN_VERSION_ghc(8,4,0)
+    isHiddenImport :: ImportDecl GhcPs -> Bool
+#else
     isHiddenImport :: ImportDecl RdrName -> Bool
+#endif
     isHiddenImport imp =
       case ideclHiding imp of
         Just (True, _) -> True
@@ -420,13 +448,21 @@ getDescription str = do
     getInfo' = getInfo
 #endif
 
-#if MIN_VERSION_ghc(7,8,0)
+#if MIN_VERSION_ghc(8,4,0)
+    getType (theType, _, _, _, _) = theType
+#elif MIN_VERSION_ghc(7,8,0)
     getType (theType, _, _, _) = theType
 #else
     getType (theType, _, _) = theType
 #endif
 
-#if MIN_VERSION_ghc(7,8,0)
+#if MIN_VERSION_ghc(8,4,0)
+    printInfo (thing, fixity, classInstances, famInstances, _) =
+      pprTyThingInContextLoc thing O.$$
+      showFixity thing fixity O.$$
+      O.vcat (map GHC.pprInstance classInstances) O.$$
+      O.vcat (map GHC.pprFamInst famInstances)
+#elif MIN_VERSION_ghc(7,8,0)
     printInfo (thing, fixity, classInstances, famInstances) =
       pprTyThingInContextLoc thing O.$$
       showFixity thing fixity O.$$
