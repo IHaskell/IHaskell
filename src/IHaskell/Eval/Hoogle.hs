@@ -179,6 +179,12 @@ renderSelf string loc
                 span "hoogle-class" (link loc $ extractData string) ++
                 packageSub package
 
+  | "newtype" `isPrefixOf` string =
+      let package = extractPackageName loc
+      in nwt ++ " " ++
+                span "hoogle-class" (link loc $ extractNewtype string) ++
+                packageSub package
+
   | otherwise =
       let [name, args] = split "::" string
           package = extractPackageName loc
@@ -194,10 +200,12 @@ renderSelf string loc
     extractModule = strip . replace "module" ""
     extractClass = strip . replace "class" ""
     extractData = strip . replace "data" ""
+    extractNewtype = strip . replace "newtype" ""
     pkg = span "hoogle-head" "package"
     mod = span "hoogle-head" "module"
     cls = span "hoogle-head" "class"
     dat = span "hoogle-head" "data"
+    nwt = span "hoogle-head" "newtype"
 
     unicodeReplace :: String -> String
     unicodeReplace =
