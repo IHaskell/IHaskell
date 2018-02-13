@@ -2,7 +2,7 @@ jupyter==1.0.0
 jupyter_nbextensions_configurator
 jupyter_contrib_nbextensions
 ipykernel
-ipywidgets==6.0.0
-jupyter-client==5.0.0
-jupyter-console==5.1.0
-jupyter-core==4.3.0
+ipywidgets==7.1.1
+jupyter-client==5.2.2
+jupyter-console==5.2.0
+jupyter-core==4.4.0
