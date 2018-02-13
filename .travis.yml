@@ -45,8 +45,11 @@ matrix:
         - pip install -U pip
         - pip install -U setuptools
 
+          # Install from requirements.txt
+        - pip install -r requirements.txt
+
           # Install nbconvert for testing the notebook
-        - pip install jupyter notebook nbconvert
+        - pip install nbconvert
 
       # This step takes the longest, and is what generates the Stack cache. 
       install:
@@ -124,8 +127,11 @@ matrix:
         - pip install -U pip
         - pip install -U setuptools
 
+          # Install from requirements.txt
+        - pip install -r requirements.txt
+
           # Install nbconvert for testing the notebook
-        - pip install jupyter notebook nbconvert
+        - pip install nbconvert
 
       # This step takes the longest, and is what generates the Stack cache. 
       install:
