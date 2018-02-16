@@ -20,10 +20,13 @@ import           Network.HTTP.Client.TLS
 import           Data.Aeson
 import qualified Data.List as List
 import           Data.Char (isAscii, isAlphaNum)
+import           Data.Vector (toList)
 
 
 import           IHaskell.IPython
 import           StringUtils (split, strip, replace)
+
+import           Debug.Trace
 
 -- | Types of formats to render output to.
 data OutputFormat = Plain      -- ^ Render to plain text.
@@ -40,17 +43,19 @@ data HoogleResult = SearchResult HoogleResponse
 data HoogleResponseList = HoogleResponseList [HoogleResponse]
 
 instance FromJSON HoogleResponseList where
-  parseJSON (Object obj) = do
-    results <- obj .: "results"
-    HoogleResponseList <$> mapM parseJSON results
+  parseJSON (Array arr) =
+    HoogleResponseList <$> mapM parseJSON (toList arr)
 
-  parseJSON _ = fail "Expected object with 'results' field."
+  parseJSON _ = fail "Expected array."
 
 instance FromJSON HoogleResponse where
   parseJSON (Object obj) =
-    HoogleResponse <$> obj .: "location" <*> obj .: "self" <*> obj .: "docs"
+    HoogleResponse
+      <$>  obj .: "url"
+      <*> (obj .: "module" >>= \m -> m .:? "url" .!= "")
+      <*>  obj .: "docs"
 
-  parseJSON _ = fail "Expected object with fields: location, self, docs"
+  parseJSON _ = fail "Expected object with fields: url, module.url, docs"
 
 -- | Query Hoogle for the given string. This searches Hoogle using the internet. It returns either
 -- an error message or the successful JSON result.
@@ -64,7 +69,7 @@ query str = do
 
   where
     queryUrl :: String -> String
-    queryUrl = printf "https://www.haskell.org/hoogle/?hoogle=%s&mode=json"
+    queryUrl = printf "http://hoogle.haskell.org/?hoogle=%s&mode=json"
 
 -- | Copied from the HTTP package.
 urlEncode :: String -> String
@@ -186,7 +191,7 @@ renderSelf string loc
                 packageSub package
 
   | otherwise =
-      let [name, args] = split "::" string
+      let [name, args] = trace string $ split "::" string
           package = extractPackageName loc
           modname = extractModuleName loc
       in span "hoogle-name"
