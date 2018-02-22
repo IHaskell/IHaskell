@@ -18,12 +18,6 @@ let
   ipython-kernel-src   = filterSource cleanSource ./ipython-kernel;
   ghc-parser-src       = filterSource cleanSource ./ghc-parser;
   ihaskell-display-src = filterSource cleanSource ./ihaskell-display;
-  plot = nixpkgs.fetchFromGitHub {
-    owner  = "amcphail";
-    repo   = "plot";
-    rev    = "cc5cdff696aa99e1001124917c3b87b95529c4e3";
-    sha256 = "13abrymry4nqyl9gmjrj8lhplbg4xag7x41n89yyw822360d3drh";
-  };
   gtk2hs = nixpkgs.fetchFromGitHub {
     owner  = "gtk2hs";
     repo   = "gtk2hs";
@@ -73,7 +67,6 @@ let
       });
       ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
       ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
-      plot              = self.callCabal2nix "plot" plot {};
 
       diagrams-cairo    = nixpkgs.haskell.lib.doJailbreak super.diagrams-cairo;
       shelly            = nixpkgs.haskell.lib.doJailbreak super.shelly;
@@ -92,6 +85,7 @@ let
 
       gtk2hs-buildtools = super.callHackage "gtk2hs-buildtools" "0.13.3.0" {};
       hmatrix           = super.hmatrix_0_18_1_0;
+      plot              = super.callHackage "plot" "0.2.3.9" {};
       singletons        = super.callHackage "singletons" "2.3.1" {};
       th-desugar        = super.callHackage "th-desugar" "1.7" {};
     } // displays self;
