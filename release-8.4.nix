@@ -4,8 +4,8 @@ let
   nixpkgs = import (nixpkgs_.fetchFromGitHub {
     owner  = "NixOS";
     repo   = "nixpkgs";
-    rev    = "e0c82dcdfcbcd86d2d1420702dca225861576405";
-    sha256 = "1ni0wdg3nhsldlykzk5sk3l9m16filfk7rspmvw8f6zgdbziwc55";
+    rev    = "07bc1ddacebcc9587e6f4d7e05d27350e6cf23e3";
+    sha256 = "1zh9551vb8pl1sscgh3n3hd7l4wb0yf4hryaz7ay5h97ljawg8hq";
   }) {};
   inherit (builtins) any elem filterSource listToAttrs;
   lib = nixpkgs.lib;
@@ -80,7 +80,6 @@ let
       ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
       ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
 
-      here              = nixpkgs.haskell.lib.doJailbreak super.here;
       hlint             = super.hlint.overrideScope (_self: _super: { haskell-src-exts = self.haskell-src-exts; });
       hourglass         = super.hourglass.overrideAttrs (oldAttrs: {
         src = nixpkgs.fetchFromGitHub {
@@ -90,70 +89,7 @@ let
           sha256 = "1rxai65xk6pcj3jahh62x543r1lgmzd4xjaj538nsb1aww0jyk77";
         };
       });
-      http-types        = nixpkgs.haskell.lib.dontCheck super.http-types;
-      tls               = nixpkgs.haskell.lib.overrideCabal super.tls (_drv: {
-        postPatch = let
-          original = ''
-            instance Monoid Credentials where
-                mempty = Credentials []
-                mappend (Credentials l1) (Credentials l2) = Credentials (l1 ++ l2)
-          '';
-          replacement = ''
-            instance Semigroup Credentials where
-                (<>) (Credentials l1) (Credentials l2) = Credentials (l1 ++ l2)
-
-            instance Monoid Credentials where
-                mempty  = Credentials []
-          '';
-        in ''
-          substituteInPlace ./Network/TLS/Credentials.hs --replace \
-            '${original}' '${replacement}'
-        '';
-      });
-      x509              = nixpkgs.haskell.lib.overrideCabal super.x509 (_drv: {
-        postPatch = let
-          original = ''
-            instance Monoid DistinguishedName where
-                mempty  = DistinguishedName []
-                mappend (DistinguishedName l1) (DistinguishedName l2) = DistinguishedName (l1++l2)
-          '';
-          replacement = ''
-            instance Semigroup DistinguishedName where
-                (<>) (DistinguishedName l1) (DistinguishedName l2) = DistinguishedName (l1++l2)
-
-            instance Monoid DistinguishedName where
-                mempty  = DistinguishedName []
-          '';
-        in ''
-          substituteInPlace ./Data/X509/DistinguishedName.hs --replace \
-            '${original}' '${replacement}'
-        '';
-      });
-      x509-store        = nixpkgs.haskell.lib.overrideCabal super.x509-store (_drv: {
-        postPatch = let
-          original = ''
-            instance Monoid CertificateStore where
-                mempty  = CertificateStore M.empty
-                mappend s1@(CertificateStore _)   s2@(CertificateStore _) = CertificateStores [s1,s2]
-                mappend    (CertificateStores l)  s2@(CertificateStore _) = CertificateStores (l ++ [s2])
-                mappend s1@(CertificateStore _)   (CertificateStores l)   = CertificateStores ([s1] ++ l)
-                mappend    (CertificateStores l1) (CertificateStores l2)  = CertificateStores (l1 ++ l2)
-          '';
-          replacement = ''
-            instance Semigroup CertificateStore where
-                (<>) s1@(CertificateStore _)   s2@(CertificateStore _) = CertificateStores [s1,s2]
-                (<>)    (CertificateStores l)  s2@(CertificateStore _) = CertificateStores (l ++ [s2])
-                (<>) s1@(CertificateStore _)   (CertificateStores l)   = CertificateStores ([s1] ++ l)
-                (<>)    (CertificateStores l1) (CertificateStores l2)  = CertificateStores (l1 ++ l2)
-
-            instance Monoid CertificateStore where
-                mempty  = CertificateStore M.empty
-          '';
-        in ''
-          substituteInPlace ./Data/X509/CertificateStore.hs --replace \
-            '${original}' '${replacement}'
-        '';
-      });
+      regex-tdfa        = nixpkgs.haskell.lib.doJailbreak super.regex-tdfa;
       # plot              = self.callCabal2nix "plot" plot {};
 
       # diagrams-cairo    = nixpkgs.haskell.lib.doJailbreak super.diagrams-cairo;
