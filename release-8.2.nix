@@ -18,12 +18,6 @@ let
   ipython-kernel-src   = filterSource cleanSource ./ipython-kernel;
   ghc-parser-src       = filterSource cleanSource ./ghc-parser;
   ihaskell-display-src = filterSource cleanSource ./ihaskell-display;
-  gtk2hs = nixpkgs.fetchFromGitHub {
-    owner  = "gtk2hs";
-    repo   = "gtk2hs";
-    rev    = "ba28ee939b6321c89d11ac2480a5065b7c05a0ea";
-    sha256 = "0cx9fs05c3sscywn4zg6g0kag64xyq7x4y38khir3516fgnj7zaa";
-  };
   displays = self: builtins.listToAttrs (
     map
       (display: { name = display; value = self.callCabal2nix display "${ihaskell-display-src}/${display}" {}; })
@@ -75,17 +69,6 @@ let
       static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
       testing-feat      = nixpkgs.haskell.lib.doJailbreak super.testing-feat;
 
-      cairo             = super.cairo.overrideAttrs (oldAttrs: {
-        src = "${gtk2hs}/cairo";
-      });
-      glib              = super.glib.overrideAttrs (oldAttrs: {
-        src = "${gtk2hs}/glib";
-      });
-      pango             = super.pango.overrideAttrs (oldAttrs: {
-        src = "${gtk2hs}/pango";
-      });
-
-      gtk2hs-buildtools = super.callHackage "gtk2hs-buildtools" "0.13.3.0" {};
       hmatrix           = super.hmatrix_0_18_2_0;
       plot              = super.callHackage "plot" "0.2.3.9" {};
       singletons        = super.callHackage "singletons" "2.3.1" {};
