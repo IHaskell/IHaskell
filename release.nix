@@ -61,6 +61,8 @@ let
       });
       ghc-parser     = self.callCabal2nix "ghc-parser"     ghc-parser-src     {};
       ipython-kernel = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
+      haskell-src-exts = self.haskell-src-exts_1_20_1;
+      haskell-src-meta = self.haskell-src-meta_0_8_0_2;
     } // displays self;
   };
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
