@@ -64,10 +64,11 @@ let
 
       haskell-src-exts  = self.haskell-src-exts_1_20_1;
       haskell-src-meta  = self.haskell-src-meta_0_8_0_2;
+      hmatrix           = self.hmatrix_0_18_2_0;
+
       shelly            = nixpkgs.haskell.lib.doJailbreak super.shelly;
       static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
 
-      hmatrix           = super.hmatrix_0_18_2_0;
     } // displays self;
   };
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
