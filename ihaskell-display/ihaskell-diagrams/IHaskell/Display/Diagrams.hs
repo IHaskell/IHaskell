@@ -1,5 +1,4 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
-{-# LANGUAGE DeriveFunctor, DeriveGeneric #-}
 
 module IHaskell.Display.Diagrams
          ( diagram, animation
@@ -12,14 +11,7 @@ import           Diagrams.Backend.Cairo
 import           Diagrams.Prelude
 import           IHaskell.Display
 import           IHaskell.Display.Diagrams.Animation
-
-import           GHC.Generics (Generic)
-
-data ManuallySized a = ManuallySized
-    { contentToDisplay :: a
-    , imgManualWidth :: Double
-    , imgManualHeight :: Double
-    } deriving (Show, Functor, Generic)
+import           IHaskell.Display.Diagrams.ImgSize
 
 instance IHaskellDisplay (ManuallySized (QDiagram Cairo V2 Double Any)) where
   display renderable = do
