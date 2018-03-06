@@ -62,8 +62,12 @@ withSizeSpec spec renderable = ManuallySized renderable imgWidth imgHeight
          V2 (Just w) (Just h) -> (w, h)
          V2 (Just w) Nothing  -> (w, w/aspect)
          V2 Nothing (Just h)  -> (aspect*h, h)
-         V2 Nothing Nothing   -> (aspect*defaultHeight, defaultHeight)
-       defaultHeight = 300
+         V2 Nothing Nothing   -> (defaultDiagonal / sqrt (1 + aspect^2)) *^ (aspect, 1)
+                                 -- w^2 + h^2 = defaultDiagonal^2 / (1+aspect^2)
+                                 --                * (aspect^2 + 1)
+                                 --           = defaultDiagonal^2
+                                 -- w/h = aspect/1 = aspect
+       defaultDiagonal = 500
 
 withImgWidth :: Int -> Diagram Cairo -> ManuallySized (Diagram Cairo)
 withImgWidth imgWidth = withSizeSpec $ mkSizeSpec2D (Just $ fromIntegral imgWidth)
