@@ -69,6 +69,8 @@ let
       ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
 
       diagrams-cairo    = nixpkgs.haskell.lib.doJailbreak super.diagrams-cairo;
+      haskell-src-exts  = self.haskell-src-exts_1_20_1;
+      haskell-src-meta  = self.haskell-src-meta_0_8_0_2;
       shelly            = nixpkgs.haskell.lib.doJailbreak super.shelly;
       static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
       testing-feat      = nixpkgs.haskell.lib.doJailbreak super.testing-feat;
