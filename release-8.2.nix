@@ -62,17 +62,12 @@ let
       ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
       ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
 
-      diagrams-cairo    = nixpkgs.haskell.lib.doJailbreak super.diagrams-cairo;
       haskell-src-exts  = self.haskell-src-exts_1_20_1;
       haskell-src-meta  = self.haskell-src-meta_0_8_0_2;
       shelly            = nixpkgs.haskell.lib.doJailbreak super.shelly;
       static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
-      testing-feat      = nixpkgs.haskell.lib.doJailbreak super.testing-feat;
 
       hmatrix           = super.hmatrix_0_18_2_0;
-      plot              = super.callHackage "plot" "0.2.3.9" {};
-      singletons        = super.callHackage "singletons" "2.3.1" {};
-      th-desugar        = super.callHackage "th-desugar" "1.7" {};
     } // displays self;
   };
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
