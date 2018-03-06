@@ -8,8 +8,6 @@ module IHaskell.Display.Diagrams
 
 import qualified Data.ByteString.Char8 as Char
 import           System.Directory
-import           System.IO.Unsafe
-import           Data.IORef
 import           Diagrams.Backend.Cairo
 import           Diagrams.Prelude
 import           IHaskell.Display
