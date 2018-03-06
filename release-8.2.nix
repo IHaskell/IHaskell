@@ -86,7 +86,7 @@ let
       });
 
       gtk2hs-buildtools = super.callHackage "gtk2hs-buildtools" "0.13.3.0" {};
-      hmatrix           = super.hmatrix_0_18_1_0;
+      hmatrix           = super.hmatrix_0_18_2_0;
       plot              = super.callHackage "plot" "0.2.3.9" {};
       singletons        = super.callHackage "singletons" "2.3.1" {};
       th-desugar        = super.callHackage "th-desugar" "1.7" {};
