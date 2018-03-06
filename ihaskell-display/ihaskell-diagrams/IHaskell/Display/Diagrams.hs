@@ -58,11 +58,12 @@ diagram = id
 withSizeSpec :: SizeSpec V2 Double -> Diagram Cairo -> ManuallySized (Diagram Cairo)
 withSizeSpec spec renderable = ManuallySized renderable imgWidth imgHeight
  where aspect = width renderable / height renderable
-       (imgWidth, imgHeight) = case getSpec spec of
-         V2 (Just w) (Just h) -> (w, h)
-         V2 (Just w) Nothing  -> (w, w/aspect)
-         V2 Nothing (Just h)  -> (aspect*h, h)
-         V2 Nothing Nothing   -> (defaultDiagonal / sqrt (1 + aspect^2)) *^ (aspect, 1)
+       V2 imgWidth imgHeight = case getSpec spec of
+         V2 (Just w) (Just h) -> V2 w h
+         V2 (Just w) Nothing  -> V2 w (w/aspect)
+         V2 Nothing (Just h)  -> V2 (aspect*h) h
+         V2 Nothing Nothing   -> (defaultDiagonal / sqrt (1 + aspect^2))
+                                    *^ V2 aspect 1
                                  -- w^2 + h^2 = defaultDiagonal^2 / (1+aspect^2)
                                  --                * (aspect^2 + 1)
                                  --           = defaultDiagonal^2
