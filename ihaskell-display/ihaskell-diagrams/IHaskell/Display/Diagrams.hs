@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies                            #-}
 
 module IHaskell.Display.Diagrams
          ( diagram, animation
@@ -45,9 +46,11 @@ diagramData (ManuallySized renderable imgWidth imgHeight) format = do
 diagram :: Diagram Cairo -> Diagram Cairo
 diagram = id
 
-withSizeSpec :: SizeSpec V2 Double -> Diagram Cairo -> ManuallySized (Diagram Cairo)
-withSizeSpec spec renderable = ManuallySized renderable imgWidth imgHeight
- where aspect = width renderable / height renderable
+instance (b ~ Cairo, v ~ V2, s ~ Double, m ~ Any)
+              => ManuallySizeable (QDiagram a v s m) where
+  withSizeSpec spec renderable = ManuallySized renderable imgWidth imgHeight
+    where
+       aspect = width renderable / height renderable
        V2 imgWidth imgHeight = case getSpec spec of
          V2 (Just w) (Just h) -> V2 w h
          V2 (Just w) Nothing  -> V2 w (w/aspect)
@@ -59,14 +62,6 @@ withSizeSpec spec renderable = ManuallySized renderable imgWidth imgHeight
                                  --           = defaultDiagonal^2
                                  -- w/h = aspect/1 = aspect
        defaultDiagonal = 500
-
-withImgWidth :: Int -> Diagram Cairo -> ManuallySized (Diagram Cairo)
-withImgWidth imgWidth = withSizeSpec $ mkSizeSpec2D (Just $ fromIntegral imgWidth)
-                                                    Nothing
-
-withImgHeight :: Int -> Diagram Cairo -> ManuallySized (Diagram Cairo)
-withImgHeight imgHeight = withSizeSpec $ mkSizeSpec2D Nothing
-                                                      (Just $ fromIntegral imgHeight)
 
 instance IHaskellDisplay (QDiagram Cairo V2 Double Any) where
   display = display . withSizeSpec (mkSizeSpec2D Nothing Nothing)
