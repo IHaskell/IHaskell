@@ -52,6 +52,7 @@ library
   
   -- Modules included in this library but not exported.
   other-modules:       IHaskell.Display.Diagrams.Animation
+                       IHaskell.Display.Diagrams.ImgSize
   
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.6 && <5,
