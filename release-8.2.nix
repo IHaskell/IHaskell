@@ -1,1 +1,1 @@
-args@{...}: (import ./release.nix) (args // { compiler = "ghc822"; })
+args@{...}: (import ./release.nix) ({ compiler = "ghc822"; } // args)
