@@ -4,8 +4,8 @@ let
   nixpkgs = import (nixpkgs_.fetchFromGitHub {
     owner  = "NixOS";
     repo   = "nixpkgs";
-    rev    = "07bc1ddacebcc9587e6f4d7e05d27350e6cf23e3";
-    sha256 = "1zh9551vb8pl1sscgh3n3hd7l4wb0yf4hryaz7ay5h97ljawg8hq";
+    rev    = "25f543a9f7444fe85320467464a04bf6ea926899";
+    sha256 = "1w7g29iwhgixgbyj0l9cibdjvny0djqykzw9i148czh5v8bhnai1";
   }) {};
   inherit (builtins) any elem filterSource listToAttrs;
   lib = nixpkgs.lib;
