@@ -39,20 +39,6 @@ let
     overrides = self: super: {
       ihaskell          = nixpkgs.haskell.lib.overrideCabal (
                           self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
-        postPatch = let
-          # The tests seem to 'buffer' when run during nix-build, so this is
-          # a throw-away test to get everything running smoothly and passing.
-          originalTest = ''
-            describe "Code Evaluation" $ do'';
-          replacementTest = ''
-            describe "Code Evaluation" $ do
-                it "gets rid of the test failure with Nix" $
-                  let throwAway string _ = evaluationComparing (const $ shouldBe True True) string
-                  in throwAway "True" ["True"]'';
-        in ''
-          substituteInPlace ./src/tests/IHaskell/Test/Eval.hs --replace \
-            '${originalTest}' '${replacementTest}'
-        '';
         preCheck = ''
           export HOME=$(${nixpkgs.pkgs.coreutils}/bin/mktemp -d)
           export PATH=$PWD/dist/build/ihaskell:$PATH
