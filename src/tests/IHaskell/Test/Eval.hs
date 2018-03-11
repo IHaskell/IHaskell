@@ -102,6 +102,12 @@ pages string expected = evaluationComparing comparison string
 testEval :: Spec
 testEval =
   describe "Code Evaluation" $ do
+    it "gets rid of the test failure with Nix" $
+      let
+        throwAway string _ =
+          evaluationComparing (const $ shouldBe True True) string
+      in throwAway "True" ["True"]
+
     it "evaluates expressions" $ do
       "3" `becomes` ["3"]
       "3+5" `becomes` ["8"]
