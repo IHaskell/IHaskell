@@ -38,6 +38,7 @@ nix:
     - cairo
     - file
     - gcc
+    - gfortran.cc.lib
     - liblapack
     - ncurses
     - pango
