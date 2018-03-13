@@ -18,6 +18,18 @@ resolver: lts-11.0
 allow-newer: true
 extra-deps:
 - static-canvas-0.2.0.3
+- diagrams-1.4
+- diagrams-cairo-1.4
+- diagrams-lib-1.4.2
+- magic-1.1
+- diagrams-contrib-1.4.2.1
+- diagrams-core-1.4.0.1
+- diagrams-solve-0.1.1
+- diagrams-svg-1.4.1.1
+- dual-tree-0.2.1
+- cubicbezier-0.6.0.5
+- mfsolve-0.3.2.0
+- fast-math-1.0.2
 
 nix:
   enable: false
