@@ -1,0 +1,55 @@
+flags: {}
+packages:
+    - .
+    - ./ipython-kernel
+    - ./ghc-parser
+    # - ./ihaskell-display/ihaskell-aeson
+    # - ./ihaskell-display/ihaskell-blaze
+    # - ./ihaskell-display/ihaskell-charts
+    # - ./ihaskell-display/ihaskell-diagrams
+    # - ./ihaskell-display/ihaskell-gnuplot
+    # - ./ihaskell-display/ihaskell-hatex
+    # - ./ihaskell-display/ihaskell-juicypixels
+    # - ./ihaskell-display/ihaskell-magic
+    # - ./ihaskell-display/ihaskell-plot
+    # - ./ihaskell-display/ihaskell-static-canvas
+    # - ./ihaskell-display/ihaskell-widgets
+resolver: nightly-2018-03-16
+allow-newer: true
+extra-deps:
+# - static-canvas-0.2.0.3
+# - diagrams-1.4
+# - diagrams-cairo-1.4
+# - diagrams-lib-1.4.2
+# - magic-1.1
+# - diagrams-contrib-1.4.2.1
+# - diagrams-core-1.4.0.1
+# - diagrams-solve-0.1.1
+# - diagrams-svg-1.4.1.1
+# - dual-tree-0.2.1
+# - cubicbezier-0.6.0.5
+# - mfsolve-0.3.2.0
+# - fast-math-1.0.2
+- shelly-1.7.1
+- uuid-1.3.13
+- cryptohash-md5-0.11.100.1
+- cryptohash-sha1-0.11.100.1
+- enclosed-exceptions-1.0.2
+- network-info-0.2.0.9
+- system-fileio-0.3.16.3
+- hspec-contrib-0.5.0
+
+nix:
+  enable: false
+  packages:
+    - blas
+    - cairo
+    - file
+    - gcc
+    - gfortran.cc.lib
+    - liblapack
+    - ncurses
+    - pango
+    - pkgconfig
+    - zeromq
+    - zlib
