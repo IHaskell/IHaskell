@@ -24,18 +24,6 @@ let
   ipython-kernel-src   = filterSource cleanSource ./ipython-kernel;
   ghc-parser-src       = filterSource cleanSource ./ghc-parser;
   ihaskell-display-src = filterSource cleanSource ./ihaskell-display;
-  plot = nixpkgs.fetchFromGitHub {
-    owner  = "amcphail";
-    repo   = "plot";
-    rev    = "cc5cdff696aa99e1001124917c3b87b95529c4e3";
-    sha256 = "13abrymry4nqyl9gmjrj8lhplbg4xag7x41n89yyw822360d3drh";
-  };
-  gtk2hs = nixpkgs.fetchFromGitHub {
-    owner  = "gtk2hs";
-    repo   = "gtk2hs";
-    rev    = "ba28ee939b6321c89d11ac2480a5065b7c05a0ea";
-    sha256 = "0cx9fs05c3sscywn4zg6g0kag64xyq7x4y38khir3516fgnj7zaa";
-  };
   displays = self: builtins.listToAttrs (
     map
       (display: { name = display; value = self.callCabal2nix display "${ihaskell-display-src}/${display}" {}; })
@@ -67,36 +55,6 @@ let
       ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
 
       hlint             = super.hlint.overrideScope (_self: _super: { haskell-src-exts = self.haskell-src-exts; });
-      hourglass         = super.hourglass.overrideAttrs (oldAttrs: {
-        src = nixpkgs.fetchFromGitHub {
-          owner  = "vincenthz";
-          repo   = "hs-hourglass";
-          rev    = "b9c4e2bc3a77454a10d5396ffd9f4147aa3ebc62";
-          sha256 = "1rxai65xk6pcj3jahh62x543r1lgmzd4xjaj538nsb1aww0jyk77";
-        };
-      });
-      regex-tdfa        = nixpkgs.haskell.lib.doJailbreak super.regex-tdfa;
-      # plot              = self.callCabal2nix "plot" plot {};
-
-      # diagrams-cairo    = nixpkgs.haskell.lib.doJailbreak super.diagrams-cairo;
-      # shelly            = nixpkgs.haskell.lib.doJailbreak super.shelly;
-      # static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
-      # testing-feat      = nixpkgs.haskell.lib.doJailbreak super.testing-feat;
-
-      # cairo             = super.cairo.overrideAttrs (oldAttrs: {
-      #   src = "${gtk2hs}/cairo";
-      # });
-      # glib              = super.glib.overrideAttrs (oldAttrs: {
-      #   src = "${gtk2hs}/glib";
-      # });
-      # pango             = super.pango.overrideAttrs (oldAttrs: {
-      #   src = "${gtk2hs}/pango";
-      # });
-
-      # gtk2hs-buildtools = super.callHackage "gtk2hs-buildtools" "0.13.3.0" {};
-      # hmatrix           = super.hmatrix_0_18_1_0;
-      # singletons        = super.callHackage "singletons" "2.3.1" {};
-      # th-desugar        = super.callHackage "th-desugar" "1.7" {};
     } // displays self;
   };
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
