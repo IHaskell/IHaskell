@@ -81,6 +81,29 @@ Currently the component that takes the longest time to compile is
 `ihaskell-widgets`, so if you're in a hurry you may want to comment that out in
 `stack.yaml`.
 
+## Stack development with Docker
+This is an alternative way to use Docker than above, taking advantage of stack's Docker support.
+Makes it easy to install new packages with `stack --docker install <pkg>` without having to rebuild a docker image.
+Like the other Docker workflow, this doesn't require any host dependecies to be installed.
+
+```bash
+docker build -t ihaskell-dev docker
+stack --docker setup
+stack --docker install
+stack --docker exec ihaskell -- install --stack
+stack --docker exec jupyter -- notebook --ip=0.0.0.0 notebooks
+```
+
+Everything in the LTS can be made available!
+To add a package outside the LTS, simply add it to the `stack.yaml` file  (See: "Where are my packages?" below).
+Then install the package with stack before restarting `jupyter`
+
+```bash
+# after adding details about mypackage to stack.yaml
+stack --docker install mypackage
+stack --docker exec jupyter -- notebook notebooks
+```
+
 ## Nix
 
 If you have the `nix` package manager installed, you can create an IHaskell
