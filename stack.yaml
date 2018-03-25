@@ -31,6 +31,11 @@ extra-deps:
 - mfsolve-0.3.2.0
 - fast-math-1.0.2
 
+docker:
+  repo: "ihaskell-dev:latest"
+  enable: false
+  run-args: ["--net=bridge", "-p8888:8888"]
+
 nix:
   enable: false
   packages:
