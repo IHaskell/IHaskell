@@ -1,13 +1,13 @@
-FROM ubuntu:16.04
+FROM fpco/stack-build:lts-11.2
 
 # Install all necessary Ubuntu packages
-RUN apt-get update && apt-get install -y python3-pip libgmp-dev libmagic-dev libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev libblas-dev liblapack-dev gcc g++
+RUN apt-get update && apt-get install -y python3-pip libgmp-dev libmagic-dev libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev libblas-dev liblapack-dev gcc g++ && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install Jupyter notebook
 RUN pip3 install -U jupyter
 
-# Install stack from Stackage
-RUN curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C /usr/bin '*/stack'
+ENV LANG en_US.UTF-8
 
 # Set up a working directory for IHaskell
 RUN mkdir /ihaskell
