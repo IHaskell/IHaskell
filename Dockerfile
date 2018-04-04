@@ -56,7 +56,6 @@ USER ${NB_UID}
 RUN stack build && stack install
 
 # Run the notebook
-ENV GHC_PACKAGE_PATH $(stack path --ghc-package-path)
 ENV PATH $(stack path --local-install-root)/bin:$(stack path --snapshot-install-root)/bin:$(stack path --compiler-bin):/home/${NB_USER}/.local/bin:${PATH}
 RUN ihaskell install --stack
 WORKDIR ${HOME}
