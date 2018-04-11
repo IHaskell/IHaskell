@@ -2,7 +2,7 @@
 
 # IHaskell
 
-> You can now try IHaskell directly in your browser at [try.jupyter.org](https://try.jupyter.org).
+> You can now try IHaskell directly in your browser at [mybinder.org](https://mybinder.org/v2/gh/gibiansky/IHaskell/master).
 >
 > Alternatively, watch a [talk and demo](http://begriffs.com/posts/2016-01-20-ihaskell-notebook.html) showing off IHaskell features.
 
