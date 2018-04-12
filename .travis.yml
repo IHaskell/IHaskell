@@ -242,20 +242,14 @@ matrix:
           fi
     - language: nix
       env: RELEASE_NIX="release.nix"
-      cache:
-        directories:
-        - /nix/store
-        timeout: 1000
       install:
-        - export NIX_CONF_DIR=~
-        - echo "binary-caches = http://128.199.234.106:3000" >> $NIX_CONF_DIR/nix.conf
-        - echo "binary-cache-public-keys = 128.199.234.106:jzUyrIQHov5i6f94jQVriqPDLuPYlZPAsga3W3k+L8E=" >> $NIX_CONF_DIR/nix.conf
         - nix-env -i curl jq
       script:
         - >
-          nix-build
-          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/$(curl "https://api.github.com/repos/NixOS/nixpkgs-channels/branches/nixos-17.09" | jq -r '.commit.sha').tar.gz
-          $RELEASE_NIX
+          nix build
+          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/$(curl "https://api.github.com/repos/NixOS/nixpkgs-channels/branches/nixos-18.03" | jq -r '.commit.sha').tar.gz
+          -f $RELEASE_NIX
+          --substituters http://128.199.234.106:3000
           --arg packages '(p: with p; [
             ihaskell-aeson
             ihaskell-blaze
@@ -272,20 +266,14 @@ matrix:
         - diff <(grep -v image/png ~/ihaskell-out.ipynb) <(grep -v image/png notebooks/IHaskell.ipynb)
     - language: nix
       env: RELEASE_NIX="release-8.2.nix"
-      cache:
-        directories:
-        - /nix/store
-        timeout: 1000
       install:
-        - export NIX_CONF_DIR=~
-        - echo "binary-caches = http://128.199.234.106:3000" >> $NIX_CONF_DIR/nix.conf
-        - echo "binary-cache-public-keys = 128.199.234.106:jzUyrIQHov5i6f94jQVriqPDLuPYlZPAsga3W3k+L8E=" >> $NIX_CONF_DIR/nix.conf
         - nix-env -i curl jq
       script:
         - >
-          nix-build
-          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/$(curl "https://api.github.com/repos/NixOS/nixpkgs-channels/branches/nixos-17.09" | jq -r '.commit.sha').tar.gz
-          $RELEASE_NIX
+          nix build
+          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/$(curl "https://api.github.com/repos/NixOS/nixpkgs-channels/branches/nixos-18.03" | jq -r '.commit.sha').tar.gz
+          -f $RELEASE_NIX
+          --substituters http://128.199.234.106:3000
           --arg packages '(p: with p; [
             ihaskell-aeson
             ihaskell-blaze
@@ -296,6 +284,22 @@ matrix:
             ihaskell-juicypixels
             ihaskell-magic
             ihaskell-plot
+            ihaskell-static-canvas
+          ])'
+        - result/bin/ihaskell-nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
+        - diff <(grep -v image/png ~/ihaskell-out.ipynb) <(grep -v image/png notebooks/IHaskell.ipynb)
+    - language: nix
+      env: RELEASE_NIX="release-8.4.nix"
+      install:
+        - nix-env -i curl jq
+      script:
+        - >
+          nix build
+          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/$(curl "https://api.github.com/repos/NixOS/nixpkgs-channels/branches/nixos-18.03" | jq -r '.commit.sha').tar.gz
+          -f $RELEASE_NIX
+          --substituters http://128.199.234.106:3000
+          --arg packages '(p: with p; [
+            ihaskell-aeson
             ihaskell-static-canvas
           ])'
         - result/bin/ihaskell-nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
