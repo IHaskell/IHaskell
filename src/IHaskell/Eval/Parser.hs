@@ -247,6 +247,7 @@ parsePragma ('{':'-':'#':pragma) line =
     --empty string pragmas are unsupported
     [] -> Pragma (PragmaUnsupported "") []
     "LANGUAGE":xs -> Pragma PragmaLanguage xs
+    "language":xs -> Pragma PragmaLanguage xs
     x:xs -> Pragma (PragmaUnsupported x) xs
 
 -- | Parse a directive of the form :directiveName.
