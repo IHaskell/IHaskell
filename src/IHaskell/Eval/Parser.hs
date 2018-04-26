@@ -22,6 +22,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Char8 as CBS
 
+import           Data.Char (toLower)
 import           Data.List (maximumBy, inits)
 import           Prelude (head, tail)
 import           Control.Monad (msum)
@@ -246,9 +247,9 @@ parsePragma ('{':'-':'#':pragma) line =
   in case pragmas of
     --empty string pragmas are unsupported
     [] -> Pragma (PragmaUnsupported "") []
-    "LANGUAGE":xs -> Pragma PragmaLanguage xs
-    "language":xs -> Pragma PragmaLanguage xs
-    "Language":xs -> Pragma PragmaLanguage xs
+    x:xs
+      | map toLower x == "language"
+      -> Pragma PragmaLanguage xs
     x:xs -> Pragma (PragmaUnsupported x) xs
 
 -- | Parse a directive of the form :directiveName.
