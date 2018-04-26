@@ -12,7 +12,7 @@ import           Test.HUnit (assertBool, assertFailure)
 
 import           IHaskell.Test.Util (ghc, strip)
 import           IHaskell.Eval.Parser (parseString, getModuleName, unloc, layoutChunks, Located(..),
-                                       CodeBlock(..), DirectiveType(..), StringLoc(..))
+                                       CodeBlock(..), DirectiveType(..), StringLoc(..), PragmaType(..))
 import           IHaskell.Eval.ParseShell (parseShell)
 
 #if !MIN_VERSION_base(4,8,0)
@@ -196,6 +196,9 @@ testParseString = describe "Parser" $ do
     parses "let x = 3 in" `like` [ ParseError (Loc 1 13)
                                      "parse error (possibly incorrect indentation or mismatched brackets)"
                                  ]
+
+  it "parses LANGUAGE pragmas case-insensitively" $
+    parses "{-# LaNgUaGe OverloadedStrings #-}" `like` [Pragma PragmaLanguage ["OverloadedStrings"]]
 
   it "breaks without data kinds" $
     parses "data X = 3" `like` [dataKindsError]
