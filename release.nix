@@ -35,25 +35,22 @@ let
         "ihaskell-static-canvas"
         "ihaskell-widgets"
       ]);
-  haskellPackages = nixpkgs.haskell.packages."${compiler}".override {
-    overrides = self: super: {
-      ihaskell          = nixpkgs.haskell.lib.overrideCabal (
-                          self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
-        preCheck = ''
-          export HOME=$(${nixpkgs.pkgs.coreutils}/bin/mktemp -d)
-          export PATH=$PWD/dist/build/ihaskell:$PATH
-          export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
-        '';
-      });
-      ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
-      ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
+  haskellPackages = nixpkgs.haskell.packages."${compiler}".extend (self: super: {
+    ihaskell          = nixpkgs.haskell.lib.overrideCabal (
+                        self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
+      preCheck = ''
+        export HOME=$(${nixpkgs.pkgs.coreutils}/bin/mktemp -d)
+        export PATH=$PWD/dist/build/ihaskell:$PATH
+        export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
+      '';
+    });
+    ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
+    ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
 
-      haskell-src-exts  = self.haskell-src-exts_1_20_2;
+    haskell-src-exts  = self.haskell-src-exts_1_20_2;
 
-      static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
-
-    } // displays self;
-  };
+    static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
+  } // displays self);
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
   jupyter = nixpkgs.python3.withPackages (ps: [ ps.jupyter ps.notebook ]);
   ihaskellSh = cmd: extraArgs: nixpkgs.writeScriptBin "ihaskell-${cmd}" ''
