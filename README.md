@@ -117,7 +117,7 @@ $ <result path>/bin/ihaskell-notebook
 
 It might take a while the first time, but subsequent builds will be much faster.
 
-IHaskell-display modules are not loaded by default and have to be specified as additional packages.
+The IHaskell display modules are not loaded by default and have to be specified as additional packages:
 
 ```bash
 $ nix-build release.nix --arg packages "haskellPackages: [ haskellPackages.ihaskell-blaze haskellPackages.ihaskell-charts ]"
