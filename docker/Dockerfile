@@ -1,4 +1,4 @@
-FROM fpco/stack-build:lts-11.9
+FROM fpco/stack-build:lts-11.10
 # docker build -t ihaskell-dev docker
 
 # Install all necessary Ubuntu packages
