@@ -17,12 +17,14 @@ module IHaskell.IPython.ZeroMQ (
 import           Control.Concurrent
 import           Control.Exception
 import           Control.Monad
+import qualified Crypto.Hash as Hash
+import           Crypto.Hash.Algorithms (SHA256)
+import qualified Crypto.MAC.HMAC as HMAC
 import           Data.Aeson
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as Char
 import qualified Data.ByteString.Lazy as LBS
 import           Data.Char
-import           Data.Digest.Pure.SHA as SHA
 import           Data.Monoid ((<>))
 import qualified Data.Text.Encoding as Text
 import           System.ZMQ4 as ZMQ4 hiding (stdin)
@@ -336,7 +338,7 @@ sendMessage debug hmacKey socket message = do
 
     -- Compute the HMAC SHA-256 signature of a bytestring message.
     hmac :: ByteString -> ByteString
-    hmac = Char.pack . SHA.showDigest . SHA.hmacSha256 (LBS.fromStrict hmacKey) . LBS.fromStrict
+    hmac = Char.pack . show . (HMAC.hmacGetDigest :: HMAC.HMAC SHA256 -> Hash.Digest SHA256) . HMAC.hmac hmacKey
 
     -- Pieces of the message.
     head = header message

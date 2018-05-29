@@ -39,17 +39,18 @@ library
                        bytestring      ,
                        cereal          ,
                        containers      ,
+                       cryptonite      ,
                        directory       ,
                        temporary       ,
                        filepath        ,
                        process         ,
+                       memory          ,
                        mtl             ,
                        text            ,
                        transformers    ,
                        unordered-containers,
                        uuid            ,
-                       zeromq4-haskell ,
-                       SHA
+                       zeromq4-haskell
 
 -- Example program
 executable simple-calc-example
