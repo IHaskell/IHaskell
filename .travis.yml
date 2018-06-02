@@ -243,19 +243,15 @@ matrix:
     - language: nix
       env: RELEASE_NIX="release.nix"
       cache:
-        directories:
-        - /nix/store
-        timeout: 1000
       install:
         - export NIX_CONF_DIR=~
-        - echo "binary-caches = http://128.199.234.106:3000" >> $NIX_CONF_DIR/nix.conf
-        - echo "binary-cache-public-keys = 128.199.234.106:jzUyrIQHov5i6f94jQVriqPDLuPYlZPAsga3W3k+L8E=" >> $NIX_CONF_DIR/nix.conf
+        - echo "binary-caches = https://cache.nixos.org https://vaibhavsagar.cachix.org" >> $NIX_CONF_DIR/nix.conf
+        - echo "binary-cache-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= vaibhavsagar.cachix.org-1:PxFckJ8oAzgF4sdFJ855Fw38yCVbXmzJ98Cc6dGzcE0=" >> $NIX_CONF_DIR/nix.conf
         - nix-env -i curl jq
+        - export NIXPKGS="https://github.com/NixOS/nixpkgs-channels/archive/$(curl "https://api.github.com/repos/NixOS/nixpkgs-channels/branches/nixos-18.03" | jq -r '.commit.sha').tar.gz"
       script:
         - >
-          nix-build
-          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/$(curl "https://api.github.com/repos/NixOS/nixpkgs-channels/branches/nixos-17.09" | jq -r '.commit.sha').tar.gz
-          $RELEASE_NIX
+          nix-build -I nixpkgs=$NIXPKGS $RELEASE_NIX
           --arg packages '(p: with p; [
             ihaskell-aeson
             ihaskell-blaze
@@ -272,20 +268,40 @@ matrix:
         - diff <(grep -v image/png ~/ihaskell-out.ipynb) <(grep -v image/png notebooks/IHaskell.ipynb)
     - language: nix
       env: RELEASE_NIX="release-8.2.nix"
-      cache:
-        directories:
-        - /nix/store
-        timeout: 1000
       install:
         - export NIX_CONF_DIR=~
-        - echo "binary-caches = http://128.199.234.106:3000" >> $NIX_CONF_DIR/nix.conf
-        - echo "binary-cache-public-keys = 128.199.234.106:jzUyrIQHov5i6f94jQVriqPDLuPYlZPAsga3W3k+L8E=" >> $NIX_CONF_DIR/nix.conf
+        - echo "binary-caches = https://cache.nixos.org https://vaibhavsagar.cachix.org" >> $NIX_CONF_DIR/nix.conf
+        - echo "binary-cache-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= vaibhavsagar.cachix.org-1:PxFckJ8oAzgF4sdFJ855Fw38yCVbXmzJ98Cc6dGzcE0=" >> $NIX_CONF_DIR/nix.conf
         - nix-env -i curl jq
+        - export NIXPKGS="https://github.com/NixOS/nixpkgs-channels/archive/$(curl "https://api.github.com/repos/NixOS/nixpkgs-channels/branches/nixos-18.03" | jq -r '.commit.sha').tar.gz"
       script:
         - >
-          nix-build
-          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/$(curl "https://api.github.com/repos/NixOS/nixpkgs-channels/branches/nixos-17.09" | jq -r '.commit.sha').tar.gz
-          $RELEASE_NIX
+          nix-build -I nixpkgs=$NIXPKGS $RELEASE_NIX
+          --arg packages '(p: with p; [
+            ihaskell-aeson
+            ihaskell-blaze
+            ihaskell-charts
+            ihaskell-diagrams
+            ihaskell-gnuplot
+            ihaskell-hatex
+            ihaskell-juicypixels
+            ihaskell-magic
+            ihaskell-plot
+            ihaskell-static-canvas
+          ])'
+        - result/bin/ihaskell-nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
+        - diff <(grep -v image/png ~/ihaskell-out.ipynb) <(grep -v image/png notebooks/IHaskell.ipynb)
+    - language: nix
+      env: RELEASE_NIX="release-8.4.nix"
+      install:
+        - export NIX_CONF_DIR=~
+        - echo "binary-caches = https://cache.nixos.org https://vaibhavsagar.cachix.org" >> $NIX_CONF_DIR/nix.conf
+        - echo "binary-cache-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= vaibhavsagar.cachix.org-1:PxFckJ8oAzgF4sdFJ855Fw38yCVbXmzJ98Cc6dGzcE0=" >> $NIX_CONF_DIR/nix.conf
+        - nix-env -i curl jq
+        - export NIXPKGS="https://github.com/NixOS/nixpkgs-channels/archive/$(curl "https://api.github.com/repos/NixOS/nixpkgs-channels/branches/nixos-18.03" | jq -r '.commit.sha').tar.gz"
+      script:
+        - >
+          nix-build -I nixpkgs=$NIXPKGS $RELEASE_NIX
           --arg packages '(p: with p; [
             ihaskell-aeson
             ihaskell-blaze
