@@ -1,4 +1,10 @@
-{ compiler ? "ghc802", nixpkgs ? import <nixpkgs> {}, packages ? (_: []), rtsopts ? "-M3g -N2", systemPackages ? (_: []) }:
+{ compiler ? "ghc802"
+, nixpkgs ? import <nixpkgs> {}
+, packages ? (_: [])
+, pythonPackages ? (_: [])
+, rtsopts ? "-M3g -N2"
+, systemPackages ? (_: [])
+}:
 
 let
   inherit (builtins) any elem filterSource listToAttrs;
@@ -52,7 +58,7 @@ let
     static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
   } // displays self);
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
-  jupyter = nixpkgs.python3.withPackages (ps: [ ps.jupyter ps.notebook ]);
+  jupyter = nixpkgs.python3.withPackages (ps: [ ps.jupyter ps.notebook ] ++ pythonPackages ps);
   ihaskellSh = cmd: extraArgs: nixpkgs.writeScriptBin "ihaskell-${cmd}" ''
     #! ${nixpkgs.stdenv.shell}
     export GHC_PACKAGE_PATH="$(echo ${ihaskellEnv}/lib/*/package.conf.d| tr ' ' ':'):$GHC_PACKAGE_PATH"
