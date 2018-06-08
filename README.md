@@ -59,6 +59,8 @@ stack install --fast
 ihaskell install --stack
 ```
 
+If you have Homebrew installed to a custom location, you'd need to specify `--extra-include-dirs ${HOMEBREW_PREFIX}/include ----extra-lib-dir ${HOMEBREW_PREFIX}/lib` to the `stack` command. 
+
 _Tested on macOS Sierra (10.12.6)_
 
 # Running
