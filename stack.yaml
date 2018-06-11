@@ -14,7 +14,7 @@ packages:
     - ./ihaskell-display/ihaskell-plot
     - ./ihaskell-display/ihaskell-static-canvas
     - ./ihaskell-display/ihaskell-widgets
-resolver: lts-11.12
+resolver: lts-11.13
 allow-newer: true
 extra-deps:
 - static-canvas-0.2.0.3
