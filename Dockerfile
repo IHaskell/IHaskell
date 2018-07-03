@@ -1,4 +1,4 @@
-FROM fpco/stack-build:lts-11.15
+FROM fpco/stack-build:lts-11.16
 
 # Install all necessary Ubuntu packages
 RUN apt-get update && apt-get install -y python3-pip libgmp-dev libmagic-dev libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev libblas-dev liblapack-dev gcc g++ && \
