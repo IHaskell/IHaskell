@@ -20,6 +20,7 @@ instance ToJSON LanguageInfo where
                   , "version" .= languageVersion info
                   , "file_extension" .= languageFileExtension info
                   , "codemirror_mode" .= languageCodeMirrorMode info
+                  , "pygments_lexer" .= languagePygmentsLexer info
                   ]
 
 -- Convert message bodies into JSON.

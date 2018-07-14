@@ -276,6 +276,7 @@ data LanguageInfo =
          , languageVersion :: String        -- ^ GHC 7.6.3
          , languageFileExtension :: String        -- ^ .hs
          , languageCodeMirrorMode :: String        -- ^ 'ihaskell'. can be 'null'
+         , languagePygmentsLexer :: String
          }
   deriving (Show, Eq)
 

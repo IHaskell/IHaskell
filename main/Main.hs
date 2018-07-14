@@ -274,6 +274,7 @@ replyTo interface KernelInfoRequest{} replyHeader state = do
                 , languageVersion = VERSION_ghc
                 , languageFileExtension = ".hs"
                 , languageCodeMirrorMode = "ihaskell"
+                , languagePygmentsLexer = "Haskell"
                 }
               , status = Ok
               })
