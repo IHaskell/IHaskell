@@ -163,7 +163,12 @@ replyTo :: MonadIO m
         -> Message
         -> MessageHeader
         -> m Message
-replyTo config _ _ KernelInfoRequest{} replyHeader =
+replyTo config _ interface KernelInfoRequest{} replyHeader = do
+  let send = writeChan (iopubChannel interface)
+
+  idleHeader <- dupHeader replyHeader StatusMessage
+  liftIO . send $ PublishStatus idleHeader Idle
+
   return
     KernelInfoReply
       { header = replyHeader
