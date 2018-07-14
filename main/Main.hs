@@ -275,6 +275,7 @@ replyTo interface KernelInfoRequest{} replyHeader state = do
                 , languageFileExtension = ".hs"
                 , languageCodeMirrorMode = "ihaskell"
                 }
+              , status = Ok
               })
 
 replyTo _ CommInfoRequest{} replyHeader state =

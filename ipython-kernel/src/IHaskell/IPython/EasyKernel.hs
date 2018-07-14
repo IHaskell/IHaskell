@@ -177,6 +177,7 @@ replyTo config _ interface KernelInfoRequest{} replyHeader = do
       , implementationVersion = kernelImplVersion config
       , banner = kernelBanner config
       , protocolVersion = kernelProtocolVersion config
+      , status = Ok
       }
 
 replyTo config _ _ CommInfoRequest{} replyHeader =
