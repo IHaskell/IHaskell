@@ -41,6 +41,13 @@ stack install --fast
 ihaskell install --stack
 ```
 
+if you want to use jupyterlab, you need to install the jupyterlab ihaskell
+extension to get syntax highlighting with:
+
+```bash
+jupyter labextension install ihaskell_labextension
+```
+
 ## Mac
 
 You need to have [Homebrew](https://brew.sh) installed. 
