@@ -1,0 +1,46 @@
+{
+  "name": "ihaskell_jupyterlab",
+  "version": "0.0.1",
+  "description": "JupyterLab extension",
+  "keywords": [
+    "jupyter",
+    "jupyterlab",
+    "jupyterlab-extension"
+  ],
+  "homepage": "https://github.com/xxx",
+  "bugs": {
+    "url": "https://github.com/xxx/issues"
+  },
+  "license": "BSD-3-Clause",
+  "author": "MMesch",
+  "files": [
+    "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}",
+    "style/**/*.{css,eot,gif,html,jpg,json,png,svg,woff2,ttf}"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xxx/jupyterlab-sos.git"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf lib",
+    "watch": "tsc -w"
+  },
+  "dependencies": {
+    "@jupyterlab/application": "^0.16.1",
+    "@jupyterlab/apputils": "^0.16.2",
+    "@jupyterlab/docregistry": "^0.16.1",
+    "@jupyterlab/notebook": "^0.16.1",
+    "@jupyterlab/services": "^2.0.1",
+    "@phosphor/disposable": "^1.1.2"
+  },
+  "devDependencies": {
+    "rimraf": "^2.6.1",
+    "typescript": "~2.6.0"
+  },
+  "jupyterlab": {
+    "extension": true
+  }
+}
