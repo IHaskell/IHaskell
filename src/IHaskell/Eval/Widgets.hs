@@ -145,7 +145,7 @@ handleMessage send replyHeader state msg = do
 
     DispMsg widget disp -> do
       dispHeader <- dupHeader replyHeader DisplayDataMessage
-      let dmsg = WidgetDisplay dispHeader "haskell" $ unwrap disp
+      let dmsg = WidgetDisplay dispHeader $ unwrap disp
       sendMessage widget (toJSON $ CustomContent $ toJSON dmsg)
 
     ClrOutput widget wait -> do
@@ -170,11 +170,11 @@ handleMessage send replyHeader state msg = do
     unwrap (Display ddatas) = ddatas
 
 -- Override toJSON for PublishDisplayData for sending Display messages through [method .= custom]
-data WidgetDisplay = WidgetDisplay MessageHeader String [DisplayData]
+data WidgetDisplay = WidgetDisplay MessageHeader [DisplayData]
 
 instance ToJSON WidgetDisplay where
-  toJSON (WidgetDisplay replyHeader source ddata) =
-    let pbval = toJSON $ PublishDisplayData replyHeader source ddata
+  toJSON (WidgetDisplay replyHeader ddata) =
+    let pbval = toJSON $ PublishDisplayData replyHeader ddata
     in toJSON $ IPythonMessage replyHeader pbval DisplayDataMessage
 
 -- Override toJSON for ClearOutput

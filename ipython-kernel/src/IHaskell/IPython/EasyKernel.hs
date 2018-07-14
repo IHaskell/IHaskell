@@ -163,7 +163,12 @@ replyTo :: MonadIO m
         -> Message
         -> MessageHeader
         -> m Message
-replyTo config _ _ KernelInfoRequest{} replyHeader =
+replyTo config _ interface KernelInfoRequest{} replyHeader = do
+  let send = writeChan (iopubChannel interface)
+
+  idleHeader <- dupHeader replyHeader StatusMessage
+  liftIO . send $ PublishStatus idleHeader Idle
+
   return
     KernelInfoReply
       { header = replyHeader
@@ -172,6 +177,7 @@ replyTo config _ _ KernelInfoRequest{} replyHeader =
       , implementationVersion = kernelImplVersion config
       , banner = kernelBanner config
       , protocolVersion = kernelProtocolVersion config
+      , status = Ok
       }
 
 replyTo config _ _ CommInfoRequest{} replyHeader =
@@ -198,12 +204,9 @@ replyTo config execCount interface req@ExecuteRequest { getCode = code } replyHe
                                       sendOutput x =
                                                       send $ PublishDisplayData
                                                                outputHeader
-                                                               (languageName $ kernelLanguageInfo
-                                                                                 config)
                                                                (displayOutput config x)
                                   in run config code clearOutput sendOutput
-  liftIO . send $ PublishDisplayData outputHeader (languageName $ kernelLanguageInfo config)
-                    (displayResult config res)
+  liftIO . send $ PublishDisplayData outputHeader (displayResult config res)
 
 
   idleHeader <- dupHeader replyHeader StatusMessage

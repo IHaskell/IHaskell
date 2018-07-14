@@ -178,8 +178,7 @@ displayDataParser :: LByteString -> Message
 displayDataParser = requestParser $ \obj -> do
   dataDict :: Object <- obj .: "data"
   let displayDatas = makeDisplayDatas dataDict
-  maybeSource <- obj .:? "source"
-  return $ PublishDisplayData noHeader (fromMaybe "" maybeSource) displayDatas
+  return $ PublishDisplayData noHeader displayDatas
 
 requestParser parser content =
   case parseEither parser decoded of

@@ -255,7 +255,13 @@ replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> Interpr
 -- Reply to kernel info requests with a kernel info reply. No computation needs to be done, as a
 -- kernel info reply is a static object (all info is hard coded into the representation of that
 -- message type).
-replyTo _ KernelInfoRequest{} replyHeader state =
+replyTo interface KernelInfoRequest{} replyHeader state = do
+  let send msg = liftIO $ writeChan (iopubChannel interface) msg
+
+  -- Notify the frontend that the Kernel is idle 
+  idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
+  send $ PublishStatus idleHeader Idle
+
   return
     (state, KernelInfoReply
               { header = replyHeader
@@ -268,7 +274,9 @@ replyTo _ KernelInfoRequest{} replyHeader state =
                 , languageVersion = VERSION_ghc
                 , languageFileExtension = ".hs"
                 , languageCodeMirrorMode = "ihaskell"
+                , languagePygmentsLexer = "Haskell"
                 }
+              , status = Ok
               })
 
 replyTo _ CommInfoRequest{} replyHeader state =

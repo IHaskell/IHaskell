@@ -276,6 +276,7 @@ data LanguageInfo =
          , languageVersion :: String        -- ^ GHC 7.6.3
          , languageFileExtension :: String        -- ^ .hs
          , languageCodeMirrorMode :: String        -- ^ 'ihaskell'. can be 'null'
+         , languagePygmentsLexer :: String
          }
   deriving (Show, Eq)
 
@@ -299,6 +300,7 @@ data Message =
                  , implementation :: String -- ^ e.g. IHaskell
                  , implementationVersion :: String -- ^ The version of the implementation
                  , languageInfo :: LanguageInfo
+                 , status :: ExecuteReplyStatus
                  }
              |
              -- | A request from a frontend for information about the comms.
@@ -366,7 +368,6 @@ data Message =
              |
                PublishDisplayData
                  { header :: MessageHeader
-                 , source :: String                      -- ^ The name of the data source.
                  , displayData :: [DisplayData]          -- ^ A list of data representations.
                  }
              |
