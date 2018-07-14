@@ -63,7 +63,7 @@ publishResult send replyHeader displayed updateNeeded pagerOutput usePager resul
     sendOutput (ManyDisplay manyOuts) = mapM_ sendOutput manyOuts
     sendOutput (Display outs) = do
       header <- dupHeader replyHeader DisplayDataMessage
-      send $ PublishDisplayData header "haskell" $ map (convertSvgToHtml . prependCss) outs
+      send $ PublishDisplayData header $ map (convertSvgToHtml . prependCss) outs
 
     convertSvgToHtml (DisplayData MimeSvg svg) = html $ makeSvgImg $ base64 $ E.encodeUtf8 svg
     convertSvgToHtml x = x

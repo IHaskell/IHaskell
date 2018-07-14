@@ -366,7 +366,6 @@ data Message =
              |
                PublishDisplayData
                  { header :: MessageHeader
-                 , source :: String                      -- ^ The name of the data source.
                  , displayData :: [DisplayData]          -- ^ A list of data representations.
                  }
              |

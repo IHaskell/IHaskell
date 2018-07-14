@@ -203,12 +203,9 @@ replyTo config execCount interface req@ExecuteRequest { getCode = code } replyHe
                                       sendOutput x =
                                                       send $ PublishDisplayData
                                                                outputHeader
-                                                               (languageName $ kernelLanguageInfo
-                                                                                 config)
                                                                (displayOutput config x)
                                   in run config code clearOutput sendOutput
-  liftIO . send $ PublishDisplayData outputHeader (languageName $ kernelLanguageInfo config)
-                    (displayResult config res)
+  liftIO . send $ PublishDisplayData outputHeader (displayResult config res)
 
 
   idleHeader <- dupHeader replyHeader StatusMessage

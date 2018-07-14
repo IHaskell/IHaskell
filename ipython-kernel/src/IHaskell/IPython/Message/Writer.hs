@@ -76,9 +76,9 @@ instance ToJSON Message where
     object ["execution_state" .= executionState]
   toJSON PublishStream { streamType = streamType, streamContent = content } =
     object ["data" .= content, "name" .= streamType]
-  toJSON PublishDisplayData { source = src, displayData = datas } =
+  toJSON PublishDisplayData { displayData = datas } =
     object
-      ["source" .= src, "metadata" .= object [], "data" .= object (map displayDataToJson datas)]
+      ["metadata" .= object [], "data" .= object (map displayDataToJson datas)]
 
   toJSON PublishOutput { executionCount = execCount, reprText = reprText } =
     object
