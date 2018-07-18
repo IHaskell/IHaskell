@@ -599,7 +599,7 @@ instance Show MimeType where
   show MimeJavascript = "application/javascript"
   show MimeJson = "application/json"
   show MimeVega = "application/vnd.vega.v2+json"
-  show MimeVegalite = "application/vnd.vegalite.v1+json"
+  show MimeVegalite = "application/vnd.vegalite.v2+json"
   show MimeVdom = "application/vdom.v1+json"
 
 instance Read MimeType where
