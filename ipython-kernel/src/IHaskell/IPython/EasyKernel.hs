@@ -56,7 +56,7 @@ data KernelConfig m output result =
          { 
          -- | Info on the language of the kernel.
          kernelLanguageInfo :: LanguageInfo
-         -- | Write all the files into the kernel directory, including `kernel.js`, `logo-64x64.png`, and any
+         -- | Write all the files into the kernel directory, including `kernel.js`, `logo-64x64.svg`, and any
          -- other required files. The directory to write to will be passed to this function, and the return
          -- value should be the kernelspec to be written to `kernel.json`.
          , writeKernelspec :: FilePath -> IO KernelSpec

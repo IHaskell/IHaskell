@@ -213,7 +213,7 @@ installKernelspec replace opts = void $ do
 
     SH.mkdir_p kernelDir
     SH.writefile filename $ LT.toStrict $ toLazyText $ encodeToTextBuilder $ toJSON kernelSpec
-    let files = ["kernel.js", "logo-64x64.png"]
+    let files = ["kernel.js", "logo-64x64.svg"]
     forM_ files $ \file -> do
       src <- liftIO $ Paths.getDataFileName $ "html/" ++ file
       SH.cp (SH.fromText $ T.pack src) (tmp SH.</> kernelName SH.</> file)
