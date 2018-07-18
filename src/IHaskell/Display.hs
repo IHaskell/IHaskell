@@ -25,11 +25,18 @@ module IHaskell.Display (
     -- * Constructors for displays
     plain,
     html,
+    bmp,
     png,
     jpg,
+    gif,
     svg,
     latex,
+    markdown,
     javascript,
+    json,
+    vega,
+    vegalite,
+    vdom,
     many,
 
     -- ** Image and data encoding functions
@@ -118,6 +125,38 @@ latex = DisplayData MimeLatex . T.pack
 -- | Generate a Javascript display.
 javascript :: String -> DisplayData
 javascript = DisplayData MimeJavascript . T.pack
+
+-- | Generate a Json display.
+json :: String -> DisplayData
+json = DisplayData MimeJson . T.pack
+
+-- | Generate a Vega display.
+vega :: String -> DisplayData
+vega = DisplayData MimeVega . T.pack
+
+-- | Generate a Vegalite display.
+vegalite :: String -> DisplayData
+vegalite = DisplayData MimeVegalite . T.pack
+
+-- | Generate a Vdom display.
+vdom :: String -> DisplayData
+vdom = DisplayData MimeVdom . T.pack
+
+-- | Generate a Markdown display.
+markdown :: String -> DisplayData
+markdown = DisplayData MimeMarkdown . T.pack
+
+-- | Generate a GIF display of the given width and height. Data must be provided in a Base64 encoded
+-- manner, suitable for embedding into HTML. The @base64@ function may be used to encode data into
+-- this format.
+gif :: Width -> Height -> Base64 -> DisplayData
+gif width height = DisplayData (MimeGif width height)
+
+-- | Generate a BMP display of the given width and height. Data must be provided in a Base64 encoded
+-- manner, suitable for embedding into HTML. The @base64@ function may be used to encode data into
+-- this format.
+bmp :: Width -> Height -> Base64 -> DisplayData
+bmp width height = DisplayData (MimeBmp width height)
 
 -- | Generate a PNG display of the given width and height. Data must be provided in a Base64 encoded
 -- manner, suitable for embedding into HTML. The @base64@ function may be used to encode data into
