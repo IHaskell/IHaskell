@@ -8,11 +8,14 @@ module IHaskell.IPython.Message.Writer (ToJSON(..)) where
 
 import           Data.Aeson
 import           Data.Aeson.Types (Pair)
+import           Data.Aeson.Parser (json)
 import           Data.Map (Map)
 import           Data.Monoid (mempty)
 import           Data.Text (Text, pack)
+import           Data.Text.Encoding (encodeUtf8)
 import qualified Data.Map               as Map
 import           IHaskell.IPython.Types
+import           Data.Maybe (fromMaybe)
 
 instance ToJSON LanguageInfo where
   toJSON info = object
@@ -173,6 +176,12 @@ instance ToJSON StreamType where
 
 -- | Convert a MIME type and value into a JSON dictionary pair.
 displayDataToJson :: DisplayData -> (Text, Value)
+displayDataToJson (DisplayData MimeJson dataStr) = 
+    pack (show MimeJson) .= fromMaybe (String "") (decodeStrict (encodeUtf8 dataStr) :: Maybe Value)
+displayDataToJson (DisplayData MimeVegalite dataStr) = 
+    pack (show MimeVegalite) .= fromMaybe (String "") (decodeStrict (encodeUtf8 dataStr) :: Maybe Value)
+displayDataToJson (DisplayData MimeVega dataStr) = 
+    pack (show MimeVega) .= fromMaybe (String "") (decodeStrict (encodeUtf8 dataStr) :: Maybe Value)
 displayDataToJson (DisplayData mimeType dataStr) =
   pack (show mimeType) .= String dataStr
 
