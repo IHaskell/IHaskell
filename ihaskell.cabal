@@ -44,7 +44,7 @@ cabal-version:       >=1.16
 
 data-files: 
     html/kernel.js
-    html/logo-64x64.png
+    html/logo-64x64.svg
 
 flag binPkgDb
   default:             False
