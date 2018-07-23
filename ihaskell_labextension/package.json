@@ -1,15 +1,16 @@
 {
   "name": "ihaskell_jupyterlab",
-  "version": "0.0.1",
-  "description": "JupyterLab extension",
+  "version": "0.0.2",
+  "description": "adds ihaskell syntax highlighting to jupyterlab",
   "keywords": [
     "jupyter",
     "jupyterlab",
+    "ihaskell",
     "jupyterlab-extension"
   ],
-  "homepage": "https://github.com/xxx",
+  "homepage": "https://github.com/gibiansky/IHaskell/",
   "bugs": {
-    "url": "https://github.com/xxx/issues"
+    "url": "https://github.com/gibiansky/IHaskell/issues"
   },
   "license": "BSD-3-Clause",
   "author": "MMesch",
@@ -21,7 +22,7 @@
   "types": "lib/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/xxx/jupyterlab-sos.git"
+    "url": "git@github.com:gibiansky/IHaskell.git"
   },
   "scripts": {
     "build": "tsc",
@@ -38,7 +39,8 @@
   },
   "devDependencies": {
     "rimraf": "^2.6.1",
-    "typescript": "~2.6.0"
+    "typescript": "~2.6.0",
+    "webpack": "~4.12.0"
   },
   "jupyterlab": {
     "extension": true
