@@ -14,8 +14,8 @@ CodeMirror.defineMode("ihaskell", (config) => {
       delimStyle: "delimit"
     },
     {
-      open: /\[r\||\[rprint\|/,
-      close: '|]' ,
+      open: /\[r\|/,
+      close: /\|\]/ ,
       mode: CodeMirror.getMode(config, "text/x-rsrc"),
       delimStyle: "delimit"}
   );
