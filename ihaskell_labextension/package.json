@@ -1,6 +1,6 @@
 {
   "name": "ihaskell_jupyterlab",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "adds ihaskell syntax highlighting to jupyterlab",
   "keywords": [
     "jupyter",
