@@ -61,6 +61,7 @@ languageConfig = LanguageInfo
   , languageVersion = "1.0.0"
   , languageFileExtension = ".txt"
   , languageCodeMirrorMode = "null"
+  , languagePygmentsLexer = "Text"
   }
 
 languageKernelspec :: KernelSpec
