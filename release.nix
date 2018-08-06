@@ -58,25 +58,25 @@ let
     static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
   } // displays self);
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
-  jupyter = nixpkgs.python3.withPackages (ps: [ ps.jupyter ps.notebook ] ++ pythonPackages ps);
+  notebook = nixpkgs.python3.withPackages (ps: [ ps.notebook ] ++ pythonPackages ps);
   ihaskellSh = cmd: extraArgs: nixpkgs.writeScriptBin "ihaskell-${cmd}" ''
     #! ${nixpkgs.stdenv.shell}
     export GHC_PACKAGE_PATH="$(echo ${ihaskellEnv}/lib/*/package.conf.d| tr ' ' ':'):$GHC_PACKAGE_PATH"
-    export PATH="${nixpkgs.stdenv.lib.makeBinPath ([ ihaskellEnv jupyter ] ++ systemPackages nixpkgs)}:$PATH"
-    ${ihaskellEnv}/bin/ihaskell install -l $(${ihaskellEnv}/bin/ghc --print-libdir) --use-rtsopts="${rtsopts}" && ${jupyter}/bin/jupyter ${cmd} ${extraArgs} "$@"
+    export PATH="${nixpkgs.stdenv.lib.makeBinPath ([ ihaskellEnv notebook ] ++ systemPackages nixpkgs)}:$PATH"
+    ${ihaskellEnv}/bin/ihaskell install -l $(${ihaskellEnv}/bin/ghc --print-libdir) --use-rtsopts="${rtsopts}" && ${notebook}/bin/jupyter ${cmd} ${extraArgs} "$@"
   '';
 in
 nixpkgs.buildEnv {
   name = "ihaskell-with-packages";
   buildInputs = [ nixpkgs.makeWrapper ];
-  paths = [ ihaskellEnv jupyter ];
+  paths = [ ihaskellEnv notebook ];
   postBuild = ''
     ln -s ${ihaskellSh "notebook" ""}/bin/ihaskell-notebook $out/bin/
     ln -s ${ihaskellSh "nbconvert" ""}/bin/ihaskell-nbconvert $out/bin/
     ln -s ${ihaskellSh "console" "--kernel=haskell"}/bin/ihaskell-console $out/bin/
     for prg in $out/bin"/"*;do
       if [[ -f $prg && -x $prg ]]; then
-        wrapProgram $prg --set PYTHONPATH "$(echo ${jupyter}/lib/*/site-packages)"
+        wrapProgram $prg --set PYTHONPATH "$(echo ${notebook}/lib/*/site-packages)"
       fi
     done
   '';
