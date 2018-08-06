@@ -129,7 +129,7 @@ It might take a while the first time, but subsequent builds will be much faster.
 The IHaskell display modules are not loaded by default and have to be specified as additional packages:
 
 ```bash
-$ nix-build release.nix --arg packages "haskellPackages: [ haskellPackages.ihaskell-blaze haskellPackages.ihaskell-charts ]"
+$ nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/nixos-18.03.tar.gz release-8.2.nix --arg packages "haskellPackages: [ haskellPackages.ihaskell-blaze haskellPackages.ihaskell-charts ]"
 ```
 
 # Troubleshooting
