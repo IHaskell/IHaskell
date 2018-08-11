@@ -132,7 +132,9 @@ pprDynFlags show_all dflags =
         is_on = test f dflags
         quiet = not show_all && test f default_dflags == is_on
     
-#if MIN_VERSION_ghc(8,4,0)
+#if MIN_VERSION_ghc(8,6,0)
+    default_dflags = defaultDynFlags (settings dflags) (llvmTargets dflags, llvmPasses dflags)
+#elif MIN_VERSION_ghc(8,4,0)
     default_dflags = defaultDynFlags (settings dflags) (llvmTargets dflags)
 #else
     default_dflags = defaultDynFlags (settings dflags)
@@ -184,7 +186,9 @@ pprLanguages show_all dflags =
         quiet = not show_all && test f default_dflags == is_on
 
     default_dflags =
-#if MIN_VERSION_ghc(8,4,0)
+#if MIN_VERSION_ghc(8,6,0)
+      defaultDynFlags (settings dflags) (llvmTargets dflags, llvmPasses dflags) `lang_set`
+#elif MIN_VERSION_ghc(8,4,0)
       defaultDynFlags (settings dflags) (llvmTargets dflags) `lang_set`
 #else
       defaultDynFlags (settings dflags) `lang_set`
@@ -251,10 +255,14 @@ doc sdoc = do
 
   where
     string_txt :: Pretty.TextDetails -> String -> String
+#if MIN_VERSION_ghc(8,6,0)
+    string_txt = Pretty.txtPrinter
+#else
     string_txt (Pretty.Chr c) s = c : s
     string_txt (Pretty.Str s1) s2 = s1 ++ s2
     string_txt (Pretty.PStr s1) s2 = unpackFS s1 ++ s2
     string_txt (Pretty.LStr s1 _) s2 = unpackLitString s1 ++ s2
+#endif
 
 -- | Initialize the GHC API. Run this as the first thing in the `runGhc`. This initializes some dyn
 -- flags (@ExtendedDefaultRules@,
