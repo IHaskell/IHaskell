@@ -26,21 +26,8 @@ let
   ihaskell-display-src = filterSource cleanSource ./ihaskell-display;
   displays = self: listToAttrs (
     map
-      (display: { name = display; value = self.callCabal2nix display "${ihaskell-display-src}/${display}" {}; })
-      [
-        "ihaskell-aeson"
-        "ihaskell-blaze"
-        "ihaskell-charts"
-        "ihaskell-diagrams"
-        "ihaskell-gnuplot"
-        "ihaskell-hatex"
-        "ihaskell-juicypixels"
-        "ihaskell-magic"
-        "ihaskell-plot"
-        "ihaskell-rlangqq"
-        "ihaskell-static-canvas"
-        "ihaskell-widgets"
-      ]);
+      (display: { name = "ihaskell-${display}"; value = self.callCabal2nix display "${ihaskell-display-src}/ihaskell-${display}" {}; })
+      [ "aeson" "blaze" "charts" "diagrams" "gnuplot" "hatex" "juicypixels" "magic" "plot" "rlangqq" "static-canvas" "widgets" ]);
   haskellPackages = nixpkgs.haskell.packages."${compiler}".extend (self: super: {
     ihaskell          = nixpkgs.haskell.lib.overrideCabal (
                         self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
