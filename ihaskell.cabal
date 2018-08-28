@@ -46,10 +46,6 @@ data-files:
     html/kernel.js
     html/logo-64x64.svg
 
-flag binPkgDb
-  default:             False
-  description:         bin-package-db package needed (needed for GHC >= 7.10)
-
 library
   hs-source-dirs:      src
   default-language:    Haskell2010
@@ -87,12 +83,8 @@ library
                        utf8-string          -any,
                        uuid                 >=1.3,
                        vector               -any,
-                       ipython-kernel       >=0.9.1
-  if flag(binPkgDb)
-    build-depends:       bin-package-db
-
-  if impl(ghc >= 8.0)
-    build-depends:     ghc-boot             >=8.0 && <8.7
+                       ipython-kernel       >=0.9.1,
+                       ghc-boot             >=8.0 && <8.7
 
   exposed-modules: IHaskell.Display
                    IHaskell.Convert
@@ -172,9 +164,6 @@ Test-Suite hspec
         text,
         shelly,
         setenv
-
-    if flag(binPkgDb)
-        build-depends: bin-package-db
 
 source-repository head
   type:     git
