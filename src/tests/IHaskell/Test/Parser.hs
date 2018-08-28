@@ -1,5 +1,4 @@
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE CPP #-}
 module IHaskell.Test.Parser (testParser) where
 
 import           Prelude
@@ -14,11 +13,6 @@ import           IHaskell.Test.Util (ghc, strip)
 import           IHaskell.Eval.Parser (parseString, getModuleName, unloc, layoutChunks, Located(..),
                                        CodeBlock(..), DirectiveType(..), StringLoc(..), PragmaType(..))
 import           IHaskell.Eval.ParseShell (parseShell)
-
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative ((<$>))
-#endif
-
 
 parses :: String -> IO [CodeBlock]
 parses str = map unloc <$> ghc (parseString str)

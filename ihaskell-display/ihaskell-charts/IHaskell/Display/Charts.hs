@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-
 module IHaskell.Display.Charts () where
 
 import           System.Directory
@@ -34,7 +32,7 @@ chartData renderable format = do
   -- Write the PNG image.
   let filename = ".ihaskell-chart.png"
       opts = def { _fo_format = format, _fo_size = (width, height) }
-  mkFile opts filename renderable
+  renderableToFile opts filename renderable
 
   -- Convert to base64.
   imgData <- Char.readFile filename
@@ -42,8 +40,3 @@ chartData renderable format = do
     case format of
       PNG -> png width height $ base64 imgData
       SVG -> svg $ Char.unpack imgData
-#if MIN_VERSION_Chart_cairo(1,3,0)
-mkFile opts filename renderable = renderableToFile opts filename renderable
-#else
-mkFile opts filename renderable = renderableToFile opts renderable filename
-#endif
