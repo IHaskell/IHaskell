@@ -31,7 +31,7 @@ import           System.Environment (getEnv)
 import           GHC hiding (Qualified)
 #if MIN_VERSION_ghc(8,2,0)
 import           GHC.PackageDb
-#elif MIN_VERSION_ghc(7,10,0)
+#else
 import           GHC.PackageDb (ExposedModule(exposedName))
 #endif
 import           DynFlags
@@ -63,16 +63,14 @@ data CompletionType = Empty
                     | KernelOption String
                     | Extension String
   deriving (Show, Eq)
+
 #if MIN_VERSION_ghc(8,2,0)
+exposedName :: (a, b) -> a
 exposedName = fst
 #endif
-#if MIN_VERSION_ghc(7,10,0)
-extName (FlagSpec { flagSpecName = name }) = name
-#else
-extName (name, _, _) = name
 
-exposedName = id
-#endif
+extName (FlagSpec { flagSpecName = name }) = name
+
 complete :: String -> Int -> Interpreter (String, [String])
 complete code posOffset = do
   -- Get the line of code which is being completed and offset within that line
@@ -93,11 +91,7 @@ complete code posOffset = do
 
   let Just db = pkgDatabase flags
       getNames = map (moduleNameString . exposedName) . exposedModules
-#if MIN_VERSION_ghc(8,0,0)
       moduleNames = nub $ concatMap getNames $ concatMap snd db
-#else
-      moduleNames = nub $ concatMap getNames db
-#endif
 
   let target = completionTarget line pos
       completion = completionType line pos target
@@ -127,17 +121,12 @@ complete code posOffset = do
                  return $ filter (prefix `isPrefixOf`) moduleNames
 
                DynFlag ext -> do
-                 -- Possibly leave out the fLangFlags? The -XUndecidableInstances vs. obsolete
-                 -- -fallow-undecidable-instances.
+                 -- Possibly leave out the fLangFlags?
                  let kernelOptNames = concatMap getSetName kernelOpts
                      otherNames = ["-package", "-Wall", "-w"]
 
                      fNames = map extName fFlags ++
-#if MIN_VERSION_ghc(8,0,0)
                               map extName wWarningFlags ++
-#else
-                              map extName fWarningFlags ++
-#endif
                               map extName fLangFlags
                      fNoNames = map ("no" ++) fNames
                      fAllNames = map ("-f" ++) (fNames ++ fNoNames)
@@ -269,7 +258,7 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
     pieceToComplete = map fst <$> find (elem cursor . map snd) pieces
     pieces = splitAlongCursor $ Split.split splitter $ zip code [1 ..]
     splitter = Split.defaultSplitter
-      { 
+      {
       -- Split using only the characters, which are the first elements of the (char, index) tuple
       Split.delimiter = Split.Delimiter [uncurry isDelim]
       -- Condense multiple delimiters into one and then drop them.

@@ -1,6 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE CPP #-}
-module IHaskell.Test.Parser (testParser) where 
+module IHaskell.Test.Parser (testParser) where
 
 import           Prelude
 
@@ -234,10 +234,4 @@ testParseString = describe "Parser" $ do
        |]) >>= (`shouldBe` [Located 2 (Expression "first"), Located 4 (Expression "second")])
   where
     dataKindsError = ParseError (Loc 1 10) msg
-#if MIN_VERSION_ghc(7, 10, 0)
     msg = "Cannot parse data constructor in a data/newtype declaration: 3"
-#elif MIN_VERSION_ghc(7, 8, 0)
-    msg = "Illegal literal in type (use DataKinds to enable): 3"
-#else
-    msg = "Illegal literal in type (use -XDataKinds to enable): 3"
-#endif

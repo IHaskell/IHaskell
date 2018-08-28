@@ -8,12 +8,10 @@ module IHaskellPrelude (
   Data.Typeable.Typeable,
   Data.Typeable.cast,
 
-#if MIN_VERSION_ghc(7,8,0)
   Data.Typeable.Proxy,
 
   GHC.Exts.IsString,
   GHC.Exts.IsList,
-#endif
 
   System.IO.hPutStrLn,
   System.IO.hPutStr,
@@ -54,7 +52,7 @@ module IHaskellPrelude (
   Data.IORef.modifyIORef',
   Data.IORef.newIORef,
 
-  
+
 
   -- Miscellaneous names
   Data.Map.Map,
@@ -80,13 +78,7 @@ import           GHC.Enum               as X
 import           GHC.Num                as X
 import           GHC.Real               as X
 import           GHC.Err                as X hiding (absentErr)
-#if MIN_VERSION_ghc(8,0,0)
 import           GHC.Base               as X hiding (Any, mapM, foldr, sequence, many, (<|>), Module(..))
-#elif MIN_VERSION_ghc(7,10,0)
-import           GHC.Base               as X hiding (Any, mapM, foldr, sequence, many, (<|>))
-#else
-import           GHC.Base               as X hiding (Any)
-#endif
 import           Data.List              as X hiding (head, last, tail, init, transpose, subsequences, permutations,
                                         foldl, foldl1, maximum, minimum, scanl, scanl1, scanr, scanr1,
                                         span, break, mapAccumL, mapAccumR, dropWhileEnd, (!!),

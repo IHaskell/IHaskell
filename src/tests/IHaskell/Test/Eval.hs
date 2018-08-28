@@ -89,14 +89,7 @@ pages string expected = evaluationComparing comparison string
             Nothing  -> dropScriptTag $ tail str
 
     fixQuotes :: String -> String
-#if MIN_VERSION_ghc(7, 8, 0)
     fixQuotes = id
-#else
-    fixQuotes = map $ \char -> case char of
-      '\8216' -> '`'
-      '\8217' -> '\''
-      c       -> c
-#endif
 
 
 testEval :: Spec
