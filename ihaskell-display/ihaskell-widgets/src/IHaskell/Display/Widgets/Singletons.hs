@@ -7,6 +7,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE EmptyCase #-}
 
 module IHaskell.Display.Widgets.Singletons where
 
@@ -16,7 +17,7 @@ import           Data.Singletons.Prelude.Ord
 -- Widget properties
 singletons
   [d|
-   
+
   data Field = ViewModule
              | ViewName
              | ModelModule
