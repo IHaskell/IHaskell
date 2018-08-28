@@ -16,10 +16,6 @@ packages:
     - ./ihaskell-display/ihaskell-widgets
 resolver: lts-9.21
 extra-deps: []
-flags:
-  ihaskell:
-    binpkgdb: false
-
 nix:
   enable: false
   packages:
