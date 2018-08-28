@@ -1,5 +1,4 @@
 {-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
-{-# LANGUAGE CPP #-}
 module IHaskell.Test.Completion (testCompletions) where
 
 import           Prelude
@@ -23,12 +22,8 @@ import           IHaskell.Eval.Completion (complete, CompletionType(..), complet
                                            completionTarget)
 import           IHaskell.Test.Util (replace, shouldBeAmong, ghc)
 
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative ((<$>))
-#endif
-
 -- | @readCompletePrompt "xs*ys"@ return @(xs, i)@ where i is the location of
--- @'*'@ in the input string. 
+-- @'*'@ in the input string.
 readCompletePrompt :: String -> (String, Int)
 readCompletePrompt string =
   case elemIndex '*' string of
@@ -197,7 +192,7 @@ inDirectory :: [Shelly.FilePath] -- ^ directories relative to temporary director
             -> [Shelly.FilePath] -- ^ files relative to temporary directory
             -> (Shelly.FilePath -> Interpreter a)
             -> IO a
--- | Run an Interpreter action, but first make a temporary directory 
+-- | Run an Interpreter action, but first make a temporary directory
 --   with some files and folder and cd to it.
 inDirectory dirs files action = shelly $ withTmpDir $ \dirPath -> do
   cd dirPath

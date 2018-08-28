@@ -63,11 +63,9 @@ import           StringUtils (replace)
 import           CmdLineParser (warnMsg)
 #endif
 
-#if MIN_VERSION_ghc(8,0,1)
 import           GHC.LanguageExtensions
 
 type ExtensionFlag = Extension
-#endif
 
 -- | A extension flag that can be set or unset.
 data ExtFlag = SetFlag ExtensionFlag
@@ -265,11 +263,7 @@ initGhci sandboxPackages = do
   originalFlags <- getSessionDynFlags
   let flag = flip xopt_set
       unflag = flip xopt_unset
-#if MIN_VERSION_ghc(8,0,0)
       dflags = flag ExtendedDefaultRules . unflag MonomorphismRestriction $ originalFlags
-#else
-      dflags = flag Opt_ExtendedDefaultRules . unflag Opt_MonomorphismRestriction $ originalFlags
-#endif
 #if MIN_VERSION_ghc(8,2,0)
       pkgFlags =
         case sandboxPackages of
