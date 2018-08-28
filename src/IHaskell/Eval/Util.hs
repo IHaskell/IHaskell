@@ -91,11 +91,7 @@ extensionFlag ext =
 
     -- Check if a FlagSpec matches "No<ExtensionName>". In that case, we disable the extension.
     flagMatchesNo ext fs = ext == "No" ++ flagSpecName fs
-#if !MIN_VERSION_ghc(7,10,0)
-flagSpecName (name, _, _) = name
 
-flagSpecFlag (_, flag, _) = flag
-#endif
 -- | Pretty-print dynamic flags (taken from 'InteractiveUI' module of `ghc-bin`)
 pprDynFlags :: Bool       -- ^ Whether to include flags which are on by default
             -> DynFlags
@@ -111,17 +107,10 @@ pprDynFlags show_all dflags =
     ]
   where
 
-#if MIN_VERSION_ghc(8,0,0)
     warningFlags = DynFlags.wWarningFlags
-#else
-    warningFlags = DynFlags.fWarningFlags
-#endif
 
-#if MIN_VERSION_ghc(7,8,0)
     opt = gopt
-#else
-    opt = dopt
-#endif
+
     setting test flag
       | quiet = O.empty :: O.SDoc
       | is_on = fstr name :: O.SDoc
@@ -131,7 +120,7 @@ pprDynFlags show_all dflags =
         f = flagSpecFlag flag
         is_on = test f dflags
         quiet = not show_all && test f default_dflags == is_on
-    
+
 #if MIN_VERSION_ghc(8,6,0)
     default_dflags = defaultDynFlags (settings dflags) (llvmTargets dflags, llvmPasses dflags)
 #elif MIN_VERSION_ghc(8,4,0)
@@ -139,22 +128,19 @@ pprDynFlags show_all dflags =
 #else
     default_dflags = defaultDynFlags (settings dflags)
 #endif
-    
+
     fstr, fnostr :: String -> O.SDoc
     fstr str = O.text "-f" O.<> O.text str
-    
+
     fnostr str = O.text "-fno-" O.<> O.text str
-    
+
     (ghciFlags, others) = partition (\f -> flagSpecFlag f `elem` flgs) DynFlags.fFlags
-    
+
     flgs = concat [flgs1, flgs2, flgs3]
-    
+
     flgs1 = [Opt_PrintExplicitForalls]
-#if MIN_VERSION_ghc(7,8,0)
     flgs2 = [Opt_PrintExplicitKinds]
-#else
-    flgs2 = []
-#endif
+
 flgs3 = [Opt_PrintBindResult, Opt_BreakOnException, Opt_BreakOnError, Opt_PrintEvldWithShow]
 
 -- | Pretty-print the base language and active options (taken from `InteractiveUI` module of
@@ -386,7 +372,7 @@ evalDeclarations decl = do
 
 cleanUpDuplicateInstances :: GhcMonad m => m ()
 cleanUpDuplicateInstances = modifySession $ \hscEnv ->
-  let 
+  let
       -- Get all class instances
       ic = hsc_IC hscEnv
       (clsInsts, famInsts) = ic_instances ic
@@ -395,21 +381,11 @@ cleanUpDuplicateInstances = modifySession $ \hscEnv ->
   in hscEnv { hsc_IC = ic { ic_instances = (clsInsts', famInsts) } }
   where
     instEq :: ClsInst -> ClsInst -> Bool
-#if MIN_VERSION_ghc(8,0,0)
     -- Only support replacing instances on GHC 7.8 and up
     instEq c1 c2
       | ClsInst { is_tvs = tpl_tvs, is_tys = tpl_tys, is_cls = cls } <- c1,
         ClsInst { is_tys = tpl_tys', is_cls = cls' } <- c2
       = cls == cls' && isJust (tcMatchTys tpl_tys tpl_tys')
-#elif MIN_VERSION_ghc(7,8,0)
-    instEq c1 c2
-      | ClsInst { is_tvs = tpl_tvs, is_tys = tpl_tys, is_cls = cls } <- c1,
-        ClsInst { is_tys = tpl_tys', is_cls = cls' } <- c2
-      = let tpl_tv_set = mkVarSet tpl_tvs
-        in cls == cls' && isJust (tcMatchTys tpl_tv_set tpl_tys tpl_tys')
-#else
-    instEq _ _ = False
-#endif
 
 
 -- | Get the type of an expression and convert it to a string.
@@ -450,18 +426,12 @@ getDescription str = do
 
   where
 
-#if MIN_VERSION_ghc(7,8,0)
     getInfo' = getInfo False
-#else
-    getInfo' = getInfo
-#endif
 
 #if MIN_VERSION_ghc(8,4,0)
     getType (theType, _, _, _, _) = theType
-#elif MIN_VERSION_ghc(7,8,0)
-    getType (theType, _, _, _) = theType
 #else
-    getType (theType, _, _) = theType
+    getType (theType, _, _, _) = theType
 #endif
 
 #if MIN_VERSION_ghc(8,4,0)
@@ -470,16 +440,12 @@ getDescription str = do
       showFixity thing fixity O.$$
       O.vcat (map GHC.pprInstance classInstances) O.$$
       O.vcat (map GHC.pprFamInst famInstances)
-#elif MIN_VERSION_ghc(7,8,0)
+#else
     printInfo (thing, fixity, classInstances, famInstances) =
       pprTyThingInContextLoc thing O.$$
       showFixity thing fixity O.$$
       O.vcat (map GHC.pprInstance classInstances) O.$$
       O.vcat (map GHC.pprFamInst famInstances)
-#else
-    printInfo (thing, fixity, classInstances) =
-      pprTyThingInContextLoc False thing O.$$ showFixity thing fixity O.$$
-      O.vcat (map GHC.pprInstance classInstances)
 #endif
     showFixity thing fixity =
       if fixity == GHC.defaultFixity

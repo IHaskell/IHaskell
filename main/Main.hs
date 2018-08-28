@@ -22,9 +22,7 @@ import           System.Process (readProcess, readProcessWithExitCode)
 import           System.Exit (exitSuccess, ExitCode(ExitSuccess))
 import           Control.Exception (try, SomeException)
 import           System.Environment (getArgs)
-#if MIN_VERSION_ghc(7,8,0)
 import           System.Environment (setEnv)
-#endif
 import           System.Posix.Signals
 import qualified Data.Map as Map
 import qualified Data.Text.Encoding as E
@@ -142,12 +140,11 @@ runKernel kernelOpts profileSrc = do
   dir <- getIHaskellDir
   Stdin.recordKernelProfile dir profile
 
-#if MIN_VERSION_ghc(7,8,0)
   when useStack $ do
     -- Detect if we have stack
     runResult <- try $ readProcessWithExitCode "stack" [] ""
-    let stack = 
-          case runResult :: Either SomeException (ExitCode, String, String) of 
+    let stack =
+          case runResult :: Either SomeException (ExitCode, String, String) of
             Left _ -> False
             Right (exitCode, stackStdout, _) -> exitCode == ExitSuccess && "The Haskell Tool Stack" `isInfixOf` stackStdout
 
@@ -160,7 +157,6 @@ runKernel kernelOpts profileSrc = do
         in case tailMay val of
             Nothing -> return ()
             Just val' -> setEnv var val'
-#endif
 
   -- Serve on all sockets and ports defined in the profile.
   interface <- serveProfile profile debug
@@ -258,7 +254,7 @@ replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> Interpr
 replyTo interface KernelInfoRequest{} replyHeader state = do
   let send msg = liftIO $ writeChan (iopubChannel interface) msg
 
-  -- Notify the frontend that the Kernel is idle 
+  -- Notify the frontend that the Kernel is idle
   idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
   send $ PublishStatus idleHeader Idle
 

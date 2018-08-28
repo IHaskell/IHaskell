@@ -65,11 +65,7 @@ import qualified Linker
 import           TcType
 import           Unify
 import           InstEnv
-#if MIN_VERSION_ghc(7, 8, 0)
 import           GhcMonad (liftIO, withSession)
-#else
-import           GhcMonad (withSession)
-#endif
 import           GHC hiding (Stmt, TypeSig)
 import           Exception hiding (evaluate)
 import           Outputable hiding ((<>))
@@ -126,12 +122,7 @@ write :: (MonadIO m, GhcMonad m) => KernelState -> String -> m ()
 write state x = when (kernelDebug state) $ liftIO $ hPutStrLn stderr $ "DEBUG: " ++ x
 
 type Interpreter = Ghc
-#if MIN_VERSION_ghc(7, 8, 0)
-   -- GHC 7.8 exports a MonadIO instance for Ghc
-#else
-instance MonadIO.MonadIO Interpreter where
-  liftIO = MonadUtils.liftIO
-#endif
+
 requiredGlobalImports :: [String]
 requiredGlobalImports =
   [ "import qualified Prelude as IHaskellPrelude"
@@ -194,23 +185,13 @@ packageIdString' dflags pkg_cfg =
       Just cfg -> let
         PackageName name = packageName cfg
         in unpackFS name
-#elif MIN_VERSION_ghc(8,0,0)
-    fromMaybe "(unknown)" (unitIdPackageIdString dflags $ packageConfigId pkg_cfg)
-#elif MIN_VERSION_ghc(7,10,2)
-    fromMaybe "(unknown)" (packageKeyPackageIdString dflags $ packageConfigId pkg_cfg)
-#elif MIN_VERSION_ghc(7,10,0)
-    packageKeyPackageIdString dflags . packageConfigId
 #else
-    packageIdString . packageConfigId
+    fromMaybe "(unknown)" (unitIdPackageIdString dflags $ packageConfigId pkg_cfg)
 #endif
 
 getPackageConfigs :: DynFlags -> [PackageConfig]
 getPackageConfigs dflags =
-#if MIN_VERSION_ghc(8,0,0)
     foldMap snd pkgDb
-#else
-    pkgDb
-#endif
   where
     Just pkgDb = pkgDatabase dflags
 
@@ -234,10 +215,6 @@ initializeImports = do
 #else
       -- Name of the ihaskell package, e.g. "ihaskell-1.2.3.4"
       iHaskellPkgName = initStr ++ intercalate "." (map show (versionBranch version))
-#endif
-
-#if !MIN_VERSION_ghc(8,0,0)
-      unitId = packageId
 #endif
 
       dependsOnRight pkg = not $ null $ do
@@ -449,11 +426,7 @@ flushWidgetMessages state evalMsgs widgetHandler = do
 
 
 getErrMsgDoc :: ErrUtils.ErrMsg -> SDoc
-#if MIN_VERSION_ghc(8,0,0)
 getErrMsgDoc = ErrUtils.pprLocErrMsg
-#else
-getErrMsgDoc msg = ErrUtils.errMsgShortString msg $$ ErrUtils.errMsgContext msg
-#endif
 
 safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
 safely state = ghandle handler . ghandle sourceErrorHandler
@@ -1083,11 +1056,7 @@ doLoadModule name modName = do
     setSessionDynFlags $ flip gopt_set Opt_BuildDynamicToo
       flags
         { hscTarget = objTarget flags
-#if MIN_VERSION_ghc(8,0,0)
         , log_action = \dflags sev srcspan ppr _style msg -> modifyIORef' errRef (showSDoc flags msg :)
-#else
-        , log_action = \dflags sev srcspan ppr msg -> modifyIORef' errRef (showSDoc flags msg :)
-#endif
         }
 
     -- Load the new target.
@@ -1138,11 +1107,9 @@ doLoadModule name modName = do
       initializeItVariable
 
       return $ displayError $ "Failed to load module " ++ modName ++ ": " ++ show exception
-#if MIN_VERSION_ghc(7,8,0)
+
 objTarget flags = defaultObjectTarget $ targetPlatform flags
-#else
-objTarget flags = defaultObjectTarget
-#endif
+
 keepingItVariable :: Interpreter a -> Interpreter a
 keepingItVariable act = do
   -- Generate the it variable temp name
@@ -1217,7 +1184,6 @@ capturedEval output stmt = do
   -- Initialize evaluation context.
   results <- forM initStmts goStmt
 
-#if __GLASGOW_HASKELL__ >= 800
   -- This works fine on GHC 8.0 and newer
   dyn <- dynCompileExpr readVariable
   pipe <- case fromDynamic dyn of
@@ -1226,26 +1192,7 @@ capturedEval output stmt = do
                 handle <- fdToHandle fd
                 hSetEncoding handle utf8
                 return handle
-#else
-  -- Get the pipe to read printed output from. This is effectively the source code of dynCompileExpr
-  -- from GHC API's InteractiveEval. However, instead of using a `Dynamic` as an intermediary, it just
-  -- directly reads the value. This is incredibly unsafe! However, for some reason the `getContext`
-  -- and `setContext` required by dynCompileExpr (to import and clear Data.Dynamic) cause issues with
-  -- data declarations being updated (e.g. it drops newer versions of data declarations for older ones
-  -- for unknown reasons). First, compile down to an HValue.
-  let pipeExpr = printf "let %s = %s" (var "pipe_var_") readVariable
-  Just (_, hValues, _) <- withSession $ liftIO . flip hscStmt pipeExpr
-  -- Then convert the HValue into an executable bit, and read the value.
-  pipe <- liftIO $ do
-            fds <- unsafeCoerce hValues
-            fd <- case fds of
-              fd : _ -> return fd
-              []     -> fail "Failed to evaluate pipes"
-              _      -> fail $ "Expected one fd, saw "++show (length fds)
-            handle <- fdToHandle fd
-            hSetEncoding handle utf8
-            return handle
-#endif
+
   -- Keep track of whether execution has completed.
   completed <- liftIO $ newMVar False
   finishedReading <- liftIO newEmptyMVar
