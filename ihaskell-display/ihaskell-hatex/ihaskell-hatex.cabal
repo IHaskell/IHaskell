@@ -1,7 +1,7 @@
 name:                ihaskell-hatex
 version:             0.2.1.1
 synopsis:            IHaskell display instances for hatex
--- description:         
+-- description:
 homepage:            http://www.github.com/gibiansky/IHaskell
 license:             MIT
 license-file:        LICENSE
@@ -14,9 +14,9 @@ cabal-version:       >=1.16
 
 library
   exposed-modules:     IHaskell.Display.Hatex
-  build-depends:       base >=4.6 && <5,
+  build-depends:       base >=4.9 && <5,
                        text,
                        HaTeX >= 3.9,
                        ihaskell >= 0.5
   default-language:    Haskell2010
-  
+

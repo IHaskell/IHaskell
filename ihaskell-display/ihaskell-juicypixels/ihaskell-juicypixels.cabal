@@ -1,7 +1,7 @@
 -- The name of the package.
 name:                ihaskell-juicypixels
 
--- The package version.  See the Haskell package versioning policy (PVP) 
+-- The package version.  See the Haskell package versioning policy (PVP)
 -- for standards guiding when and how versions should be incremented.
 -- http://www.haskell.org/haskellwiki/Package_versioning_policy
 -- PVP summary:      +-+------- breaking API changes
@@ -14,10 +14,10 @@ synopsis:            IHaskell - IHaskellDisplay instances of the image types of 
 
 -- A longer description of the package.
 description:        IHaskellDisplay instances of the image types of the JuicyPixels package. They are displayed as .JPG images.
-                    DynamicImages and Images of types PixelRGBA16, PixelRGBA8, PixelRGB16, PixelRGB8, 
+                    DynamicImages and Images of types PixelRGBA16, PixelRGBA8, PixelRGB16, PixelRGB8,
                     PixelYA16, PixelYA8, Pixel16, Pixel8, PixelCMYK16, PixelCMYK8, PixelF, Pixel32
-                    are supported. 
-                    The module IHaskell.Juicypixels re-exports the modules IHaskell.Display and Codec.Picture.    
+                    are supported.
+                    The module IHaskell.Juicypixels re-exports the modules IHaskell.Display and Codec.Picture.
 
 -- URL for the project homepage or repository.
 homepage:            http://www.github.com/gibiansky/ihaskell
@@ -32,21 +32,21 @@ license-file:        LICENSE
 author:              Roland Senn,
                      Will Yager
 
--- An email address to which users can send suggestions, bug reports, and 
+-- An email address to which users can send suggestions, bug reports, and
 -- patches.
 maintainer:          rsx@bluewin.ch,
                      will.yager@gmail.com
 
 -- A copyright notice.
--- copyright:           
+-- copyright:
 
 category:            Development
 
 build-type:          Simple
 
--- Extra files to be distributed with the package, such as examples or a 
+-- Extra files to be distributed with the package, such as examples or a
 -- README.
--- extra-source-files:  
+-- extra-source-files:
 
 -- Constraint on the version of Cabal needed to build this package.
 cabal-version:       >=1.16
@@ -55,19 +55,19 @@ cabal-version:       >=1.16
 library
   -- Modules exported by the library.
   exposed-modules:     IHaskell.Display.Juicypixels
-  
+
   -- Modules included in this library but not exported.
-  -- other-modules:       
-             
+  -- other-modules:
+
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.6 && <5,
+  build-depends:       base >=4.9 && <5,
                        bytestring,
                        directory,
                        JuicyPixels >= 3.1.3,
                        ihaskell >= 0.6.2
-  
+
   -- Directories containing source files.
-  -- hs-source-dirs:      
-  
+  -- hs-source-dirs:
+
   -- Base language which the package is written in.
   default-language:    Haskell2010
