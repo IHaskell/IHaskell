@@ -115,6 +115,9 @@ createModule mode (Located line block) =
         Import impt      -> impt
         Module mod       -> mod
 
+        -- TODO: Properly handle the other constructors
+        _ -> []
+
     unparse :: ParseResult a -> Maybe a
     unparse (ParseOk a) = Just a
     unparse _ = Nothing

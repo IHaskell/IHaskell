@@ -142,7 +142,7 @@ activateExtensions _ = return ()
 parseCodeChunk :: GhcMonad m => String -> LineNumber -> m CodeBlock
 parseCodeChunk code startLine = do
   flags <- getSessionDynFlags
-  let 
+  let
       -- Try each parser in turn.
       rawResults = map (tryParser code) (parsers flags)
 
@@ -239,11 +239,11 @@ joinFunctions blocks =
 parsePragma :: String       -- ^ Pragma string.
             -> Int          -- ^ Line number at which the directive appears.
             -> CodeBlock    -- ^ Pragma code block or a parse error.
-parsePragma ('{':'-':'#':pragma) line =
+parsePragma pragma line =
   let commaToSpace :: Char -> Char
       commaToSpace ',' = ' '
       commaToSpace x = x
-      pragmas = words $ takeWhile (/= '#') $ map commaToSpace pragma
+      pragmas = words $ takeWhile (/= '#') $ map commaToSpace $ drop 3 pragma
   in case pragmas of
     --empty string pragmas are unsupported
     [] -> Pragma (PragmaUnsupported "") []

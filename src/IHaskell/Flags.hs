@@ -29,7 +29,7 @@ data Args = Args IHaskellMode [Argument]
   deriving Show
 
 data Argument = ConfFile String     -- ^ A file with commands to load at startup.
-              | OverwriteFiles      -- ^ Present when output should overwrite existing files. 
+              | OverwriteFiles      -- ^ Present when output should overwrite existing files.
               | GhcLibDir String    -- ^ Where to find the GHC libraries.
               | RTSFlags [String]   -- ^ Options for the GHC runtime (e.g. heap-size limit
                                     --     or number of threads).
@@ -94,6 +94,7 @@ help mode = showText (Wrap 100) $ helpText [] HelpFormatAll $ chooseMode mode
     chooseMode InstallKernelSpec = installKernelSpec
     chooseMode (Kernel _) = kernel
     chooseMode ConvertLhs = convert
+    chooseMode (ShowDefault _) = error "IHaskell.Flags.help: Should never happen."
 
 ghcLibFlag :: Flag Args
 ghcLibFlag = flagReq ["ghclib", "l"] (store GhcLibDir) "<path>" "Library directory for GHC."

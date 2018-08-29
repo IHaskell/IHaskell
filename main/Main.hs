@@ -469,6 +469,9 @@ handleComm send kernelState req replyHeader = do
           pgrOut <- liftIO $ readMVar pagerOutput
           liftIO $ publish $ FinalResult disp (if toUsePager then pgrOut else []) []
           return kernelState { openComms = Map.delete uuid widgets }
+        x ->
+          -- Only sensible thing to do.
+          return kernelState
 
   -- Notify the frontend that the kernel is idle once again
   idleHeader <- liftIO $ dupHeader replyHeader StatusMessage

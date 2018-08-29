@@ -27,7 +27,7 @@ eval string = do
   let publish evalResult =
         case evalResult of
           IntermediateResult{} -> return ()
-          FinalResult outs page [] -> do
+          FinalResult outs page _ -> do
             modifyIORef outputAccum (outs :)
             modifyIORef pagerAccum (page :)
       noWidgetHandling s _ = return s

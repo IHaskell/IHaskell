@@ -246,6 +246,7 @@ doc sdoc = do
     string_txt (Pretty.Str s1) s2 = s1 ++ s2
     string_txt (Pretty.PStr s1) s2 = unpackFS s1 ++ s2
     string_txt (Pretty.LStr s1 _) s2 = unpackLitString s1 ++ s2
+    string_txt (Pretty.ZStr s1) s2 = CBS.unpack (fastZStringToByteString s1) ++ s2
 #endif
 
 -- | Initialize the GHC API. Run this as the first thing in the `runGhc`. This initializes some dyn

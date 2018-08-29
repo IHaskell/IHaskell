@@ -110,9 +110,8 @@ search string = do
 document :: String -> IO [HoogleResult]
 document string = do
   matchingResults <- filter matches <$> search string
-  let results = map toDocResult matchingResults
   return $
-    case results of
+    case mapMaybe toDocResult matchingResults of
       []  -> [NoResult "no matching identifiers found."]
       res -> res
 
@@ -123,7 +122,9 @@ document string = do
         _      -> False
     matches _ = False
 
-    toDocResult (SearchResult resp) = DocResult resp
+    toDocResult (SearchResult resp) = Just $ DocResult resp
+    toDocResult (DocResult _) = Nothing
+    toDocResult (NoResult _) = Nothing
 
 -- | Render a Hoogle search result into an output format.
 render :: OutputFormat -> HoogleResult -> String
@@ -233,7 +234,10 @@ renderDocs doc =
       bothAreCode s1 s2 =
                            isPrefixOf ">" (strip s1) &&
                            isPrefixOf ">" (strip s2)
-      isCode (s:_) = isPrefixOf ">" $ strip s
+      isCode xs =
+        case xs of
+          [] -> False
+          (s:_) -> isPrefixOf ">" $ strip s
       makeBlock lines =
                          if isCode lines
                            then div' "hoogle-code" $ unlines $ nonull lines

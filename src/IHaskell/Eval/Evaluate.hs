@@ -234,6 +234,7 @@ initializeImports = do
 
   -- Generate import statements all Display modules.
   let capitalize :: String -> String
+      capitalize [] = []
       capitalize (first:rest) = Char.toUpper first : rest
 
       importFmt = "import IHaskell.Display.%s"
@@ -655,8 +656,9 @@ evalCommand _ (Directive LoadFile names) state = wrapExecution state $ do
                 doLoadModule filename modName
   return (ManyDisplay displays)
 
-evalCommand publish (Directive ShellCmd ('!':cmd)) state = wrapExecution state $
-  case words cmd of
+evalCommand publish (Directive ShellCmd cmd) state = wrapExecution state $
+  -- Assume the first character of 'cmd' is '!'.
+  case words $ drop 1 cmd of
     "cd":dirs -> do
       -- Get home so we can replace '~` with it.
       homeEither <- liftIO (try $ getEnv "HOME" :: IO (Either SomeException String))
