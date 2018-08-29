@@ -14,15 +14,10 @@ module IHaskell.Flags (
 
 import           IHaskellPrelude hiding (Arg(..))
 import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
 import           System.Console.CmdArgs.Explicit
 import           System.Console.CmdArgs.Text
 import           Data.List (findIndex)
-import           IHaskell.Types
 
 -- Command line arguments to IHaskell. A set of arguments is annotated with the mode being invoked.
 data Args = Args IHaskellMode [Argument]

@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 module StringUtils (
     strip,
     lstrip,

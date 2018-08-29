@@ -4,18 +4,13 @@
 module IHaskell.Convert.Args (ConvertSpec(..), fromJustConvertSpec, toConvertSpec) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
 import           Control.Applicative ((<$>))
 import           Control.Monad.Identity (Identity(Identity))
 import           Data.Char (toLower)
 import           Data.List (partition)
 import           Data.Maybe (fromMaybe)
-import qualified Data.Text.Lazy as T (pack, Text)
 import           IHaskell.Flags (Argument(..), LhsStyle, lhsStyleBird, NotebookFormat(..))
 import           System.FilePath ((<.>), dropExtension, takeExtension)
 import           Text.Printf (printf)

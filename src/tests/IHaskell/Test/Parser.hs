@@ -6,8 +6,7 @@ import           Prelude
 import           Data.String.Here (hereLit)
 
 import           Test.Hspec
-import           Test.Hspec.Contrib.HUnit
-import           Test.HUnit (assertBool, assertFailure)
+import           Test.HUnit (assertFailure)
 
 import           IHaskell.Test.Util (ghc, strip)
 import           IHaskell.Eval.Parser (parseString, getModuleName, unloc, layoutChunks, Located(..),

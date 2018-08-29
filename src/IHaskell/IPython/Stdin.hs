@@ -26,16 +26,9 @@
 module IHaskell.IPython.Stdin (fixStdin, recordParentHeader, recordKernelProfile) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
 import           Control.Concurrent
 import           Control.Applicative ((<$>))
-import           Control.Concurrent.Chan
-import           Control.Monad
 import           GHC.IO.Handle
 import           GHC.IO.Handle.Types
 import           System.Posix.IO

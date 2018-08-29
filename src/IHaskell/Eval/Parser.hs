@@ -16,11 +16,6 @@ module IHaskell.Eval.Parser (
     ) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
 import           Data.Char (toLower)
 import           Data.List (maximumBy, inits)

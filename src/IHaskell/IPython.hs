@@ -16,11 +16,7 @@ module IHaskell.IPython (
 import           IHaskellPrelude
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
-import           Control.Concurrent (threadDelay)
 import           System.Argv0
 import qualified Shelly as SH
 import qualified System.IO as IO
@@ -32,12 +28,10 @@ import           Data.Aeson.Text (encodeToTextBuilder)
 import           Data.Text.Lazy.Builder (toLazyText)
 import           Control.Monad (mplus)
 
-import qualified System.IO.Strict as StrictIO
 import qualified Paths_ihaskell as Paths
 
 import qualified GHC.Paths
 import           IHaskell.Types
-import           System.Posix.Signals
 
 import           StringUtils (replace, split)
 

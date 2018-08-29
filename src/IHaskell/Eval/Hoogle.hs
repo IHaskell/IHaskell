@@ -9,9 +9,6 @@ module IHaskell.Eval.Hoogle (
     ) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Char8 as CBS
 
@@ -21,8 +18,6 @@ import           Data.Aeson
 import qualified Data.List as List
 import           Data.Char (isAscii, isAlphaNum)
 
-
-import           IHaskell.IPython
 import           StringUtils (split, strip, replace)
 
 -- | Types of formats to render output to.

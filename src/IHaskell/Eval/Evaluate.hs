@@ -1,4 +1,4 @@
-{-# LANGUAGE NoOverloadedStrings, TypeSynonymInstances, GADTs, CPP #-}
+{-# LANGUAGE NoOverloadedStrings, NoImplicitPrelude, TypeSynonymInstances, GADTs, CPP #-}
 
 {- | Description : Wrapper around GHC API, exposing a single `evaluate` interface that runs
                    a statement, declaration, import, or directive.
@@ -19,59 +19,37 @@ module IHaskell.Eval.Evaluate (
     ) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
 import           Control.Concurrent (forkIO, threadDelay)
 import           Data.Foldable (foldMap)
-import           Prelude (putChar, head, tail, last, init, (!!))
-import           Data.List (findIndex, and, foldl1, nubBy)
-import           Text.Printf
+import           Prelude (head, tail, last, init)
+import           Data.List (nubBy)
 import           Data.Char as Char
 import           Data.Dynamic
-import           Data.Typeable
 import qualified Data.Serialize as Serialize
 import           System.Directory
 #if !MIN_VERSION_base(4,8,0)
 import           System.Posix.IO (createPipe)
 #endif
 import           System.Posix.IO (fdToHandle)
-import           System.IO (hGetChar, hSetEncoding, utf8, hFlush)
+import           System.IO (hGetChar, hSetEncoding, utf8)
 import           System.Random (getStdGen, randomRs)
-import           Unsafe.Coerce
-import           Control.Monad (guard)
 import           System.Process
 import           System.Exit
 import           Data.Maybe (fromJust)
-import qualified Control.Monad.IO.Class as MonadIO (MonadIO, liftIO)
-import qualified MonadUtils (MonadIO, liftIO)
 import           System.Environment (getEnv)
-import qualified Data.Map as Map
 
 import qualified GHC.Paths
-import           NameSet
-import           Name
-import           PprTyThing
 import           InteractiveEval
 import           DynFlags
-import           Type
 import           Exception (gtry)
 import           HscTypes
 import           HscMain
-import qualified Linker
-import           TcType
-import           Unify
-import           InstEnv
-import           GhcMonad (liftIO, withSession)
+import           GhcMonad (liftIO)
 import           GHC hiding (Stmt, TypeSig)
 import           Exception hiding (evaluate)
 import           Outputable hiding ((<>))
 import           Packages
-import           Module hiding (Module)
-import qualified Pretty
 import           FastString
 import           Bag
 import qualified ErrUtils
@@ -83,13 +61,8 @@ import           IHaskell.Eval.Lint
 import           IHaskell.Display
 import qualified IHaskell.Eval.Hoogle as Hoogle
 import           IHaskell.Eval.Util
-import           IHaskell.Eval.Widgets
 import           IHaskell.BrokenPackages
-import qualified IHaskell.IPython.Message.UUID as UUID
 import           StringUtils (replace, split, strip, rstrip)
-
-import           Paths_ihaskell (version)
-import           Data.Version (versionBranch)
 
 data ErrorOccurred = Success
                    | Failure

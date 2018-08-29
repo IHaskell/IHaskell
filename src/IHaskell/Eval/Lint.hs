@@ -3,33 +3,21 @@
 module IHaskell.Eval.Lint (lint) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
-import           Prelude (head, tail, last)
-import           Control.Monad
-import           Data.List (findIndex)
-import           Data.Char
-import           Data.Monoid
+import           Prelude (last)
 import           Data.Maybe (mapMaybe)
 import           System.IO.Unsafe (unsafePerformIO)
 
 import           Language.Haskell.Exts.Syntax hiding (Module)
 import qualified Language.Haskell.Exts.Syntax as SrcExts
 import           Language.Haskell.Exts (parseFileContentsWithMode)
-import           Language.Haskell.Exts.Build (doE)
 import           Language.Haskell.Exts hiding (Module)
-import           Language.Haskell.Exts.SrcLoc
 
 import           Language.Haskell.HLint as HLint
 import           Language.Haskell.HLint3
 
 import           IHaskell.Types
 import           IHaskell.Display
-import           IHaskell.IPython
 import           IHaskell.Eval.Parser hiding (line)
 import           StringUtils (replace)
 

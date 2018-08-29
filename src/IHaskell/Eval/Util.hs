@@ -27,10 +27,6 @@ module IHaskell.Eval.Util (
     ) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Char8 as CBS
 
 -- GHC imports.
@@ -38,18 +34,12 @@ import           DynFlags
 import           FastString
 import           GHC
 import           GhcMonad
-import           HsImpExp
 import           HscTypes
-import           InteractiveEval
-import           Module
-import           Packages
-import           RdrName
 import           NameSet
 import           Name
 import           PprTyThing
 import           InstEnv (ClsInst(..))
 import           Unify (tcMatchTys)
-import           VarSet (mkVarSet)
 import qualified Pretty
 import qualified Outputable as O
 

@@ -7,17 +7,12 @@ module Main (main) where
 
 import           IHaskellPrelude
 import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
 -- Standard library imports.
-import           Control.Concurrent (threadDelay)
 import           Control.Concurrent.Chan
 import           Control.Arrow (second)
 import           Data.Aeson
-import           System.Directory
 import           System.Process (readProcess, readProcessWithExitCode)
 import           System.Exit (exitSuccess, ExitCode(ExitSuccess))
 import           Control.Exception (try, SomeException)
@@ -25,7 +20,6 @@ import           System.Environment (getArgs)
 import           System.Environment (setEnv)
 import           System.Posix.Signals
 import qualified Data.Map as Map
-import qualified Data.Text.Encoding as E
 import           Data.List (break, last)
 import           Data.Version (showVersion)
 
@@ -35,7 +29,6 @@ import           IHaskell.Eval.Completion (complete)
 import           IHaskell.Eval.Inspect (inspect)
 import           IHaskell.Eval.Evaluate
 import           IHaskell.Display
-import           IHaskell.Eval.Info
 import           IHaskell.Eval.Widgets (widgetHandler)
 import           IHaskell.Flags
 import           IHaskell.IPython
@@ -48,13 +41,6 @@ import qualified IHaskell.IPython.Stdin as Stdin
 
 -- Cabal imports.
 import           Paths_ihaskell(version)
-
--- GHC API imports.
-#if MIN_VERSION_ghc(8,4,0)
-import           GHC hiding (extensions, language, convert)
-#else
-import           GHC hiding (extensions, language)
-#endif
 
 main :: IO ()
 main = do

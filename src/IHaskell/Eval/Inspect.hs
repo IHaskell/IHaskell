@@ -7,11 +7,6 @@ Description:    Generates inspections when asked for by the frontend.
 module IHaskell.Eval.Inspect (inspect) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
 import qualified Prelude as P
 
@@ -22,7 +17,6 @@ import           Exception (ghandle)
 import           IHaskell.Eval.Evaluate (Interpreter)
 import           IHaskell.Display
 import           IHaskell.Eval.Util (getType)
-import           IHaskell.Types
 
 -- | Characters used in Haskell operators.
 operatorChars :: String

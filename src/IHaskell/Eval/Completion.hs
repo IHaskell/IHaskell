@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, DoAndIfThenElse, TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE CPP, NoImplicitPrelude, DoAndIfThenElse, TypeFamilies, FlexibleContexts #-}
 
 {- |
 Description:    Generates tab completion options.
@@ -13,19 +13,12 @@ This has a limited amount of context sensitivity. It distinguishes between four 
 module IHaskell.Eval.Completion (complete, completionTarget, completionType, CompletionType(..)) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
 import           Control.Applicative ((<$>))
-import           Data.ByteString.UTF8 hiding (drop, take, lines, length)
 import           Data.Char
-import           Data.List (nub, init, last, head, elemIndex, concatMap)
+import           Data.List (nub, init, last, elemIndex, concatMap)
 import qualified Data.List.Split as Split
 import qualified Data.List.Split.Internals as Split
-import           Data.Maybe (fromJust)
 import           System.Environment (getEnv)
 
 import           GHC hiding (Qualified)
@@ -36,14 +29,9 @@ import           GHC.PackageDb (ExposedModule(exposedName))
 #endif
 import           DynFlags
 import           GhcMonad
-import qualified GhcMonad
-import           PackageConfig
 import           Outputable (showPpr)
-import           MonadUtils (MonadIO)
-
 
 import           System.Directory
-import           System.FilePath
 import           Control.Exception (try)
 
 import           System.Console.Haskeline.Completion

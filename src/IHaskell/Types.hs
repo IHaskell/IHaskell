@@ -39,17 +39,8 @@ module IHaskell.Types (
 
 import           IHaskellPrelude
 
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Char8 as CBS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-
 import           Data.Aeson (Value, (.=), object)
-import           Data.Aeson.Types (emptyObject)
-import qualified Data.ByteString.Char8 as Char
 import           Data.Function (on)
-import           Data.Semigroup
 import           Data.Serialize
 import           GHC.Generics
 

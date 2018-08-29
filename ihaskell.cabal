@@ -49,7 +49,7 @@ data-files:
 library
   hs-source-dirs:      src
   default-language:    Haskell2010
-  ghc-options:         -Wincomplete-patterns -Wmissing-signatures -Wunused-do-bind -Wunused-local-binds -Wunused-top-binds -Wunused-matches
+  ghc-options:         -Wincomplete-patterns -Wmissing-signatures -Wunused-do-bind -Wunused-local-binds -Wunused-top-binds -Wunused-matches -Wunused-imports
   build-depends:
                        aeson                >=1.0,
                        base                 >=4.9,
@@ -125,7 +125,7 @@ executable ihaskell
 
   -- Other library packages from which modules are imported.
   default-language:    Haskell2010
-  ghc-options:         -Wincomplete-patterns -Wmissing-signatures -Wunused-do-bind -Wunused-local-binds -Wunused-top-binds -Wunused-matches
+  ghc-options:         -Wincomplete-patterns -Wmissing-signatures -Wunused-do-bind -Wunused-local-binds -Wunused-top-binds -Wunused-matches -Wunused-imports
   build-depends:
                        ihaskell -any,
                        base                 >=4.9 && < 4.13,
@@ -152,7 +152,7 @@ Test-Suite hspec
         IHaskell.Test.Util
         IHaskell.Test.Parser
     default-language: Haskell2010
-    ghc-options:         -Wincomplete-patterns -Wmissing-signatures -Wunused-do-bind -Wunused-local-binds -Wunused-top-binds -Wunused-matches
+    ghc-options:         -Wincomplete-patterns -Wmissing-signatures -Wunused-do-bind -Wunused-local-binds -Wunused-top-binds -Wunused-matches -Wunused-imports
     build-depends:
         base,
         ihaskell,

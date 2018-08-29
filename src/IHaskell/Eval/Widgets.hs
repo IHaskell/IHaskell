@@ -14,7 +14,6 @@ module IHaskell.Eval.Widgets (
 
 import           IHaskellPrelude
 
-import           Control.Concurrent.Chan (writeChan)
 import           Control.Concurrent.STM (atomically)
 import           Control.Concurrent.STM.TChan
 import           Control.Monad (foldM)
@@ -25,8 +24,6 @@ import           System.IO.Unsafe (unsafePerformIO)
 import           IHaskell.Display
 import           IHaskell.Eval.Util (unfoldM)
 import           IHaskell.IPython.Types (showMessageType)
-import           IHaskell.IPython.Message.UUID
-import           IHaskell.IPython.Message.Writer
 import           IHaskell.Types
 
 -- All comm_open messages go here
