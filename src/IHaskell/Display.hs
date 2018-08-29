@@ -201,6 +201,7 @@ printDisplay disp = display disp >>= atomically . writeTChan displayChan
 
 -- | Convenience function for client libraries. Switch to a temporary directory so that any files we
 -- create aren't visible. On Unix, this is usually /tmp.
+switchToTmpDir :: IO ()
 switchToTmpDir = void (try switchDir :: IO (Either SomeException ()))
   where
     switchDir =

@@ -28,6 +28,7 @@ manyTillEnd p end = scan
              xs <- scan
              return $ x : xs
 
+manyTillEnd1 :: Parser a -> Parser [a] -> Parser [a]
 manyTillEnd1 p end = do
   x <- p
   xs <- manyTillEnd p end
@@ -39,15 +40,18 @@ unescapedChar p = try $ do
   lookAhead p
   return [x]
 
+quotedString :: Parser [Char]
 quotedString = do
   quote <?> "expected starting quote"
   (manyTillEnd anyChar (unescapedChar quote) <* quote) <?> "unexpected in quoted String "
 
+unquotedString :: Parser [Char]
 unquotedString = manyTillEnd1 anyChar end
   where
     end = unescapedChar space
           <|> (lookAhead eol >> return [])
 
+word :: Parser [Char]
 word = quotedString <|> unquotedString <?> "word"
 
 separator :: Parser String

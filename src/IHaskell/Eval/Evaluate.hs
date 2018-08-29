@@ -1110,6 +1110,7 @@ doLoadModule name modName = do
 
       return $ displayError $ "Failed to load module " ++ modName ++ ": " ++ show exception
 
+objTarget :: DynFlags -> HscTarget
 objTarget flags = defaultObjectTarget $ targetPlatform flags
 
 keepingItVariable :: Interpreter a -> Interpreter a

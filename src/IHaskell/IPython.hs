@@ -106,6 +106,7 @@ ipython suppress args = do
                              else return ""
 
 -- | Run while suppressing all output.
+quietRun :: SH.FilePath -> [Text] -> SH.Sh ()
 quietRun path args = SH.runHandles path args handles nothing
   where
     handles = [SH.InHandle SH.Inherit, SH.OutHandle SH.CreatePipe, SH.ErrorHandle SH.CreatePipe]
@@ -267,7 +268,7 @@ getIHaskellPath = do
   -- If we have an absolute path, that's the IHaskell we're interested in.
   if FP.isAbsolute f
     then return f
-    else 
+    else
     -- Check whether this is a relative path, or just 'IHaskell' with $PATH resolution done by
     -- the shell. If it's just 'IHaskell', use the $PATH variable to find where IHaskell lives.
     if FP.takeFileName f == f

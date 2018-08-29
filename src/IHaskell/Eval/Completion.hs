@@ -70,6 +70,7 @@ exposedName = fst
 #endif
 
 extName (FlagSpec { flagSpecName = name }) = name
+extName (FlagSpec { flagSpecName = name }) = name
 
 complete :: String -> Int -> Interpreter (String, [String])
 complete code posOffset = do

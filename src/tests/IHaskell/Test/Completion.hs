@@ -48,6 +48,7 @@ shouldHaveCompletionsInDirectory string expected = do
       unmatched = filter (not . existsInCompletion) expected
   expected `shouldBeAmong` completions
 
+completionHas :: String -> [String] -> IO ()
 completionHas string expected = do
   (matched, completions) <- ghc $ do
                               initCompleter

@@ -139,6 +139,7 @@ pprDynFlags show_all dflags =
     flgs1 = [Opt_PrintExplicitForalls]
     flgs2 = [Opt_PrintExplicitKinds]
 
+flgs3 :: [GeneralFlag]
 flgs3 = [Opt_PrintBindResult, Opt_BreakOnException, Opt_BreakOnError, Opt_PrintEvldWithShow]
 
 -- | Pretty-print the base language and active options (taken from `InteractiveUI` module of

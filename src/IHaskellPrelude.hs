@@ -85,7 +85,7 @@ import           Data.List              as X hiding (head, last, tail, init, tra
                                         elemIndices, elemIndex, findIndex, findIndices, zip5, zip6,
                                         zip7, zipWith5, zipWith6, zipWith7, unzip5, unzip6, unzip6,
                                         delete, union, lookup, intersect, insert, deleteBy,
-                                        deleteFirstBy, unionBy, intersectBy, group, groupBy, insertBy,
+                                        unionBy, intersectBy, group, groupBy, insertBy,
                                         maximumBy, minimumBy, genericLength, genericDrop, genericTake,
                                         genericSplitAt, genericIndex, genericReplicate, inits, tails)
 
@@ -113,13 +113,27 @@ type LByteString = Data.ByteString.Lazy.ByteString
 
 type LText = Data.Text.Lazy.Text
 
-(headMay, tailMay, lastMay, initMay, maximumMay, minimumMay) =
-  (wrapEmpty head, wrapEmpty tail, wrapEmpty last,
-   wrapEmpty init, wrapEmpty maximum, wrapEmpty minimum)
-  where
-    wrapEmpty :: ([a] -> b) -> [a] -> Maybe b
-    wrapEmpty _ [] = Nothing
-    wrapEmpty f xs = Just (f xs)
+headMay :: [a] -> Maybe a
+headMay = wrapEmpty head
+
+tailMay :: [a] -> Maybe [a]
+tailMay = wrapEmpty tail
+
+lastMay :: [a] -> Maybe a
+lastMay = wrapEmpty last
+
+initMay :: [a] -> Maybe [a]
+initMay = wrapEmpty init
+
+maximumMay :: Ord a => [a] -> Maybe a
+maximumMay = wrapEmpty maximum
+
+minimumMay :: Ord a => [a] -> Maybe a
+minimumMay = wrapEmpty minimum
+
+wrapEmpty :: ([a] -> b) -> [a] -> Maybe b
+wrapEmpty _ [] = Nothing
+wrapEmpty f xs = Just (f xs)
 
 maximumByMay :: (a -> a -> Ordering) -> [a] -> Maybe a
 maximumByMay _ [] = Nothing

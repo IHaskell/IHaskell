@@ -132,8 +132,10 @@ installPrefixFlag :: Flag Args
 installPrefixFlag = flagReq ["prefix"] (store KernelspecInstallPrefix) "<install-dir>"
                       "Installation prefix for kernelspec (see Jupyter's --prefix option)"
 
+helpFlag :: Flag Args
 helpFlag = flagHelpSimple (add Help)
 
+add :: Argument -> Args -> Args
 add flag (Args mode flags) = Args mode $ flag : flags
 
 store :: (String -> Argument) -> String -> Args -> Either String Args
@@ -204,6 +206,7 @@ ihaskellArgs =
   where
     add flag (Args mode flags) = Args mode $ flag : flags
 
+noArgs :: Arg a
 noArgs = flagArg unexpected ""
   where
     unexpected a = error $ "Unexpected argument: " ++ a
