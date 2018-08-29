@@ -56,18 +56,6 @@ import           GHC hiding (extensions, language, convert)
 import           GHC hiding (extensions, language)
 #endif
 
--- | Compute the GHC API version number using the dist/build/autogen/cabal_macros.h
-ghcVersionInts :: [Int]
-ghcVersionInts = map (fromJust . readMay) . words . map dotToSpace $ VERSION_ghc
-  where
-    dotToSpace '.' = ' '
-    dotToSpace x = x
-
-consoleBanner :: Text
-consoleBanner =
-  "Welcome to IHaskell! Run `IHaskell --help` for more information.\n" <>
-  "Enter `:help` to learn more about IHaskell built-ins."
-
 main :: IO ()
 main = do
   args <- parseFlags <$> getArgs
@@ -121,7 +109,7 @@ parseKernelArgs = foldl' addFlag defaultKernelSpecOptions
       kernelSpecOpts { kernelSpecInstallPrefix = Just prefix }
     addFlag kernelSpecOpts KernelspecUseStack =
       kernelSpecOpts { kernelSpecUseStack = True }
-    addFlag kernelSpecOpts flag = error $ "Unknown flag" ++ show flag
+    addFlag _kernelSpecOpts flag = error $ "Unknown flag" ++ show flag
 
 -- | Run the IHaskell language kernel.
 runKernel :: KernelSpecOptions -- ^ Various options from when the kernel was installed.
@@ -170,7 +158,7 @@ runKernel kernelOpts profileSrc = do
   interpret libdir True $ \hasSupportLibraries -> do
     -- Ignore Ctrl-C the first time. This has to go inside the `interpret`, because GHC API resets the
     -- signal handlers for some reason (completely unknown to me).
-    liftIO ignoreCtrlC
+    _ <- liftIO ignoreCtrlC
 
     liftIO $ modifyMVar_ state $ \kernelState -> return $
               kernelState { supportLibrariesAvailable = hasSupportLibraries }
@@ -469,7 +457,7 @@ handleComm send kernelState req replyHeader = do
           pgrOut <- liftIO $ readMVar pagerOutput
           liftIO $ publish $ FinalResult disp (if toUsePager then pgrOut else []) []
           return kernelState { openComms = Map.delete uuid widgets }
-        x ->
+        _ ->
           -- Only sensible thing to do.
           return kernelState
 

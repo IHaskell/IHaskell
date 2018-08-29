@@ -43,24 +43,20 @@ completionEventInDirectory string = withHsDirectory $ const $ completionEvent st
 
 shouldHaveCompletionsInDirectory :: String -> [String] -> IO ()
 shouldHaveCompletionsInDirectory string expected = do
-  (matched, completions) <- completionEventInDirectory string
-  let existsInCompletion = (`elem` completions)
-      unmatched = filter (not . existsInCompletion) expected
+  (_, completions) <- completionEventInDirectory string
   expected `shouldBeAmong` completions
 
 completionHas :: String -> [String] -> IO ()
 completionHas string expected = do
-  (matched, completions) <- ghc $ do
+  (_, completions) <- ghc $ do
                               initCompleter
                               completionEvent string
-  let existsInCompletion = (`elem` completions)
-      unmatched = filter (not . existsInCompletion) expected
   expected `shouldBeAmong` completions
 
 initCompleter :: Interpreter ()
 initCompleter = do
   flags <- getSessionDynFlags
-  setSessionDynFlags $ flags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
+  _ <- setSessionDynFlags $ flags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
 
   -- Import modules.
   imports <- mapM parseImportDecl
@@ -164,9 +160,8 @@ testCommandCompletion = describe "Completes commands" $ do
   it "correctly interprets ~ as the environment HOME variable" $ do
     let shouldHaveCompletions :: String -> [String] -> IO ()
         shouldHaveCompletions string expected = do
-          (matched, completions) <- withHsHome $ completionEvent string
-          let existsInCompletion = (`elem` completions)
-              unmatched = filter (not . existsInCompletion) expected
+          (_, completions) <- withHsHome $ completionEvent string
+
           expected `shouldBeAmong` completions
     ":! cd ~/*" `shouldHaveCompletions` ["~/dir/"]
     ":! ~/*" `shouldHaveCompletions` ["~/dir/"]
@@ -177,8 +172,6 @@ testCommandCompletion = describe "Completes commands" $ do
       shouldHaveMatchingText string expected = do
         matchText <- withHsHome $ fst <$> uncurry complete (readCompletePrompt string)
         matchText `shouldBe` expected
-
-      setHomeEvent path = liftIO $ setEnv "HOME" (T.unpack $ toTextIgnore path)
 
   it "generates the correct matchingText on `:! cd ~/*` " $
     ":! cd ~/*" `shouldHaveMatchingText` ("~/" :: String)

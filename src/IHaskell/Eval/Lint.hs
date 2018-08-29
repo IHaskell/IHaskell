@@ -149,7 +149,7 @@ createModule mode (Located line block) =
     stmtToModule :: String -> ParseResult ExtsModule
     stmtToModule stmtStr =
       case parseStmtWithMode mode stmtStr of
-        ParseOk stmt    -> ParseOk mod
+        ParseOk _       -> ParseOk mod
         ParseFailed a b -> ParseFailed a b
       where
         mod = moduleWithDecls decl

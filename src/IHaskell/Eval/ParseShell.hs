@@ -37,12 +37,12 @@ manyTillEnd1 p end = do
 unescapedChar :: Parser Char -> Parser String
 unescapedChar p = try $ do
   x <- noneOf "\\"
-  lookAhead p
+  _ <- lookAhead p
   return [x]
 
 quotedString :: Parser [Char]
 quotedString = do
-  quote <?> "expected starting quote"
+  _ <- quote <?> "expected starting quote"
   (manyTillEnd anyChar (unescapedChar quote) <* quote) <?> "unexpected in quoted String "
 
 unquotedString :: Parser [Char]
@@ -61,9 +61,9 @@ separator = many1 space <?> "separator"
 shellWords :: Parser [String]
 shellWords = try (eof *> return []) <|> do
                x <- word
-               rest1 <- lookAhead (many anyToken)
-               ss <- separator
-               rest2 <- lookAhead (many anyToken)
+               _rest1 <- lookAhead (many anyToken)
+               _ss <- separator
+               _rest2 <- lookAhead (many anyToken)
                xs <- shellWords
                return $ x : xs
 

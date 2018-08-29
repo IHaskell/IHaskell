@@ -34,7 +34,7 @@ whitespace = " \t\n"
 
 -- | Compute the identifier that is being queried.
 getIdentifier :: String -> Int -> String
-getIdentifier code pos = identifier
+getIdentifier code _pos = identifier
   where
     chunks = splitOn whitespace code
     lastChunk = P.last chunks :: String

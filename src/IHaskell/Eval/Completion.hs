@@ -101,7 +101,7 @@ complete code posOffset = do
         case completion of
           HsFilePath _ match -> match
           FilePath _ match   -> match
-          otherwise          -> intercalate "." target
+          _                  -> intercalate "." target
 
   options <- case completion of
                Empty -> return []
@@ -110,7 +110,6 @@ complete code posOffset = do
                  return $ filter (candidate `isPrefixOf`) unqualNames
 
                Qualified moduleName candidate -> do
-                 trueName <- getTrueModuleName moduleName
                  let prefix = intercalate "." [moduleName, candidate]
                      completions = filter (prefix `isPrefixOf`) qualNames
                  return completions
@@ -123,8 +122,7 @@ complete code posOffset = do
 
                DynFlag ext -> do
                  -- Possibly leave out the fLangFlags?
-                 let kernelOptNames = concatMap getSetName kernelOpts
-                     otherNames = ["-package", "-Wall", "-w"]
+                 let otherNames = ["-package", "-Wall", "-w"]
 
                      fNames = map extName fFlags ++
                               map extName wWarningFlags ++
@@ -145,33 +143,16 @@ complete code posOffset = do
                      xNoNames = map ("No" ++) xNames
                  return $ filter (ext `isPrefixOf`) $ xNames ++ xNoNames
 
-               HsFilePath lineUpToCursor match -> completePathWithExtensions [".hs", ".lhs"]
+               HsFilePath lineUpToCursor _match -> completePathWithExtensions [".hs", ".lhs"]
                                                     lineUpToCursor
 
-               FilePath lineUpToCursor match -> completePath lineUpToCursor
+               FilePath lineUpToCursor _match -> completePath lineUpToCursor
 
                KernelOption str -> return $
                  filter (str `isPrefixOf`) (concatMap getOptionName kernelOpts)
 
   return (matchedText, options)
 
-getTrueModuleName :: String -> Interpreter String
-getTrueModuleName name = do
-  -- Only use the things that were actually imported
-  let onlyImportDecl (IIDecl decl) = Just decl
-      onlyImportDecl _ = Nothing
-
-  -- Get all imports that we use.
-  imports <- catMaybes <$> map onlyImportDecl <$> getContext
-
-  -- Find the ones that have a qualified name attached. If this name isn't one of them, it already is
-  -- the true name.
-  flags <- getSessionDynFlags
-  let qualifiedImports = filter (isJust . ideclAs) imports
-      hasName imp = name == (showPpr flags . fromJust . ideclAs) imp
-  case find hasName qualifiedImports of
-    Nothing      -> return name
-    Just trueImp -> return $ showPpr flags $ unLoc $ ideclName trueImp
 
 -- | Get which type of completion this is from the surrounding context.
 completionType :: String            -- ^ The line on which the completion is being done.
@@ -246,9 +227,9 @@ completionType line loc target
         go acc rest =
           case rest of
             '"':'\\':rem -> go ('"' : acc) rem
-            '"':rem      -> acc
+            '"':_        -> acc
             ' ':'\\':rem -> go (' ' : acc) rem
-            ' ':rem      -> acc
+            ' ':_        -> acc
             x:rem        -> go (x : acc) rem
             []           -> acc
 
@@ -268,7 +249,7 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
       }
 
     isDelim :: Char -> Int -> Bool
-    isDelim char idx = char `elem` neverIdent || isSymbol char
+    isDelim char _idx = char `elem` neverIdent || isSymbol char
 
     splitAlongCursor :: [[(Char, Int)]] -> [[(Char, Int)]]
     splitAlongCursor [] = []

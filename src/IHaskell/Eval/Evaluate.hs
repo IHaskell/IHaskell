@@ -217,13 +217,6 @@ initializeImports = do
       iHaskellPkgName = initStr ++ intercalate "." (map show (versionBranch version))
 #endif
 
-      dependsOnRight pkg = not $ null $ do
-        pkg <- db
-        depId <- depends pkg
-        dep <- filter ((== depId) . unitId) db
-        let idString = packageIdString' dflags dep
-        guard (iHaskellPkgName `isPrefixOf` idString)
-
       displayPkgs = [ pkgName
                     | pkgName <- packageNames
                     , Just (x:_) <- [stripPrefix initStr pkgName]
@@ -239,13 +232,15 @@ initializeImports = do
 
       importFmt = "import IHaskell.Display.%s"
 
+
+#if MIN_VERSION_ghc(8,2,0)
+      toImportStmt :: String -> String
+      toImportStmt = printf importFmt . concatMap capitalize . drop 1 . split "-"
+#else
       dropFirstAndLast :: [a] -> [a]
       dropFirstAndLast = reverse . drop 1 . reverse . drop 1
 
       toImportStmt :: String -> String
-#if MIN_VERSION_ghc(8,2,0)
-      toImportStmt = printf importFmt . concatMap capitalize . drop 1 . split "-"
-#else
       toImportStmt = printf importFmt . concatMap capitalize . dropFirstAndLast . split "-"
 #endif
 
@@ -525,7 +520,7 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
     Nothing -> doLoadModule modName modName
 
 -- | Directives set via `:set`.
-evalCommand output (Directive SetDynFlag flagsStr) state = safely state $ do
+evalCommand _output (Directive SetDynFlag flagsStr) state = safely state $ do
   write state $ "All Flags: " ++ flagsStr
 
   -- Find which flags are IHaskell flags, and which are GHC flags
@@ -589,7 +584,7 @@ evalCommand output (Directive SetExtension opts) state = do
   let set = concatMap (" -X" ++) $ words opts
   evalCommand output (Directive SetDynFlag set) state
 
-evalCommand output (Directive LoadModule mods) state = wrapExecution state $ do
+evalCommand _output (Directive LoadModule mods) state = wrapExecution state $ do
   write state $ "Load Module: " ++ mods
   let stripped@(firstChar:remainder) = mods
       (modules, removeModule) =
@@ -604,9 +599,9 @@ evalCommand output (Directive LoadModule mods) state = wrapExecution state $ do
 
   return mempty
 
-evalCommand a (Directive SetOption opts) state = do
+evalCommand _output (Directive SetOption opts) state = do
   write state $ "Option: " ++ opts
-  let (existing, nonExisting) = partition optionExists $ words opts
+  let nonExisting = filter (not . optionExists) $ words opts
   if not $ null nonExisting
     then let err = "No such options: " ++ intercalate ", " nonExisting
          in return
@@ -679,7 +674,7 @@ evalCommand publish (Directive ShellCmd cmd) state = wrapExecution state $
           let cmd = printf "IHaskellDirectory.setCurrentDirectory \"%s\"" $
                 replace " " "\\ " $
                   replace "\"" "\\\"" directory
-          execStmt cmd execOptions
+          _ <- execStmt cmd execOptions
           return mempty
         else return $ displayError $ printf "No such directory: '%s'" directory
     cmd -> liftIO $ do
@@ -863,8 +858,8 @@ evalCommand output (Expression expr) state = do
     -- If it typechecks as a DecsQ, we do not want to display the DecsQ, we just want the
     -- declaration made.
     do
-      write state "Suppressing display for template haskell declaration"
-      GHC.runDecls expr
+      _ <- write state "Suppressing display for template haskell declaration"
+      _ <- GHC.runDecls expr
       return
         EvalOut
           { evalStatus = Success
@@ -916,7 +911,7 @@ evalCommand output (Expression expr) state = do
     removeSvg (Display disps) = Display $ filter (not . isSvg) disps
     removeSvg (ManyDisplay disps) = ManyDisplay $ map removeSvg disps
 
-    useDisplay displayExpr = do
+    useDisplay _displayExpr = do
       -- If there are instance matches, convert the object into a Display. We also serialize it into a
       -- bytestring. We get the bytestring IO action as a dynamic and then convert back to a bytestring,
       -- which we promptly unserialize. Note that attempting to do this without the serialization to
@@ -1027,7 +1022,7 @@ evalCommand _ (ParseError loc err) state = do
       , evalMsgs = []
       }
 
-evalCommand _ (Pragma (PragmaUnsupported pragmaType) pragmas) state = wrapExecution state $
+evalCommand _ (Pragma (PragmaUnsupported pragmaType) _pragmas) state = wrapExecution state $
   return $ displayError $ "Pragmas of type " ++ pragmaType ++ "\nare not supported."
 
 evalCommand output (Pragma PragmaLanguage pragmas) state = do
@@ -1055,10 +1050,10 @@ doLoadModule name modName = do
     -- Compile loaded modules.
     flags <- getSessionDynFlags
     errRef <- liftIO $ newIORef []
-    setSessionDynFlags $ flip gopt_set Opt_BuildDynamicToo
+    _ <- setSessionDynFlags $ flip gopt_set Opt_BuildDynamicToo
       flags
         { hscTarget = objTarget flags
-        , log_action = \dflags sev srcspan ppr _style msg -> modifyIORef' errRef (showSDoc flags msg :)
+        , log_action = \_dflags _sev _srcspan _ppr _style msg -> modifyIORef' errRef (showSDoc flags msg :)
         }
 
     -- Load the new target.
@@ -1084,7 +1079,7 @@ doLoadModule name modName = do
         Succeeded -> IIDecl (simpleImportDecl $ mkModuleName modName) : importedModules
 
     -- Switch back to interpreted mode.
-    setSessionDynFlags flags
+    _ <- setSessionDynFlags flags
 
     case result of
       Succeeded -> return mempty
@@ -1098,11 +1093,11 @@ doLoadModule name modName = do
       print $ show exception
       -- Explicitly clear targets
       setTargets []
-      load LoadAllTargets
+      _ <- load LoadAllTargets
 
       -- Switch to interpreted mode!
       flags <- getSessionDynFlags
-      setSessionDynFlags flags { hscTarget = HscInterpreted }
+      _ <- setSessionDynFlags flags { hscTarget = HscInterpreted }
 
       -- Return to old context, make sure we have `it`.
       setContext imported
@@ -1112,20 +1107,6 @@ doLoadModule name modName = do
 
 objTarget :: DynFlags -> HscTarget
 objTarget flags = defaultObjectTarget $ targetPlatform flags
-
-keepingItVariable :: Interpreter a -> Interpreter a
-keepingItVariable act = do
-  -- Generate the it variable temp name
-  gen <- liftIO getStdGen
-  let rand = take 20 $ randomRs ('0', '9') gen
-      var name = name ++ rand
-      goStmt s = execStmt s execOptions
-      itVariable = var "it_var_temp_"
-
-  goStmt $ printf "let %s = it" itVariable
-  val <- act
-  goStmt $ printf "let it = %s" itVariable
-  act
 
 data Captured a = CapturedStmt String
                 | CapturedIO (IO a)
@@ -1185,7 +1166,7 @@ capturedEval output stmt = do
             AnyException e -> ExecComplete (Left e)   0
 
   -- Initialize evaluation context.
-  results <- forM initStmts goStmt
+  forM_ initStmts goStmt
 
   -- This works fine on GHC 8.0 and newer
   dyn <- dynCompileExpr readVariable
@@ -1207,9 +1188,6 @@ capturedEval output stmt = do
       -- argument of microseconds.
       ms = 1000
       delay = 100 * ms
-
-      -- How much to read each time.
-      chunkSize = 100
 
       -- Maximum size of the output (after which we truncate).
       maxSize = 100 * 1000
@@ -1236,7 +1214,7 @@ capturedEval output stmt = do
             -- We're done reading.
             putMVar finishedReading True
 
-  liftIO $ forkIO loop
+  _ <- liftIO $ forkIO loop
 
   result <- gfinally (runWithResult stmt) $ do
               -- Execution is done.
@@ -1270,7 +1248,7 @@ evalStatementOrIO publish state cmd = do
   case cmd of
     CapturedStmt stmt ->
       write state $ "Statement:\n" ++ stmt
-    CapturedIO io ->
+    CapturedIO _ ->
       write state "Evaluating Action"
 
   (printed, result) <- capturedEval output cmd
@@ -1317,7 +1295,7 @@ evalStatementOrIO publish state cmd = do
 -- Read from a file handle until we hit a delimiter or until we've read as many characters as
 -- requested
 readChars :: Handle -> String -> Int -> IO String
-readChars handle delims 0 =
+readChars _handle _delims 0 =
   -- If we're done reading, return nothing.
   return []
 readChars handle delims nchars = do
@@ -1353,9 +1331,6 @@ formatErrorWithClass cls =
   where
     fixDollarSigns = replace "$" "<span>&dollar;</span>"
     useDashV = "\n    Use -v to see a list of the files searched for."
-    isShowError err =
-      "No instance for (Show" `isPrefixOf` err &&
-      isInfixOf " arising from a use of `print'" err
 
 formatParseError :: StringLoc -> String -> ErrMsg
 formatParseError (Loc line col) =

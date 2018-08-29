@@ -66,9 +66,6 @@ defaultKernelSpecOptions = KernelSpecOptions
 kernelName :: String
 kernelName = "haskell"
 
-kernelArgs :: [String]
-kernelArgs = ["--kernel", kernelName]
-
 ipythonCommand :: SH.Sh SH.FilePath
 ipythonCommand = do
   jupyterMay <- SH.which "jupyter"
@@ -83,34 +80,6 @@ locateIPython = do
   case mbinary of
     Nothing      -> SH.errorExit "The Jupyter binary could not be located"
     Just ipython -> return ipython
-
--- | Run the IPython command with any arguments. The kernel is set to IHaskell.
-ipython :: Bool         -- ^ Whether to suppress output.
-        -> [Text]       -- ^ IPython command line arguments.
-        -> SH.Sh String    -- ^ IPython output.
-ipython suppress args = do
-  liftIO $ installHandler keyboardSignal (CatchOnce $ return ()) Nothing
-
-  -- We have this because using `run` does not let us use stdin.
-  cmd <- ipythonCommand
-  SH.runHandles cmd args handles doNothing
-
-  where
-    handles = [SH.InHandle SH.Inherit, outHandle suppress, errorHandle suppress]
-    outHandle True = SH.OutHandle SH.CreatePipe
-    outHandle False = SH.OutHandle SH.Inherit
-    errorHandle True = SH.ErrorHandle SH.CreatePipe
-    errorHandle False = SH.ErrorHandle SH.Inherit
-    doNothing _ stdout _ = if suppress
-                             then liftIO $ StrictIO.hGetContents stdout
-                             else return ""
-
--- | Run while suppressing all output.
-quietRun :: SH.FilePath -> [Text] -> SH.Sh ()
-quietRun path args = SH.runHandles path args handles nothing
-  where
-    handles = [SH.InHandle SH.Inherit, SH.OutHandle SH.CreatePipe, SH.ErrorHandle SH.CreatePipe]
-    nothing _ _ _ = return ()
 
 fp :: SH.FilePath -> FilePath
 fp = T.unpack . SH.toTextIgnore
@@ -127,9 +96,6 @@ ihaskellDir :: SH.Sh FilePath
 ihaskellDir = do
   home <- maybe (error "$HOME not defined.") SH.fromText <$> SH.get_env "HOME"
   fp <$> ensure (return (home SH.</> ".ihaskell"))
-
-notebookDir :: SH.Sh SH.FilePath
-notebookDir = ensure $ (SH.</> "notebooks") <$> ihaskellDir
 
 getIHaskellDir :: IO String
 getIHaskellDir = SH.shelly ihaskellDir
@@ -196,7 +162,7 @@ installKernelspec replace opts = void $ do
         ++ ["--ghclib", kernelSpecGhcLibdir opts]
         ++ (case kernelSpecRTSOptions opts of
              [] -> []
-             rtsOpts -> "+RTS" : kernelSpecRTSOptions opts ++ ["-RTS"])
+             _ -> "+RTS" : kernelSpecRTSOptions opts ++ ["-RTS"])
            ++ ["--stack" | kernelSpecUseStack opts]
 
   let kernelSpec = KernelSpec
@@ -226,29 +192,11 @@ installKernelspec replace opts = void $ do
 
     SH.silently $ SH.run ipython cmd
 
-kernelSpecCreated :: SH.Sh Bool
-kernelSpecCreated = do
-  ipython <- locateIPython
-  out <- SH.silently $ SH.run ipython ["kernelspec", "list"]
-  let kernelspecs = map T.strip $ T.lines out
-  return $ T.pack kernelName `elem` kernelspecs
-
 -- | Replace "~" with $HOME if $HOME is defined. Otherwise, do nothing.
 subHome :: String -> IO String
 subHome path = SH.shelly $ do
   home <- T.unpack <$> fromMaybe "~" <$> SH.get_env "HOME"
   return $ replace "~" home path
-
--- | Get the path to an executable. If it doensn't exist, fail with an error message complaining
--- about it.
-path :: Text -> SH.Sh SH.FilePath
-path exe = do
-  path <- SH.which $ SH.fromText exe
-  case path of
-    Nothing -> do
-      liftIO $ putStrLn $ "Could not find `" ++ T.unpack exe ++ "` executable."
-      fail $ "`" ++ T.unpack exe ++ "` not on $PATH."
-    Just exePath -> return exePath
 
 -- | Parse an IPython version string into a list of integers.
 parseVersion :: String -> Maybe [Int]

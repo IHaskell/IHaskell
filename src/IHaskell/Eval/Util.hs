@@ -190,7 +190,7 @@ setExtension ext = do
   case extensionFlag ext of
     Nothing -> return $ Just $ "Could not parse extension name: " ++ ext
     Just flag -> do
-      setSessionDynFlags $
+      _ <- setSessionDynFlags $
         case flag of
           SetFlag ghcFlag   -> xopt_set flags ghcFlag
           UnsetFlag ghcFlag -> xopt_unset flags ghcFlag
@@ -205,9 +205,8 @@ setFlags ext = do
   (flags', unrecognized, warnings) <- parseDynamicFlags flags (map noLoc ext)
 
   -- First, try to check if this flag matches any extension name.
-  let restorePkg x = x { packageFlags = packageFlags flags }
   let restoredPkgs = flags' { packageFlags = packageFlags flags }
-  GHC.setProgramDynFlags restoredPkgs
+  _ <- GHC.setProgramDynFlags restoredPkgs
   GHC.setInteractiveDynFlags restoredPkgs
 
   -- Create the parse errors.
@@ -348,7 +347,6 @@ evalImport imports = do
 
 removeImport :: GhcMonad m => String -> m ()
 removeImport moduleName = do
-  flags <- getSessionDynFlags
   ctx <- getContext
   let ctx' = filter (not . (isImportOf $ mkModuleName moduleName)) ctx
   setContext ctx'
@@ -378,10 +376,8 @@ cleanUpDuplicateInstances = modifySession $ \hscEnv ->
   where
     instEq :: ClsInst -> ClsInst -> Bool
     -- Only support replacing instances on GHC 7.8 and up
-    instEq c1 c2
-      | ClsInst { is_tvs = tpl_tvs, is_tys = tpl_tys, is_cls = cls } <- c1,
-        ClsInst { is_tys = tpl_tys', is_cls = cls' } <- c2
-      = cls == cls' && isJust (tcMatchTys tpl_tys tpl_tys')
+    instEq c1 c2 =
+      is_cls c1 == is_cls c2 && isJust (tcMatchTys (is_tys c1) (is_tys c2))
 
 
 -- | Get the type of an expression and convert it to a string.

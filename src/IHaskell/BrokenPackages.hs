@@ -15,16 +15,16 @@ import           Control.Applicative hiding ((<|>), many)
 
 import           Shelly
 
-data BrokenPackage = BrokenPackage { packageID :: String, brokenDeps :: [String] }
+data BrokenPackage = BrokenPackage String [String]
 
 instance Show BrokenPackage where
-  show = packageID
+  show (BrokenPackage packageID _) = packageID
 
 -- | Get a list of broken packages. This function internally shells out to `ghc-pkg`, and parses the
 -- output in order to determine what packages are broken.
 getBrokenPackages :: IO [String]
 getBrokenPackages = shelly $ do
-  silently $ errExit False $ run "ghc-pkg" ["check"]
+  _ <- silently $ errExit False $ run "ghc-pkg" ["check"]
   checkOut <- lastStderr
 
   -- Get rid of extraneous things
@@ -34,7 +34,7 @@ getBrokenPackages = shelly $ do
 
   return $
     case parse (many check) "ghc-pkg output" ghcPkgOutput of
-      Left err   -> []
+      Left _     -> []
       Right pkgs -> map show pkgs
 
 check :: Parser BrokenPackage

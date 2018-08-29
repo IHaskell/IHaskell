@@ -193,7 +193,7 @@ parseCodeChunk code startLine = do
       case parser string of
         Parsed res      -> Parsed (blockType res)
         Failure err loc -> Failure err loc
-        otherwise       -> error "tryParser failed, output was neither Parsed nor Failure"
+        _               -> error "tryParser failed, output was neither Parsed nor Failure"
 
     parsers :: DynFlags -> [(String -> CodeBlock, String -> ParseOutput String)]
     parsers flags =
@@ -206,8 +206,8 @@ parseCodeChunk code startLine = do
         unparser :: Parser a -> String -> ParseOutput String
         unparser parser code =
           case runParser flags parser code of
-            Parsed out       -> Parsed code
-            Partial out strs -> Partial code strs
+            Parsed _         -> Parsed code
+            Partial _ strs   -> Partial code strs
             Failure err loc  -> Failure err loc
 
 -- | Find consecutive declarations of the same function and join them into a single declaration.
@@ -239,7 +239,7 @@ joinFunctions blocks =
 parsePragma :: String       -- ^ Pragma string.
             -> Int          -- ^ Line number at which the directive appears.
             -> CodeBlock    -- ^ Pragma code block or a parse error.
-parsePragma pragma line =
+parsePragma pragma _line =
   let commaToSpace :: Char -> Char
       commaToSpace ',' = ' '
       commaToSpace x = x
@@ -256,7 +256,7 @@ parsePragma pragma line =
 parseDirective :: String       -- ^ Directive string.
                -> Int          -- ^ Line number at which the directive appears.
                -> CodeBlock    -- ^ Directive code block or a parse error.
-parseDirective (':':'!':directive) line = Directive ShellCmd $ '!' : directive
+parseDirective (':':'!':directive) _line = Directive ShellCmd $ '!' : directive
 parseDirective (':':directive) line =
   case find rightDirective directives of
     Just (directiveType, _) -> Directive directiveType arg
@@ -302,4 +302,4 @@ getModuleName moduleSrc = do
       case unLoc <$> hsmodName (unLoc mod) of
         Nothing   -> error "Module must have a name."
         Just name -> return $ split "." $ moduleNameString name
-    otherwise -> error "getModuleName failed, output was neither Parsed nor Failure"
+    _ -> error "getModuleName failed, output was neither Parsed nor Failure"

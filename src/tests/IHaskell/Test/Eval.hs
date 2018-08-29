@@ -34,8 +34,8 @@ eval string = do
 
   getTemporaryDirectory >>= setCurrentDirectory
   let state = defaultKernelState { getLintStatus = LintOff }
-  interpret GHC.Paths.libdir False $ const $
-    IHaskell.Eval.Evaluate.evaluate state string publish noWidgetHandling
+  _ <- interpret GHC.Paths.libdir False $ const $
+        IHaskell.Eval.Evaluate.evaluate state string publish noWidgetHandling
   out <- readIORef outputAccum
   pagerOut <- readIORef pagerAccum
   return (reverse out, unlines . map extractPlain . reverse $ pagerOut)
@@ -44,7 +44,7 @@ becomes :: String -> [String] -> IO ()
 becomes string expected = evaluationComparing comparison string
   where
     comparison :: ([Display], String) -> IO ()
-    comparison (results, pageOut) = do
+    comparison (results, _pageOut) = do
       when (length results /= length expected) $
         expectationFailure $ "Expected result to have " ++ show (length expected)
                                                            ++ " results. Got " ++ show results
@@ -66,7 +66,7 @@ evaluationComparing comparison string = do
 pages :: String -> [String] -> IO ()
 pages string expected = evaluationComparing comparison string
   where
-    comparison (results, pageOut) =
+    comparison (_results, pageOut) =
       strip (stripHtml pageOut) `shouldBe` strip (fixQuotes $ unlines expected)
 
     -- A very, very hacky method for removing HTML
@@ -80,7 +80,7 @@ pages string expected = evaluationComparing comparison string
         go [] = []
 
         go' ('>':str) = go str
-        go' (x:xs) = go' xs
+        go' (_:xs) = go' xs
         go' [] = error $ "Unending bracket html tag in string " ++ str
 
         dropScriptTag str =
