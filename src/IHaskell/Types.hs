@@ -12,7 +12,7 @@ module IHaskell.Types (
     MessageType(..),
     dupHeader,
     Username,
-    Metadata(..),
+    Metadata,
     replyType,
     ExecutionState(..),
     StreamType(..),
@@ -39,7 +39,7 @@ module IHaskell.Types (
 
 import           IHaskellPrelude
 
-import           Data.Aeson (Value, (.=), object)
+import           Data.Aeson (ToJSON, Value, (.=), object)
 import           Data.Function (on)
 import           Data.Serialize
 import           GHC.Generics
@@ -90,6 +90,28 @@ class IHaskellDisplay a => IHaskellWidget a where
         -> Value           -- ^ Data recieved from the frontend.
         -> IO ()
   close _ _ = return ()
+
+-- | these instances cause the image, html etc. which look like:
+--
+-- > Display
+-- > [Display]
+-- > IO [Display]
+-- > IO (IO Display)
+--
+-- be run the IO and get rendered (if the frontend allows it) in the pretty form.
+instance IHaskellDisplay a => IHaskellDisplay (IO a) where
+  display = (display =<<)
+
+instance IHaskellDisplay Display where
+  display = return
+
+instance IHaskellDisplay DisplayData where
+  display disp = return $ Display [disp]
+
+instance IHaskellDisplay a => IHaskellDisplay [a] where
+  display disps = do
+    displays <- mapM display disps
+    return $ ManyDisplay displays
 
 data Widget = forall a. IHaskellWidget a => Widget a
   deriving Typeable
@@ -221,9 +243,9 @@ data WidgetMethod = UpdateState Value
                   | DisplayWidget
 
 instance ToJSON WidgetMethod where
-  toJSON DisplayWidget = object ["method" .= "display"]
-  toJSON (UpdateState v) = object ["method" .= "update", "state" .= v]
-  toJSON (CustomContent v) = object ["method" .= "custom", "content" .= v]
+  toJSON DisplayWidget = object ["method" .= ("display" :: Text)]
+  toJSON (UpdateState v) = object ["method" .= ("update" :: Text), "state" .= v]
+  toJSON (CustomContent v) = object ["method" .= ("custom" :: Text), "content" .= v]
 
 -- | Output of evaluation.
 data EvaluationResult =
@@ -243,7 +265,7 @@ data EvaluationResult =
 
 -- | Duplicate a message header, giving it a new UUID and message type.
 dupHeader :: MessageHeader -> MessageType -> IO MessageHeader
-dupHeader header messageType = do
+dupHeader hdr messageType = do
   uuid <- liftIO random
 
-  return header { messageId = uuid, msgType = messageType }
+  return hdr { messageId = uuid, msgType = messageType }

@@ -89,14 +89,14 @@ ensure getDir = do
 ihaskellDir :: SH.Sh FilePath
 ihaskellDir = do
   home <- maybe (error "$HOME not defined.") SH.fromText <$> SH.get_env "HOME"
-  fp <$> ensure (return (home SH.</> ".ihaskell"))
+  fp <$> ensure (return (home SH.</> (".ihaskell" :: SH.FilePath)))
 
 getIHaskellDir :: IO String
 getIHaskellDir = SH.shelly ihaskellDir
 
 defaultConfFile :: IO (Maybe String)
 defaultConfFile = fmap (fmap fp) . SH.shelly $ do
-  filename <- (SH.</> "rc.hs") <$> ihaskellDir
+  filename <- (SH.</> ("rc.hs" :: SH.FilePath)) <$> ihaskellDir
   exists <- SH.test_f filename
   return $ if exists
              then Just filename
@@ -116,17 +116,17 @@ verifyIPythonVersion = do
     Nothing -> badIPython
                  "No Jupyter / IPython detected -- install Jupyter 3.0+ before using IHaskell."
     Just path -> do
-      stdout <- SH.silently (SH.run path ["--version"])
-      stderr <- SH.lastStderr
+      sout <- SH.silently (SH.run path ["--version"])
+      serr <- SH.lastStderr
       let majorVersion = join . fmap listToMaybe . parseVersion . T.unpack
-      case mplus (majorVersion stderr) (majorVersion stdout) of
+      case mplus (majorVersion serr) (majorVersion sout) of
         Nothing -> badIPython $ T.concat
                                   [ "Detected Jupyter, but could not parse version number."
                                   , "\n"
                                   , "(stdout = "
-                                  , stdout
+                                  , sout
                                   , ", stderr = "
-                                  , stderr
+                                  , serr
                                   , ")"
                                   ]
 
@@ -143,7 +143,7 @@ verifyIPythonVersion = do
 -- | Install an IHaskell kernelspec into the right location. The right location is determined by
 -- using `ipython kernelspec install --user`.
 installKernelspec :: Bool -> KernelSpecOptions -> SH.Sh ()
-installKernelspec replace opts = void $ do
+installKernelspec repl opts = void $ do
   ihaskellPath <- getIHaskellPath
   confFile <- liftIO $ kernelSpecConfFile opts
 
@@ -169,7 +169,7 @@ installKernelspec replace opts = void $ do
   -- shell out to IPython to install this kernelspec directory.
   SH.withTmpDir $ \tmp -> do
     let kernelDir = tmp SH.</> kernelName
-    let filename = kernelDir SH.</> "kernel.json"
+    let filename = kernelDir SH.</> ("kernel.json" :: SH.FilePath)
 
     SH.mkdir_p kernelDir
     SH.writefile filename $ LT.toStrict $ toLazyText $ encodeToTextBuilder $ toJSON kernelSpec
@@ -180,7 +180,7 @@ installKernelspec replace opts = void $ do
 
     ipython <- locateIPython
 
-    let replaceFlag = ["--replace" | replace]
+    let replaceFlag = ["--replace" | repl]
         installPrefixFlag = maybe ["--user"] (\prefix -> ["--prefix", T.pack prefix]) (kernelSpecInstallPrefix opts)
         cmd = concat [["kernelspec", "install"], installPrefixFlag, [SH.toTextIgnore kernelDir], replaceFlag]
 

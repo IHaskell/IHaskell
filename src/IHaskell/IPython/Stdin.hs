@@ -72,8 +72,8 @@ stdinOnce dir = do
     loop stdinInput oldStdin newStdin = do
       let FileHandle _ mvar = stdin
       threadDelay $ 150 * 1000
-      empty <- isEmptyMVar mvar
-      if not empty
+      e <- isEmptyMVar mvar
+      if not e
         then loop stdinInput oldStdin newStdin
         else do
           line <- getInputLine dir
@@ -87,17 +87,17 @@ getInputLine dir = do
 
   -- Send a request for input.
   uuid <- UUID.random
-  parentHeader <- fromJust . readMay <$> readFile (dir ++ "/.last-req-header")
-  let header = MessageHeader
-        { username = username parentHeader
-        , identifiers = identifiers parentHeader
-        , parentHeader = Just parentHeader
+  parentHdr <- fromJust . readMay <$> readFile (dir ++ "/.last-req-header")
+  let hdr = MessageHeader
+        { username = username parentHdr
+        , identifiers = identifiers parentHdr
+        , parentHeader = Just parentHdr
         , messageId = uuid
-        , sessionId = sessionId parentHeader
+        , sessionId = sessionId parentHdr
         , metadata = Map.fromList []
         , msgType = InputRequestMessage
         }
-  let msg = RequestInput header ""
+  let msg = RequestInput hdr ""
   writeChan req msg
 
   -- Get the reply.
@@ -105,8 +105,8 @@ getInputLine dir = do
   return value
 
 recordParentHeader :: String -> MessageHeader -> IO ()
-recordParentHeader dir header =
-  writeFile (dir ++ "/.last-req-header") $ show header
+recordParentHeader dir hdr =
+  writeFile (dir ++ "/.last-req-hdr") $ show hdr
 
 recordKernelProfile :: String -> Profile -> IO ()
 recordKernelProfile dir profile =

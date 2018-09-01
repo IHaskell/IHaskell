@@ -95,12 +95,12 @@ boilerplate =
 
 groupClassified :: [CellLine LText] -> [Cell [LText]]
 groupClassified (CodeLine a:x)
-  | (c, x) <- List.span isCode x,
-    (_, x) <- List.span isEmptyMD x,
-    (o, x) <- List.span isOutput x
-  = Code (a : map untag c) (map untag o) : groupClassified x
+  | (c, x1) <- List.span isCode x,
+    (_, x2) <- List.span isEmptyMD x1,
+    (o, x3) <- List.span isOutput x2
+  = Code (a : map untag c) (map untag o) : groupClassified x3
 groupClassified (MarkdownLine a:x)
-  | (m, x) <- List.span isMD x = Markdown (a : map untag m) : groupClassified x
+  | (m, x1) <- List.span isMD x = Markdown (a : map untag m) : groupClassified x1
 groupClassified (OutputLine a:x) = Markdown [a] : groupClassified x
 groupClassified [] = []
 

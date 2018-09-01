@@ -63,4 +63,4 @@ shellWords = try (eof *> return []) <|> do
                return $ x : xs
 
 parseShell :: String -> Either ParseError [String]
-parseShell string = parse shellWords "shell" (string ++ "\n")
+parseShell str = parse shellWords "shell" (str ++ "\n")

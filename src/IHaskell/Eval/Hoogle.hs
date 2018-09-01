@@ -92,8 +92,8 @@ search string = do
   return $
     case response of
       Left err -> [NoResult err]
-      Right json ->
-        case eitherDecode $ LBS.fromStrict $ CBS.pack json of
+      Right jsn ->
+        case eitherDecode $ LBS.fromStrict $ CBS.pack jsn of
           Left err -> [NoResult err]
           Right results ->
             case map SearchResult $ (\(HoogleResponseList l) -> l) results of
@@ -159,7 +159,7 @@ renderSelf string loc
 
   | "module" `isPrefixOf` string =
       let package = extractPackageName loc
-      in mod ++ " " ++
+      in mdl ++ " " ++
                 span "hoogle-module" (link loc $ extractModule string) ++
                 packageSub package
 
@@ -198,7 +198,7 @@ renderSelf string loc
     extractData = strip . replace "data" ""
     extractNewtype = strip . replace "newtype" ""
     pkg = span "hoogle-head" "package"
-    mod = span "hoogle-head" "module"
+    mdl = span "hoogle-head" "module"
     cls = span "hoogle-head" "class"
     dat = span "hoogle-head" "data"
     nwt = span "hoogle-head" "newtype"
@@ -220,7 +220,7 @@ renderSelf string loc
     packageAndModuleSub (Just package) (Just modname) =
       span "hoogle-sub" $
         "(" ++ pkg ++ " " ++ span "hoogle-package" package ++
-                             ", " ++ mod ++ " " ++ span "hoogle-module" modname ++ ")"
+                             ", " ++ mdl ++ " " ++ span "hoogle-module" modname ++ ")"
 
 renderDocs :: String -> String
 renderDocs doc =
@@ -233,27 +233,26 @@ renderDocs doc =
         case xs of
           [] -> False
           (s:_) -> isPrefixOf ">" $ strip s
-      makeBlock lines =
-                         if isCode lines
-                           then div' "hoogle-code" $ unlines $ nonull lines
-                           else div' "hoogle-text" $ unlines $ nonull lines
+      makeBlock xs =
+        if isCode xs
+          then div' "hoogle-code" $ unlines $ nonull xs
+          else div' "hoogle-text" $ unlines $ nonull xs
   in div' "hoogle-doc" $ unlines $ map makeBlock groups
 
 extractPackageName :: String -> Maybe String
-extractPackageName link = do
-  let pieces = split "/" link
+extractPackageName lnk = do
+  let pieces = split "/" lnk
   archiveLoc <- List.elemIndex "archive" pieces
   latestLoc <- List.elemIndex "latest" pieces
   guard $ latestLoc - archiveLoc == 2
   return $ pieces List.!! (latestLoc - 1)
 
 extractModuleName :: String -> Maybe String
-extractModuleName link = do
-  let pieces = split "/" link
+extractModuleName lnk = do
+  let pieces = split "/" lnk
   guard $ not $ null pieces
   let html = fromJust $ lastMay pieces
-      mod = replace "-" "." $ takeWhile (/= '.') html
-  return mod
+  return $ replace "-" "." $ takeWhile (/= '.') html
 
 div' :: String -> String -> String
 div' = printf "<div class='%s'>%s</div>"

@@ -25,7 +25,7 @@ publishResult :: (Message -> IO ()) -- ^ A function to send messages
               -> Bool               -- ^ Whether to use the pager
               -> EvaluationResult   -- ^ The evaluation result
               -> IO ()
-publishResult send replyHeader displayed updateNeeded pagerOutput usePager result = do
+publishResult send replyHeader displayed updateNeeded poutput upager result = do
   let final =
         case result of
           IntermediateResult{} -> False
@@ -51,21 +51,21 @@ publishResult send replyHeader displayed updateNeeded pagerOutput usePager resul
     -- If this has some pager output, store it for later.
     let pager = pagerOut result
     unless (null pager) $
-      if usePager
-        then modifyMVar_ pagerOutput (return . (++ pager))
+      if upager
+        then modifyMVar_ poutput (return . (++ pager))
         else sendOutput $ Display pager
 
   where
     clearOutput = do
-      header <- dupHeader replyHeader ClearOutputMessage
-      send $ ClearOutput header True
+      hdr <- dupHeader replyHeader ClearOutputMessage
+      send $ ClearOutput hdr True
 
     sendOutput (ManyDisplay manyOuts) = mapM_ sendOutput manyOuts
     sendOutput (Display outs) = do
-      header <- dupHeader replyHeader DisplayDataMessage
-      send $ PublishDisplayData header $ map (convertSvgToHtml . prependCss) outs
+      hdr <- dupHeader replyHeader DisplayDataMessage
+      send $ PublishDisplayData hdr $ map (convertSvgToHtml . prependCss) outs
 
-    convertSvgToHtml (DisplayData MimeSvg svg) = html $ makeSvgImg $ base64 $ E.encodeUtf8 svg
+    convertSvgToHtml (DisplayData MimeSvg s) = html $ makeSvgImg $ base64 $ E.encodeUtf8 s
     convertSvgToHtml x = x
 
     makeSvgImg :: Base64 -> String
@@ -73,6 +73,6 @@ publishResult send replyHeader displayed updateNeeded pagerOutput usePager resul
                                        base64data <>
                                        "\"/>"
 
-    prependCss (DisplayData MimeHtml html) =
-      DisplayData MimeHtml $ mconcat ["<style>", T.pack ihaskellCSS, "</style>", html]
+    prependCss (DisplayData MimeHtml h) =
+      DisplayData MimeHtml $ mconcat ["<style>", T.pack ihaskellCSS, "</style>", h]
     prependCss x = x

@@ -21,12 +21,8 @@ import qualified Data.List.Split as Split
 import qualified Data.List.Split.Internals as Split
 import           System.Environment (getEnv)
 
-import           GHC hiding (Qualified)
-#if MIN_VERSION_ghc(8,2,0)
+import           GHC
 import           GHC.PackageDb
-#else
-import           GHC.PackageDb (ExposedModule(exposedName))
-#endif
 import           DynFlags
 import           GhcMonad
 import           Outputable (showPpr)
@@ -57,7 +53,7 @@ exposedName :: (a, b) -> a
 exposedName = fst
 #endif
 
-extName (FlagSpec { flagSpecName = name }) = name
+extName :: FlagSpec flag -> String
 extName (FlagSpec { flagSpecName = name }) = name
 
 complete :: String -> Int -> Interpreter (String, [String])
@@ -97,8 +93,8 @@ complete code posOffset = do
                Identifier candidate ->
                  return $ filter (candidate `isPrefixOf`) unqualNames
 
-               Qualified moduleName candidate -> do
-                 let prefix = intercalate "." [moduleName, candidate]
+               Qualified mName candidate -> do
+                 let prefix = intercalate "." [mName, candidate]
                      completions = filter (prefix `isPrefixOf`) qualNames
                  return completions
 
@@ -200,7 +196,7 @@ completionType line loc target
             else []
         Left _ -> Empty
 
-    cursorInString str loc = nquotes (take loc str) `mod` 2 /= 0
+    cursorInString str lcn = nquotes (take lcn str) `mod` 2 /= (0 :: Int)
 
     nquotes ('\\':'"':xs) = nquotes xs
     nquotes ('"':xs) = 1 + nquotes xs
@@ -214,12 +210,12 @@ completionType line loc target
       where
         go acc rest =
           case rest of
-            '"':'\\':rem -> go ('"' : acc) rem
-            '"':_        -> acc
-            ' ':'\\':rem -> go (' ' : acc) rem
-            ' ':_        -> acc
-            x:rem        -> go (x : acc) rem
-            []           -> acc
+            '"':'\\':xs -> go ('"' : acc) xs
+            '"':_       -> acc
+            ' ':'\\':xs -> go (' ' : acc) xs
+            ' ':_       -> acc
+            x:xs        -> go (x : acc) xs
+            []          -> acc
 
 -- | Get the word under a given cursor location.
 completionTarget :: String -> Int -> [String]
@@ -277,8 +273,8 @@ completePath line = completePathFilter acceptAll acceptAll line ""
     acceptAll = const True
 
 completePathWithExtensions :: [String] -> String -> Interpreter [String]
-completePathWithExtensions extensions line =
-  completePathFilter (extensionIsOneOf extensions) acceptAll line ""
+completePathWithExtensions extns line =
+  completePathFilter (extensionIsOneOf extns) acceptAll line ""
   where
     acceptAll = const True
     extensionIsOneOf exts str = any correctEnding exts

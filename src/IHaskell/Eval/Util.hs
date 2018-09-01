@@ -75,10 +75,10 @@ extensionFlag ext =
         Nothing -> Nothing
   where
     -- Check if a FlagSpec matches an extension name.
-    flagMatches ext fs = ext == flagSpecName fs
+    flagMatches ex fs = ex == flagSpecName fs
 
     -- Check if a FlagSpec matches "No<ExtensionName>". In that case, we disable the extension.
-    flagMatchesNo ext fs = ext == "No" ++ flagSpecName fs
+    flagMatchesNo ex fs = ex == "No" ++ flagSpecName fs
 
 -- | Pretty-print dynamic flags (taken from 'InteractiveUI' module of `ghc-bin`)
 pprDynFlags :: Bool       -- ^ Whether to include flags which are on by default
@@ -91,11 +91,11 @@ pprDynFlags show_all dflags =
     , O.text "other dynamic, non-language, flag settings:" O.$$
       O.nest 2 (O.vcat (map (setting opt) others))
     , O.text "warning settings:" O.$$
-      O.nest 2 (O.vcat (map (setting wopt) warningFlags))
+      O.nest 2 (O.vcat (map (setting wopt) wFlags))
     ]
   where
 
-    warningFlags = DynFlags.wWarningFlags
+    wFlags = DynFlags.wWarningFlags
 
     opt = gopt
 
@@ -336,14 +336,14 @@ evalImport imports = do
         _              -> False
 
 removeImport :: GhcMonad m => String -> m ()
-removeImport moduleName = do
+removeImport modName = do
   ctx <- getContext
-  let ctx' = filter (not . (isImportOf $ mkModuleName moduleName)) ctx
+  let ctx' = filter (not . (isImportOf $ mkModuleName modName)) ctx
   setContext ctx'
 
   where
     isImportOf :: ModuleName -> InteractiveImport -> Bool
-    isImportOf name (IIModule modName) = name == modName
+    isImportOf name (IIModule mName) = name == mName
     isImportOf name (IIDecl impDecl) = name == unLoc (ideclName impDecl)
 
 -- | Evaluate a series of declarations. Return all names which were bound by these declarations.
@@ -396,9 +396,9 @@ getDescription str = do
 
   -- Filter out types that have parents in the same set. GHCi also does this.
   let infos = catMaybes maybeInfos
-      allNames = mkNameSet $ map (getName . getType) infos
+      allNames = mkNameSet $ map (getName . getInfoType) infos
       hasParent info =
-        case tyThingParent_maybe (getType info) of
+        case tyThingParent_maybe (getInfoType info) of
           Just parent -> getName parent `elemNameSet` allNames
           Nothing     -> False
       filteredOutput = filter (not . hasParent) infos
@@ -411,9 +411,9 @@ getDescription str = do
     getInfo' = getInfo False
 
 #if MIN_VERSION_ghc(8,4,0)
-    getType (theType, _, _, _, _) = theType
+    getInfoType (theType, _, _, _, _) = theType
 #else
-    getType (theType, _, _, _) = theType
+    getInfoType (theType, _, _, _) = theType
 #endif
 
 #if MIN_VERSION_ghc(8,4,0)

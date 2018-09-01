@@ -42,7 +42,7 @@ module IHaskell.Display (
     -- ** Image and data encoding functions
     Width,
     Height,
-    Base64(..),
+    Base64,
     encode64,
     base64,
 
@@ -75,28 +75,6 @@ import           IHaskell.Eval.Util (unfoldM)
 import           StringUtils (rstrip)
 
 type Base64 = Text
-
--- | these instances cause the image, html etc. which look like:
---
--- > Display
--- > [Display]
--- > IO [Display]
--- > IO (IO Display)
---
--- be run the IO and get rendered (if the frontend allows it) in the pretty form.
-instance IHaskellDisplay a => IHaskellDisplay (IO a) where
-  display = (display =<<)
-
-instance IHaskellDisplay Display where
-  display = return
-
-instance IHaskellDisplay DisplayData where
-  display disp = return $ Display [disp]
-
-instance IHaskellDisplay a => IHaskellDisplay [a] where
-  display disps = do
-    displays <- mapM display disps
-    return $ ManyDisplay displays
 
 -- | Encode many displays into a single one. All will be output.
 many :: [Display] -> Display

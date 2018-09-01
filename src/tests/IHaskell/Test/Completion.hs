@@ -1,4 +1,9 @@
 {-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
+{-# LANGUAGE CPP #-}
+
+-- Shelly's types are kinda borked.
+{-# OPTIONS_GHC -Wno-type-defaults #-}
+
 module IHaskell.Test.Completion (testCompletions) where
 
 import           Prelude
@@ -196,11 +201,11 @@ inDirectory dirs files action = shelly $ withTmpDir $ \dirPath -> do
   where
     cdEvent path = liftIO $ setCurrentDirectory path
     wrap :: String -> Interpreter a -> Interpreter a
-    wrap path action = do
+    wrap path actn = do
       initCompleter
       pwd <- IHaskell.Eval.Evaluate.liftIO getCurrentDirectory
       cdEvent path   -- change to the temporary directory
-      out <- action  -- run action
+      out <- actn  -- run action
       cdEvent pwd    -- change back to the original directory
       return out
 
@@ -212,4 +217,5 @@ withHsDirectory = inDirectory [p "" </> p "dir", p "dir" </> p "dir1"]
                     , p "dir" </> p "file2.lhs"
                     ]
   where
+    p :: T.Text -> T.Text
     p = id
