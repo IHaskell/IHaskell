@@ -31,15 +31,14 @@ import Bag
 import ErrUtils hiding (ErrMsg)
 import FastString
 #if MIN_VERSION_ghc(8,4,0)
-import GHC hiding (Located, Parsed)
+import GHC hiding (Located, Parsed, parser)
 #else
-import GHC hiding (Located)
+import GHC hiding (Located, parser)
 #endif
-import Lexer
+import Lexer hiding (buffer)
 import OrdList
-import Outputable hiding ((<>))
-import SrcLoc hiding (Located)
-import StringBuffer
+import qualified SrcLoc as SrcLoc
+import StringBuffer hiding (len)
 
 import qualified Language.Haskell.GHC.HappyParser as Parse
 
@@ -74,12 +73,48 @@ data Located a = Located {
 data Parser a = Parser (P a)
 
 -- Our parsers.
-parserStatement      = Parser Parse.fullStatement
-parserImport         = Parser Parse.fullImport
-parserDeclaration    = Parser Parse.fullDeclaration
-parserExpression     = Parser Parse.fullExpression
-parserTypeSignature  = Parser Parse.fullTypeSignature
-parserModule         = Parser Parse.fullModule
+#if MIN_VERSION_ghc(8,4,0)
+parserStatement :: Parser (Maybe (LStmt GhcPs (LHsExpr GhcPs)))
+#else
+parserStatement :: Parser (Maybe (LStmt RdrName (LHsExpr RdrName)))
+#endif
+parserStatement = Parser Parse.fullStatement
+
+#if MIN_VERSION_ghc(8,4,0)
+parserImport :: Parser (LImportDecl GhcPs)
+#else
+parserImport :: Parser (LImportDecl RdrName)
+#endif
+parserImport = Parser Parse.fullImport
+
+#if MIN_VERSION_ghc(8,4,0)
+parserDeclaration :: Parser (OrdList (LHsDecl GhcPs))
+#else
+parserDeclaration :: Parser (OrdList (LHsDecl RdrName))
+#endif
+parserDeclaration = Parser Parse.fullDeclaration
+
+#if MIN_VERSION_ghc(8,4,0)
+parserExpression :: Parser (LHsExpr GhcPs)
+#else
+parserExpression :: Parser (LHsExpr RdrName)
+#endif
+parserExpression = Parser Parse.fullExpression
+
+#if MIN_VERSION_ghc(8,4,0)
+parserTypeSignature :: Parser (SrcLoc.Located (OrdList (LHsDecl GhcPs)))
+#else
+parserTypeSignature :: Parser (SrcLoc.Located (OrdList (LHsDecl RdrName)))
+#endif
+parserTypeSignature = Parser Parse.fullTypeSignature
+
+#if MIN_VERSION_ghc(8,4,0)
+parserModule :: Parser (SrcLoc.Located (HsModule GhcPs))
+
+#else
+parserModule :: Parser (SrcLoc.Located (HsModule RdrName))
+#endif
+parserModule = Parser Parse.fullModule
 
 -- | Run a GHC parser on a string. Return success or failure with
 -- associated information for both.
@@ -87,7 +122,7 @@ runParser :: DynFlags -> Parser a -> String -> ParseOutput a
 runParser flags (Parser parser) str =
   -- Create an initial parser state.
   let filename = "<interactive>"
-      location = mkRealSrcLoc (mkFastString filename) 1 1
+      location = SrcLoc.mkRealSrcLoc (mkFastString filename) 1 1
       buffer = stringToStringBuffer str
       parseState = mkPState flags buffer location in
     -- Convert a GHC parser output into our own.
@@ -95,47 +130,28 @@ runParser flags (Parser parser) str =
   where
     toParseOut :: ParseResult a -> ParseOutput a
 #if MIN_VERSION_ghc(8,4,0)
-    toParseOut (PFailed _ span@(RealSrcSpan realSpan) err) =
+    toParseOut (PFailed _ spn@(RealSrcSpan realSpan) err) =
 #else
-    toParseOut (PFailed span@(RealSrcSpan realSpan) err) =
+    toParseOut (PFailed spn@(RealSrcSpan realSpan) err) =
 #endif
-      let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags span err
-          line = srcLocLine $ realSrcSpanStart realSpan
-          col = srcLocCol $ realSrcSpanStart realSpan
-        in Failure errMsg $ Loc line col
+      let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags spn err
+          ln = srcLocLine $ SrcLoc.realSrcSpanStart realSpan
+          col = srcLocCol $ SrcLoc.realSrcSpanStart realSpan
+        in Failure errMsg $ Loc ln col
 
 #if MIN_VERSION_ghc(8,4,0)
-    toParseOut (PFailed _ span err) =
+    toParseOut (PFailed _ spn err) =
 #else
-    toParseOut (PFailed span err) =
+    toParseOut (PFailed spn err) =
 #endif
-      let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags span err
+      let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags spn err
         in Failure errMsg $ Loc 0 0
 
-    toParseOut (POk parseState result) =
-      let parseEnd = realSrcSpanStart $ last_loc parseState
-          endLine = srcLocLine parseEnd
-          endCol = srcLocCol parseEnd
-          (before, after) = splitAtLoc endLine endCol str
-        in Parsed result
+    toParseOut (POk _parseState result) =
+      Parsed result
 
     -- Convert the bag of errors into an error string.
     printErrorBag bag = joinLines . map show $ bagToList bag
-
--- | Split a string at a given line and column. The column is included in
--- the second part of the split.
-splitAtLoc :: LineNumber -> ColumnNumber -> String -> (String, String)
-splitAtLoc line col string =
-  if line > length (lines string)
-  then (string, "")
-  else (before, after)
-  where
-    (beforeLines, afterLines) = splitAt line $ lines string
-    theLine = last beforeLines
-    (beforeChars, afterChars) = splitAt (col - 1) theLine
-
-    before = joinLines (init beforeLines) ++ '\n' : beforeChars
-    after = joinLines $ afterChars : afterLines
 
 -- Not the same as 'unlines', due to trailing \n
 joinLines :: [String] -> String
@@ -151,7 +167,7 @@ layoutChunks :: String -> [Located String]
 layoutChunks = joinQuasiquotes . go 1
   where
     go :: LineNumber -> String -> [Located String]
-    go line = filter (not . null . unloc) . map (fmap strip) . layoutLines line . lines
+    go ln = filter (not . null . unloc) . map (fmap strip) . layoutLines ln . lines
 
     -- drop spaces on left and right
     strip = dropRight . dropLeft
@@ -165,13 +181,13 @@ layoutChunks = joinQuasiquotes . go 1
     layoutLines _ [] = []
 
     -- Use the indent of the first line to find the end of the first block.
-    layoutLines lineIdx all@(firstLine:rest) =
+    layoutLines lineIdx xs@(firstLine:rest) =
       let firstIndent = indentLevel firstLine
-          blockEnded line = indentLevel line <= firstIndent in
+          blockEnded ln = indentLevel ln <= firstIndent in
         case findIndex blockEnded rest of
           -- If the first block doesn't end, return the whole string, since
           -- that just means the block takes up the entire string.
-          Nothing -> [Located lineIdx $ intercalate "\n" all]
+          Nothing -> [Located lineIdx $ intercalate "\n" xs]
 
           -- We found the end of the block. Split this bit out and recurse.
           Just idx ->
@@ -213,6 +229,7 @@ removeComments = removeOneLineComments . removeMultilineComments 0 0
       where
         dropLine = removeOneLineComments . dropWhile (/= '\n')
 
+    removeMultilineComments :: Int -> Int -> String -> String
     removeMultilineComments nesting pragmaNesting str =
       case str of
         -- Don't remove comments after cmd directives
@@ -253,8 +270,8 @@ removeComments = removeOneLineComments . removeMultilineComments 0 0
 
     -- Take a part of a string that ends in an unescaped quote.
     takeString str = case str of
-      escaped@('\\':'"':rest) -> escaped
-      '"':rest -> "\""
+      escaped@('\\':'"':_) -> escaped
+      '"':_ -> "\""
       x:xs -> x:takeString xs
       [] -> []
 

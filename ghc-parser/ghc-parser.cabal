@@ -18,6 +18,7 @@ cabal-version:       >=1.16
 
 library
   build-tools:         happy, cpphs
+  ghc-options:         -Wall
   exposed-modules:     Language.Haskell.GHC.Parser,
                        Language.Haskell.GHC.HappyParser
   -- other-modules:

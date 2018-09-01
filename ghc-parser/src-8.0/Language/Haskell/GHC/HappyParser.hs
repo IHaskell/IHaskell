@@ -17,7 +17,6 @@ import HsSyn
 import OrdList
 
 -- compiler/parser
-import RdrHsSyn
 import Lexer
 
 -- compiler/basicTypes
