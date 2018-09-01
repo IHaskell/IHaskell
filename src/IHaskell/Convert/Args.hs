@@ -35,11 +35,11 @@ fromJustConvertSpec convertSpec = convertSpec
   , convertLhsStyle = Identity $ fromMaybe (LT.pack <$> lhsStyleBird) (convertLhsStyle convertSpec)
   }
   where
-    toIpynb = fromMaybe (error "Error: direction for conversion unknown")
+    toIpynb = fromMaybe (error "fromJustConvertSpec: direction for conversion unknown")
                 (convertToIpynb convertSpec)
     (inputFile, outputFile) =
       case (convertInput convertSpec, convertOutput convertSpec) of
-        (Nothing, Nothing) -> error "Error: no files specified for conversion"
+        (Nothing, Nothing) -> error "fromJustConvertSpec: no files specified for conversion"
         (Just i, Nothing)
           | toIpynb -> (i, dropExtension i <.> "ipynb")
           | otherwise -> (i, dropExtension i <.> "lhs")
