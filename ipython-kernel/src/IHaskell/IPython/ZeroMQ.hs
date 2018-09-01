@@ -27,11 +27,10 @@ import qualified Data.ByteString.Lazy as LBS
 import           Data.Char
 import           Data.Monoid ((<>))
 import qualified Data.Text.Encoding as Text
-import           System.ZMQ4 as ZMQ4 hiding (stdin)
+import           System.ZMQ4 as ZMQ4
 import           Text.Read (readMaybe)
 
 import           IHaskell.IPython.Message.Parser
-import           IHaskell.IPython.Message.Writer ()
 import           IHaskell.IPython.Types
 
 -- | The channel interface to the ZeroMQ sockets. All communication is done via Messages, which are
@@ -39,7 +38,7 @@ import           IHaskell.IPython.Types
 -- should functionally serve as high-level sockets which speak Messages instead of ByteStrings.
 data ZeroMQInterface =
        Channels
-         { 
+         {
          -- | A channel populated with requests from the frontend.
          shellRequestChannel :: Chan Message
          -- | Writing to this channel causes a reply to be sent to the frontend.
@@ -90,16 +89,16 @@ serveProfile profile debug = do
 
   -- Create the context in a separate thread that never finishes. If withContext or withSocket
   -- complete, the context or socket become invalid.
-  forkIO $ withContext $ \context -> do
+  _ <- forkIO $ withContext $ \ctxt -> do
     -- Serve on all sockets.
-    forkIO $ serveSocket context Rep (hbPort profile) $ heartbeat channels
-    forkIO $ serveSocket context Router (controlPort profile) $ control debug channels
-    forkIO $ serveSocket context Router (shellPort profile) $ shell debug channels
+    _ <- forkIO $ serveSocket ctxt Rep (hbPort profile) $ heartbeat channels
+    _ <- forkIO $ serveSocket ctxt Router (controlPort profile) $ control debug channels
+    _ <- forkIO $ serveSocket ctxt Router (shellPort profile) $ shell debug channels
 
-    -- The context is reference counted in this thread only. Thus, the last serveSocket cannot be
-    -- asynchronous, because otherwise context would be garbage collectable - since it would only be
+    -- The ctxt is reference counted in this thread only. Thus, the last serveSocket cannot be
+    -- asynchronous, because otherwise ctxt would be garbage collectable - since it would only be
     -- used in other threads. Thus, keep the last serveSocket in this thread.
-    serveSocket context Pub (iopubPort profile) $ iopub debug channels
+    serveSocket ctxt Pub (iopubPort profile) $ iopub debug channels
 
   return channels
 
@@ -132,9 +131,9 @@ parsePort s = readMaybe num
     num = reverse (takeWhile isNumber (reverse s))
 
 bindLocalEphemeralPort :: Socket a -> IO Int
-bindLocalEphemeralPort socket = do
-  bind socket $ "tcp://127.0.0.1:*"
-  endpointString <- lastEndpoint socket
+bindLocalEphemeralPort sock = do
+  bind sock $ "tcp://127.0.0.1:*"
+  endpointString <- lastEndpoint sock
   case parsePort endpointString of
     Nothing ->
       fail $ "internalError: IHaskell.IPython.ZeroMQ.bindLocalEphemeralPort encountered a port index that could not be interpreted as an int."
@@ -152,19 +151,19 @@ withEphemeralPorts :: ByteString -- ^ HMAC encryption key
 withEphemeralPorts key debug callback = do
   channels <- newZeroMQInterface key
   -- Create the ZMQ4 context
-  withContext $ \context -> do
+  withContext $ \ctxt -> do
     -- Create the sockets to communicate with.
-    withSocket context Rep $ \heartbeatSocket -> do
-      withSocket context Router $ \controlportSocket -> do
-        withSocket context Router $ \shellportSocket -> do
-          withSocket context Pub $ \iopubSocket -> do
+    withSocket ctxt Rep $ \heartbeatSocket -> do
+      withSocket ctxt Router $ \controlportSocket -> do
+        withSocket ctxt Router $ \shellportSocket -> do
+          withSocket ctxt Pub $ \iopubSocket -> do
             -- Bind each socket to a local port, getting the port chosen.
-            hbPort <- bindLocalEphemeralPort heartbeatSocket
-            controlPort <- bindLocalEphemeralPort controlportSocket
-            shellPort <- bindLocalEphemeralPort shellportSocket
-            iopubPort <- bindLocalEphemeralPort iopubSocket
+            hbPt <- bindLocalEphemeralPort heartbeatSocket
+            controlPt <- bindLocalEphemeralPort controlportSocket
+            shellPt <- bindLocalEphemeralPort shellportSocket
+            iopubPt <- bindLocalEphemeralPort iopubSocket
             -- Create object to store ephemeral ports
-            let ports = ZeroMQEphemeralPorts { ephHbPort = hbPort, ephControlPort = controlPort, ephShellPort = shellPort, ephIOPubPort = iopubPort, ephSignatureKey = key }
+            let ports = ZeroMQEphemeralPorts hbPt controlPt shellPt iopubPt key
             -- Launch actions to listen to communicate between channels and cockets.
             _ <- forkIO $ forever $ heartbeat channels heartbeatSocket
             _ <- forkIO $ forever $ control debug channels controlportSocket
@@ -180,44 +179,44 @@ serveStdin profile = do
 
   -- Create the context in a separate thread that never finishes. If withContext or withSocket
   -- complete, the context or socket become invalid.
-  forkIO $ withContext $ \context ->
+  _ <- forkIO $ withContext $ \ctxt ->
     -- Serve on all sockets.
-    serveSocket context Router (stdinPort profile) $ \socket -> do
+    serveSocket ctxt Router (stdinPort profile) $ \sock -> do
       -- Read the request from the interface channel and send it.
-      readChan reqChannel >>= sendMessage False (signatureKey profile) socket
+      readChan reqChannel >>= sendMessage False (signatureKey profile) sock
 
       -- Receive a response and write it to the interface channel.
-      receiveMessage False socket >>= writeChan repChannel
+      receiveMessage False sock >>= writeChan repChannel
 
   return $ StdinChannel reqChannel repChannel
 
--- | Serve on a given socket in a separate thread. Bind the socket in the | given context and then
--- loop the provided action, which should listen | on the socket and respond to any events.
+-- | Serve on a given sock in a separate thread. Bind the sock in the | given context and then
+-- loop the provided action, which should listen | on the sock and respond to any events.
 serveSocket :: SocketType a => Context -> a -> Port -> (Socket a -> IO b) -> IO ()
-serveSocket context socketType port action = void $
-  withSocket context socketType $ \socket -> do
-    bind socket $ "tcp://127.0.0.1:" ++ show port
-    forever $ action socket
+serveSocket ctxt socketType port action = void $
+  withSocket ctxt socketType $ \sock -> do
+    bind sock $ "tcp://127.0.0.1:" ++ show port
+    forever $ action sock
 
 -- | Listener on the heartbeat port. Echoes back any data it was sent.
 heartbeat :: ZeroMQInterface -> Socket Rep -> IO ()
-heartbeat _ socket = do
+heartbeat _ sock = do
   -- Read some data.
-  request <- receive socket
+  request <- receive sock
 
   -- Send it back.
-  send socket [] request
+  send sock [] request
 
 -- | Listener on the shell port. Reads messages and writes them to | the shell request channel. For
 -- each message, reads a response from the | shell reply channel of the interface and sends it back
 -- to the frontend.
 shell :: Bool -> ZeroMQInterface -> Socket Router -> IO ()
-shell debug channels socket = do
+shell debug channels sock = do
   -- Receive a message and write it to the interface channel.
-  receiveMessage debug socket >>= writeChan requestChannel
+  receiveMessage debug sock >>= writeChan requestChannel
 
   -- Read the reply from the interface channel and send it.
-  readChan replyChannel >>= sendMessage debug (hmacKey channels) socket
+  readChan replyChannel >>= sendMessage debug (hmacKey channels) sock
 
   where
     requestChannel = shellRequestChannel channels
@@ -227,12 +226,12 @@ shell debug channels socket = do
 -- each message, reads a response from the | shell reply channel of the interface and sends it back
 -- to the frontend.
 control :: Bool -> ZeroMQInterface -> Socket Router -> IO ()
-control debug channels socket = do
+control debug channels sock = do
   -- Receive a message and write it to the interface channel.
-  receiveMessage debug socket >>= writeChan requestChannel
+  receiveMessage debug sock >>= writeChan requestChannel
 
   -- Read the reply from the interface channel and send it.
-  readChan replyChannel >>= sendMessage debug (hmacKey channels) socket
+  readChan replyChannel >>= sendMessage debug (hmacKey channels) sock
 
   where
     requestChannel = controlRequestChannel channels
@@ -241,33 +240,33 @@ control debug channels socket = do
 -- | Send messages via the iopub channel. | This reads messages from the ZeroMQ iopub interface
 -- channel | and then writes the messages to the socket.
 iopub :: Bool -> ZeroMQInterface -> Socket Pub -> IO ()
-iopub debug channels socket =
-  readChan (iopubChannel channels) >>= sendMessage debug (hmacKey channels) socket
+iopub debug channels sock =
+  readChan (iopubChannel channels) >>= sendMessage debug (hmacKey channels) sock
 
 -- | Attempt to send a message along the socket, returning true if successful.
 trySendMessage :: Sender a => String -> Bool -> ByteString -> Socket a -> Message -> IO Bool
-trySendMessage nm debug hmacKey socket message = do
+trySendMessage _ debug hmackey sock msg = do
   let zmqErrorHandler :: ZMQError -> IO Bool
       zmqErrorHandler e
         -- Ignore errors if we cannot send. We may want to forward this to the thread that tried put the
         -- message in the Chan initially.
         | errno e == 38 = return False
         | otherwise = throwIO e
-  (sendMessage debug hmacKey socket message >> return True) `catch` zmqErrorHandler
+  (sendMessage debug hmackey sock msg >> return True) `catch` zmqErrorHandler
 
 -- | Send messages via the iopub channel. This reads messages from the ZeroMQ iopub interface
 -- channel and then writes the messages to the socket. This is a checked implementation which will
 -- stop if the socket is closed.
 checkedIOpub :: Bool -> ZeroMQInterface -> Socket Pub -> IO ()
-checkedIOpub debug channels socket = do
+checkedIOpub debug channels sock = do
   msg <- readChan (iopubChannel channels)
-  cont <- trySendMessage "io" debug (hmacKey channels) socket msg
+  cont <- trySendMessage "io" debug (hmacKey channels) sock msg
   when cont $
-    checkedIOpub debug channels socket
+    checkedIOpub debug channels sock
 
 -- | Receive and parse a message from a socket.
 receiveMessage :: Receiver a => Bool -> Socket a -> IO Message
-receiveMessage debug socket = do
+receiveMessage debug sock = do
   -- Read all identifiers until the identifier/message delimiter.
   idents <- readUntil "<IDS|MSG>"
 
@@ -285,12 +284,11 @@ receiveMessage debug socket = do
     putStr "Content: "
     Char.putStrLn content
 
-  let message = parseMessage idents headerData parentHeader metadata content
-  return message
+  return $ parseMessage idents headerData parentHeader metadata content
 
   where
     -- Receive the next piece of data from the socket.
-    next = receive socket
+    next = receive sock
 
     -- Read data from the socket until we hit an ending string. Return all data as a list, which does
     -- not include the ending string.
@@ -306,10 +304,10 @@ receiveMessage debug socket = do
 -- socket. Sign it using HMAC with SHA-256 using the provided key.
 sendMessage :: Sender a => Bool -> ByteString -> Socket a -> Message -> IO ()
 sendMessage _ _ _ SendNothing = return ()
-sendMessage debug hmacKey socket message = do
+sendMessage debug hmackey sock msg = do
   when debug $ do
     putStr "Message: "
-    print message
+    print msg
     putStr "Sent: "
     print content
 
@@ -325,8 +323,8 @@ sendMessage debug hmacKey socket message = do
   sendLast content
 
   where
-    sendPiece = send socket [SendMore]
-    sendLast = send socket []
+    sendPiece = send sock [SendMore]
+    sendLast = send sock []
 
     -- Encode to a strict bytestring.
     encodeStrict :: ToJSON a => a -> ByteString
@@ -338,12 +336,12 @@ sendMessage debug hmacKey socket message = do
 
     -- Compute the HMAC SHA-256 signature of a bytestring message.
     hmac :: ByteString -> ByteString
-    hmac = Char.pack . show . (HMAC.hmacGetDigest :: HMAC.HMAC SHA256 -> Hash.Digest SHA256) . HMAC.hmac hmacKey
+    hmac = Char.pack . show . (HMAC.hmacGetDigest :: HMAC.HMAC SHA256 -> Hash.Digest SHA256) . HMAC.hmac hmackey
 
     -- Pieces of the message.
-    head = header message
-    parentHeaderStr = maybe "{}" encodeStrict $ parentHeader head
-    idents = identifiers head
+    hdr = header msg
+    parentHeaderStr = maybe "{}" encodeStrict $ mhParentHeader hdr
+    idents = mhIdentifiers hdr
     metadata = "{}"
-    content = encodeStrict message
-    headStr = encodeStrict head
+    content = encodeStrict msg
+    headStr = encodeStrict hdr

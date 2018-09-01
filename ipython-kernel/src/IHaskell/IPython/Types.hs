@@ -6,8 +6,8 @@ module IHaskell.IPython.Types (
     -- * IPython kernel profile
     Profile(..),
     Transport(..),
-    Port(..),
-    IP(..),
+    Port,
+    IP,
 
     -- * IPython kernelspecs
     KernelSpec(..),
@@ -15,12 +15,12 @@ module IHaskell.IPython.Types (
     -- * IPython messaging protocol
     Message(..),
     MessageHeader(..),
-    Username(..),
-    Metadata(..),
+    Username,
+    Metadata,
     MessageType(..),
     CodeReview(..),
-    Width(..),
-    Height(..),
+    Width,
+    Height,
     StreamType(..),
     ExecutionState(..),
     ExecuteReplyStatus(..),
@@ -38,11 +38,15 @@ module IHaskell.IPython.Types (
 
 import           Control.Applicative ((<$>), (<*>))
 import           Data.Aeson
+import           Data.Aeson.Types (typeMismatch)
 import           Data.ByteString (ByteString)
 import           Data.List (find)
 import           Data.Map (Map)
+import qualified Data.Map as Map
+import           Data.Maybe (fromMaybe)
 import           Data.Serialize
-import           Data.Text (Text)
+import           Data.Serialize.Text ()
+import           Data.Text (Text, pack)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import           Data.Typeable
@@ -117,7 +121,7 @@ instance ToJSON Transport where
 -------------------- IPython Kernelspec Types ----------------------
 data KernelSpec =
        KernelSpec
-         { 
+         {
          -- | Name shown to users to describe this kernel (e.g. "Haskell")
          kernelDisplayName :: String
          -- | Name for the kernel; unique kernel identifier (e.g. "haskell")
@@ -140,13 +144,13 @@ instance ToJSON KernelSpec where
 -- | A message header with some metadata.
 data MessageHeader =
        MessageHeader
-         { identifiers :: [ByteString]          -- ^ The identifiers sent with the message.
-         , parentHeader :: Maybe MessageHeader  -- ^ The parent header, if present.
-         , metadata :: Metadata                 -- ^ A dict of metadata.
-         , messageId :: UUID                    -- ^ A unique message UUID.
-         , sessionId :: UUID                    -- ^ A unique session UUID.
-         , username :: Username                 -- ^ The user who sent this message.
-         , msgType :: MessageType               -- ^ The message type.
+         { mhIdentifiers :: [ByteString]          -- ^ The identifiers sent with the message.
+         , mhParentHeader :: Maybe MessageHeader  -- ^ The parent header, if present.
+         , mhMetadata :: Metadata                 -- ^ A dict of metadata.
+         , mhMessageId :: UUID                    -- ^ A unique message UUID.
+         , mhSessionId :: UUID                    -- ^ A unique session UUID.
+         , mhUsername :: Username                 -- ^ The user who sent this message.
+         , mhMsgType :: MessageType               -- ^ The message type.
          }
   deriving (Show, Read)
 
@@ -154,11 +158,11 @@ data MessageHeader =
 -- all the record fields.
 instance ToJSON MessageHeader where
   toJSON header = object
-                    [ "msg_id" .= messageId header
-                    , "session" .= sessionId header
-                    , "username" .= username header
+                    [ "msg_id" .= mhMessageId header
+                    , "session" .= mhSessionId header
+                    , "username" .= mhUsername header
                     , "version" .= ("5.0" :: String)
-                    , "msg_type" .= showMessageType (msgType header)
+                    , "msg_type" .= showMessageType (mhMsgType header)
                     ]
 
 -- | A username for the source of a message.
@@ -279,6 +283,15 @@ data LanguageInfo =
          , languagePygmentsLexer :: String
          }
   deriving (Show, Eq)
+
+instance ToJSON LanguageInfo where
+  toJSON info = object
+                  [ "name" .= languageName info
+                  , "version" .= languageVersion info
+                  , "file_extension" .= languageFileExtension info
+                  , "codemirror_mode" .= languageCodeMirrorMode info
+                  , "pygments_lexer" .= languagePygmentsLexer info
+                  ]
 
 data CodeReview = CodeComplete
                 | CodeIncomplete String -- ^ String to be used to indent next line of input
@@ -472,6 +485,146 @@ data Message =
              | SendNothing -- Dummy message; nothing is sent.
   deriving Show
 
+-- Convert message bodies into JSON.
+instance ToJSON Message where
+  toJSON rep@KernelInfoReply{} =
+    object
+      [ "protocol_version" .= protocolVersion rep
+      , "banner" .= banner rep
+      , "implementation" .= implementation rep
+      , "implementation_version" .= implementationVersion rep
+      , "language_info" .= languageInfo rep
+      , "status" .= show (status rep)
+      ]
+
+  toJSON CommInfoReply
+    { header = header
+    , commInfo = commInfo
+    } =
+    object
+      [ "comms" .= Map.map (\comm -> object ["target_name" .= comm]) commInfo
+      , "status" .= string "ok"
+      ]
+
+  toJSON ExecuteRequest
+    { getCode = code
+    , getSilent = silent
+    , getStoreHistory = storeHistory
+    , getAllowStdin = allowStdin
+    , getUserExpressions = userExpressions
+    } =
+    object
+      [ "code" .= code
+      , "silent" .= silent
+      , "store_history" .= storeHistory
+      , "allow_stdin" .= allowStdin
+      , "user_expressions" .= userExpressions
+      ]
+
+  toJSON ExecuteReply { status = status, executionCounter = counter, pagerOutput = pager } =
+    object
+      [ "status" .= show status
+      , "execution_count" .= counter
+      , "payload" .=
+        if null pager
+          then []
+          else mkPayload pager
+      , "user_expressions" .= emptyMap
+      ]
+    where
+      mkPayload o = [ object
+                        [ "source" .= string "page"
+                        , "start" .= Number 0
+                        , "data" .= object (map displayDataToJson o)
+                        ]
+                    ]
+  toJSON PublishStatus { executionState = executionState } =
+    object ["execution_state" .= executionState]
+  toJSON PublishStream { streamType = streamType, streamContent = content } =
+    object ["data" .= content, "name" .= streamType]
+  toJSON PublishDisplayData { displayData = datas } =
+    object
+      ["metadata" .= object [], "data" .= object (map displayDataToJson datas)]
+
+  toJSON PublishOutput { executionCount = execCount, reprText = reprText } =
+    object
+      [ "data" .= object ["text/plain" .= reprText]
+      , "execution_count" .= execCount
+      , "metadata" .= object []
+      ]
+  toJSON PublishInput { executionCount = execCount, inCode = code } =
+    object ["execution_count" .= execCount, "code" .= code]
+  toJSON (CompleteReply _ matches start end metadata status) =
+    object
+      [ "matches" .= matches
+      , "cursor_start" .= start
+      , "cursor_end" .= end
+      , "metadata" .= metadata
+      , "status" .= if status
+                      then string "ok"
+                      else "error"
+      ]
+  toJSON i@InspectReply{} =
+    object
+      [ "status" .= if inspectStatus i
+                      then string "ok"
+                      else "error"
+      , "data" .= object (map displayDataToJson . inspectData $ i)
+      , "metadata" .= object []
+      , "found" .= inspectStatus i
+      ]
+
+  toJSON ShutdownReply { restartPending = restart } =
+    object ["restart" .= restart
+           , "status" .= string "ok"
+           ]
+
+  toJSON ClearOutput { wait = wait } =
+    object ["wait" .= wait]
+
+  toJSON RequestInput { inputPrompt = prompt } =
+    object ["prompt" .= prompt]
+
+  toJSON req@CommOpen{} =
+    object
+      [ "comm_id" .= commUuid req
+      , "target_name" .= commTargetName req
+      , "target_module" .= commTargetModule req
+      , "data" .= commData req
+      ]
+
+  toJSON req@CommData{} =
+    object ["comm_id" .= commUuid req, "data" .= commData req]
+
+  toJSON req@CommClose{} =
+    object ["comm_id" .= commUuid req, "data" .= commData req]
+
+  toJSON req@HistoryReply{} =
+    object ["history" .= map tuplify (historyReply req)
+           , "status" .= string "ok"
+           ]
+    where
+      tuplify (HistoryReplyElement sess linum res) = (sess, linum, case res of
+                                                                     Left inp         -> toJSON inp
+                                                                     Right (inp, out) -> toJSON out)
+
+  toJSON req@IsCompleteReply{} =
+    object pairs
+    where
+      pairs =
+        case reviewResult req of
+          CodeComplete       -> status "complete"
+          CodeIncomplete ind -> status "incomplete" ++ indent ind
+          CodeInvalid        -> status "invalid"
+          CodeUnknown        -> status "unknown"
+      status x = ["status" .= pack x]
+      indent x = ["indent" .= pack x]
+
+  toJSON body = error $ "Do not know how to convert to JSON for message " ++ show body
+
+
+
+
 -- | Ways in which the frontend can request history. TODO: Implement fields as described in
 -- messaging spec.
 data HistoryAccessType = HistoryRange
@@ -497,6 +650,7 @@ instance FromJSON ExecuteReplyStatus where
   parseJSON (String "ok") = return Ok
   parseJSON (String "error") = return Err
   parseJSON (String "abort") = return Abort
+  parseJSON invalid = typeMismatch "ExecuteReplyStatus" invalid
 
 instance Show ExecuteReplyStatus where
   show Ok = "ok"
@@ -513,6 +667,13 @@ instance FromJSON ExecutionState where
   parseJSON (String "busy") = return Busy
   parseJSON (String "idle") = return Idle
   parseJSON (String "starting") = return Starting
+  parseJSON invalid = typeMismatch "ExecutionState" invalid
+
+-- | Print an execution state as "busy", "idle", or "starting".
+instance ToJSON ExecutionState where
+  toJSON Busy = String "busy"
+  toJSON Idle = String "idle"
+  toJSON Starting = String "starting"
 
 -- | Input and output streams.
 data StreamType = Stdin
@@ -524,6 +685,13 @@ instance FromJSON StreamType where
   parseJSON (String "stdin") = return Stdin
   parseJSON (String "stdout") = return Stdout
   parseJSON (String "stderr") = return Stderr
+  parseJSON invalid = typeMismatch "StreamType" invalid
+
+-- | Print a stream as "stdin" or "stdout" strings.
+instance ToJSON StreamType where
+  toJSON Stdin = String "stdin"
+  toJSON Stdout = String "stdout"
+  toJSON Stderr = String "stderr"
 
 -- | Get the reply message type for a request message type.
 replyType :: MessageType -> Maybe MessageType
@@ -546,11 +714,6 @@ data DisplayData = DisplayData MimeType Text
 -- because of the way the evaluator is structured. See how `displayExpr` is computed.
 instance Show DisplayData where
   show _ = "DisplayData"
-
--- Allow DisplayData serialization
-instance Serialize Text where
-  put str = put (Text.encodeUtf8 str)
-  get = Text.decodeUtf8 <$> get
 
 instance Serialize DisplayData
 
@@ -583,6 +746,7 @@ extractPlain disps =
   case find isPlain disps of
     Nothing                              -> ""
     Just (DisplayData PlainText bytestr) -> Text.unpack bytestr
+    Just _                               -> ""
   where
     isPlain (DisplayData mime _) = mime == PlainText
 
@@ -617,3 +781,21 @@ instance Read MimeType where
   readsPrec _ "application/vnd.vega.v2+json" = [(MimeVega, "")]
   readsPrec _ "application/vnd.vegalite.v1+json" = [(MimeVegalite, "")]
   readsPrec _ "application/vdom.v1+json" = [(MimeVdom, "")]
+  readsPrec _ _ = []
+
+-- | Convert a MIME type and value into a JSON dictionary pair.
+displayDataToJson :: DisplayData -> (Text, Value)
+displayDataToJson (DisplayData MimeJson dataStr) =
+    pack (show MimeJson) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
+displayDataToJson (DisplayData MimeVegalite dataStr) =
+    pack (show MimeVegalite) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
+displayDataToJson (DisplayData MimeVega dataStr) =
+    pack (show MimeVega) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
+displayDataToJson (DisplayData mimeType dataStr) =
+  pack (show mimeType) .= String dataStr
+
+string :: String -> String
+string = id
+
+emptyMap :: Map String String
+emptyMap = mempty

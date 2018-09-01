@@ -8,15 +8,14 @@
 -- the low-level 0MQ interface.
 module IHaskell.IPython.Message.Parser (parseMessage) where
 
-import           Control.Applicative ((<|>), (<$>), (<*>))
-import           Data.Aeson ((.:), (.:?), (.!=), decode, Result(..), Object, Value(..))
-import           Data.Aeson.Types (parse, parseEither)
+import           Control.Applicative ((<$>), (<*>))
+import           Data.Aeson ((.:), (.:?), (.!=), decode, FromJSON, Result(..), Object, Value(..))
+import           Data.Aeson.Types (Parser, parse, parseEither)
 import           Data.ByteString hiding (unpack)
 import qualified Data.ByteString.Lazy as Lazy
 import           Data.HashMap.Strict as HM
 import           Data.Map (Map)
 import           Data.Maybe (fromMaybe)
-import           Data.Text (Text)
 import           Data.Text (Text, unpack)
 import           Debug.Trace
 import           IHaskell.IPython.Types
@@ -32,7 +31,7 @@ parseMessage :: [ByteString] -- ^ The list of identifiers sent with the message.
              -> Message      -- ^ A parsed message.
 parseMessage idents headerData parentHeader metadata content =
   let header = parseHeader idents headerData parentHeader metadata
-      messageType = msgType header
+      messageType = mhMsgType header
       messageWithoutHeader = parser messageType $ Lazy.fromStrict content
   in messageWithoutHeader { header = header }
 
@@ -43,15 +42,7 @@ parseHeader :: [ByteString]  -- ^ The list of identifiers.
             -> ByteString    -- ^ The metadata, or "{}" for an empty map.
             -> MessageHeader -- The resulting message header.
 parseHeader idents headerData parentHeader metadata =
-  MessageHeader
-    { identifiers = idents
-    , parentHeader = parentResult
-    , metadata = metadataMap
-    , messageId = messageUUID
-    , sessionId = sessionUUID
-    , username = username
-    , msgType = messageType
-    }
+  MessageHeader idents parentResult metadataMap messageUUID sessionUUID username messageType
   where
     -- Decode the header data and the parent header data into JSON objects. If the parent header data is
     -- absent, just have Nothing instead.
@@ -180,6 +171,7 @@ displayDataParser = requestParser $ \obj -> do
   let displayDatas = makeDisplayDatas dataDict
   return $ PublishDisplayData noHeader displayDatas
 
+requestParser :: FromJSON a => (a -> Parser Message) -> LByteString -> Message
 requestParser parser content =
   case parseEither parser decoded of
     Right parsed -> parsed
@@ -218,6 +210,7 @@ inputMessageParser = requestParser $ \obj -> do
   executionCount <- obj .: "execution_count"
   return $ Input noHeader code executionCount
 
+getDisplayDatas :: Maybe Object -> [DisplayData]
 getDisplayDatas Nothing = []
 getDisplayDatas (Just dataDict) = makeDisplayDatas dataDict
 

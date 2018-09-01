@@ -23,7 +23,7 @@
 -- logos, help text, and so forth.
 module IHaskell.IPython.EasyKernel (easyKernel, installKernelspec, KernelConfig(..)) where
 
-import           Data.Aeson (decode, encode)
+import           Data.Aeson (decode, encode, toJSON)
 
 import qualified Data.ByteString.Lazy as BL
 
@@ -32,7 +32,7 @@ import           System.Process (rawSystem)
 
 import           Control.Concurrent (MVar, readChan, writeChan, newMVar, readMVar, modifyMVar_)
 import           Control.Monad.IO.Class (MonadIO(..))
-import           Control.Monad (forever, when, unless, void)
+import           Control.Monad (forever, when, void)
 
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
@@ -40,10 +40,8 @@ import qualified Data.Text as T
 
 import           IHaskell.IPython.Kernel
 import           IHaskell.IPython.Message.UUID as UUID
-import           IHaskell.IPython.Types
 
-import           System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist,
-                                   getHomeDirectory, getTemporaryDirectory)
+import           System.Directory (createDirectoryIfMissing, getTemporaryDirectory)
 import           System.FilePath ((</>))
 import           System.Exit (exitSuccess)
 import           System.IO (openFile, IOMode(ReadMode))
@@ -53,7 +51,7 @@ import           System.IO (openFile, IOMode(ReadMode))
 -- running cells, and the type of final results of cells, respectively.
 data KernelConfig m output result =
        KernelConfig
-         { 
+         {
          -- | Info on the language of the kernel.
          kernelLanguageInfo :: LanguageInfo
          -- | Write all the files into the kernel directory, including `kernel.js`, `logo-64x64.svg`, and any
@@ -122,19 +120,12 @@ createReplyHeader :: MonadIO m => MessageHeader -> m MessageHeader
 createReplyHeader parent = do
   -- Generate a new message UUID.
   newMessageId <- liftIO UUID.random
-  let repType = fromMaybe err (replyType $ msgType parent)
-      err = error $ "No reply for message " ++ show (msgType parent)
+  let repType = fromMaybe err (replyType $ mhMsgType parent)
+      err = error $ "No reply for message " ++ show (mhMsgType parent)
 
-  return
-    MessageHeader
-      { identifiers = identifiers parent
-      , parentHeader = Just parent
-      , metadata = Map.fromList []
-      , messageId = newMessageId
-      , sessionId = sessionId parent
-      , username = username parent
-      , msgType = repType
-      }
+  return $ MessageHeader (mhIdentifiers parent) (Just parent) (Map.fromList [])
+            newMessageId (mhSessionId parent) (mhUsername parent) repType
+
 
 -- | Execute an IPython kernel for a config. Your 'main' action should call this as the last thing
 -- it does.
@@ -145,16 +136,14 @@ easyKernel :: MonadIO m
            -> m ()
 easyKernel profileFile config = do
   prof <- liftIO $ getProfile profileFile
-  zmq@(Channels shellReqChan shellRepChan ctrlReqChan ctrlRepChan iopubChan _) <- liftIO $ serveProfile
-                                                                                             prof
-                                                                                             False
+  zmq <- liftIO $ serveProfile prof False
   execCount <- liftIO $ newMVar 0
   forever $ do
-    req <- liftIO $ readChan shellReqChan
+    req <- liftIO $ readChan (shellRequestChannel zmq)
     repHeader <- createReplyHeader (header req)
     when (debug config) . liftIO $ print req
     reply <- replyTo config execCount zmq req repHeader
-    liftIO $ writeChan shellRepChan reply
+    liftIO $ writeChan (shellRequestChannel zmq) reply
 
 replyTo :: MonadIO m
         => KernelConfig m output result
@@ -180,17 +169,17 @@ replyTo config _ interface KernelInfoRequest{} replyHeader = do
       , status = Ok
       }
 
-replyTo config _ _ CommInfoRequest{} replyHeader =
+replyTo _ _ _ CommInfoRequest{} replyHeader =
   return
     CommInfoReply
       { header = replyHeader
       , commInfo = Map.empty }
 
-replyTo config _ interface ShutdownRequest { restartPending = pending } replyHeader = do
+replyTo _ _ interface ShutdownRequest { restartPending = pending } replyHeader = do
   liftIO $ writeChan (shellReplyChannel interface) $ ShutdownReply replyHeader pending
   liftIO exitSuccess
 
-replyTo config execCount interface req@ExecuteRequest { getCode = code } replyHeader = do
+replyTo config execCount interface req@ExecuteRequest{} replyHeader = do
   let send = writeChan (iopubChannel interface)
 
   busyHeader <- dupHeader replyHeader StatusMessage
@@ -205,7 +194,7 @@ replyTo config execCount interface req@ExecuteRequest { getCode = code } replyHe
                                                       send $ PublishDisplayData
                                                                outputHeader
                                                                (displayOutput config x)
-                                  in run config code clearOutput sendOutput
+                                  in run config (getCode req) clearOutput sendOutput
   liftIO . send $ PublishDisplayData outputHeader (displayResult config res)
 
 
@@ -254,4 +243,4 @@ dupHeader :: MonadIO m => MessageHeader -> MessageType -> m MessageHeader
 dupHeader hdr mtype =
   do
     uuid <- liftIO UUID.random
-    return hdr { messageId = uuid, msgType = mtype }
+    return hdr { mhMessageId = uuid, mhMsgType = mtype }

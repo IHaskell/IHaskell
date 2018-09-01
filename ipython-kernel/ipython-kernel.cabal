@@ -1,5 +1,5 @@
 name:                ipython-kernel
-version:             0.9.1.0
+version:             0.10.0.0
 synopsis:            A library for creating kernels for IPython frontends
 
 description:         ipython-kernel is a library for communicating with frontends for the interactive IPython framework. It is used extensively in IHaskell, the interactive Haskell environment.
@@ -24,10 +24,11 @@ flag examples
 
 
 library
+  ghc-options:         -Wall
+
   exposed-modules: IHaskell.IPython.Kernel
                    IHaskell.IPython.Types
                    IHaskell.IPython.ZeroMQ
-                   IHaskell.IPython.Message.Writer
                    IHaskell.IPython.Message.Parser
                    IHaskell.IPython.Message.UUID
                    IHaskell.IPython.EasyKernel
@@ -38,6 +39,7 @@ library
                        aeson           ,
                        bytestring      ,
                        cereal          ,
+                       cereal-text     ,
                        containers      ,
                        cryptonite      ,
                        directory       ,
