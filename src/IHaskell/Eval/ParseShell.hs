@@ -5,11 +5,6 @@
 module IHaskell.Eval.ParseShell (parseShell) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
 import           Text.ParserCombinators.Parsec
 
@@ -28,6 +23,7 @@ manyTillEnd p end = scan
              xs <- scan
              return $ x : xs
 
+manyTillEnd1 :: Parser a -> Parser [a] -> Parser [a]
 manyTillEnd1 p end = do
   x <- p
   xs <- manyTillEnd p end
@@ -36,18 +32,21 @@ manyTillEnd1 p end = do
 unescapedChar :: Parser Char -> Parser String
 unescapedChar p = try $ do
   x <- noneOf "\\"
-  lookAhead p
+  _ <- lookAhead p
   return [x]
 
+quotedString :: Parser [Char]
 quotedString = do
-  quote <?> "expected starting quote"
+  _ <- quote <?> "expected starting quote"
   (manyTillEnd anyChar (unescapedChar quote) <* quote) <?> "unexpected in quoted String "
 
+unquotedString :: Parser [Char]
 unquotedString = manyTillEnd1 anyChar end
   where
     end = unescapedChar space
           <|> (lookAhead eol >> return [])
 
+word :: Parser [Char]
 word = quotedString <|> unquotedString <?> "word"
 
 separator :: Parser String
@@ -57,11 +56,11 @@ separator = many1 space <?> "separator"
 shellWords :: Parser [String]
 shellWords = try (eof *> return []) <|> do
                x <- word
-               rest1 <- lookAhead (many anyToken)
-               ss <- separator
-               rest2 <- lookAhead (many anyToken)
+               _rest1 <- lookAhead (many anyToken)
+               _ss <- separator
+               _rest2 <- lookAhead (many anyToken)
                xs <- shellWords
                return $ x : xs
 
 parseShell :: String -> Either ParseError [String]
-parseShell string = parse shellWords "shell" (string ++ "\n")
+parseShell str = parse shellWords "shell" (str ++ "\n")

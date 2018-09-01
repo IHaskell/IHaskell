@@ -7,17 +7,12 @@ module Main (main) where
 
 import           IHaskellPrelude
 import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
 -- Standard library imports.
-import           Control.Concurrent (threadDelay)
 import           Control.Concurrent.Chan
 import           Control.Arrow (second)
 import           Data.Aeson
-import           System.Directory
 import           System.Process (readProcess, readProcessWithExitCode)
 import           System.Exit (exitSuccess, ExitCode(ExitSuccess))
 import           Control.Exception (try, SomeException)
@@ -25,7 +20,6 @@ import           System.Environment (getArgs)
 import           System.Environment (setEnv)
 import           System.Posix.Signals
 import qualified Data.Map as Map
-import qualified Data.Text.Encoding as E
 import           Data.List (break, last)
 import           Data.Version (showVersion)
 
@@ -35,7 +29,6 @@ import           IHaskell.Eval.Completion (complete)
 import           IHaskell.Eval.Inspect (inspect)
 import           IHaskell.Eval.Evaluate
 import           IHaskell.Display
-import           IHaskell.Eval.Info
 import           IHaskell.Eval.Widgets (widgetHandler)
 import           IHaskell.Flags
 import           IHaskell.IPython
@@ -49,31 +42,12 @@ import qualified IHaskell.IPython.Stdin as Stdin
 -- Cabal imports.
 import           Paths_ihaskell(version)
 
--- GHC API imports.
-#if MIN_VERSION_ghc(8,4,0)
-import           GHC hiding (extensions, language, convert)
-#else
-import           GHC hiding (extensions, language)
-#endif
-
--- | Compute the GHC API version number using the dist/build/autogen/cabal_macros.h
-ghcVersionInts :: [Int]
-ghcVersionInts = map (fromJust . readMay) . words . map dotToSpace $ VERSION_ghc
-  where
-    dotToSpace '.' = ' '
-    dotToSpace x = x
-
-consoleBanner :: Text
-consoleBanner =
-  "Welcome to IHaskell! Run `IHaskell --help` for more information.\n" <>
-  "Enter `:help` to learn more about IHaskell built-ins."
-
 main :: IO ()
 main = do
   args <- parseFlags <$> getArgs
   case args of
     Left errorMessage -> hPutStrLn stderr errorMessage
-    Right args        -> ihaskell args
+    Right xs          -> ihaskell xs
 
 ihaskell :: Args -> IO ()
 ihaskell (Args (ShowDefault helpStr) args) = showDefault helpStr args
@@ -121,16 +95,16 @@ parseKernelArgs = foldl' addFlag defaultKernelSpecOptions
       kernelSpecOpts { kernelSpecInstallPrefix = Just prefix }
     addFlag kernelSpecOpts KernelspecUseStack =
       kernelSpecOpts { kernelSpecUseStack = True }
-    addFlag kernelSpecOpts flag = error $ "Unknown flag" ++ show flag
+    addFlag _kernelSpecOpts flag = error $ "Unknown flag" ++ show flag
 
 -- | Run the IHaskell language kernel.
 runKernel :: KernelSpecOptions -- ^ Various options from when the kernel was installed.
           -> String            -- ^ File with kernel profile JSON (ports, etc).
           -> IO ()
-runKernel kernelOpts profileSrc = do
-  let debug = kernelSpecDebug kernelOpts
-      libdir = kernelSpecGhcLibdir kernelOpts
-      useStack = kernelSpecUseStack kernelOpts
+runKernel kOpts profileSrc = do
+  let debug = kernelSpecDebug kOpts
+      libdir = kernelSpecGhcLibdir kOpts
+      useStack = kernelSpecUseStack kOpts
 
   -- Parse the profile file.
   let profileErr = error $ "ihaskell: "++profileSrc++": Failed to parse profile file"
@@ -170,7 +144,7 @@ runKernel kernelOpts profileSrc = do
   interpret libdir True $ \hasSupportLibraries -> do
     -- Ignore Ctrl-C the first time. This has to go inside the `interpret`, because GHC API resets the
     -- signal handlers for some reason (completely unknown to me).
-    liftIO ignoreCtrlC
+    _ <- liftIO ignoreCtrlC
 
     liftIO $ modifyMVar_ state $ \kernelState -> return $
               kernelState { supportLibrariesAvailable = hasSupportLibraries }
@@ -181,10 +155,10 @@ runKernel kernelOpts profileSrc = do
         evaluator line = void $ do
           -- Create a new state each time.
           stateVar <- liftIO initialKernelState
-          state <- liftIO $ takeMVar stateVar
-          evaluate state line noPublish noWidget
+          st <- liftIO $ takeMVar stateVar
+          evaluate st line noPublish noWidget
 
-    confFile <- liftIO $ kernelSpecConfFile kernelOpts
+    confFile <- liftIO $ kernelSpecConfFile kOpts
     case confFile of
       Just filename -> liftIO (readFile filename) >>= evaluator
       Nothing       -> return ()
@@ -285,8 +259,8 @@ replyTo _ CommInfoRequest{} replyHeader state =
 
 -- Reply to a shutdown request by exiting the main thread. Before shutdown, reply to the request to
 -- let the frontend know shutdown is happening.
-replyTo interface ShutdownRequest { restartPending = restartPending } replyHeader _ = liftIO $ do
-  writeChan (shellReplyChannel interface) $ ShutdownReply replyHeader restartPending
+replyTo interface ShutdownRequest { restartPending = pending } replyHeader _ = liftIO $ do
+  writeChan (shellReplyChannel interface) $ ShutdownReply replyHeader pending
   exitSuccess
 
 -- Reply to an execution request. The reply itself does not require computation, but this causes
@@ -311,7 +285,7 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
   -- re-display with the updated output.
   displayed <- liftIO $ newMVar []
   updateNeeded <- liftIO $ newMVar False
-  pagerOutput <- liftIO $ newMVar []
+  pOut <- liftIO $ newMVar []
 
   let execCount = getExecutionCounter state
   -- Let all frontends know the execution count and code that's about to run
@@ -320,7 +294,7 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
 
   -- Run code and publish to the frontend as we go.
   let widgetMessageHandler = widgetHandler send replyHeader
-      publish = publishResult send replyHeader displayed updateNeeded pagerOutput (usePager state)
+      publish = publishResult send replyHeader displayed updateNeeded pOut (usePager state)
   updatedState <- evaluate state (T.unpack code) publish widgetMessageHandler
 
   -- Notify the frontend that we're done computing.
@@ -329,7 +303,7 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
 
   -- Take pager output if we're using the pager.
   pager <- if usePager state
-             then liftIO $ readMVar pagerOutput
+             then liftIO $ readMVar pOut
              else return []
   return
     (updatedState, ExecuteReply
@@ -397,14 +371,14 @@ replyTo _ HistoryRequest{} replyHeader state = do
 --
 -- Sending the message only on the shell_reply channel doesn't work, so we send it as a comm message
 -- on the iopub channel and return the SendNothing message.
-replyTo interface open@CommOpen{} replyHeader state = do
-  let send msg = liftIO $ writeChan (iopubChannel interface) msg
+replyTo interface ocomm@CommOpen{} replyHeader state = do
+  let send = liftIO . writeChan (iopubChannel interface)
 
-      incomingUuid = commUuid open
-      target = commTargetName open
+      incomingUuid = commUuid ocomm
+      target = commTargetName ocomm
 
       targetMatches = target == "ipython.widget"
-      valueMatches = commData open == object ["widget_class" .= "ipywidgets.CommInfo"]
+      valueMatches = commData ocomm == object ["widget_class" .= ("ipywidgets.CommInfo" :: Text)]
 
       commMap = openComms state
       uuidTargetPairs = map (second targetName) $ Map.toList commMap
@@ -413,11 +387,11 @@ replyTo interface open@CommOpen{} replyHeader state = do
 
       currentComms = object $ map pairProcessor $ (incomingUuid, "comm") : uuidTargetPairs
 
-      replyValue = object [ "method" .= "custom"
+      replyValue = object [ "method" .= ("custom" :: Text)
                           , "content" .= object ["comms" .= currentComms]
                           ]
 
-      msg = CommData replyHeader (commUuid open) replyValue
+      msg = CommData replyHeader (commUuid ocomm) replyValue
 
   -- To the iopub channel you go
   when (targetMatches && valueMatches) $ send msg
@@ -435,7 +409,7 @@ handleComm send kernelState req replyHeader = do
   -- MVars to hold intermediate data during publishing
   displayed <- liftIO $ newMVar []
   updateNeeded <- liftIO $ newMVar False
-  pagerOutput <- liftIO $ newMVar []
+  pOut <- liftIO $ newMVar []
 
   let widgets = openComms kernelState
       uuid = commUuid req
@@ -449,7 +423,7 @@ handleComm send kernelState req replyHeader = do
   -- a function that executes an IO action and publishes the output to
   -- the frontend simultaneously.
   let run = capturedIO publish kernelState
-      publish = publishResult send replyHeader displayed updateNeeded pagerOutput toUsePager
+      publish = publishResult send replyHeader displayed updateNeeded pOut toUsePager
 
   -- Notify the frontend that the kernel is busy
   busyHeader <- liftIO $ dupHeader replyHeader StatusMessage
@@ -461,14 +435,17 @@ handleComm send kernelState req replyHeader = do
       case msgType $ header req of
         CommDataMessage -> do
           disp <- run $ comm widget dat communicate
-          pgrOut <- liftIO $ readMVar pagerOutput
+          pgrOut <- liftIO $ readMVar pOut
           liftIO $ publish $ FinalResult disp (if toUsePager then pgrOut else []) []
           return kernelState
         CommCloseMessage -> do
           disp <- run $ close widget dat
-          pgrOut <- liftIO $ readMVar pagerOutput
+          pgrOut <- liftIO $ readMVar pOut
           liftIO $ publish $ FinalResult disp (if toUsePager then pgrOut else []) []
           return kernelState { openComms = Map.delete uuid widgets }
+        _ ->
+          -- Only sensible thing to do.
+          return kernelState
 
   -- Notify the frontend that the kernel is idle once again
   idleHeader <- liftIO $ dupHeader replyHeader StatusMessage

@@ -4,11 +4,8 @@
 module IHaskell.Convert.IpynbToLhs (ipynbToLhs) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
 import           Data.Aeson (decode, Object, Value(Array, Object, String))
 import           Data.Vector (Vector)
@@ -49,12 +46,12 @@ convCell _sty object
   = s
 convCell sty object
   | Just (String "code") <- lookup "cell_type" object,
-    Just (Array i) <- lookup "source" object,
+    Just (Array a) <- lookup "source" object,
     Just (Array o) <- lookup "outputs" object,
-    ~(Just i) <- concatWithPrefix (lhsCodePrefix sty) i,
-    o <- fromMaybe mempty (convOutputs sty o)
+    ~(Just i) <- concatWithPrefix (lhsCodePrefix sty) a,
+    o2 <- fromMaybe mempty (convOutputs sty o)
   = "\n" <>
-    lhsBeginCode sty <> i <> lhsEndCode sty <> "\n" <> o <> "\n"
+    lhsBeginCode sty <> i <> lhsEndCode sty <> "\n" <> o2 <> "\n"
 convCell _ _ = "IHaskell.Convert.convCell: unknown cell"
 
 convOutputs :: LhsStyle LT.Text

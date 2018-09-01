@@ -27,10 +27,6 @@ module IHaskell.Eval.Util (
     ) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Char8 as CBS
 
 -- GHC imports.
@@ -38,18 +34,12 @@ import           DynFlags
 import           FastString
 import           GHC
 import           GhcMonad
-import           HsImpExp
 import           HscTypes
-import           InteractiveEval
-import           Module
-import           Packages
-import           RdrName
 import           NameSet
 import           Name
 import           PprTyThing
 import           InstEnv (ClsInst(..))
 import           Unify (tcMatchTys)
-import           VarSet (mkVarSet)
 import qualified Pretty
 import qualified Outputable as O
 
@@ -85,10 +75,10 @@ extensionFlag ext =
         Nothing -> Nothing
   where
     -- Check if a FlagSpec matches an extension name.
-    flagMatches ext fs = ext == flagSpecName fs
+    flagMatches ex fs = ex == flagSpecName fs
 
     -- Check if a FlagSpec matches "No<ExtensionName>". In that case, we disable the extension.
-    flagMatchesNo ext fs = ext == "No" ++ flagSpecName fs
+    flagMatchesNo ex fs = ex == "No" ++ flagSpecName fs
 
 -- | Pretty-print dynamic flags (taken from 'InteractiveUI' module of `ghc-bin`)
 pprDynFlags :: Bool       -- ^ Whether to include flags which are on by default
@@ -101,11 +91,11 @@ pprDynFlags show_all dflags =
     , O.text "other dynamic, non-language, flag settings:" O.$$
       O.nest 2 (O.vcat (map (setting opt) others))
     , O.text "warning settings:" O.$$
-      O.nest 2 (O.vcat (map (setting wopt) warningFlags))
+      O.nest 2 (O.vcat (map (setting wopt) wFlags))
     ]
   where
 
-    warningFlags = DynFlags.wWarningFlags
+    wFlags = DynFlags.wWarningFlags
 
     opt = gopt
 
@@ -139,6 +129,7 @@ pprDynFlags show_all dflags =
     flgs1 = [Opt_PrintExplicitForalls]
     flgs2 = [Opt_PrintExplicitKinds]
 
+flgs3 :: [GeneralFlag]
 flgs3 = [Opt_PrintBindResult, Opt_BreakOnException, Opt_BreakOnError, Opt_PrintEvldWithShow]
 
 -- | Pretty-print the base language and active options (taken from `InteractiveUI` module of
@@ -189,7 +180,7 @@ setExtension ext = do
   case extensionFlag ext of
     Nothing -> return $ Just $ "Could not parse extension name: " ++ ext
     Just flag -> do
-      setSessionDynFlags $
+      _ <- setSessionDynFlags $
         case flag of
           SetFlag ghcFlag   -> xopt_set flags ghcFlag
           UnsetFlag ghcFlag -> xopt_unset flags ghcFlag
@@ -204,9 +195,8 @@ setFlags ext = do
   (flags', unrecognized, warnings) <- parseDynamicFlags flags (map noLoc ext)
 
   -- First, try to check if this flag matches any extension name.
-  let restorePkg x = x { packageFlags = packageFlags flags }
   let restoredPkgs = flags' { packageFlags = packageFlags flags }
-  GHC.setProgramDynFlags restoredPkgs
+  _ <- GHC.setProgramDynFlags restoredPkgs
   GHC.setInteractiveDynFlags restoredPkgs
 
   -- Create the parse errors.
@@ -246,6 +236,7 @@ doc sdoc = do
     string_txt (Pretty.Str s1) s2 = s1 ++ s2
     string_txt (Pretty.PStr s1) s2 = unpackFS s1 ++ s2
     string_txt (Pretty.LStr s1 _) s2 = unpackLitString s1 ++ s2
+    string_txt (Pretty.ZStr s1) s2 = CBS.unpack (fastZStringToByteString s1) ++ s2
 #endif
 
 -- | Initialize the GHC API. Run this as the first thing in the `runGhc`. This initializes some dyn
@@ -345,15 +336,14 @@ evalImport imports = do
         _              -> False
 
 removeImport :: GhcMonad m => String -> m ()
-removeImport moduleName = do
-  flags <- getSessionDynFlags
+removeImport modName = do
   ctx <- getContext
-  let ctx' = filter (not . (isImportOf $ mkModuleName moduleName)) ctx
+  let ctx' = filter (not . (isImportOf $ mkModuleName modName)) ctx
   setContext ctx'
 
   where
     isImportOf :: ModuleName -> InteractiveImport -> Bool
-    isImportOf name (IIModule modName) = name == modName
+    isImportOf name (IIModule mName) = name == mName
     isImportOf name (IIDecl impDecl) = name == unLoc (ideclName impDecl)
 
 -- | Evaluate a series of declarations. Return all names which were bound by these declarations.
@@ -376,10 +366,8 @@ cleanUpDuplicateInstances = modifySession $ \hscEnv ->
   where
     instEq :: ClsInst -> ClsInst -> Bool
     -- Only support replacing instances on GHC 7.8 and up
-    instEq c1 c2
-      | ClsInst { is_tvs = tpl_tvs, is_tys = tpl_tys, is_cls = cls } <- c1,
-        ClsInst { is_tys = tpl_tys', is_cls = cls' } <- c2
-      = cls == cls' && isJust (tcMatchTys tpl_tys tpl_tys')
+    instEq c1 c2 =
+      is_cls c1 == is_cls c2 && isJust (tcMatchTys (is_tys c1) (is_tys c2))
 
 
 -- | Get the type of an expression and convert it to a string.
@@ -408,9 +396,9 @@ getDescription str = do
 
   -- Filter out types that have parents in the same set. GHCi also does this.
   let infos = catMaybes maybeInfos
-      allNames = mkNameSet $ map (getName . getType) infos
+      allNames = mkNameSet $ map (getName . getInfoType) infos
       hasParent info =
-        case tyThingParent_maybe (getType info) of
+        case tyThingParent_maybe (getInfoType info) of
           Just parent -> getName parent `elemNameSet` allNames
           Nothing     -> False
       filteredOutput = filter (not . hasParent) infos
@@ -423,9 +411,9 @@ getDescription str = do
     getInfo' = getInfo False
 
 #if MIN_VERSION_ghc(8,4,0)
-    getType (theType, _, _, _, _) = theType
+    getInfoType (theType, _, _, _, _) = theType
 #else
-    getType (theType, _, _, _) = theType
+    getInfoType (theType, _, _, _) = theType
 #endif
 
 #if MIN_VERSION_ghc(8,4,0)

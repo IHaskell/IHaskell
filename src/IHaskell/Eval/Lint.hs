@@ -3,33 +3,21 @@
 module IHaskell.Eval.Lint (lint) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
-import           Prelude (head, tail, last)
-import           Control.Monad
-import           Data.List (findIndex)
-import           Data.Char
-import           Data.Monoid
+import           Prelude (last)
 import           Data.Maybe (mapMaybe)
 import           System.IO.Unsafe (unsafePerformIO)
 
 import           Language.Haskell.Exts.Syntax hiding (Module)
 import qualified Language.Haskell.Exts.Syntax as SrcExts
 import           Language.Haskell.Exts (parseFileContentsWithMode)
-import           Language.Haskell.Exts.Build (doE)
 import           Language.Haskell.Exts hiding (Module)
-import           Language.Haskell.Exts.SrcLoc
 
 import           Language.Haskell.HLint as HLint
 import           Language.Haskell.HLint3
 
 import           IHaskell.Types
 import           IHaskell.Display
-import           IHaskell.IPython
 import           IHaskell.Eval.Parser hiding (line)
 import           StringUtils (replace)
 
@@ -65,10 +53,9 @@ lint blocks = do
 
   -- Get hlint settings
   (flags, classify, hint) <- readMVar hlintSettings
-  let mode = hseFlags flags
 
   -- create 'suggestions'
-  let modules = mapMaybe (createModule mode) blocks
+  let modules = mapMaybe (createModule (hseFlags flags)) blocks
       ideas = applyHints classify hint (map (\m -> (m, [])) modules)
       suggestions = mapMaybe showIdea $ filter (not . ignoredIdea) ideas
 
@@ -78,33 +65,33 @@ lint blocks = do
       else [plain $ concatMap plainSuggestion suggestions, html $ htmlSuggestions suggestions]
   where
     autoSettings' = do
-      (fixities, classify, hints) <- autoSettings
+      (fixts, classify, hints) <- autoSettings
       let hidingIgnore = Classify Ignore "Unnecessary hiding" "" ""
-      return (fixities, hidingIgnore:classify, hints)
+      return (fixts, hidingIgnore:classify, hints)
     ignoredIdea idea = ideaSeverity idea == Ignore
 
 showIdea :: Idea -> Maybe LintSuggestion
 showIdea idea =
   case ideaTo idea of
     Nothing -> Nothing
-    Just whyNot ->
+    Just wn ->
       Just
         Suggest
           { line = srcSpanStartLine $ ideaSpan idea
           , found = showSuggestion $ ideaFrom idea
-          , whyNot = showSuggestion whyNot
+          , whyNot = showSuggestion wn
           , severity = ideaSeverity idea
           , suggestion = ideaHint idea
           }
 
 createModule :: ParseMode -> Located CodeBlock -> Maybe ExtsModule
-createModule mode (Located line block) =
+createModule md (Located ln block) =
   case block of
     Expression expr  -> unparse $ exprToModule expr
     Declaration decl -> unparse $ declToModule decl
     Statement stmt   -> unparse $ stmtToModule stmt
     Import impt      -> unparse $ imptToModule impt
-    Module mod       -> unparse $ parseModule mod
+    Module mdl       -> unparse $ pModule mdl
     _                -> Nothing
   where
     blockStr =
@@ -113,7 +100,10 @@ createModule mode (Located line block) =
         Declaration decl -> decl
         Statement stmt   -> stmt
         Import impt      -> impt
-        Module mod       -> mod
+        Module mdl       -> mdl
+
+        -- TODO: Properly handle the other constructors
+        _ -> []
 
     unparse :: ParseResult a -> Maybe a
     unparse (ParseOk a) = Just a
@@ -122,49 +112,47 @@ createModule mode (Located line block) =
     srcSpan :: SrcSpan
     srcSpan = SrcSpan
       { srcSpanFilename = "<interactive>"
-      , srcSpanStartLine = line
+      , srcSpanStartLine = ln
       , srcSpanStartColumn = 0
-      , srcSpanEndLine = line + length (lines blockStr)
+      , srcSpanEndLine = ln + length (lines blockStr)
       , srcSpanEndColumn = length $ last $ lines blockStr
       }
 
-    loc :: SrcSpanInfo
-    loc = SrcSpanInfo srcSpan []
+    lcn :: SrcSpanInfo
+    lcn = SrcSpanInfo srcSpan []
 
     moduleWithDecls :: Decl SrcSpanInfo -> ExtsModule
-    moduleWithDecls decl = SrcExts.Module loc Nothing [] [] [decl]
+    moduleWithDecls decl = SrcExts.Module lcn Nothing [] [] [decl]
 
-    parseModule :: String -> ParseResult ExtsModule
-    parseModule = parseFileContentsWithMode mode
+    pModule :: String -> ParseResult ExtsModule
+    pModule = parseFileContentsWithMode md
 
     declToModule :: String -> ParseResult ExtsModule
-    declToModule decl = moduleWithDecls <$> parseDeclWithMode mode decl
+    declToModule decl = moduleWithDecls <$> parseDeclWithMode md decl
 
     exprToModule :: String -> ParseResult ExtsModule
-    exprToModule exp = moduleWithDecls <$> SpliceDecl loc <$> parseExpWithMode mode exp
+    exprToModule exp = moduleWithDecls <$> SpliceDecl lcn <$> parseExpWithMode md exp
 
     stmtToModule :: String -> ParseResult ExtsModule
     stmtToModule stmtStr =
-      case parseStmtWithMode mode stmtStr of
-        ParseOk stmt    -> ParseOk mod
+      case parseStmtWithMode md stmtStr of
+        ParseOk _       -> ParseOk $ moduleWithDecls decl
         ParseFailed a b -> ParseFailed a b
       where
-        mod = moduleWithDecls decl
-
         decl :: Decl SrcSpanInfo
-        decl = SpliceDecl loc expr
+        decl = SpliceDecl lcn expr
 
         expr :: Exp SrcSpanInfo
-        expr = Do loc [stmt, ret]
+        expr = Do lcn [stmt, ret]
 
         stmt :: Stmt SrcSpanInfo
-        ParseOk stmt = parseStmtWithMode mode stmtStr
+        ParseOk stmt = parseStmtWithMode md stmtStr
 
         ret :: Stmt SrcSpanInfo
-        ParseOk ret = Qualifier loc <$> parseExp lintIdent
+        ParseOk ret = Qualifier lcn <$> parseExp lintIdent
 
     imptToModule :: String -> ParseResult ExtsModule
-    imptToModule = parseFileContentsWithMode mode
+    imptToModule = parseFileContentsWithMode md
 
 plainSuggestion :: LintSuggestion -> String
 plainSuggestion suggest =
@@ -177,10 +165,10 @@ htmlSuggestions = concatMap toHtml
     toHtml :: LintSuggestion -> String
     toHtml suggest = concat
                        [ named $ suggestion suggest
-                       , floating "left" $ style severityClass "Found:" ++
+                       , floating "left" $ styl severityClass "Found:" ++
                                            -- Things that look like this get highlighted.
                                            styleId "highlight-code" "haskell" (found suggest)
-                       , floating "left" $ style severityClass "Why Not:" ++
+                       , floating "left" $ styl severityClass "Why Not:" ++
                                            -- Things that look like this get highlighted.
                                            styleId "highlight-code" "haskell" (whyNot suggest)
                        ]
@@ -193,8 +181,8 @@ htmlSuggestions = concatMap toHtml
             -- Should not occur
             _ -> "warning"
 
-    style :: String -> String -> String
-    style = printf "<div class=\"suggestion-%s\">%s</div>"
+    styl :: String -> String -> String
+    styl = printf "<div class=\"suggestion-%s\">%s</div>"
 
     named :: String -> String
     named = printf "<div class=\"suggestion-name\" style=\"clear:both;\">%s</div>"

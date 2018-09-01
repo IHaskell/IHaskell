@@ -14,7 +14,6 @@ module IHaskell.Eval.Widgets (
 
 import           IHaskellPrelude
 
-import           Control.Concurrent.Chan (writeChan)
 import           Control.Concurrent.STM (atomically)
 import           Control.Concurrent.STM.TChan
 import           Control.Monad (foldM)
@@ -25,8 +24,6 @@ import           System.IO.Unsafe (unsafePerformIO)
 import           IHaskell.Display
 import           IHaskell.Eval.Util (unfoldM)
 import           IHaskell.IPython.Types (showMessageType)
-import           IHaskell.IPython.Message.UUID
-import           IHaskell.IPython.Message.Writer
 import           IHaskell.Types
 
 -- All comm_open messages go here
@@ -50,7 +47,7 @@ queue = atomically . writeTChan widgetMessages
 widgetSend :: IHaskellWidget a
            => (Widget -> Value -> WidgetMsg)
            -> a -> Value -> IO ()
-widgetSend msgType widget value = queue $ msgType (Widget widget) value
+widgetSend mtype widget value = queue $ mtype (Widget widget) value
 
 -- | Send a message to open a comm
 widgetSendOpen :: IHaskellWidget a => a -> Value -> IO ()
@@ -82,7 +79,7 @@ widgetPublishDisplay widget disp = display disp >>= queue . DispMsg (Widget widg
 
 -- | Send a `clear_output` message as a [method .= custom] message
 widgetClearOutput :: IHaskellWidget a => a -> Bool -> IO ()
-widgetClearOutput widget wait = queue $ ClrOutput (Widget widget) wait
+widgetClearOutput widget w = queue $ ClrOutput (Widget widget) w
 
 -- | Handle a single widget message. Takes necessary actions according to the message type, such as
 -- opening comms, storing and updating widget representation in the kernel state etc.
@@ -111,8 +108,8 @@ handleMessage send replyHeader state msg = do
         then return state
         else do
           -- Send the comm open, with the initial state
-          header <- dupHeader replyHeader CommOpenMessage
-          send $ CommOpen header target_name target_module uuid value
+          hdr <- dupHeader replyHeader CommOpenMessage
+          send $ CommOpen hdr target_name target_module uuid value
 
           -- Send anything else the widget requires.
           open widget communicate
@@ -130,8 +127,8 @@ handleMessage send replyHeader state msg = do
       -- If the widget is not present in the state, we don't close it.
       if present
         then do
-          header <- dupHeader replyHeader CommCloseMessage
-          send $ CommClose header uuid value
+          hdr <- dupHeader replyHeader CommCloseMessage
+          send $ CommClose hdr uuid value
           return newState
         else return state
 
@@ -148,9 +145,9 @@ handleMessage send replyHeader state msg = do
       let dmsg = WidgetDisplay dispHeader $ unwrap disp
       sendMessage widget (toJSON $ CustomContent $ toJSON dmsg)
 
-    ClrOutput widget wait -> do
-      header <- dupHeader replyHeader ClearOutputMessage
-      let cmsg = WidgetClear header wait
+    ClrOutput widget w -> do
+      hdr <- dupHeader replyHeader ClearOutputMessage
+      let cmsg = WidgetClear hdr w
       sendMessage widget (toJSON $ CustomContent $ toJSON cmsg)
 
   where
@@ -161,8 +158,8 @@ handleMessage send replyHeader state msg = do
 
       -- If the widget is present, we send an update message on its comm.
       when present $ do
-        header <- dupHeader replyHeader CommDataMessage
-        send $ CommData header uuid value
+        hdr <- dupHeader replyHeader CommDataMessage
+        send $ CommData hdr uuid value
       return state
 
     unwrap :: Display -> [DisplayData]
@@ -181,20 +178,20 @@ instance ToJSON WidgetDisplay where
 data WidgetClear = WidgetClear MessageHeader Bool
 
 instance ToJSON WidgetClear where
-  toJSON (WidgetClear replyHeader wait) =
-    let clrVal = toJSON $ ClearOutput replyHeader wait
+  toJSON (WidgetClear replyHeader w) =
+    let clrVal = toJSON $ ClearOutput replyHeader w
     in toJSON $ IPythonMessage replyHeader clrVal ClearOutputMessage
 
 data IPythonMessage = IPythonMessage MessageHeader Value MessageType
 
 instance ToJSON IPythonMessage where
-  toJSON (IPythonMessage replyHeader val msgType) =
+  toJSON (IPythonMessage replyHeader val mtype) =
     object
       [ "header" .= replyHeader
       , "parent_header" .= str ""
       , "metadata" .= str "{}"
       , "content" .= val
-      , "msg_type" .= (toJSON . showMessageType $ msgType)
+      , "msg_type" .= (toJSON . showMessageType $ mtype)
       ]
 
 str :: String -> String
@@ -206,4 +203,4 @@ widgetHandler :: (Message -> IO ())
               -> KernelState
               -> [WidgetMsg]
               -> IO KernelState
-widgetHandler sender header = foldM (handleMessage sender header)
+widgetHandler sender hdr = foldM (handleMessage sender hdr)

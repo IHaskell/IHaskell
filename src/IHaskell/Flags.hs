@@ -14,22 +14,17 @@ module IHaskell.Flags (
 
 import           IHaskellPrelude hiding (Arg(..))
 import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
 import           System.Console.CmdArgs.Explicit
 import           System.Console.CmdArgs.Text
 import           Data.List (findIndex)
-import           IHaskell.Types
 
 -- Command line arguments to IHaskell. A set of arguments is annotated with the mode being invoked.
 data Args = Args IHaskellMode [Argument]
   deriving Show
 
 data Argument = ConfFile String     -- ^ A file with commands to load at startup.
-              | OverwriteFiles      -- ^ Present when output should overwrite existing files. 
+              | OverwriteFiles      -- ^ Present when output should overwrite existing files.
               | GhcLibDir String    -- ^ Where to find the GHC libraries.
               | RTSFlags [String]   -- ^ Options for the GHC runtime (e.g. heap-size limit
                                     --     or number of threads).
@@ -70,7 +65,7 @@ data IHaskellMode = ShowDefault String
 -- | Given a list of command-line arguments, return the IHaskell mode and arguments to process.
 parseFlags :: [String] -> Either String Args
 parseFlags flags =
-  let modeIndex = findIndex (`elem` modeFlags) flags
+  let modeIndex = findIndex (`elem` modeFlgs) flags
   in case modeIndex of
     Nothing ->
       -- Treat no mode as 'console'.
@@ -82,18 +77,19 @@ parseFlags flags =
       let (start, first:end) = splitAt idx flags
       in process ihaskellArgs $ first : start ++ end
   where
-    modeFlags = concatMap modeNames allModes
+    modeFlgs = concatMap modeNames allModes
 
 allModes :: [Mode Args]
 allModes = [installKernelSpec, kernel, convert]
 
 -- | Get help text for a given IHaskell ode.
 help :: IHaskellMode -> String
-help mode = showText (Wrap 100) $ helpText [] HelpFormatAll $ chooseMode mode
+help md = showText (Wrap 100) $ helpText [] HelpFormatAll $ chooseMode md
   where
     chooseMode InstallKernelSpec = installKernelSpec
     chooseMode (Kernel _) = kernel
     chooseMode ConvertLhs = convert
+    chooseMode (ShowDefault _) = error "IHaskell.Flags.help: Should never happen."
 
 ghcLibFlag :: Flag Args
 ghcLibFlag = flagReq ["ghclib", "l"] (store GhcLibDir) "<path>" "Library directory for GHC."
@@ -101,8 +97,8 @@ ghcLibFlag = flagReq ["ghclib", "l"] (store GhcLibDir) "<path>" "Library directo
 ghcRTSFlag :: Flag Args
 ghcRTSFlag = flagReq ["use-rtsopts"] storeRTS "\"<flags>\""
                   "Runtime options (multithreading etc.). See `ghc +RTS -?`."
- where storeRTS allRTSFlags (Args mode prev)
-          = fmap (Args mode . (:prev) . RTSFlags)
+ where storeRTS allRTSFlags (Args md prev)
+          = fmap (Args md . (:prev) . RTSFlags)
               . parseRTS . words $ filter (/='"') allRTSFlags
        parseRTS ("+RTS":fs)  -- Ignore if this is included (we already wrap
            = parseRTS fs     -- the ihaskell-kernel call in +RTS <flags> -RTS anyway)
@@ -115,13 +111,13 @@ ghcRTSFlag = flagReq ["use-rtsopts"] storeRTS "\"<flags>\""
 kernelDebugFlag :: Flag Args
 kernelDebugFlag = flagNone ["debug"] addDebug "Print debugging output from the kernel."
   where
-    addDebug (Args mode prev) = Args mode (KernelDebug : prev)
+    addDebug (Args md prev) = Args md (KernelDebug : prev)
 
 kernelStackFlag :: Flag Args
 kernelStackFlag = flagNone ["stack"] addStack
                     "Inherit environment from `stack` when it is installed"
   where
-    addStack (Args mode prev) = Args mode (KernelspecUseStack : prev)
+    addStack (Args md prev) = Args md (KernelspecUseStack : prev)
 
 confFlag :: Flag Args
 confFlag = flagReq ["conf", "c"] (store ConfFile) "<rc.hs>"
@@ -131,12 +127,14 @@ installPrefixFlag :: Flag Args
 installPrefixFlag = flagReq ["prefix"] (store KernelspecInstallPrefix) "<install-dir>"
                       "Installation prefix for kernelspec (see Jupyter's --prefix option)"
 
+helpFlag :: Flag Args
 helpFlag = flagHelpSimple (add Help)
 
-add flag (Args mode flags) = Args mode $ flag : flags
+add :: Argument -> Args -> Args
+add flag (Args md flags) = Args md $ flag : flags
 
 store :: (String -> Argument) -> String -> Args -> Either String Args
-store constructor str (Args mode prev) = Right $ Args mode $ constructor str : prev
+store constructor str (Args md prev) = Right $ Args md $ constructor str : prev
 
 installKernelSpec :: Mode Args
 installKernelSpec =
@@ -168,14 +166,14 @@ convert = mode "convert" (Args ConvertLhs []) description unnamedArg convertFlag
                    , helpFlag
                    ]
 
-    consForce (Args mode prev) = Args mode (OverwriteFiles : prev)
+    consForce (Args md prev) = Args md (OverwriteFiles : prev)
     unnamedArg = Arg (store ConvertFrom) "<file>" False
-    consStyle style (Args mode prev) = Args mode (ConvertLhsStyle style : prev)
+    consStyle style (Args md prev) = Args md (ConvertLhsStyle style : prev)
 
-    storeFormat constructor str (Args mode prev) =
+    storeFormat constructor str (Args md prev) =
       case T.toLower (T.pack str) of
-        "lhs"   -> Right $ Args mode $ constructor LhsMarkdown : prev
-        "ipynb" -> Right $ Args mode $ constructor IpynbFile : prev
+        "lhs"   -> Right $ Args md $ constructor LhsMarkdown : prev
+        "ipynb" -> Right $ Args md $ constructor IpynbFile : prev
         _       -> Left $ "Unknown format requested: " ++ str
 
     storeLhs str previousArgs =
@@ -196,13 +194,11 @@ ihaskellArgs =
   let noMode = mode "IHaskell" defaultReport descr noArgs [helpFlag, versionFlag]
       defaultReport = Args (ShowDefault helpStr) []
       descr = "Haskell for Interactive Computing."
-      helpFlag = flagHelpSimple (add Help)
       versionFlag = flagVersion (add Version)
       helpStr = showText (Wrap 100) $ helpText [] HelpFormatAll ihaskellArgs
   in noMode { modeGroupModes = toGroup allModes }
-  where
-    add flag (Args mode flags) = Args mode $ flag : flags
 
+noArgs :: Arg a
 noArgs = flagArg unexpected ""
   where
     unexpected a = error $ "Unexpected argument: " ++ a

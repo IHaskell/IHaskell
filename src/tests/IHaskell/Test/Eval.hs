@@ -27,31 +27,31 @@ eval string = do
   let publish evalResult =
         case evalResult of
           IntermediateResult{} -> return ()
-          FinalResult outs page [] -> do
+          FinalResult outs page _ -> do
             modifyIORef outputAccum (outs :)
             modifyIORef pagerAccum (page :)
       noWidgetHandling s _ = return s
 
   getTemporaryDirectory >>= setCurrentDirectory
   let state = defaultKernelState { getLintStatus = LintOff }
-  interpret GHC.Paths.libdir False $ const $
-    IHaskell.Eval.Evaluate.evaluate state string publish noWidgetHandling
+  _ <- interpret GHC.Paths.libdir False $ const $
+        IHaskell.Eval.Evaluate.evaluate state string publish noWidgetHandling
   out <- readIORef outputAccum
-  pagerOut <- readIORef pagerAccum
-  return (reverse out, unlines . map extractPlain . reverse $ pagerOut)
+  pagerout <- readIORef pagerAccum
+  return (reverse out, unlines . map extractPlain . reverse $ pagerout)
 
 becomes :: String -> [String] -> IO ()
 becomes string expected = evaluationComparing comparison string
   where
     comparison :: ([Display], String) -> IO ()
-    comparison (results, pageOut) = do
+    comparison (results, _pageOut) = do
       when (length results /= length expected) $
         expectationFailure $ "Expected result to have " ++ show (length expected)
                                                            ++ " results. Got " ++ show results
 
-      forM_ (zip results expected) $ \(ManyDisplay [Display result], expected) -> case extractPlain result of
-        ""  -> expectationFailure $ "No plain-text output in " ++ show result ++ "\nExpected: " ++ expected
-        str -> str `shouldBe` expected
+      forM_ (zip results expected) $ \(ManyDisplay [Display result], expect) -> case extractPlain result of
+        ""  -> expectationFailure $ "No plain-text output in " ++ show result ++ "\nExpected: " ++ expect
+        str -> str `shouldBe` expect
 
 evaluationComparing :: (([Display], String) -> IO b) -> String -> IO b
 evaluationComparing comparison string = do
@@ -66,27 +66,27 @@ evaluationComparing comparison string = do
 pages :: String -> [String] -> IO ()
 pages string expected = evaluationComparing comparison string
   where
-    comparison (results, pageOut) =
+    comparison (_results, pageOut) =
       strip (stripHtml pageOut) `shouldBe` strip (fixQuotes $ unlines expected)
 
     -- A very, very hacky method for removing HTML
     stripHtml str = go str
       where
-        go ('<':str) =
-          case stripPrefix "script" str of
+        go ('<':xs) =
+          case stripPrefix "script" xs of
             Nothing  -> go' str
-            Just str -> dropScriptTag str
+            Just s -> dropScriptTag s
         go (x:xs) = x : go xs
         go [] = []
 
-        go' ('>':str) = go str
-        go' (x:xs) = go' xs
+        go' ('>':xs) = go xs
+        go' (_:xs) = go' xs
         go' [] = error $ "Unending bracket html tag in string " ++ str
 
-        dropScriptTag str =
-          case stripPrefix "</script>" str of
-            Just str -> go str
-            Nothing  -> dropScriptTag $ tail str
+        dropScriptTag str1 =
+          case stripPrefix "</script>" str1 of
+            Just s  -> go s
+            Nothing -> dropScriptTag $ tail str
 
     fixQuotes :: String -> String
     fixQuotes = id

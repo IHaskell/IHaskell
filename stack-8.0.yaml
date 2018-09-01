@@ -1,3 +1,5 @@
+resolver: lts-9.21
+
 flags: {}
 packages:
     - .
@@ -14,8 +16,13 @@ packages:
     - ./ihaskell-display/ihaskell-plot
     - ./ihaskell-display/ihaskell-static-canvas
     - ./ihaskell-display/ihaskell-widgets
-resolver: lts-9.21
+
 extra-deps: []
+
+ghc-options:
+  # Eventually we want "$locals": -Wall -Werror
+  ihaskell: -Wall -Werror
+
 nix:
   enable: false
   packages:

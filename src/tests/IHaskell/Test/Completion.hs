@@ -1,4 +1,9 @@
 {-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
+{-# LANGUAGE CPP #-}
+
+-- Shelly's types are kinda borked.
+{-# OPTIONS_GHC -Wno-type-defaults #-}
+
 module IHaskell.Test.Completion (testCompletions) where
 
 import           Prelude
@@ -43,23 +48,20 @@ completionEventInDirectory string = withHsDirectory $ const $ completionEvent st
 
 shouldHaveCompletionsInDirectory :: String -> [String] -> IO ()
 shouldHaveCompletionsInDirectory string expected = do
-  (matched, completions) <- completionEventInDirectory string
-  let existsInCompletion = (`elem` completions)
-      unmatched = filter (not . existsInCompletion) expected
+  (_, completions) <- completionEventInDirectory string
   expected `shouldBeAmong` completions
 
+completionHas :: String -> [String] -> IO ()
 completionHas string expected = do
-  (matched, completions) <- ghc $ do
+  (_, completions) <- ghc $ do
                               initCompleter
                               completionEvent string
-  let existsInCompletion = (`elem` completions)
-      unmatched = filter (not . existsInCompletion) expected
   expected `shouldBeAmong` completions
 
 initCompleter :: Interpreter ()
 initCompleter = do
   flags <- getSessionDynFlags
-  setSessionDynFlags $ flags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
+  _ <- setSessionDynFlags $ flags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
 
   -- Import modules.
   imports <- mapM parseImportDecl
@@ -163,9 +165,8 @@ testCommandCompletion = describe "Completes commands" $ do
   it "correctly interprets ~ as the environment HOME variable" $ do
     let shouldHaveCompletions :: String -> [String] -> IO ()
         shouldHaveCompletions string expected = do
-          (matched, completions) <- withHsHome $ completionEvent string
-          let existsInCompletion = (`elem` completions)
-              unmatched = filter (not . existsInCompletion) expected
+          (_, completions) <- withHsHome $ completionEvent string
+
           expected `shouldBeAmong` completions
     ":! cd ~/*" `shouldHaveCompletions` ["~/dir/"]
     ":! ~/*" `shouldHaveCompletions` ["~/dir/"]
@@ -176,8 +177,6 @@ testCommandCompletion = describe "Completes commands" $ do
       shouldHaveMatchingText string expected = do
         matchText <- withHsHome $ fst <$> uncurry complete (readCompletePrompt string)
         matchText `shouldBe` expected
-
-      setHomeEvent path = liftIO $ setEnv "HOME" (T.unpack $ toTextIgnore path)
 
   it "generates the correct matchingText on `:! cd ~/*` " $
     ":! cd ~/*" `shouldHaveMatchingText` ("~/" :: String)
@@ -202,11 +201,11 @@ inDirectory dirs files action = shelly $ withTmpDir $ \dirPath -> do
   where
     cdEvent path = liftIO $ setCurrentDirectory path
     wrap :: String -> Interpreter a -> Interpreter a
-    wrap path action = do
+    wrap path actn = do
       initCompleter
       pwd <- IHaskell.Eval.Evaluate.liftIO getCurrentDirectory
       cdEvent path   -- change to the temporary directory
-      out <- action  -- run action
+      out <- actn  -- run action
       cdEvent pwd    -- change back to the original directory
       return out
 
@@ -218,4 +217,5 @@ withHsDirectory = inDirectory [p "" </> p "dir", p "dir" </> p "dir1"]
                     , p "dir" </> p "file2.lhs"
                     ]
   where
+    p :: T.Text -> T.Text
     p = id

@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, DoAndIfThenElse, TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE CPP, NoImplicitPrelude, DoAndIfThenElse, TypeFamilies, FlexibleContexts #-}
 
 {- |
 Description:    Generates tab completion options.
@@ -13,37 +13,21 @@ This has a limited amount of context sensitivity. It distinguishes between four 
 module IHaskell.Eval.Completion (complete, completionTarget, completionType, CompletionType(..)) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
 import           Control.Applicative ((<$>))
-import           Data.ByteString.UTF8 hiding (drop, take, lines, length)
 import           Data.Char
-import           Data.List (nub, init, last, head, elemIndex, concatMap)
+import           Data.List (nub, init, last, elemIndex, concatMap)
 import qualified Data.List.Split as Split
 import qualified Data.List.Split.Internals as Split
-import           Data.Maybe (fromJust)
 import           System.Environment (getEnv)
 
-import           GHC hiding (Qualified)
-#if MIN_VERSION_ghc(8,2,0)
+import           GHC
 import           GHC.PackageDb
-#else
-import           GHC.PackageDb (ExposedModule(exposedName))
-#endif
 import           DynFlags
 import           GhcMonad
-import qualified GhcMonad
-import           PackageConfig
 import           Outputable (showPpr)
-import           MonadUtils (MonadIO)
-
 
 import           System.Directory
-import           System.FilePath
 import           Control.Exception (try)
 
 import           System.Console.Haskeline.Completion
@@ -69,6 +53,7 @@ exposedName :: (a, b) -> a
 exposedName = fst
 #endif
 
+extName :: FlagSpec flag -> String
 extName (FlagSpec { flagSpecName = name }) = name
 
 complete :: String -> Int -> Interpreter (String, [String])
@@ -100,7 +85,7 @@ complete code posOffset = do
         case completion of
           HsFilePath _ match -> match
           FilePath _ match   -> match
-          otherwise          -> intercalate "." target
+          _                  -> intercalate "." target
 
   options <- case completion of
                Empty -> return []
@@ -108,9 +93,8 @@ complete code posOffset = do
                Identifier candidate ->
                  return $ filter (candidate `isPrefixOf`) unqualNames
 
-               Qualified moduleName candidate -> do
-                 trueName <- getTrueModuleName moduleName
-                 let prefix = intercalate "." [moduleName, candidate]
+               Qualified mName candidate -> do
+                 let prefix = intercalate "." [mName, candidate]
                      completions = filter (prefix `isPrefixOf`) qualNames
                  return completions
 
@@ -122,8 +106,7 @@ complete code posOffset = do
 
                DynFlag ext -> do
                  -- Possibly leave out the fLangFlags?
-                 let kernelOptNames = concatMap getSetName kernelOpts
-                     otherNames = ["-package", "-Wall", "-w"]
+                 let otherNames = ["-package", "-Wall", "-w"]
 
                      fNames = map extName fFlags ++
                               map extName wWarningFlags ++
@@ -144,33 +127,16 @@ complete code posOffset = do
                      xNoNames = map ("No" ++) xNames
                  return $ filter (ext `isPrefixOf`) $ xNames ++ xNoNames
 
-               HsFilePath lineUpToCursor match -> completePathWithExtensions [".hs", ".lhs"]
+               HsFilePath lineUpToCursor _match -> completePathWithExtensions [".hs", ".lhs"]
                                                     lineUpToCursor
 
-               FilePath lineUpToCursor match -> completePath lineUpToCursor
+               FilePath lineUpToCursor _match -> completePath lineUpToCursor
 
                KernelOption str -> return $
                  filter (str `isPrefixOf`) (concatMap getOptionName kernelOpts)
 
   return (matchedText, options)
 
-getTrueModuleName :: String -> Interpreter String
-getTrueModuleName name = do
-  -- Only use the things that were actually imported
-  let onlyImportDecl (IIDecl decl) = Just decl
-      onlyImportDecl _ = Nothing
-
-  -- Get all imports that we use.
-  imports <- catMaybes <$> map onlyImportDecl <$> getContext
-
-  -- Find the ones that have a qualified name attached. If this name isn't one of them, it already is
-  -- the true name.
-  flags <- getSessionDynFlags
-  let qualifiedImports = filter (isJust . ideclAs) imports
-      hasName imp = name == (showPpr flags . fromJust . ideclAs) imp
-  case find hasName qualifiedImports of
-    Nothing      -> return name
-    Just trueImp -> return $ showPpr flags $ unLoc $ ideclName trueImp
 
 -- | Get which type of completion this is from the surrounding context.
 completionType :: String            -- ^ The line on which the completion is being done.
@@ -230,7 +196,7 @@ completionType line loc target
             else []
         Left _ -> Empty
 
-    cursorInString str loc = nquotes (take loc str) `mod` 2 /= 0
+    cursorInString str lcn = nquotes (take lcn str) `mod` 2 /= (0 :: Int)
 
     nquotes ('\\':'"':xs) = nquotes xs
     nquotes ('"':xs) = 1 + nquotes xs
@@ -244,12 +210,12 @@ completionType line loc target
       where
         go acc rest =
           case rest of
-            '"':'\\':rem -> go ('"' : acc) rem
-            '"':rem      -> acc
-            ' ':'\\':rem -> go (' ' : acc) rem
-            ' ':rem      -> acc
-            x:rem        -> go (x : acc) rem
-            []           -> acc
+            '"':'\\':xs -> go ('"' : acc) xs
+            '"':_       -> acc
+            ' ':'\\':xs -> go (' ' : acc) xs
+            ' ':_       -> acc
+            x:xs        -> go (x : acc) xs
+            []          -> acc
 
 -- | Get the word under a given cursor location.
 completionTarget :: String -> Int -> [String]
@@ -267,7 +233,7 @@ completionTarget code cursor = expandCompletionPiece pieceToComplete
       }
 
     isDelim :: Char -> Int -> Bool
-    isDelim char idx = char `elem` neverIdent || isSymbol char
+    isDelim char _idx = char `elem` neverIdent || isSymbol char
 
     splitAlongCursor :: [[(Char, Int)]] -> [[(Char, Int)]]
     splitAlongCursor [] = []
@@ -307,8 +273,8 @@ completePath line = completePathFilter acceptAll acceptAll line ""
     acceptAll = const True
 
 completePathWithExtensions :: [String] -> String -> Interpreter [String]
-completePathWithExtensions extensions line =
-  completePathFilter (extensionIsOneOf extensions) acceptAll line ""
+completePathWithExtensions extns line =
+  completePathFilter (extensionIsOneOf extns) acceptAll line ""
   where
     acceptAll = const True
     extensionIsOneOf exts str = any correctEnding exts

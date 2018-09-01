@@ -16,11 +16,6 @@ module IHaskell.Eval.Parser (
     ) where
 
 import           IHaskellPrelude
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
 import           Data.Char (toLower)
 import           Data.List (maximumBy, inits)
@@ -83,8 +78,8 @@ parseString codeString = do
   flags <- getSessionDynFlags
   let output = runParser flags parserModule codeString
   case output of
-    Parsed mod
-      | Just _ <- hsmodName (unLoc mod) -> return [Located 1 $ Module codeString]
+    Parsed mdl
+      | Just _ <- hsmodName (unLoc mdl) -> return [Located 1 $ Module codeString]
     _ -> do
       -- Split input into chunks based on indentation.
       let chunks = layoutChunks $ removeComments codeString
@@ -97,12 +92,12 @@ parseString codeString = do
 
   where
     parseChunk :: GhcMonad m => String -> LineNumber -> m (Located CodeBlock)
-    parseChunk chunk line = Located line <$> handleChunk chunk line
+    parseChunk chunk ln = Located ln <$> handleChunk
       where
-        handleChunk chunk line
-          | isDirective chunk = return $ parseDirective chunk line
-          | isPragma chunk = return $ parsePragma chunk line
-          | otherwise = parseCodeChunk chunk line
+        handleChunk
+          | isDirective chunk = return $ parseDirective chunk ln
+          | isPragma chunk = return $ parsePragma chunk ln
+          | otherwise = parseCodeChunk chunk ln
 
     processChunks :: GhcMonad m => [Located CodeBlock] -> [Located String] -> m [Located CodeBlock]
     processChunks accum remaining =
@@ -111,10 +106,10 @@ parseString codeString = do
         [] -> return $ reverse accum
 
         -- If we have more remaining, parse the current chunk and recurse.
-        Located line chunk:remaining -> do
-          block <- parseChunk chunk line
+        Located ln chunk:remain -> do
+          block <- parseChunk chunk ln
           activateExtensions $ unloc block
-          processChunks (block : accum) remaining
+          processChunks (block : accum) remain
 
     -- Test whether a given chunk is a directive.
     isDirective :: String -> Bool
@@ -130,11 +125,11 @@ activateExtensions (Directive SetDynFlag flags) =
   case stripPrefix "-X" flags of
     Just ext -> void $ setExtension ext
     Nothing  -> return ()
-activateExtensions (Pragma PragmaLanguage extensions) = void $ setAll extensions
+activateExtensions (Pragma PragmaLanguage exts) = void $ setAll exts
   where
     setAll :: GhcMonad m => [String] -> m (Maybe String)
-    setAll exts = do
-      errs <- mapM setExtension exts
+    setAll exts' = do
+      errs <- mapM setExtension exts'
       return $ msum errs
 activateExtensions _ = return ()
 
@@ -142,7 +137,7 @@ activateExtensions _ = return ()
 parseCodeChunk :: GhcMonad m => String -> LineNumber -> m CodeBlock
 parseCodeChunk code startLine = do
   flags <- getSessionDynFlags
-  let 
+  let
       -- Try each parser in turn.
       rawResults = map (tryParser code) (parsers flags)
 
@@ -164,13 +159,13 @@ parseCodeChunk code startLine = do
 
     failures :: [ParseOutput a] -> [(ErrMsg, LineNumber, ColumnNumber)]
     failures [] = []
-    failures (Failure msg (Loc line col):rest) = (msg, line, col) : failures rest
+    failures (Failure msg (Loc ln col):rest) = (msg, ln, col) : failures rest
     failures (_:rest) = failures rest
 
     bestError :: [(ErrMsg, LineNumber, ColumnNumber)] -> CodeBlock
-    bestError errors = ParseError (Loc (line + startLine - 1) col) msg
+    bestError errors = ParseError (Loc (ln + startLine - 1) col) msg
       where
-        (msg, line, col) = maximumBy compareLoc errors
+        (msg, ln, col) = maximumBy compareLoc errors
         compareLoc (_, line1, col1) (_, line2, col2) = compare line1 line2 <> compare col1 col2
 
     statementToExpression :: DynFlags -> ParseOutput CodeBlock -> ParseOutput CodeBlock
@@ -189,11 +184,11 @@ parseCodeChunk code startLine = do
         _        -> False
 
     tryParser :: String -> (String -> CodeBlock, String -> ParseOutput String) -> ParseOutput CodeBlock
-    tryParser string (blockType, parser) =
-      case parser string of
+    tryParser string (blockType, psr) =
+      case psr string of
         Parsed res      -> Parsed (blockType res)
         Failure err loc -> Failure err loc
-        otherwise       -> error "tryParser failed, output was neither Parsed nor Failure"
+        _               -> error "tryParser failed, output was neither Parsed nor Failure"
 
     parsers :: DynFlags -> [(String -> CodeBlock, String -> ParseOutput String)]
     parsers flags =
@@ -204,10 +199,10 @@ parseCodeChunk code startLine = do
       ]
       where
         unparser :: Parser a -> String -> ParseOutput String
-        unparser parser code =
-          case runParser flags parser code of
-            Parsed out       -> Parsed code
-            Partial out strs -> Partial code strs
+        unparser psr cd =
+          case runParser flags psr cd of
+            Parsed _         -> Parsed cd
+            Partial _ strs   -> Partial cd strs
             Failure err loc  -> Failure err loc
 
 -- | Find consecutive declarations of the same function and join them into a single declaration.
@@ -239,11 +234,11 @@ joinFunctions blocks =
 parsePragma :: String       -- ^ Pragma string.
             -> Int          -- ^ Line number at which the directive appears.
             -> CodeBlock    -- ^ Pragma code block or a parse error.
-parsePragma ('{':'-':'#':pragma) line =
+parsePragma pragma _ln =
   let commaToSpace :: Char -> Char
       commaToSpace ',' = ' '
       commaToSpace x = x
-      pragmas = words $ takeWhile (/= '#') $ map commaToSpace pragma
+      pragmas = words $ takeWhile (/= '#') $ map commaToSpace $ drop 3 pragma
   in case pragmas of
     --empty string pragmas are unsupported
     [] -> Pragma (PragmaUnsupported "") []
@@ -256,8 +251,8 @@ parsePragma ('{':'-':'#':pragma) line =
 parseDirective :: String       -- ^ Directive string.
                -> Int          -- ^ Line number at which the directive appears.
                -> CodeBlock    -- ^ Directive code block or a parse error.
-parseDirective (':':'!':directive) line = Directive ShellCmd $ '!' : directive
-parseDirective (':':directive) line =
+parseDirective (':':'!':directive) _ln = Directive ShellCmd $ '!' : directive
+parseDirective (':':directive) ln =
   case find rightDirective directives of
     Just (directiveType, _) -> Directive directiveType arg
       where arg = unwords restLine
@@ -267,7 +262,7 @@ parseDirective (':':directive) line =
                             case words directive of
                               []      -> ""
                               first:_ -> first
-      in ParseError (Loc line 1) $ "Unknown directive: '" ++ directiveStart ++ "'."
+      in ParseError (Loc ln 1) $ "Unknown directive: '" ++ directiveStart ++ "'."
   where
     rightDirective (_, dirname) =
       case words directive of
@@ -298,8 +293,8 @@ getModuleName moduleSrc = do
   let output = runParser flags parserModule moduleSrc
   case output of
     Failure{} -> error "Module parsing failed."
-    Parsed mod ->
-      case unLoc <$> hsmodName (unLoc mod) of
+    Parsed mdl ->
+      case unLoc <$> hsmodName (unLoc mdl) of
         Nothing   -> error "Module must have a name."
         Just name -> return $ split "." $ moduleNameString name
-    otherwise -> error "getModuleName failed, output was neither Parsed nor Failure"
+    _ -> error "getModuleName failed, output was neither Parsed nor Failure"

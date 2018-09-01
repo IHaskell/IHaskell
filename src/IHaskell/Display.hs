@@ -42,7 +42,7 @@ module IHaskell.Display (
     -- ** Image and data encoding functions
     Width,
     Height,
-    Base64(..),
+    Base64,
     encode64,
     base64,
 
@@ -57,14 +57,10 @@ module IHaskell.Display (
 
 import           IHaskellPrelude
 import qualified Data.Text as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Char8 as CBS
 
 import           Data.Serialize as Serialize
 import qualified Data.ByteString.Base64 as Base64
-import           Data.Aeson (Value)
 import           System.Directory (getTemporaryDirectory, setCurrentDirectory)
 
 import           Control.Concurrent.STM (atomically)
@@ -79,28 +75,6 @@ import           IHaskell.Eval.Util (unfoldM)
 import           StringUtils (rstrip)
 
 type Base64 = Text
-
--- | these instances cause the image, html etc. which look like:
---
--- > Display
--- > [Display]
--- > IO [Display]
--- > IO (IO Display)
---
--- be run the IO and get rendered (if the frontend allows it) in the pretty form.
-instance IHaskellDisplay a => IHaskellDisplay (IO a) where
-  display = (display =<<)
-
-instance IHaskellDisplay Display where
-  display = return
-
-instance IHaskellDisplay DisplayData where
-  display disp = return $ Display [disp]
-
-instance IHaskellDisplay a => IHaskellDisplay [a] where
-  display disps = do
-    displays <- mapM display disps
-    return $ ManyDisplay displays
 
 -- | Encode many displays into a single one. All will be output.
 many :: [Display] -> Display
@@ -201,6 +175,7 @@ printDisplay disp = display disp >>= atomically . writeTChan displayChan
 
 -- | Convenience function for client libraries. Switch to a temporary directory so that any files we
 -- create aren't visible. On Unix, this is usually /tmp.
+switchToTmpDir :: IO ()
 switchToTmpDir = void (try switchDir :: IO (Either SomeException ()))
   where
     switchDir =

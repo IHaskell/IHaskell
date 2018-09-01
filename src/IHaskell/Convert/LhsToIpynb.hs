@@ -6,13 +6,11 @@ module IHaskell.Convert.LhsToIpynb (lhsToIpynb) where
 import           IHaskellPrelude
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
 import           Data.Aeson ((.=), encode, object, Value(Array, Bool, Number, String, Null))
 import           Data.Char (isSpace)
-import qualified Data.Vector as V (fromList, singleton)
+import qualified Data.Vector as V
 import qualified Data.List as List
 
 import           IHaskell.Flags (LhsStyle(LhsStyle))
@@ -97,12 +95,12 @@ boilerplate =
 
 groupClassified :: [CellLine LText] -> [Cell [LText]]
 groupClassified (CodeLine a:x)
-  | (c, x) <- List.span isCode x,
-    (_, x) <- List.span isEmptyMD x,
-    (o, x) <- List.span isOutput x
-  = Code (a : map untag c) (map untag o) : groupClassified x
+  | (c, x1) <- List.span isCode x,
+    (_, x2) <- List.span isEmptyMD x1,
+    (o, x3) <- List.span isOutput x2
+  = Code (a : map untag c) (map untag o) : groupClassified x3
 groupClassified (MarkdownLine a:x)
-  | (m, x) <- List.span isMD x = Markdown (a : map untag m) : groupClassified x
+  | (m, x1) <- List.span isMD x = Markdown (a : map untag m) : groupClassified x1
 groupClassified (OutputLine a:x) = Markdown [a] : groupClassified x
 groupClassified [] = []
 

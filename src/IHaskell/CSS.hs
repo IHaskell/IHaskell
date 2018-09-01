@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 module IHaskell.CSS (ihaskellCSS) where
 
 import           IHaskellPrelude
@@ -5,7 +6,7 @@ import           IHaskellPrelude
 ihaskellCSS :: String
 ihaskellCSS =
   unlines
-    [ 
+    [
     -- Custom IHaskell CSS
     "/* Styles used for the Hoogle display in the pager */"
     , ".hoogle-doc {"
@@ -42,7 +43,7 @@ ihaskellCSS =
     , ".hoogle-class {"
     , "font-weight: bold;"
     , "}"
-    , 
+    ,
     -- Styles used for basic displays
     ".get-type {"
     , "color: green;"
@@ -75,13 +76,13 @@ ihaskellCSS =
     , ".err-msg.in.collapse {"
     , "padding-top: 0.7em;"
     , "}"
-    , 
+    ,
     -- Code that will get highlighted before it is highlighted
     ".highlight-code {"
     , "white-space: pre;"
     , "font-family: monospace;"
     , "}"
-    , 
+    ,
     -- Hlint styles
     ".suggestion-warning { "
     , "font-weight: bold;"
