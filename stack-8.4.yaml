@@ -18,6 +18,10 @@ resolver: lts-12.8
 extra-deps:
 - magic-1.1
 
+ghc-options:
+  # Eventually we want "$locals": -Wall -Werror
+  ihaskell: -Wall -Werror
+
 nix:
   enable: false
   packages:
