@@ -14,6 +14,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE AutoDeriveTypeable #-}
+{-# LANGUAGE CPP #-}
 
 -- | This module houses all the type-trickery needed to make widgets happen.
 --
@@ -79,7 +80,12 @@ import           Data.Vinyl.Functor (Compose(..), Const(..))
 import           Data.Vinyl.Lens (rget, rput, type (∈))
 import           Data.Vinyl.TypeLevel (RecAll)
 
+#if MIN_VERSION_singletons(2,4,0)
+import           Data.Singletons.Prelude.List
+#else
 import           Data.Singletons.Prelude ((:++))
+#endif
+
 import           Data.Singletons.TH
 
 import           GHC.IO.Exception
@@ -91,6 +97,16 @@ import           IHaskell.IPython.Message.UUID
 import           IHaskell.Display.Widgets.Singletons (Field, SField)
 import qualified IHaskell.Display.Widgets.Singletons as S
 import           IHaskell.Display.Widgets.Common
+
+#if MIN_VERSION_singletons(2,4,0)
+-- Versions of the "singletons" package are tightly tied to the GHC version.
+-- Singletons versions 2.3.* and earlier used the type level operator ':++'
+-- for appending type level lists while 2.4.* and latter use the normal value
+-- level list append operator '++'.
+-- To maintain compatibility across GHC versions we keep using the ':++'
+-- operator for now.
+type (a :++ b) = a ++ b
+#endif
 
 -- Classes from IPython's widget hierarchy. Defined as such to reduce code duplication.
 type WidgetClass = '[S.ViewModule, S.ViewName, S.ModelModule, S.ModelName,
