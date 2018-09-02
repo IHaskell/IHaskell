@@ -39,7 +39,7 @@ module IHaskell.Types (
 
 import           IHaskellPrelude
 
-import           Data.Aeson (ToJSON, Value, (.=), object)
+import           Data.Aeson (ToJSON (..), Value, (.=), object)
 import           Data.Function (on)
 import           Data.Serialize
 import           GHC.Generics
@@ -268,4 +268,4 @@ dupHeader :: MessageHeader -> MessageType -> IO MessageHeader
 dupHeader hdr messageType = do
   uuid <- liftIO random
 
-  return hdr { messageId = uuid, msgType = messageType }
+  return hdr { mhMessageId = uuid, mhMsgType = messageType }

@@ -33,7 +33,6 @@ import           GHC.IO.Handle
 import           GHC.IO.Handle.Types
 import           System.Posix.IO
 import           System.IO.Unsafe
-import qualified Data.Map as Map
 
 import           IHaskell.IPython.Types
 import           IHaskell.IPython.ZeroMQ
@@ -88,15 +87,8 @@ getInputLine dir = do
   -- Send a request for input.
   uuid <- UUID.random
   parentHdr <- fromJust . readMay <$> readFile (dir ++ "/.last-req-header")
-  let hdr = MessageHeader
-        { username = username parentHdr
-        , identifiers = identifiers parentHdr
-        , parentHeader = Just parentHdr
-        , messageId = uuid
-        , sessionId = sessionId parentHdr
-        , metadata = Map.fromList []
-        , msgType = InputRequestMessage
-        }
+  let hdr = MessageHeader (mhIdentifiers parentHdr) (Just parentHdr) mempty
+              uuid (mhSessionId parentHdr) (mhUsername parentHdr) InputRequestMessage
   let msg = RequestInput hdr ""
   writeChan req msg
 

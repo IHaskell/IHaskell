@@ -195,7 +195,7 @@ runKernel kOpts profileSrc = do
       installHandler keyboardSignal (CatchOnce $ putStrLn "Press Ctrl-C again to quit kernel.")
         Nothing
 
-    isCommMessage req = msgType (header req) `elem` [CommDataMessage, CommCloseMessage]
+    isCommMessage req = mhMsgType (header req) `elem` [CommDataMessage, CommCloseMessage]
 
 -- Initial kernel state.
 initialKernelState :: IO (MVar KernelState)
@@ -206,19 +206,11 @@ createReplyHeader :: MessageHeader -> Interpreter MessageHeader
 createReplyHeader parent = do
   -- Generate a new message UUID.
   newMessageId <- liftIO UUID.random
-  let repType = fromMaybe err (replyType $ msgType parent)
-      err = error $ "No reply for message " ++ show (msgType parent)
+  let repType = fromMaybe err (replyType $ mhMsgType parent)
+      err = error $ "No reply for message " ++ show (mhMsgType parent)
 
-  return
-    MessageHeader
-      { identifiers = identifiers parent
-      , parentHeader = Just parent
-      , metadata = Map.fromList []
-      , messageId = newMessageId
-      , sessionId = sessionId parent
-      , username = username parent
-      , msgType = repType
-      }
+  return $ MessageHeader (mhIdentifiers parent) (Just parent) mempty
+            newMessageId (mhSessionId parent) (mhUsername parent) repType
 
 -- | Compute a reply to a message.
 replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> Interpreter (KernelState, Message)
@@ -432,7 +424,7 @@ handleComm send kernelState req replyHeader = do
   newState <- case Map.lookup uuid widgets of
     Nothing -> return kernelState
     Just (Widget widget) ->
-      case msgType $ header req of
+      case mhMsgType $ header req of
         CommDataMessage -> do
           disp <- run $ comm widget dat communicate
           pgrOut <- liftIO $ readMVar pOut

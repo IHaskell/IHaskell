@@ -17,11 +17,7 @@ import HsSyn
 import OrdList
 
 -- compiler/parser
-import RdrHsSyn
 import Lexer
-
--- compiler/basicTypes
-import RdrName
 
 fullStatement :: P (Maybe (LStmt GhcPs (LHsExpr GhcPs)))
 fullStatement = parseStmt

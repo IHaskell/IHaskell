@@ -19,6 +19,7 @@ packages:
 
 ghc-options:
   # Eventually we want "$locals": -Wall -Werror
+  ghc-parser: -Wall -Werror
   ihaskell: -Wall -Werror
 
 allow-newer: true
