@@ -50,6 +50,11 @@ extra-source-files:  README.md, MsgSpec.md
 cabal-version:       >=1.10
 
 library
+  ghc-options:         -Wall
+
+  if impl (ghc >= 8.4)
+    ghc-options:       -Wpartial-fields
+
   -- Modules exported by the library.
   exposed-modules:     IHaskell.Display.Widgets
                        IHaskell.Display.Widgets.Interactive

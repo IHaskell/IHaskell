@@ -3,11 +3,14 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.Int.BoundedInt.IntProgress (
--- * The IntProgress Widget
-IntProgress, 
-             -- * Constructor
-             mkIntProgress) where
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
+
+module IHaskell.Display.Widgets.Int.BoundedInt.IntProgress
+  ( -- * The IntProgress Widget
+    IntProgress
+    -- * Constructor
+  , mkIntProgress
+  ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -24,13 +27,13 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
 -- | 'IntProgress' represents an IntProgress widget from IPython.html.widgets.
-type IntProgress = IPythonWidget IntProgressType
+type IntProgress = IPythonWidget 'IntProgressType
 
 -- | Create a new widget
 mkIntProgress :: IO IntProgress
 mkIntProgress = do
   -- Default properties, with a random uuid
-  uuid <- U.random
+  wid <- U.random
 
   let boundedIntAttrs = defaultBoundedIntWidget "ProgressView" "ProgressModel"
       progressAttrs = (Orientation =:: HorizontalOrientation)
@@ -40,7 +43,7 @@ mkIntProgress = do
 
   stateIO <- newIORef widgetState
 
-  let widget = IPythonWidget uuid stateIO
+  let widget = IPythonWidget wid stateIO
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget $ toJSON widgetState

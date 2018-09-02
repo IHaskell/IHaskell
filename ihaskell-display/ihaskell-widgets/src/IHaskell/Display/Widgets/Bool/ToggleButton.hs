@@ -3,19 +3,21 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.Bool.ToggleButton (
--- * The ToggleButton Widget
-ToggleButton, 
-              -- * Constructor
-              mkToggleButton) where
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
+
+module IHaskell.Display.Widgets.Bool.ToggleButton
+  ( -- * The ToggleButton Widget
+    ToggleButton
+    -- * Constructor
+  , mkToggleButton
+  ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
+import           Control.Monad (void)
 import           Data.Aeson
-import           Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
-import           Data.Text (Text)
 import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
@@ -26,13 +28,13 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
 -- | A 'ToggleButton' represents a ToggleButton widget from IPython.html.widgets.
-type ToggleButton = IPythonWidget ToggleButtonType
+type ToggleButton = IPythonWidget 'ToggleButtonType
 
 -- | Create a new output widget
 mkToggleButton :: IO ToggleButton
 mkToggleButton = do
   -- Default properties, with a random uuid
-  uuid <- U.random
+  wid <- U.random
 
   let boolState = defaultBoolWidget "ToggleButtonView" "ToggleButtonModel"
       toggleState = (Tooltip =:: "")
@@ -43,7 +45,7 @@ mkToggleButton = do
 
   stateIO <- newIORef widgetState
 
-  let widget = IPythonWidget uuid stateIO
+  let widget = IPythonWidget wid stateIO
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget $ toJSON widgetState
@@ -58,10 +60,9 @@ instance IHaskellDisplay ToggleButton where
 
 instance IHaskellWidget ToggleButton where
   getCommUUID = uuid
-  comm widget (Object dict1) _ = do
-    let key1 = "sync_data" :: Text
-        key2 = "value" :: Text
-        Just (Object dict2) = HM.lookup key1 dict1
-        Just (Bool value) = HM.lookup key2 dict2
-    setField' widget BoolValue value
-    triggerChange widget
+  comm widget val _ =
+    case nestedObjectLookup val ["sync_data", "value"] of
+      Just (Bool value) -> do
+        void $ setField' widget BoolValue value
+        triggerChange widget
+      _ -> pure ()

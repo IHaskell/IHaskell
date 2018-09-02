@@ -8,11 +8,16 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE CPP #-}
 
 module IHaskell.Display.Widgets.Singletons where
 
 import           Data.Singletons.TH
+
+#if MIN_VERSION_singletons(2,4,0)
+#else
 import           Data.Singletons.Prelude.Ord
+#endif
 
 -- Widget properties
 singletons

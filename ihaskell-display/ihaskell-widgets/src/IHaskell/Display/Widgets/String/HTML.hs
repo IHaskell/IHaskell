@@ -3,11 +3,14 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.String.HTML (
--- * The HTML Widget
-HTMLWidget, 
-            -- * Constructor
-            mkHTMLWidget) where
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
+module IHaskell.Display.Widgets.String.HTML
+  ( -- * The HTML Widget
+    HTMLWidget
+    -- * Constructor
+  , mkHTMLWidget
+  ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -22,18 +25,18 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 
 -- | A 'HTMLWidget' represents a HTML widget from IPython.html.widgets.
-type HTMLWidget = IPythonWidget HTMLType
+type HTMLWidget = IPythonWidget 'HTMLType
 
 -- | Create a new HTML widget
 mkHTMLWidget :: IO HTMLWidget
 mkHTMLWidget = do
   -- Default properties, with a random uuid
-  uuid <- U.random
+  wid <- U.random
   let widgetState = WidgetState $ defaultStringWidget "HTMLView" "HTMLModel"
 
   stateIO <- newIORef widgetState
 
-  let widget = IPythonWidget uuid stateIO
+  let widget = IPythonWidget wid stateIO
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget $ toJSON widgetState

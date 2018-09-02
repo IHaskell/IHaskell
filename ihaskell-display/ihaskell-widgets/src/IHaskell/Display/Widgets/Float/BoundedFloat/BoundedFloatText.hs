@@ -3,21 +3,22 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.Float.BoundedFloat.BoundedFloatText (
--- * The BoundedFloatText
--- Widget
-BoundedFloatText, 
-                  -- * Constructor
-                  mkBoundedFloatText) where
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
+
+module IHaskell.Display.Widgets.Float.BoundedFloat.BoundedFloatText
+  ( -- * The BoundedFloatText Widget
+    BoundedFloatText
+    -- * Constructor
+  , mkBoundedFloatText
+  ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
+import           Control.Monad (void)
 import           Data.Aeson
-import qualified Data.HashMap.Strict as HM
 import           Data.IORef (newIORef)
 import qualified Data.Scientific as Sci
-import           Data.Text (Text)
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -27,19 +28,19 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
 -- | 'BoundedFloatText' represents an BoundedFloatText widget from IPython.html.widgets.
-type BoundedFloatText = IPythonWidget BoundedFloatTextType
+type BoundedFloatText = IPythonWidget 'BoundedFloatTextType
 
 -- | Create a new widget
 mkBoundedFloatText :: IO BoundedFloatText
 mkBoundedFloatText = do
   -- Default properties, with a random uuid
-  uuid <- U.random
+  wid <- U.random
 
   let widgetState = WidgetState $ defaultBoundedFloatWidget "FloatTextView" "FloatTextModel"
 
   stateIO <- newIORef widgetState
 
-  let widget = IPythonWidget uuid stateIO
+  let widget = IPythonWidget wid stateIO
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget $ toJSON widgetState
@@ -54,10 +55,9 @@ instance IHaskellDisplay BoundedFloatText where
 
 instance IHaskellWidget BoundedFloatText where
   getCommUUID = uuid
-  comm widget (Object dict1) _ = do
-    let key1 = "sync_data" :: Text
-        key2 = "value" :: Text
-        Just (Object dict2) = HM.lookup key1 dict1
-        Just (Number value) = HM.lookup key2 dict2
-    setField' widget FloatValue (Sci.toRealFloat value)
-    triggerChange widget
+  comm widget val _ =
+    case nestedObjectLookup val ["sync_data", "value"] of
+      Just (Number value) -> do
+        void $ setField' widget FloatValue (Sci.toRealFloat value)
+        triggerChange widget
+      _ -> pure ()
