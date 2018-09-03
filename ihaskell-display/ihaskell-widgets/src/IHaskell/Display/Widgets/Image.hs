@@ -3,11 +3,14 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.Image (
--- * The Image Widget
-ImageWidget, 
-             -- * Constructor
-             mkImageWidget) where
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
+module IHaskell.Display.Widgets.Image
+  ( -- * The Image Widget
+    ImageWidget
+    -- * Constructor
+  , mkImageWidget
+  ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -25,13 +28,13 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
 -- | An 'ImageWidget' represents a Image widget from IPython.html.widgets.
-type ImageWidget = IPythonWidget ImageType
+type ImageWidget = IPythonWidget 'ImageType
 
 -- | Create a new image widget
 mkImageWidget :: IO ImageWidget
 mkImageWidget = do
   -- Default properties, with a random uuid
-  uuid <- U.random
+  wid <- U.random
 
   let dom = defaultDOMWidget "ImageView" "ImageModel"
       img = (ImageFormat =:: PNG)
@@ -43,7 +46,7 @@ mkImageWidget = do
 
   stateIO <- newIORef widgetState
 
-  let widget = IPythonWidget uuid stateIO
+  let widget = IPythonWidget wid stateIO
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget $ toJSON widgetState

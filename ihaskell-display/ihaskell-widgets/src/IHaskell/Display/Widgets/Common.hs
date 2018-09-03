@@ -7,10 +7,16 @@
 {-# LANGUAGE AutoDeriveTypeable #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
+-- There are lots of pattern synpnyms, and little would be gained by adding
+-- the type signatures.
+{-# OPTIONS_GHC -fno-warn-missing-pattern-synonym-signatures #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+
 module IHaskell.Display.Widgets.Common where
 
 import           Data.Aeson
 import           Data.Aeson.Types (emptyObject)
+import           Data.HashMap.Strict as HM
 import           Data.Text (pack, Text)
 import           Data.Typeable (Typeable)
 
@@ -268,3 +274,11 @@ instance ToJSON LocationValue where
   toJSON EndLocation = "end"
   toJSON BaselineLocation = "baseline"
   toJSON StretchLocation = "stretch"
+
+-- Could use 'lens-aeson' here but this is easier to read.
+nestedObjectLookup :: Value -> [Text] -> Maybe Value
+nestedObjectLookup val [] = Just val
+nestedObjectLookup val (x:xs) =
+  case val of
+    Object o -> maybe Nothing (`nestedObjectLookup` xs) $ HM.lookup x o
+    _ -> Nothing

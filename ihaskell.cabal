@@ -50,6 +50,10 @@ library
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall
+
+  if impl (ghc >= 8.4)
+    ghc-options:       -Wpartial-fields
+
   build-depends:
                        aeson                >=1.0,
                        base                 >=4.9,
@@ -123,6 +127,9 @@ executable ihaskell
                    Paths_ihaskell
   ghc-options: -threaded -rtsopts -Wall
 
+  if impl (ghc >= 8.4)
+    ghc-options:       -Wpartial-fields
+
   -- Other library packages from which modules are imported.
   default-language:    Haskell2010
   build-depends:
@@ -143,6 +150,10 @@ executable ihaskell
 Test-Suite hspec
     Type: exitcode-stdio-1.0
     Ghc-Options: -threaded -Wall
+
+    if impl (ghc >= 8.4)
+      ghc-options:     -Wpartial-fields
+
     Main-Is: Hspec.hs
     hs-source-dirs: src/tests
     other-modules:

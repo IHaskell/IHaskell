@@ -3,11 +3,14 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.Bool.Valid (
--- * The Valid Widget
-ValidWidget, 
-             -- * Constructor
-             mkValidWidget) where
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
+
+module IHaskell.Display.Widgets.Bool.Valid
+  ( -- * The Valid Widget
+    ValidWidget
+    -- * Constructor
+  , mkValidWidget
+  ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -24,13 +27,13 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
 -- | A 'ValidWidget' represents a Valid widget from IPython.html.widgets.
-type ValidWidget = IPythonWidget ValidType
+type ValidWidget = IPythonWidget 'ValidType
 
 -- | Create a new output widget
 mkValidWidget :: IO ValidWidget
 mkValidWidget = do
   -- Default properties, with a random uuid
-  uuid <- U.random
+  wid <- U.random
 
   let boolState = defaultBoolWidget "ValidView" "ValidModel"
       validState = (ReadOutMsg =:: "") :& RNil
@@ -38,7 +41,7 @@ mkValidWidget = do
 
   stateIO <- newIORef widgetState
 
-  let widget = IPythonWidget uuid stateIO
+  let widget = IPythonWidget wid stateIO
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget $ toJSON widgetState

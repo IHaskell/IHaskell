@@ -36,7 +36,7 @@ import           System.IO (hGetChar, hSetEncoding, utf8)
 import           System.Random (getStdGen, randomRs)
 import           System.Process
 import           System.Exit
-import           Data.Maybe (fromJust)
+import           Data.Maybe (mapMaybe)
 import           System.Environment (getEnv)
 
 import qualified GHC.Paths
@@ -532,7 +532,7 @@ evalCommand _output (Directive SetDynFlag flagsStr) state = safely state $ do
           }
     else do
       -- Apply all IHaskell flag updaters to the state to get the new state
-      let state' = foldl' (.) id (map (fromJust . ihaskellFlagUpdater) ihaskellFlags) state
+      let state' = foldl' (.) id (mapMaybe ihaskellFlagUpdater ihaskellFlags) state
       errs <- setFlags ghcFlags
       let disp =
             case errs of
@@ -689,21 +689,18 @@ evalCommand publish (Directive ShellCmd cmd) state = wrapExecution state $
             modifyMVar_ outputAccum (return . (++ nextChunk))
 
             -- Check if we're done.
-            exitCode <- getProcessExitCode process
-            let computationDone = isJust exitCode
-
-            when computationDone $ do
-              next <- readChars pipe "" maxSize
-              modifyMVar_ outputAccum (return . (++ next))
-
-            if not computationDone
-              then do
+            mExitCode <- getProcessExitCode process
+            case mExitCode of
+              Nothing -> do
+                -- Process still running
+                next <- readChars pipe "" maxSize
+                modifyMVar_ outputAccum (return . (++ next))
                 -- Write to frontend and repeat.
                 readMVar outputAccum >>= output
                 loop
-              else do
+              Just exitCode -> do
                 out <- readMVar outputAccum
-                case fromJust exitCode of
+                case exitCode of
                   ExitSuccess -> return $ Display [plain out]
                   ExitFailure code -> do
                     let errMsg = "Process exited with error code " ++ show code

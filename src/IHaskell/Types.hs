@@ -19,6 +19,7 @@ module IHaskell.Types (
     MimeType(..),
     DisplayData(..),
     EvaluationResult(..),
+    evaluationOutputs,
     ExecuteReplyStatus(..),
     KernelState(..),
     LintStatus(..),
@@ -248,20 +249,22 @@ instance ToJSON WidgetMethod where
   toJSON (CustomContent v) = object ["method" .= ("custom" :: Text), "content" .= v]
 
 -- | Output of evaluation.
-data EvaluationResult =
-                      -- | An intermediate result which communicates what has been printed thus
-                      -- far.
-                        IntermediateResult
-                          { outputs :: Display -- ^ Display outputs.
-                          }
-                      |
-                        FinalResult
-                          { outputs :: Display       -- ^ Display outputs.
-                          , pagerOut :: [DisplayData] -- ^ Mimebundles to display in the IPython
-                                                      -- pager.
-                          , commMsgs :: [WidgetMsg]  -- ^ Comm operations
-                          }
+data EvaluationResult
+  -- | An intermediate result which communicates what has been printed thus far.
+  = IntermediateResult
+        !Display -- ^ Display outputs.
+  | FinalResult
+        !Display       -- ^ Display outputs.
+        ![DisplayData] -- ^ Mimebundles to display in the IPython pager.
+        ![WidgetMsg]  -- ^ Comm operations
   deriving Show
+
+
+evaluationOutputs :: EvaluationResult -> Display
+evaluationOutputs er =
+  case er of
+    IntermediateResult outputs -> outputs
+    FinalResult outputs _ _ -> outputs
 
 -- | Duplicate a message header, giving it a new UUID and message type.
 dupHeader :: MessageHeader -> MessageType -> IO MessageHeader

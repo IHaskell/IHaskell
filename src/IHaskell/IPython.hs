@@ -196,9 +196,8 @@ subHome path = SH.shelly $ do
 parseVersion :: String -> Maybe [Int]
 parseVersion versionStr =
   let versions = map readMay $ split "." versionStr
-      parsed = all isJust versions
-  in if parsed
-       then Just $ map fromJust versions
+  in if all isJust versions
+       then Just $ catMaybes versions
        else Nothing
 
 -- | Get the absolute path to this IHaskell executable.

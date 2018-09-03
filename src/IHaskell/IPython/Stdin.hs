@@ -31,6 +31,7 @@ import           Control.Concurrent
 import           Control.Applicative ((<$>))
 import           GHC.IO.Handle
 import           GHC.IO.Handle.Types
+import           System.FilePath ((</>))
 import           System.Posix.IO
 import           System.IO.Unsafe
 
@@ -47,7 +48,9 @@ stdinInterface = unsafePerformIO newEmptyMVar
 fixStdin :: String -> IO ()
 fixStdin dir = do
   -- Initialize the stdin interface.
-  profile <- fromJust . readMay <$> readFile (dir ++ "/.kernel-profile")
+  let fpath = dir </> ".kernel-profile"
+  profile <- fromMaybe (error $ "fixStdin: Failed reading " ++ fpath)
+              . readMay <$> readFile fpath
   interface <- serveStdin profile
   putMVar stdinInterface interface
   void $ forkIO $ stdinOnce dir
@@ -86,7 +89,9 @@ getInputLine dir = do
 
   -- Send a request for input.
   uuid <- UUID.random
-  parentHdr <- fromJust . readMay <$> readFile (dir ++ "/.last-req-header")
+  let fpath = dir </> ".last-req-header"
+  parentHdr <- fromMaybe (error $ "getInputLine: Failed reading " ++ fpath)
+                . readMay <$> readFile fpath
   let hdr = MessageHeader (mhIdentifiers parentHdr) (Just parentHdr) mempty
               uuid (mhSessionId parentHdr) (mhUsername parentHdr) InputRequestMessage
   let msg = RequestInput hdr ""

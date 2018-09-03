@@ -16,6 +16,9 @@
 {-# LANGUAGE AutoDeriveTypeable #-}
 {-# LANGUAGE CPP #-}
 
+-- Can't make the compiler accept this file without this.
+{-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
+
 -- | This module houses all the type-trickery needed to make widgets happen.
 --
 -- All widgets have a corresponding 'WidgetType', and some fields/attributes/properties as defined
@@ -72,9 +75,9 @@ import           System.IO.Error
 import           System.Posix.IO
 import           Text.Printf (printf)
 
-import           Data.Aeson
+import           Data.Aeson hiding (pairs)
 import           Data.Aeson.Types (Pair)
-
+import           Data.Int (Int16)
 import           Data.Vinyl (Rec(..), (<+>), recordToList, reifyConstraint, rmap, Dict(..))
 import           Data.Vinyl.Functor (Compose(..), Const(..))
 import           Data.Vinyl.Lens (rget, rput, type (∈))
@@ -109,123 +112,123 @@ type (a :++ b) = a ++ b
 #endif
 
 -- Classes from IPython's widget hierarchy. Defined as such to reduce code duplication.
-type WidgetClass = '[S.ViewModule, S.ViewName, S.ModelModule, S.ModelName,
-  S.MsgThrottle, S.Version, S.DisplayHandler]
+type WidgetClass = ['S.ViewModule, 'S.ViewName, 'S.ModelModule, 'S.ModelName,
+  'S.MsgThrottle, 'S.Version, 'S.DisplayHandler]
 
-type DOMWidgetClass = WidgetClass :++ '[S.Visible, S.CSS, S.DOMClasses, S.Width, S.Height, S.Padding,
-  S.Margin, S.Color, S.BackgroundColor, S.BorderColor, S.BorderWidth,
-  S.BorderRadius, S.BorderStyle, S.FontStyle, S.FontWeight,
-  S.FontSize, S.FontFamily]
+type DOMWidgetClass = WidgetClass :++ ['S.Visible, 'S.CSS, 'S.DOMClasses, 'S.Width, 'S.Height, 'S.Padding,
+  'S.Margin, 'S.Color, 'S.BackgroundColor, 'S.BorderColor, 'S.BorderWidth,
+  'S.BorderRadius, 'S.BorderStyle, 'S.FontStyle, 'S.FontWeight,
+  'S.FontSize, 'S.FontFamily]
 
-type StringClass = DOMWidgetClass :++ '[S.StringValue, S.Disabled, S.Description, S.Placeholder]
+type StringClass = DOMWidgetClass :++ ['S.StringValue, 'S.Disabled, 'S.Description, 'S.Placeholder]
 
-type BoolClass = DOMWidgetClass :++ '[S.BoolValue, S.Disabled, S.Description, S.ChangeHandler]
+type BoolClass = DOMWidgetClass :++ ['S.BoolValue, 'S.Disabled, 'S.Description, 'S.ChangeHandler]
 
-type SelectionClass = DOMWidgetClass :++ '[S.Options, S.SelectedValue, S.SelectedLabel, S.Disabled,
-  S.Description, S.SelectionHandler]
+type SelectionClass = DOMWidgetClass :++ ['S.Options, 'S.SelectedValue, 'S.SelectedLabel, 'S.Disabled,
+  'S.Description, 'S.SelectionHandler]
 
-type MultipleSelectionClass = DOMWidgetClass :++ '[S.Options, S.SelectedValues, S.SelectedLabels, S.Disabled,
-  S.Description, S.SelectionHandler]
+type MultipleSelectionClass = DOMWidgetClass :++ ['S.Options, 'S.SelectedValues, 'S.SelectedLabels, 'S.Disabled,
+  'S.Description, 'S.SelectionHandler]
 
-type IntClass = DOMWidgetClass :++ '[S.IntValue, S.Disabled, S.Description, S.ChangeHandler]
+type IntClass = DOMWidgetClass :++ ['S.IntValue, 'S.Disabled, 'S.Description, 'S.ChangeHandler]
 
-type BoundedIntClass = IntClass :++ '[S.StepInt, S.MinInt, S.MaxInt]
+type BoundedIntClass = IntClass :++ ['S.StepInt, 'S.MinInt, 'S.MaxInt]
 
-type IntRangeClass = IntClass :++ '[S.IntPairValue, S.LowerInt, S.UpperInt]
+type IntRangeClass = IntClass :++ ['S.IntPairValue, 'S.LowerInt, 'S.UpperInt]
 
-type BoundedIntRangeClass = IntRangeClass :++ '[S.StepInt, S.MinInt, S.MaxInt]
+type BoundedIntRangeClass = IntRangeClass :++ ['S.StepInt, 'S.MinInt, 'S.MaxInt]
 
-type FloatClass = DOMWidgetClass :++ '[S.FloatValue, S.Disabled, S.Description, S.ChangeHandler]
+type FloatClass = DOMWidgetClass :++ ['S.FloatValue, 'S.Disabled, 'S.Description, 'S.ChangeHandler]
 
-type BoundedFloatClass = FloatClass :++ '[S.StepFloat, S.MinFloat, S.MaxFloat]
+type BoundedFloatClass = FloatClass :++ ['S.StepFloat, 'S.MinFloat, 'S.MaxFloat]
 
-type FloatRangeClass = FloatClass :++ '[S.FloatPairValue, S.LowerFloat, S.UpperFloat]
+type FloatRangeClass = FloatClass :++ ['S.FloatPairValue, 'S.LowerFloat, 'S.UpperFloat]
 
-type BoundedFloatRangeClass = FloatRangeClass :++ '[S.StepFloat, S.MinFloat, S.MaxFloat]
+type BoundedFloatRangeClass = FloatRangeClass :++ ['S.StepFloat, 'S.MinFloat, 'S.MaxFloat]
 
-type BoxClass = DOMWidgetClass :++ '[S.Children, S.OverflowX, S.OverflowY, S.BoxStyle]
+type BoxClass = DOMWidgetClass :++ ['S.Children, 'S.OverflowX, 'S.OverflowY, 'S.BoxStyle]
 
-type SelectionContainerClass = BoxClass :++ '[S.Titles, S.SelectedIndex, S.ChangeHandler]
+type SelectionContainerClass = BoxClass :++ ['S.Titles, 'S.SelectedIndex, 'S.ChangeHandler]
 
 -- Types associated with Fields.
 
 type family FieldType (f :: Field) :: * where
-        FieldType S.ViewModule = Text
-        FieldType S.ViewName = Text
-        FieldType S.ModelModule = Text
-        FieldType S.ModelName = Text
-        FieldType S.MsgThrottle = Integer
-        FieldType S.Version = Integer
-        FieldType S.DisplayHandler = IO ()
-        FieldType S.Visible = Bool
-        FieldType S.CSS = [(Text, Text, Text)]
-        FieldType S.DOMClasses = [Text]
-        FieldType S.Width = PixCount
-        FieldType S.Height = PixCount
-        FieldType S.Padding = PixCount
-        FieldType S.Margin = PixCount
-        FieldType S.Color = Text
-        FieldType S.BackgroundColor = Text
-        FieldType S.BorderColor = Text
-        FieldType S.BorderWidth = PixCount
-        FieldType S.BorderRadius = PixCount
-        FieldType S.BorderStyle = BorderStyleValue
-        FieldType S.FontStyle = FontStyleValue
-        FieldType S.FontWeight = FontWeightValue
-        FieldType S.FontSize = PixCount
-        FieldType S.FontFamily = Text
-        FieldType S.Description = Text
-        FieldType S.ClickHandler = IO ()
-        FieldType S.SubmitHandler = IO ()
-        FieldType S.Disabled = Bool
-        FieldType S.StringValue = Text
-        FieldType S.Placeholder = Text
-        FieldType S.Tooltip = Text
-        FieldType S.Icon = Text
-        FieldType S.ButtonStyle = ButtonStyleValue
-        FieldType S.B64Value = Base64
-        FieldType S.ImageFormat = ImageFormatValue
-        FieldType S.BoolValue = Bool
-        FieldType S.Options = SelectionOptions
-        FieldType S.SelectedLabel = Text
-        FieldType S.SelectedValue = Text
-        FieldType S.SelectionHandler = IO ()
-        FieldType S.Tooltips = [Text]
-        FieldType S.Icons = [Text]
-        FieldType S.SelectedLabels = [Text]
-        FieldType S.SelectedValues = [Text]
-        FieldType S.IntValue = Integer
-        FieldType S.StepInt = Integer
-        FieldType S.MinInt = Integer
-        FieldType S.MaxInt = Integer
-        FieldType S.LowerInt = Integer
-        FieldType S.UpperInt = Integer
-        FieldType S.IntPairValue = (Integer, Integer)
-        FieldType S.Orientation = OrientationValue
-        FieldType S.ShowRange = Bool
-        FieldType S.ReadOut = Bool
-        FieldType S.SliderColor = Text
-        FieldType S.BarStyle = BarStyleValue
-        FieldType S.FloatValue = Double
-        FieldType S.StepFloat = Double
-        FieldType S.MinFloat = Double
-        FieldType S.MaxFloat = Double
-        FieldType S.LowerFloat = Double
-        FieldType S.UpperFloat = Double
-        FieldType S.FloatPairValue = (Double, Double)
-        FieldType S.ChangeHandler = IO ()
-        FieldType S.Children = [ChildWidget]
-        FieldType S.OverflowX = OverflowValue
-        FieldType S.OverflowY = OverflowValue
-        FieldType S.BoxStyle = BoxStyleValue
-        FieldType S.Flex = Int
-        FieldType S.Pack = LocationValue
-        FieldType S.Align = LocationValue
-        FieldType S.Titles = [Text]
-        FieldType S.SelectedIndex = Integer
-        FieldType S.ReadOutMsg = Text
-        FieldType S.Child = Maybe ChildWidget
-        FieldType S.Selector = Text
+        FieldType 'S.ViewModule = Text
+        FieldType 'S.ViewName = Text
+        FieldType 'S.ModelModule = Text
+        FieldType 'S.ModelName = Text
+        FieldType 'S.MsgThrottle = Integer
+        FieldType 'S.Version = Integer
+        FieldType 'S.DisplayHandler = IO ()
+        FieldType 'S.Visible = Bool
+        FieldType 'S.CSS = [(Text, Text, Text)]
+        FieldType 'S.DOMClasses = [Text]
+        FieldType 'S.Width = PixCount
+        FieldType 'S.Height = PixCount
+        FieldType 'S.Padding = PixCount
+        FieldType 'S.Margin = PixCount
+        FieldType 'S.Color = Text
+        FieldType 'S.BackgroundColor = Text
+        FieldType 'S.BorderColor = Text
+        FieldType 'S.BorderWidth = PixCount
+        FieldType 'S.BorderRadius = PixCount
+        FieldType 'S.BorderStyle = BorderStyleValue
+        FieldType 'S.FontStyle = FontStyleValue
+        FieldType 'S.FontWeight = FontWeightValue
+        FieldType 'S.FontSize = PixCount
+        FieldType 'S.FontFamily = Text
+        FieldType 'S.Description = Text
+        FieldType 'S.ClickHandler = IO ()
+        FieldType 'S.SubmitHandler = IO ()
+        FieldType 'S.Disabled = Bool
+        FieldType 'S.StringValue = Text
+        FieldType 'S.Placeholder = Text
+        FieldType 'S.Tooltip = Text
+        FieldType 'S.Icon = Text
+        FieldType 'S.ButtonStyle = ButtonStyleValue
+        FieldType 'S.B64Value = Base64
+        FieldType 'S.ImageFormat = ImageFormatValue
+        FieldType 'S.BoolValue = Bool
+        FieldType 'S.Options = SelectionOptions
+        FieldType 'S.SelectedLabel = Text
+        FieldType 'S.SelectedValue = Text
+        FieldType 'S.SelectionHandler = IO ()
+        FieldType 'S.Tooltips = [Text]
+        FieldType 'S.Icons = [Text]
+        FieldType 'S.SelectedLabels = [Text]
+        FieldType 'S.SelectedValues = [Text]
+        FieldType 'S.IntValue = Integer
+        FieldType 'S.StepInt = Integer
+        FieldType 'S.MinInt = Integer
+        FieldType 'S.MaxInt = Integer
+        FieldType 'S.LowerInt = Integer
+        FieldType 'S.UpperInt = Integer
+        FieldType 'S.IntPairValue = (Integer, Integer)
+        FieldType 'S.Orientation = OrientationValue
+        FieldType 'S.ShowRange = Bool
+        FieldType 'S.ReadOut = Bool
+        FieldType 'S.SliderColor = Text
+        FieldType 'S.BarStyle = BarStyleValue
+        FieldType 'S.FloatValue = Double
+        FieldType 'S.StepFloat = Double
+        FieldType 'S.MinFloat = Double
+        FieldType 'S.MaxFloat = Double
+        FieldType 'S.LowerFloat = Double
+        FieldType 'S.UpperFloat = Double
+        FieldType 'S.FloatPairValue = (Double, Double)
+        FieldType 'S.ChangeHandler = IO ()
+        FieldType 'S.Children = [ChildWidget]
+        FieldType 'S.OverflowX = OverflowValue
+        FieldType 'S.OverflowY = OverflowValue
+        FieldType 'S.BoxStyle = BoxStyleValue
+        FieldType 'S.Flex = Int
+        FieldType 'S.Pack = LocationValue
+        FieldType 'S.Align = LocationValue
+        FieldType 'S.Titles = [Text]
+        FieldType 'S.SelectedIndex = Integer
+        FieldType 'S.ReadOutMsg = Text
+        FieldType 'S.Child = Maybe ChildWidget
+        FieldType 'S.Selector = Text
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
 data ChildWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => ChildWidget (IPythonWidget w)
@@ -241,16 +244,16 @@ class CustomBounded a where
 
 -- Set according to what IPython widgets use
 instance CustomBounded PixCount where
-  upperBound = 10 ^ 16 - 1
-  lowerBound = -(10 ^ 16 - 1)
+  lowerBound = - fromIntegral (maxBound :: Int16)
+  upperBound = fromIntegral (maxBound :: Int16)
 
 instance CustomBounded Integer where
-  lowerBound = -(10 ^ 16 - 1)
-  upperBound = 10 ^ 16 - 1
+  lowerBound = - fromIntegral (maxBound :: Int16)
+  upperBound = fromIntegral (maxBound :: Int16)
 
 instance CustomBounded Double where
-  lowerBound = -(10 ** 16 - 1)
-  upperBound = 10 ** 16 - 1
+  lowerBound = - fromIntegral (maxBound :: Int16)
+  upperBound = fromIntegral (maxBound :: Int16)
 
 -- Different types of widgets. Every widget in IPython has a corresponding WidgetType
 data WidgetType = ButtonType
@@ -285,51 +288,52 @@ data WidgetType = ButtonType
 -- Fields associated with a widget
 
 type family WidgetFields (w :: WidgetType) :: [Field] where
-        WidgetFields ButtonType =
-                                DOMWidgetClass :++
-                                  '[S.Description, S.Tooltip, S.Disabled, S.Icon, S.ButtonStyle,
-                                    S.ClickHandler]
-        WidgetFields ImageType =
-                               DOMWidgetClass :++ '[S.ImageFormat, S.Width, S.Height, S.B64Value]
-        WidgetFields OutputType = DOMWidgetClass
-        WidgetFields HTMLType = StringClass
-        WidgetFields LabelType = StringClass
-        WidgetFields TextType =
-                              StringClass :++ '[S.SubmitHandler, S.ChangeHandler]
-        WidgetFields TextAreaType = StringClass :++ '[S.ChangeHandler]
-        WidgetFields CheckBoxType = BoolClass
-        WidgetFields ToggleButtonType =
-                                      BoolClass :++ '[S.Tooltip, S.Icon, S.ButtonStyle]
-        WidgetFields ValidType = BoolClass :++ '[S.ReadOutMsg]
-        WidgetFields DropdownType = SelectionClass :++ '[S.ButtonStyle]
-        WidgetFields RadioButtonsType = SelectionClass
-        WidgetFields SelectType = SelectionClass
-        WidgetFields ToggleButtonsType =
-                                       SelectionClass :++ '[S.Tooltips, S.Icons, S.ButtonStyle]
-        WidgetFields SelectMultipleType = MultipleSelectionClass
-        WidgetFields IntTextType = IntClass
-        WidgetFields BoundedIntTextType = BoundedIntClass
-        WidgetFields IntSliderType =
-                                   BoundedIntClass :++
-                                     '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
-        WidgetFields IntProgressType =
-                                     BoundedIntClass :++ '[S.Orientation, S.BarStyle]
-        WidgetFields IntRangeSliderType =
-                                        BoundedIntRangeClass :++
-                                          '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
-        WidgetFields FloatTextType = FloatClass
-        WidgetFields BoundedFloatTextType = BoundedFloatClass
-        WidgetFields FloatSliderType =
-                                     BoundedFloatClass :++
-                                       '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
-        WidgetFields FloatProgressType =
-                                       BoundedFloatClass :++ '[S.Orientation, S.BarStyle]
-        WidgetFields FloatRangeSliderType =
-                                          BoundedFloatRangeClass :++
-                                            '[S.Orientation, S.ShowRange, S.ReadOut, S.SliderColor]
-        WidgetFields BoxType = BoxClass
-        WidgetFields AccordionType = SelectionContainerClass
-        WidgetFields TabType = SelectionContainerClass
+  WidgetFields 'ButtonType =
+                  DOMWidgetClass :++
+                    ['S.Description, 'S.Tooltip, 'S.Disabled, 'S.Icon, 'S.ButtonStyle
+                    ,'S.ClickHandler
+                    ]
+  WidgetFields 'ImageType =
+                  DOMWidgetClass :++ ['S.ImageFormat, 'S.Width, 'S.Height, 'S.B64Value]
+  WidgetFields 'OutputType = DOMWidgetClass
+  WidgetFields 'HTMLType = StringClass
+  WidgetFields 'LabelType = StringClass
+  WidgetFields 'TextType =
+                  StringClass :++ ['S.SubmitHandler, 'S.ChangeHandler]
+  WidgetFields 'TextAreaType = StringClass :++ '[S.ChangeHandler]
+  WidgetFields 'CheckBoxType = BoolClass
+  WidgetFields 'ToggleButtonType =
+                  BoolClass :++ ['S.Tooltip, 'S.Icon, 'S.ButtonStyle]
+  WidgetFields 'ValidType = BoolClass :++ '[S.ReadOutMsg]
+  WidgetFields 'DropdownType = SelectionClass :++ '[S.ButtonStyle]
+  WidgetFields 'RadioButtonsType = SelectionClass
+  WidgetFields 'SelectType = SelectionClass
+  WidgetFields 'ToggleButtonsType =
+                  SelectionClass :++ ['S.Tooltips, 'S.Icons, 'S.ButtonStyle]
+  WidgetFields 'SelectMultipleType = MultipleSelectionClass
+  WidgetFields 'IntTextType = IntClass
+  WidgetFields 'BoundedIntTextType = BoundedIntClass
+  WidgetFields 'IntSliderType =
+                  BoundedIntClass :++
+                    ['S.Orientation, 'S.ShowRange, 'S.ReadOut, 'S.SliderColor]
+  WidgetFields 'IntProgressType =
+                  BoundedIntClass :++ ['S.Orientation, 'S.BarStyle]
+  WidgetFields 'IntRangeSliderType =
+                  BoundedIntRangeClass :++
+                    ['S.Orientation, 'S.ShowRange, 'S.ReadOut, 'S.SliderColor]
+  WidgetFields 'FloatTextType = FloatClass
+  WidgetFields 'BoundedFloatTextType = BoundedFloatClass
+  WidgetFields 'FloatSliderType =
+                  BoundedFloatClass :++
+                    ['S.Orientation, 'S.ShowRange, 'S.ReadOut, 'S.SliderColor]
+  WidgetFields 'FloatProgressType =
+                  BoundedFloatClass :++ ['S.Orientation, 'S.BarStyle]
+  WidgetFields 'FloatRangeSliderType =
+                  BoundedFloatRangeClass :++
+                    ['S.Orientation, 'S.ShowRange, 'S.ReadOut, 'S.SliderColor]
+  WidgetFields 'BoxType = BoxClass
+  WidgetFields 'AccordionType = SelectionContainerClass
+  WidgetFields 'TabType = SelectionContainerClass
 
 -- Wrapper around a field's value. A dummy value is sent as an empty string to the frontend.
 data AttrVal a = Dummy a
@@ -361,121 +365,121 @@ class ToPairs a where
   toPairs :: a -> [Pair]
 
 -- Attributes that aren't synced with the frontend give [] on toPairs
-instance ToPairs (Attr S.ViewModule) where
+instance ToPairs (Attr 'S.ViewModule) where
   toPairs x = ["_view_module" .= toJSON x]
 
-instance ToPairs (Attr S.ViewName) where
+instance ToPairs (Attr 'S.ViewName) where
   toPairs x = ["_view_name" .= toJSON x]
 
-instance ToPairs (Attr S.ModelModule) where
+instance ToPairs (Attr 'S.ModelModule) where
   toPairs x = ["_model_module" .= toJSON x]
 
-instance ToPairs (Attr S.ModelName) where
+instance ToPairs (Attr 'S.ModelName) where
   toPairs x = ["_model_name" .= toJSON x]
 
-instance ToPairs (Attr S.MsgThrottle) where
+instance ToPairs (Attr 'S.MsgThrottle) where
   toPairs x = ["msg_throttle" .= toJSON x]
 
-instance ToPairs (Attr S.Version) where
+instance ToPairs (Attr 'S.Version) where
   toPairs x = ["version" .= toJSON x]
 
-instance ToPairs (Attr S.DisplayHandler) where
+instance ToPairs (Attr 'S.DisplayHandler) where
   toPairs _ = [] -- Not sent to the frontend
 
-instance ToPairs (Attr S.Visible) where
+instance ToPairs (Attr 'S.Visible) where
   toPairs x = ["visible" .= toJSON x]
 
-instance ToPairs (Attr S.CSS) where
+instance ToPairs (Attr 'S.CSS) where
   toPairs x = ["_css" .= toJSON x]
 
-instance ToPairs (Attr S.DOMClasses) where
+instance ToPairs (Attr 'S.DOMClasses) where
   toPairs x = ["_dom_classes" .= toJSON x]
 
-instance ToPairs (Attr S.Width) where
+instance ToPairs (Attr 'S.Width) where
   toPairs x = ["width" .= toJSON x]
 
-instance ToPairs (Attr S.Height) where
+instance ToPairs (Attr 'S.Height) where
   toPairs x = ["height" .= toJSON x]
 
-instance ToPairs (Attr S.Padding) where
+instance ToPairs (Attr 'S.Padding) where
   toPairs x = ["padding" .= toJSON x]
 
-instance ToPairs (Attr S.Margin) where
+instance ToPairs (Attr 'S.Margin) where
   toPairs x = ["margin" .= toJSON x]
 
-instance ToPairs (Attr S.Color) where
+instance ToPairs (Attr 'S.Color) where
   toPairs x = ["color" .= toJSON x]
 
-instance ToPairs (Attr S.BackgroundColor) where
+instance ToPairs (Attr 'S.BackgroundColor) where
   toPairs x = ["background_color" .= toJSON x]
 
-instance ToPairs (Attr S.BorderColor) where
+instance ToPairs (Attr 'S.BorderColor) where
   toPairs x = ["border_color" .= toJSON x]
 
-instance ToPairs (Attr S.BorderWidth) where
+instance ToPairs (Attr 'S.BorderWidth) where
   toPairs x = ["border_width" .= toJSON x]
 
-instance ToPairs (Attr S.BorderRadius) where
+instance ToPairs (Attr 'S.BorderRadius) where
   toPairs x = ["border_radius" .= toJSON x]
 
-instance ToPairs (Attr S.BorderStyle) where
+instance ToPairs (Attr 'S.BorderStyle) where
   toPairs x = ["border_style" .= toJSON x]
 
-instance ToPairs (Attr S.FontStyle) where
+instance ToPairs (Attr 'S.FontStyle) where
   toPairs x = ["font_style" .= toJSON x]
 
-instance ToPairs (Attr S.FontWeight) where
+instance ToPairs (Attr 'S.FontWeight) where
   toPairs x = ["font_weight" .= toJSON x]
 
-instance ToPairs (Attr S.FontSize) where
+instance ToPairs (Attr 'S.FontSize) where
   toPairs x = ["font_size" .= toJSON x]
 
-instance ToPairs (Attr S.FontFamily) where
+instance ToPairs (Attr 'S.FontFamily) where
   toPairs x = ["font_family" .= toJSON x]
 
-instance ToPairs (Attr S.Description) where
+instance ToPairs (Attr 'S.Description) where
   toPairs x = ["description" .= toJSON x]
 
-instance ToPairs (Attr S.ClickHandler) where
+instance ToPairs (Attr 'S.ClickHandler) where
   toPairs _ = [] -- Not sent to the frontend
 
-instance ToPairs (Attr S.SubmitHandler) where
+instance ToPairs (Attr 'S.SubmitHandler) where
   toPairs _ = [] -- Not sent to the frontend
 
-instance ToPairs (Attr S.Disabled) where
+instance ToPairs (Attr 'S.Disabled) where
   toPairs x = ["disabled" .= toJSON x]
 
-instance ToPairs (Attr S.StringValue) where
+instance ToPairs (Attr 'S.StringValue) where
   toPairs x = ["value" .= toJSON x]
 
-instance ToPairs (Attr S.Placeholder) where
+instance ToPairs (Attr 'S.Placeholder) where
   toPairs x = ["placeholder" .= toJSON x]
 
-instance ToPairs (Attr S.Tooltip) where
+instance ToPairs (Attr 'S.Tooltip) where
   toPairs x = ["tooltip" .= toJSON x]
 
-instance ToPairs (Attr S.Icon) where
+instance ToPairs (Attr 'S.Icon) where
   toPairs x = ["icon" .= toJSON x]
 
-instance ToPairs (Attr S.ButtonStyle) where
+instance ToPairs (Attr 'S.ButtonStyle) where
   toPairs x = ["button_style" .= toJSON x]
 
-instance ToPairs (Attr S.B64Value) where
+instance ToPairs (Attr 'S.B64Value) where
   toPairs x = ["_b64value" .= toJSON x]
 
-instance ToPairs (Attr S.ImageFormat) where
+instance ToPairs (Attr 'S.ImageFormat) where
   toPairs x = ["format" .= toJSON x]
 
-instance ToPairs (Attr S.BoolValue) where
+instance ToPairs (Attr 'S.BoolValue) where
   toPairs x = ["value" .= toJSON x]
 
-instance ToPairs (Attr S.SelectedLabel) where
+instance ToPairs (Attr 'S.SelectedLabel) where
   toPairs x = ["selected_label" .= toJSON x]
 
-instance ToPairs (Attr S.SelectedValue) where
+instance ToPairs (Attr 'S.SelectedValue) where
   toPairs x = ["value" .= toJSON x]
 
-instance ToPairs (Attr S.Options) where
+instance ToPairs (Attr 'S.Options) where
   toPairs x =
     case _value x of
       Dummy _                -> labels ("" :: Text)
@@ -484,115 +488,115 @@ instance ToPairs (Attr S.Options) where
     where
       labels xs = ["_options_labels" .= xs]
 
-instance ToPairs (Attr S.SelectionHandler) where
+instance ToPairs (Attr 'S.SelectionHandler) where
   toPairs _ = [] -- Not sent to the frontend
 
-instance ToPairs (Attr S.Tooltips) where
+instance ToPairs (Attr 'S.Tooltips) where
   toPairs x = ["tooltips" .= toJSON x]
 
-instance ToPairs (Attr S.Icons) where
+instance ToPairs (Attr 'S.Icons) where
   toPairs x = ["icons" .= toJSON x]
 
-instance ToPairs (Attr S.SelectedLabels) where
+instance ToPairs (Attr 'S.SelectedLabels) where
   toPairs x = ["selected_labels" .= toJSON x]
 
-instance ToPairs (Attr S.SelectedValues) where
+instance ToPairs (Attr 'S.SelectedValues) where
   toPairs x = ["values" .= toJSON x]
 
-instance ToPairs (Attr S.IntValue) where
+instance ToPairs (Attr 'S.IntValue) where
   toPairs x = ["value" .= toJSON x]
 
-instance ToPairs (Attr S.StepInt) where
+instance ToPairs (Attr 'S.StepInt) where
   toPairs x = ["step" .= toJSON x]
 
-instance ToPairs (Attr S.MinInt) where
+instance ToPairs (Attr 'S.MinInt) where
   toPairs x = ["min" .= toJSON x]
 
-instance ToPairs (Attr S.MaxInt) where
+instance ToPairs (Attr 'S.MaxInt) where
   toPairs x = ["max" .= toJSON x]
 
-instance ToPairs (Attr S.IntPairValue) where
+instance ToPairs (Attr 'S.IntPairValue) where
   toPairs x = ["value" .= toJSON x]
 
-instance ToPairs (Attr S.LowerInt) where
+instance ToPairs (Attr 'S.LowerInt) where
   toPairs x = ["min" .= toJSON x]
 
-instance ToPairs (Attr S.UpperInt) where
+instance ToPairs (Attr 'S.UpperInt) where
   toPairs x = ["max" .= toJSON x]
 
-instance ToPairs (Attr S.FloatValue) where
+instance ToPairs (Attr 'S.FloatValue) where
   toPairs x = ["value" .= toJSON x]
 
-instance ToPairs (Attr S.StepFloat) where
+instance ToPairs (Attr 'S.StepFloat) where
   toPairs x = ["step" .= toJSON x]
 
-instance ToPairs (Attr S.MinFloat) where
+instance ToPairs (Attr 'S.MinFloat) where
   toPairs x = ["min" .= toJSON x]
 
-instance ToPairs (Attr S.MaxFloat) where
+instance ToPairs (Attr 'S.MaxFloat) where
   toPairs x = ["max" .= toJSON x]
 
-instance ToPairs (Attr S.FloatPairValue) where
+instance ToPairs (Attr 'S.FloatPairValue) where
   toPairs x = ["value" .= toJSON x]
 
-instance ToPairs (Attr S.LowerFloat) where
+instance ToPairs (Attr 'S.LowerFloat) where
   toPairs x = ["min" .= toJSON x]
 
-instance ToPairs (Attr S.UpperFloat) where
+instance ToPairs (Attr 'S.UpperFloat) where
   toPairs x = ["max" .= toJSON x]
 
-instance ToPairs (Attr S.Orientation) where
+instance ToPairs (Attr 'S.Orientation) where
   toPairs x = ["orientation" .= toJSON x]
 
-instance ToPairs (Attr S.ShowRange) where
+instance ToPairs (Attr 'S.ShowRange) where
   toPairs x = ["_range" .= toJSON x]
 
-instance ToPairs (Attr S.ReadOut) where
+instance ToPairs (Attr 'S.ReadOut) where
   toPairs x = ["readout" .= toJSON x]
 
-instance ToPairs (Attr S.SliderColor) where
+instance ToPairs (Attr 'S.SliderColor) where
   toPairs x = ["slider_color" .= toJSON x]
 
-instance ToPairs (Attr S.BarStyle) where
+instance ToPairs (Attr 'S.BarStyle) where
   toPairs x = ["bar_style" .= toJSON x]
 
-instance ToPairs (Attr S.ChangeHandler) where
+instance ToPairs (Attr 'S.ChangeHandler) where
   toPairs _ = [] -- Not sent to the frontend
 
-instance ToPairs (Attr S.Children) where
+instance ToPairs (Attr 'S.Children) where
   toPairs x = ["children" .= toJSON x]
 
-instance ToPairs (Attr S.OverflowX) where
+instance ToPairs (Attr 'S.OverflowX) where
   toPairs x = ["overflow_x" .= toJSON x]
 
-instance ToPairs (Attr S.OverflowY) where
+instance ToPairs (Attr 'S.OverflowY) where
   toPairs x = ["overflow_y" .= toJSON x]
 
-instance ToPairs (Attr S.BoxStyle) where
+instance ToPairs (Attr 'S.BoxStyle) where
   toPairs x = ["box_style" .= toJSON x]
 
-instance ToPairs (Attr S.Flex) where
+instance ToPairs (Attr 'S.Flex) where
   toPairs x = ["flex" .= toJSON x]
 
-instance ToPairs (Attr S.Pack) where
+instance ToPairs (Attr 'S.Pack) where
   toPairs x = ["pack" .= toJSON x]
 
-instance ToPairs (Attr S.Align) where
+instance ToPairs (Attr 'S.Align) where
   toPairs x = ["align" .= toJSON x]
 
-instance ToPairs (Attr S.Titles) where
+instance ToPairs (Attr 'S.Titles) where
   toPairs x = ["_titles" .= toJSON x]
 
-instance ToPairs (Attr S.SelectedIndex) where
+instance ToPairs (Attr 'S.SelectedIndex) where
   toPairs x = ["selected_index" .= toJSON x]
 
-instance ToPairs (Attr S.ReadOutMsg) where
+instance ToPairs (Attr 'S.ReadOutMsg) where
   toPairs x = ["readout" .= toJSON x]
 
-instance ToPairs (Attr S.Child) where
+instance ToPairs (Attr 'S.Child) where
   toPairs x = ["child" .= toJSON x]
 
-instance ToPairs (Attr S.Selector) where
+instance ToPairs (Attr 'S.Selector) where
   toPairs x = ["selector" .= toJSON x]
 
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
@@ -631,7 +635,7 @@ reflect :: forall (f :: Field). (SingI f) => Sing f -> Field
 reflect = fromSing
 
 -- | A record representing an object of the Widget class from IPython
-defaultWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr WidgetClass
+defaultWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr WidgetClass
 defaultWidget viewName modelName = (ViewModule =:: "jupyter-js-widgets")
                                    :& (ViewName =:: viewName)
                                    :& (ModelModule =:: "jupyter-js-widgets")
@@ -642,7 +646,7 @@ defaultWidget viewName modelName = (ViewModule =:: "jupyter-js-widgets")
                                    :& RNil
 
 -- | A record representing an object of the DOMWidget class from IPython
-defaultDOMWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr DOMWidgetClass
+defaultDOMWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr DOMWidgetClass
 defaultDOMWidget viewName modelName = defaultWidget viewName modelName <+> domAttrs
   where
     domAttrs = (Visible =:: True)
@@ -665,7 +669,7 @@ defaultDOMWidget viewName modelName = defaultWidget viewName modelName <+> domAt
                :& RNil
 
 -- | A record representing a widget of the _String class from IPython
-defaultStringWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr StringClass
+defaultStringWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr StringClass
 defaultStringWidget viewName modelName = defaultDOMWidget viewName modelName <+> strAttrs
   where
     strAttrs = (StringValue =:: "")
@@ -675,7 +679,7 @@ defaultStringWidget viewName modelName = defaultDOMWidget viewName modelName <+>
                :& RNil
 
 -- | A record representing a widget of the _Bool class from IPython
-defaultBoolWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr BoolClass
+defaultBoolWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr BoolClass
 defaultBoolWidget viewName modelName = defaultDOMWidget viewName modelName <+> boolAttrs
   where
     boolAttrs = (BoolValue =:: False)
@@ -685,7 +689,7 @@ defaultBoolWidget viewName modelName = defaultDOMWidget viewName modelName <+> b
                 :& RNil
 
 -- | A record representing a widget of the _Selection class from IPython
-defaultSelectionWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr SelectionClass
+defaultSelectionWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr SelectionClass
 defaultSelectionWidget viewName modelName = defaultDOMWidget viewName modelName <+> selectionAttrs
   where
     selectionAttrs = (Options =:: OptionLabels [])
@@ -697,7 +701,7 @@ defaultSelectionWidget viewName modelName = defaultDOMWidget viewName modelName 
                      :& RNil
 
 -- | A record representing a widget of the _MultipleSelection class from IPython
-defaultMultipleSelectionWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr MultipleSelectionClass
+defaultMultipleSelectionWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr MultipleSelectionClass
 defaultMultipleSelectionWidget viewName modelName = defaultDOMWidget viewName modelName <+> mulSelAttrs
   where
     mulSelAttrs = (Options =:: OptionLabels [])
@@ -709,7 +713,7 @@ defaultMultipleSelectionWidget viewName modelName = defaultDOMWidget viewName mo
                   :& RNil
 
 -- | A record representing a widget of the _Int class from IPython
-defaultIntWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr IntClass
+defaultIntWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr IntClass
 defaultIntWidget viewName modelName = defaultDOMWidget viewName modelName <+> intAttrs
   where
     intAttrs = (IntValue =:: 0)
@@ -719,7 +723,7 @@ defaultIntWidget viewName modelName = defaultDOMWidget viewName modelName <+> in
                :& RNil
 
 -- | A record representing a widget of the _BoundedInt class from IPython
-defaultBoundedIntWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr BoundedIntClass
+defaultBoundedIntWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr BoundedIntClass
 defaultBoundedIntWidget viewName modelName = defaultIntWidget viewName modelName <+> boundedIntAttrs
   where
     boundedIntAttrs = (StepInt =:: 1)
@@ -728,7 +732,7 @@ defaultBoundedIntWidget viewName modelName = defaultIntWidget viewName modelName
                       :& RNil
 
 -- | A record representing a widget of the _BoundedInt class from IPython
-defaultIntRangeWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr IntRangeClass
+defaultIntRangeWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr IntRangeClass
 defaultIntRangeWidget viewName modelName = defaultIntWidget viewName modelName <+> rangeAttrs
   where
     rangeAttrs = (IntPairValue =:: (25, 75))
@@ -737,7 +741,7 @@ defaultIntRangeWidget viewName modelName = defaultIntWidget viewName modelName <
                  :& RNil
 
 -- | A record representing a widget of the _BoundedIntRange class from IPython
-defaultBoundedIntRangeWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr BoundedIntRangeClass
+defaultBoundedIntRangeWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr BoundedIntRangeClass
 defaultBoundedIntRangeWidget viewName modelName = defaultIntRangeWidget viewName modelName <+> boundedIntRangeAttrs
   where
     boundedIntRangeAttrs = (StepInt =:+ 1)
@@ -746,7 +750,7 @@ defaultBoundedIntRangeWidget viewName modelName = defaultIntRangeWidget viewName
                            :& RNil
 
 -- | A record representing a widget of the _Float class from IPython
-defaultFloatWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr FloatClass
+defaultFloatWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr FloatClass
 defaultFloatWidget viewName modelName = defaultDOMWidget viewName modelName <+> intAttrs
   where
     intAttrs = (FloatValue =:: 0)
@@ -756,7 +760,7 @@ defaultFloatWidget viewName modelName = defaultDOMWidget viewName modelName <+> 
                :& RNil
 
 -- | A record representing a widget of the _BoundedFloat class from IPython
-defaultBoundedFloatWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr BoundedFloatClass
+defaultBoundedFloatWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr BoundedFloatClass
 defaultBoundedFloatWidget viewName modelName = defaultFloatWidget viewName modelName <+> boundedFloatAttrs
   where
     boundedFloatAttrs = (StepFloat =:+ 1)
@@ -765,7 +769,7 @@ defaultBoundedFloatWidget viewName modelName = defaultFloatWidget viewName model
                         :& RNil
 
 -- | A record representing a widget of the _BoundedFloat class from IPython
-defaultFloatRangeWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr FloatRangeClass
+defaultFloatRangeWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr FloatRangeClass
 defaultFloatRangeWidget viewName modelName = defaultFloatWidget viewName modelName <+> rangeAttrs
   where
     rangeAttrs = (FloatPairValue =:: (25, 75))
@@ -774,7 +778,7 @@ defaultFloatRangeWidget viewName modelName = defaultFloatWidget viewName modelNa
                  :& RNil
 
 -- | A record representing a widget of the _BoundedFloatRange class from IPython
-defaultBoundedFloatRangeWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr BoundedFloatRangeClass
+defaultBoundedFloatRangeWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr BoundedFloatRangeClass
 defaultBoundedFloatRangeWidget viewName modelName = defaultFloatRangeWidget viewName modelName <+> boundedFloatRangeAttrs
   where
     boundedFloatRangeAttrs = (StepFloat =:+ 1)
@@ -783,7 +787,7 @@ defaultBoundedFloatRangeWidget viewName modelName = defaultFloatRangeWidget view
                              :& RNil
 
 -- | A record representing a widget of the _Box class from IPython
-defaultBoxWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr BoxClass
+defaultBoxWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr BoxClass
 defaultBoxWidget viewName modelName = defaultDOMWidget viewName modelName <+> intAttrs
   where
     intAttrs = (Children =:: [])
@@ -793,7 +797,7 @@ defaultBoxWidget viewName modelName = defaultDOMWidget viewName modelName <+> in
                :& RNil
 
 -- | A record representing a widget of the _SelectionContainer class from IPython
-defaultSelectionContainerWidget :: FieldType S.ViewName -> FieldType S.ModelName -> Rec Attr SelectionContainerClass
+defaultSelectionContainerWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr SelectionContainerClass
 defaultSelectionContainerWidget viewName modelName = defaultBoxWidget viewName modelName <+> selAttrs
   where
     selAttrs = (Titles =:: [])
@@ -876,17 +880,17 @@ noStdin action =
 triggerEvent :: (FieldType f ~ IO (), f ∈ WidgetFields w) => SField f -> IPythonWidget w -> IO ()
 triggerEvent sfield w = noStdin . join $ getField w sfield
 
-triggerChange :: (S.ChangeHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
+triggerChange :: ('S.ChangeHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
 triggerChange = triggerEvent ChangeHandler
 
-triggerClick :: (S.ClickHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
+triggerClick :: ('S.ClickHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
 triggerClick = triggerEvent ClickHandler
 
-triggerSelection :: (S.SelectionHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
+triggerSelection :: ('S.SelectionHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
 triggerSelection = triggerEvent SelectionHandler
 
-triggerSubmit :: (S.SubmitHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
+triggerSubmit :: ('S.SubmitHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
 triggerSubmit = triggerEvent SubmitHandler
 
-triggerDisplay :: (S.DisplayHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
+triggerDisplay :: ('S.DisplayHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
 triggerDisplay = triggerEvent DisplayHandler

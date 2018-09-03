@@ -1,5 +1,7 @@
 {-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
-module IHaskell.Publish (publishResult) where
+module IHaskell.Publish
+  ( publishResult
+  ) where
 
 import           IHaskellPrelude
 
@@ -30,7 +32,7 @@ publishResult send replyHeader displayed updateNeeded poutput upager result = do
         case result of
           IntermediateResult{} -> False
           FinalResult{}        -> True
-      outs = outputs result
+      outs = evaluationOutputs result
 
   -- If necessary, clear all previous output and redraw.
   clear <- readMVar updateNeeded
@@ -49,11 +51,13 @@ publishResult send replyHeader displayed updateNeeded poutput upager result = do
     modifyMVar_ displayed (return . (outs :))
 
     -- If this has some pager output, store it for later.
-    let pager = pagerOut result
-    unless (null pager) $
-      if upager
-        then modifyMVar_ poutput (return . (++ pager))
-        else sendOutput $ Display pager
+    case result of
+      IntermediateResult _ -> pure ()
+      FinalResult _ pager _ ->
+        unless (null pager) $
+          if upager
+            then modifyMVar_ poutput (return . (++ pager))
+            else sendOutput $ Display pager
 
   where
     clearOutput = do

@@ -8,7 +8,12 @@
 {-# LANGUAGE UndecidableSuperClasses #-}
 {-# LANGUAGE PolyKinds #-}
 
-module IHaskell.Display.Widgets.Interactive (interactive, uncurryHList, Rec(..), Argument(..)) where
+module IHaskell.Display.Widgets.Interactive
+  ( interactive
+  , uncurryHList
+  , Rec (..)
+  , Argument(..)
+  ) where
 
 import           Data.Text
 import           Data.Proxy
@@ -32,7 +37,7 @@ import           IHaskell.Display.Widgets.Int.BoundedInt.IntSlider
 import           IHaskell.Display.Widgets.Float.BoundedFloat.FloatSlider
 import           IHaskell.Display.Widgets.Output
 
- 
+
 data WidgetConf a where
         WidgetConf ::
             (RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs,
@@ -42,7 +47,7 @@ data WidgetConf a where
               a
               -> WidgetConf a
 
- 
+
 type family WithTypes (ts :: [*]) (r :: *) :: * where
         WithTypes '[] r = r
         WithTypes (x ': xs) r = (x -> WithTypes xs r)
@@ -52,7 +57,7 @@ uncurryHList f RNil = f
 uncurryHList f (Identity x :& xs) = uncurryHList (f x) xs
 
 -- Consistent type variables are required to make things play nicely with vinyl
- 
+
 data Constructor a where
         Constructor ::
             RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs =>
@@ -64,7 +69,7 @@ newtype EventSetter a = EventSetter (IPythonWidget (SuitableWidget a) -> IO () -
 
 newtype Initializer a = Initializer (IPythonWidget (SuitableWidget a) -> Argument a -> IO ())
 
- 
+
 data RequiredWidget a where
         RequiredWidget ::
             RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs =>
@@ -86,8 +91,8 @@ applyEventSetters (EventSetter setter :& xs) (RequiredWidget widget :& ws) handl
 
 setInitialValues :: Rec Initializer ts -> Rec RequiredWidget ts -> Rec Argument ts -> IO ()
 setInitialValues RNil RNil RNil = return ()
-setInitialValues (Initializer initializer :& fs) (RequiredWidget widget :& ws) (argument :& vs) = do
-  initializer widget argument
+setInitialValues (Initializer initialize :& fs) (RequiredWidget widget :& ws) (argument :& vs) = do
+  initialize widget argument
   setInitialValues fs ws vs
 
 extractConstructor :: WidgetConf x -> Constructor x
@@ -163,7 +168,7 @@ liftToWidgets func rc initvals = do
 
   return bx
 
- 
+
 data WrappedWidget w h f a where
         WrappedWidget ::
             (FieldType h ~ IO (), FieldType f ~ a, h ∈ WidgetFields w,
@@ -173,7 +178,7 @@ data WrappedWidget w h f a where
               S.SField h -> S.SField f -> WrappedWidget w h f a
 
 construct :: WrappedWidget w h f a -> IO (IPythonWidget w)
-construct (WrappedWidget cons _ _) = cons
+construct (WrappedWidget cs _ _) = cs
 
 getValue :: WrappedWidget w h f a -> IPythonWidget w -> IO a
 getValue (WrappedWidget _ _ field) widget = getField widget field
@@ -190,25 +195,25 @@ class RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs => FromWidget a wher
   wrapped :: WrappedWidget (SuitableWidget a) (SuitableHandler a) (SuitableField a) a
 
 instance FromWidget Bool where
-  type SuitableWidget Bool = CheckBoxType
-  type SuitableHandler Bool = S.ChangeHandler
-  type SuitableField Bool = S.BoolValue
+  type SuitableWidget Bool = 'CheckBoxType
+  type SuitableHandler Bool = 'S.ChangeHandler
+  type SuitableField Bool = 'S.BoolValue
   data Argument Bool = BoolVal Bool
   initializer w (BoolVal b) = setField w BoolValue b
   wrapped = WrappedWidget mkCheckBox ChangeHandler BoolValue
 
 instance FromWidget Text where
-  type SuitableWidget Text = TextType
-  type SuitableHandler Text = S.SubmitHandler
-  type SuitableField Text = S.StringValue
+  type SuitableWidget Text = 'TextType
+  type SuitableHandler Text = 'S.SubmitHandler
+  type SuitableField Text = 'S.StringValue
   data Argument Text = TextVal Text
   initializer w (TextVal txt) = setField w StringValue txt
   wrapped = WrappedWidget mkTextWidget SubmitHandler StringValue
 
 instance FromWidget Integer where
-  type SuitableWidget Integer = IntSliderType
-  type SuitableHandler Integer = S.ChangeHandler
-  type SuitableField Integer = S.IntValue
+  type SuitableWidget Integer = 'IntSliderType
+  type SuitableHandler Integer = 'S.ChangeHandler
+  type SuitableField Integer = 'S.IntValue
   data Argument Integer = IntVal Integer
                       | IntRange (Integer, Integer, Integer)
   wrapped = WrappedWidget mkIntSlider ChangeHandler IntValue
@@ -219,9 +224,9 @@ instance FromWidget Integer where
     setField w MaxInt u
 
 instance FromWidget Double where
-  type SuitableWidget Double = FloatSliderType
-  type SuitableHandler Double = S.ChangeHandler
-  type SuitableField Double = S.FloatValue
+  type SuitableWidget Double = 'FloatSliderType
+  type SuitableHandler Double = 'S.ChangeHandler
+  type SuitableField Double = 'S.FloatValue
   data Argument Double = FloatVal Double
                      | FloatRange (Double, Double, Double)
   wrapped = WrappedWidget mkFloatSlider ChangeHandler FloatValue

@@ -3,11 +3,14 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.Box.Box (
--- * The Box widget
-Box, 
-     -- * Constructor
-     mkBox) where
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
+
+module IHaskell.Display.Widgets.Box.Box
+  ( -- * The Box widget
+    Box
+    -- * Constructor
+  , mkBox
+  ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -22,19 +25,19 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 
 -- | A 'Box' represents a Box widget from IPython.html.widgets.
-type Box = IPythonWidget BoxType
+type Box = IPythonWidget 'BoxType
 
 -- | Create a new box
 mkBox :: IO Box
 mkBox = do
   -- Default properties, with a random uuid
-  uuid <- U.random
+  wid <- U.random
 
   let widgetState = WidgetState $ defaultBoxWidget "BoxView" "BoxModel"
 
   stateIO <- newIORef widgetState
 
-  let box = IPythonWidget uuid stateIO
+  let box = IPythonWidget wid stateIO
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen box $ toJSON widgetState

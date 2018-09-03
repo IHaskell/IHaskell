@@ -3,17 +3,19 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module IHaskell.Display.Widgets.Output (
-    -- * The Output Widget
-    OutputWidget,
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
+module IHaskell.Display.Widgets.Output
+  ( -- * The Output Widget
+    OutputWidget
     -- * Constructor
-    mkOutputWidget,
+  , mkOutputWidget
     -- * Using the output widget
-    appendOutput,
-    clearOutput,
-    clearOutput_,
-    replaceOutput,
-    ) where
+  , appendOutput
+  , clearOutput
+  , clearOutput_
+  , replaceOutput
+  ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
@@ -28,19 +30,19 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 
 -- | An 'OutputWidget' represents a Output widget from IPython.html.widgets.
-type OutputWidget = IPythonWidget OutputType
+type OutputWidget = IPythonWidget 'OutputType
 
 -- | Create a new output widget
 mkOutputWidget :: IO OutputWidget
 mkOutputWidget = do
   -- Default properties, with a random uuid
-  uuid <- U.random
+  wid <- U.random
 
   let widgetState = WidgetState $ defaultDOMWidget "OutputView" "OutputModel"
 
   stateIO <- newIORef widgetState
 
-  let widget = IPythonWidget uuid stateIO
+  let widget = IPythonWidget wid stateIO
 
   -- Open a comm for this widget, and store it in the kernel state
   widgetSendOpen widget $ toJSON widgetState

@@ -248,11 +248,8 @@ extractPackageName lnk = do
   return $ pieces List.!! (latestLoc - 1)
 
 extractModuleName :: String -> Maybe String
-extractModuleName lnk = do
-  let pieces = split "/" lnk
-  guard $ not $ null pieces
-  let html = fromJust $ lastMay pieces
-  return $ replace "-" "." $ takeWhile (/= '.') html
+extractModuleName lnk =
+  replace "-" "." . takeWhile (/= '.') <$> lastMay (split "/" lnk)
 
 div' :: String -> String -> String
 div' = printf "<div class='%s'>%s</div>"
