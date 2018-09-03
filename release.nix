@@ -36,6 +36,8 @@ let
         export PATH=$PWD/dist/build/ihaskell:$PATH
         export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
       '';
+
+      doHaddock = false;
     });
     ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
     ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
