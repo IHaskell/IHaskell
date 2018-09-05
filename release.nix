@@ -36,7 +36,10 @@ let
         export PATH=$PWD/dist/build/ihaskell:$PATH
         export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
       '';
-
+      configureFlags = (_drv.configureFlags or []) ++ [
+        # otherwise the tests are agonisingly slow and the kernel times out
+        "--enable-executable-dynamic"
+      ];
       doHaddock = false;
     });
     ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
