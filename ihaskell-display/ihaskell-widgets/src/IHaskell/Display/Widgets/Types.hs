@@ -16,9 +16,6 @@
 {-# LANGUAGE AutoDeriveTypeable #-}
 {-# LANGUAGE CPP #-}
 
--- Can't make the compiler accept this file without this.
-{-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
-
 -- | This module houses all the type-trickery needed to make widgets happen.
 --
 -- All widgets have a corresponding 'WidgetType', and some fields/attributes/properties as defined
@@ -300,12 +297,17 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'LabelType = StringClass
   WidgetFields 'TextType =
                   StringClass :++ ['S.SubmitHandler, 'S.ChangeHandler]
-  WidgetFields 'TextAreaType = StringClass :++ '[S.ChangeHandler]
+
+  -- Type level lists with a single element need both the list and the
+  -- constructor ticked, and a space between the open square bracket and
+  -- the first constructor. See https://ghc.haskell.org/trac/ghc/ticket/15601
+  WidgetFields 'TextAreaType = StringClass :++ '[ 'S.ChangeHandler]
+
   WidgetFields 'CheckBoxType = BoolClass
   WidgetFields 'ToggleButtonType =
                   BoolClass :++ ['S.Tooltip, 'S.Icon, 'S.ButtonStyle]
-  WidgetFields 'ValidType = BoolClass :++ '[S.ReadOutMsg]
-  WidgetFields 'DropdownType = SelectionClass :++ '[S.ButtonStyle]
+  WidgetFields 'ValidType = BoolClass :++ '[ 'S.ReadOutMsg]
+  WidgetFields 'DropdownType = SelectionClass :++ '[ 'S.ButtonStyle]
   WidgetFields 'RadioButtonsType = SelectionClass
   WidgetFields 'SelectType = SelectionClass
   WidgetFields 'ToggleButtonsType =
