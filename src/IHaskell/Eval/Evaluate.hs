@@ -692,13 +692,12 @@ evalCommand publish (Directive ShellCmd cmd) state = wrapExecution state $
             mExitCode <- getProcessExitCode process
             case mExitCode of
               Nothing -> do
-                -- Process still running
-                next <- readChars pipe "" maxSize
-                modifyMVar_ outputAccum (return . (++ next))
                 -- Write to frontend and repeat.
                 readMVar outputAccum >>= output
                 loop
               Just exitCode -> do
+                next <- readChars pipe "" maxSize
+                modifyMVar_ outputAccum (return . (++ next))
                 out <- readMVar outputAccum
                 case exitCode of
                   ExitSuccess -> return $ Display [plain out]
