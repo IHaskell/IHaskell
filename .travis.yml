@@ -80,7 +80,7 @@ matrix:
               stack exec -- jupyter nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
 
               # Images are rendered differently on different systems, so filter them out in the comparison
-              diff <(grep -v image/png ~/ihaskell-out.ipynb) <(grep -v image/png notebooks/IHaskell.ipynb)
+              diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
           fi
     - env: DISPLAY=true   USE_STACK_YAML="stack.yaml"     # GHC 8.2.2
       language: python
@@ -159,9 +159,9 @@ matrix:
               stack exec -- jupyter nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
 
               # Images are rendered differently on different systems, so filter them out in the comparison
-              diff <(grep -v image/png ~/ihaskell-out.ipynb) <(grep -v image/png notebooks/IHaskell.ipynb)
+              diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
           fi
-    - env: DISPLAY=false   USE_STACK_YAML="stack-8.4.yaml"     # GHC 8.4.1
+    - env: DISPLAY=true   USE_STACK_YAML="stack-8.4.yaml"     # GHC 8.4.3
       language: python
       # Test against different stack LTS versions.
 
@@ -238,7 +238,7 @@ matrix:
               stack exec -- jupyter nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
 
               # Images are rendered differently on different systems, so filter them out in the comparison
-              diff <(grep -v image/png ~/ihaskell-out.ipynb) <(grep -v image/png notebooks/IHaskell.ipynb)
+              diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
           fi
     - language: nix
       env: RELEASE_NIX="release.nix"
@@ -269,7 +269,7 @@ matrix:
             ihaskell-static-canvas
           ])'
         - result/bin/ihaskell-nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
-        - diff <(grep -v image/png ~/ihaskell-out.ipynb) <(grep -v image/png notebooks/IHaskell.ipynb)
+        - diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
     - language: nix
       env: RELEASE_NIX="release-8.2.nix"
       cache:
@@ -299,4 +299,4 @@ matrix:
             ihaskell-static-canvas
           ])'
         - result/bin/ihaskell-nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
-        - diff <(grep -v image/png ~/ihaskell-out.ipynb) <(grep -v image/png notebooks/IHaskell.ipynb)
+        - diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
