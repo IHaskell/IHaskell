@@ -157,6 +157,9 @@ testEval =
       "putStrLn \"Héllö, Üñiço∂e!\"" `becomes` ["Héllö, Üñiço∂e!"]
       "putStrLn \"Привет!\"" `becomes` ["Привет!"]
 
+    it "prints multiline output correctly" $ do
+      ":! printf \"hello\\nworld\"" `becomes` ["hello\nworld"]
+
     it "evaluates directives" $ do
 #if MIN_VERSION_ghc(8,2,0)
       -- It's `p` instead of `t` for some reason
