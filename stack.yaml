@@ -10,6 +10,7 @@ packages:
     - ./ihaskell-display/ihaskell-charts
     - ./ihaskell-display/ihaskell-diagrams
     - ./ihaskell-display/ihaskell-gnuplot
+    - ./ihaskell-display/ihaskell-graphviz
     - ./ihaskell-display/ihaskell-hatex
     - ./ihaskell-display/ihaskell-juicypixels
     - ./ihaskell-display/ihaskell-magic
