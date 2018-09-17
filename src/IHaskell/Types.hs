@@ -249,14 +249,18 @@ instance ToJSON WidgetMethod where
   toJSON (CustomContent v) = object ["method" .= ("custom" :: Text), "content" .= v]
 
 -- | Output of evaluation.
+--
+-- A result can either be intermediate or final.
+-- Final result has Mimebundles ('DisplayData') and Comm operations
+-- ('WidgetMsg') on top of Display outputs.
 data EvaluationResult
   -- | An intermediate result which communicates what has been printed thus far.
   = IntermediateResult
-        !Display -- ^ Display outputs.
+        !Display
   | FinalResult
-        !Display       -- ^ Display outputs.
-        ![DisplayData] -- ^ Mimebundles to display in the IPython pager.
-        ![WidgetMsg]  -- ^ Comm operations
+        !Display
+        ![DisplayData]
+        ![WidgetMsg]
   deriving Show
 
 
