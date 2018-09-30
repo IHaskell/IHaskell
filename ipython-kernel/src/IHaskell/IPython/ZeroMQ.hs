@@ -21,6 +21,7 @@ import qualified Crypto.Hash as Hash
 import           Crypto.Hash.Algorithms (SHA256)
 import qualified Crypto.MAC.HMAC as HMAC
 import           Data.Aeson
+import qualified Data.ByteArray.Encoding as Encoding
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as Char
 import qualified Data.ByteString.Lazy as LBS
@@ -336,7 +337,9 @@ sendMessage debug hmackey sock msg = do
 
     -- Compute the HMAC SHA-256 signature of a bytestring message.
     hmac :: ByteString -> ByteString
-    hmac = Char.pack . show . (HMAC.hmacGetDigest :: HMAC.HMAC SHA256 -> Hash.Digest SHA256) . HMAC.hmac hmackey
+    hmac = (Encoding.convertToBase Encoding.Base16 :: Hash.Digest SHA256 -> ByteString)
+      . HMAC.hmacGetDigest
+      . HMAC.hmac hmackey
 
     -- Pieces of the message.
     hdr = header msg
