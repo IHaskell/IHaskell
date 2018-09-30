@@ -27,7 +27,7 @@ let
   displays = self: listToAttrs (
     map
       (display: { name = "ihaskell-${display}"; value = self.callCabal2nix display "${ihaskell-display-src}/ihaskell-${display}" {}; })
-      [ "aeson" "blaze" "charts" "diagrams" "gnuplot" "hatex" "juicypixels" "magic" "plot" "rlangqq" "static-canvas" "widgets" ]);
+      [ "aeson" "blaze" "charts" "diagrams" "gnuplot" "graphviz" "hatex" "juicypixels" "magic" "plot" "rlangqq" "static-canvas" "widgets" ]);
   haskellPackages = nixpkgs.haskell.packages."${compiler}".extend (self: super: {
     ihaskell          = nixpkgs.haskell.lib.overrideCabal (
                         self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
