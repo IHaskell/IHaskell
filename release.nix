@@ -45,9 +45,8 @@ let
     ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
     ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
 
-    haskell-src-exts  = self.haskell-src-exts_1_20_2;
-
     static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
+    zeromq4-haskell   = nixpkgs.haskell.lib.dontCheck super.zeromq4-haskell;
   } // displays self);
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
   notebook = nixpkgs.python3.withPackages (ps: [ ps.notebook ] ++ pythonPackages ps);
