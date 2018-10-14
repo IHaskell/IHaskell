@@ -195,8 +195,9 @@ replyTo config execCount interface req@ExecuteRequest{} replyHeader = do
                                                       send $ PublishDisplayData
                                                                outputHeader
                                                                (displayOutput config x)
+                                                               Nothing
                                   in run config (getCode req) clearOutput sendOutput
-  liftIO . send $ PublishDisplayData outputHeader (displayResult config res)
+  liftIO . send $ PublishDisplayData outputHeader (displayResult config res) Nothing
 
 
   idleHeader <- dupHeader replyHeader StatusMessage

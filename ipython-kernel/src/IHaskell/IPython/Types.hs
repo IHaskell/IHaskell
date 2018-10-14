@@ -16,6 +16,7 @@ module IHaskell.IPython.Types (
     Message(..),
     MessageHeader(..),
     Username,
+    Transient(..),
     MessageType(..),
     CodeReview(..),
     Width,
@@ -184,6 +185,7 @@ data MessageType = KernelInfoReplyMessage
                  | StatusMessage
                  | StreamMessage
                  | DisplayDataMessage
+                 | UpdateDisplayDataMessage
                  | OutputMessage
                  | InputMessage
                  | IsCompleteRequestMessage
@@ -217,6 +219,7 @@ showMessageType ExecuteResultMessage = "execute_result"
 showMessageType StatusMessage = "status"
 showMessageType StreamMessage = "stream"
 showMessageType DisplayDataMessage = "display_data"
+showMessageType UpdateDisplayDataMessage = "update_display_data"
 showMessageType OutputMessage = "pyout"
 showMessageType InputMessage = "pyin"
 showMessageType IsCompleteRequestMessage = "is_complete_request"
@@ -251,6 +254,7 @@ instance FromJSON MessageType where
       "status"              -> return StatusMessage
       "stream"              -> return StreamMessage
       "display_data"        -> return DisplayDataMessage
+      "update_display_data" -> return UpdateDisplayDataMessage
       "pyout"               -> return OutputMessage
       "pyin"                -> return InputMessage
       "is_complete_request" -> return IsCompleteRequestMessage
@@ -300,6 +304,16 @@ data CodeReview = CodeComplete
                 | CodeInvalid
                 | CodeUnknown
   deriving Show
+
+
+newtype Transient = Transient
+  { transientDisplayId :: UUID
+  }
+  deriving (Show, Eq)
+
+instance ToJSON Transient where
+  toJSON t = object [ "display_id" .= transientDisplayId t
+                    ]
 
 -- | A message used to communicate with the IPython frontend.
 data Message =
@@ -384,6 +398,13 @@ data Message =
                PublishDisplayData
                  { header :: MessageHeader
                  , displayData :: [DisplayData]          -- ^ A list of data representations.
+                 , transient   :: Maybe Transient
+                 }
+             |
+               PublishUpdateDisplayData
+                 { header :: MessageHeader
+                 , displayData :: [DisplayData]          -- ^ A list of data representations.
+                 , transient   :: Maybe Transient
                  }
              |
                PublishOutput
@@ -544,10 +565,22 @@ instance ToJSON Message where
     object ["execution_state" .= executionState]
   toJSON PublishStream { streamType = streamType, streamContent = content } =
     object ["data" .= content, "name" .= streamType]
-  toJSON PublishDisplayData { displayData = datas } =
-    object
-      ["metadata" .= object [], "data" .= object (map displayDataToJson datas)]
-
+  toJSON r@PublishDisplayData { displayData = datas }
+    = object
+    $ case transient r of
+        Just t  -> (("transient" .= toJSON (transient r)) :)
+        Nothing -> id
+    $ ["metadata" .= object []
+      , "data" .= object (map displayDataToJson datas)
+      ]
+  toJSON r@PublishUpdateDisplayData { displayData = datas }
+    = object
+    $ case transient r of
+        Just t  -> (("transient" .= toJSON (transient r)) :)
+        Nothing -> id
+    $ ["metadata" .= object []
+      , "data" .= object (map displayDataToJson datas)
+      ]
   toJSON PublishOutput { executionCount = execCount, reprText = reprText } =
     object
       [ "data" .= object ["text/plain" .= reprText]
