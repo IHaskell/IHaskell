@@ -127,6 +127,9 @@ executable ihaskell
                    Paths_ihaskell
   ghc-options: -threaded -rtsopts -Wall
 
+  if os(darwin)
+    ghc-options: -optP-Wno-nonportable-include-path
+
   if impl (ghc >= 8.4)
     ghc-options:       -Wpartial-fields
 
