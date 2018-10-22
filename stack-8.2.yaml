@@ -1,4 +1,4 @@
-resolver: lts-12.14
+resolver: lts-11.22
 
 flags: {}
 packages:
@@ -10,6 +10,7 @@ packages:
     - ./ihaskell-display/ihaskell-charts
     - ./ihaskell-display/ihaskell-diagrams
     - ./ihaskell-display/ihaskell-gnuplot
+    - ./ihaskell-display/ihaskell-graphviz
     - ./ihaskell-display/ihaskell-hatex
     - ./ihaskell-display/ihaskell-juicypixels
     - ./ihaskell-display/ihaskell-magic
@@ -17,17 +18,33 @@ packages:
     - ./ihaskell-display/ihaskell-static-canvas
     - ./ihaskell-display/ihaskell-widgets
 
-extra-deps:
-- magic-1.1
-- Chart-1.9
-- Chart-cairo-1.9
-- plot-0.2.3.9
-
 ghc-options:
-  # Eventually we want "$locals": -Wall -Wpartial-fields -Werror
-  ghc-parser: -Wall -Wpartial-fields -Werror
-  ihaskell: -Wall -Wpartial-fields -Werror
-  ihaskell-widgets: -Wall -Wpartial-fields -Werror
+  # Eventually we want "$locals": -Wall -Werror
+  ghc-parser: -Wall -Werror
+  ihaskell: -Wall -Werror
+  ihaskell-widgets: -Wall -Werror
+
+allow-newer: true
+
+extra-deps:
+- static-canvas-0.2.0.3
+- diagrams-1.4
+- diagrams-cairo-1.4
+- diagrams-lib-1.4.2
+- magic-1.1
+- diagrams-contrib-1.4.2.1
+- diagrams-core-1.4.0.1
+- diagrams-solve-0.1.1
+- diagrams-svg-1.4.1.1
+- dual-tree-0.2.1
+- cubicbezier-0.6.0.5
+- mfsolve-0.3.2.0
+- fast-math-1.0.2
+
+docker:
+  repo: "ihaskell-dev:latest"
+  enable: false
+  run-args: ["--net=bridge", "-p8888:8888"]
 
 nix:
   enable: false
