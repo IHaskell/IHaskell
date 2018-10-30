@@ -27,8 +27,6 @@ import           Network.HTTP.Client.TLS
 
 import           StringUtils             (replace, split, strip)
 
-import           Debug.Trace
-
 -- | Types of formats to render output to.
 data OutputFormat = Plain      -- ^ Render to plain text.
                   | HTML       -- ^ Render to HTML.
@@ -191,7 +189,7 @@ renderSelf string loc
                 packageSub package
 
   | otherwise =
-      let [name, args] = trace string $ split "::" string
+      let [name, args] = split "::" string
           package = extractPackageName loc
           modname = extractModuleName loc
       in span "hoogle-name"
