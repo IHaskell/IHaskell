@@ -272,8 +272,10 @@ link = printf "<a target='_blank' href='%s'>%s</a>"
 removeMarkup :: String -> String
 removeMarkup s = T.unpack $ List.foldl (flip ($)) (T.pack s) replaceAll
   where replacements :: [ (T.Text, T.Text) ]
-        replacements = [ ( "<span class=name><0>", "" )
-                       , ( "</0></span>", "" )
+        replacements = [ ( "<span class=name>", "" )
+                       , ( "</span>", "" )
+                       , ( "<0>", "" )
+                       , ( "</0>", "" )
                        , ( "&gt;", ">" )
                        , ( "&lt;", "<" )
                        , ( "<b>", "")
