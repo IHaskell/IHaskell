@@ -237,21 +237,7 @@ renderSelf string loc
                              ", " ++ mdl ++ " " ++ span "hoogle-module" modname ++ ")"
 
 renderDocs :: String -> String
-renderDocs doc =
-  let groups = List.groupBy bothAreCode $ lines doc
-      nonull = filter (not . null . strip)
-      bothAreCode s1 s2 =
-                           isPrefixOf ">" (strip s1) &&
-                           isPrefixOf ">" (strip s2)
-      isCode xs =
-        case xs of
-          []    -> False
-          (s:_) -> isPrefixOf ">" $ strip s
-      makeBlock xs =
-        if isCode xs
-          then div' "hoogle-code" $ unlines $ nonull xs
-          else div' "hoogle-text" $ unlines $ nonull xs
-  in div' "hoogle-doc" $ unlines $ map makeBlock groups
+renderDocs doc = div' "hoogle-doc" doc
 
 extractPackageName :: String -> Maybe String
 extractPackageName lnk = do
