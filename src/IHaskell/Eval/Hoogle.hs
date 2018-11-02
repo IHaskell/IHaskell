@@ -1,24 +1,31 @@
-{-# LANGUAGE NoImplicitPrelude, FlexibleInstances, OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module IHaskell.Eval.Hoogle (
     search,
     document,
     render,
     OutputFormat(..),
-    HoogleResult,
+    HoogleResult(..),
+    HoogleResponse(..),
+    parseResponse,
     ) where
 
+import qualified Data.ByteString.Char8   as CBS
+import qualified Data.ByteString.Lazy    as LBS
+import           Data.Either             (either)
 import           IHaskellPrelude
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Char8 as CBS
 
+import           Data.Aeson
+import           Data.Char               (isAlphaNum, isAscii)
+import qualified Data.List               as List
+import qualified Data.Text               as T
+import           Data.Vector             (toList)
 import           Network.HTTP.Client
 import           Network.HTTP.Client.TLS
-import           Data.Aeson
-import qualified Data.List as List
-import           Data.Char (isAscii, isAlphaNum)
 
-import           StringUtils (split, strip, replace)
+import           StringUtils             (replace, split, strip)
 
 -- | Types of formats to render output to.
 data OutputFormat = Plain      -- ^ Render to plain text.
@@ -35,17 +42,19 @@ data HoogleResult = SearchResult HoogleResponse
 data HoogleResponseList = HoogleResponseList [HoogleResponse]
 
 instance FromJSON HoogleResponseList where
-  parseJSON (Object obj) = do
-    results <- obj .: "results"
-    HoogleResponseList <$> mapM parseJSON results
+  parseJSON (Array arr) =
+    HoogleResponseList <$> mapM parseJSON (toList arr)
 
-  parseJSON _ = fail "Expected object with 'results' field."
+  parseJSON _ = fail "Expected array."
 
 instance FromJSON HoogleResponse where
   parseJSON (Object obj) =
-    HoogleResponse <$> obj .: "location" <*> obj .: "self" <*> obj .: "docs"
+    HoogleResponse
+      <$>  obj .: "url"
+      <*>  (removeMarkup <$> obj .: "item")
+      <*>  obj .: "docs"
 
-  parseJSON _ = fail "Expected object with fields: location, self, docs"
+  parseJSON _ = fail "Expected object with fields: url, item, docs"
 
 -- | Query Hoogle for the given string. This searches Hoogle using the internet. It returns either
 -- an error message or the successful JSON result.
@@ -59,7 +68,7 @@ query str = do
 
   where
     queryUrl :: String -> String
-    queryUrl = printf "https://www.haskell.org/hoogle/?hoogle=%s&mode=json"
+    queryUrl = printf "http://hoogle.haskell.org/?hoogle=%s&mode=json"
 
 -- | Copied from the HTTP package.
 urlEncode :: String -> String
@@ -87,18 +96,16 @@ urlEncode (ch:t)
 
 -- | Search for a query on Hoogle. Return all search results.
 search :: String -> IO [HoogleResult]
-search string = do
-  response <- query string
-  return $
-    case response of
-      Left err -> [NoResult err]
-      Right jsn ->
-        case eitherDecode $ LBS.fromStrict $ CBS.pack jsn of
-          Left err -> [NoResult err]
-          Right results ->
-            case map SearchResult $ (\(HoogleResponseList l) -> l) results of
-              []  -> [NoResult "no matching identifiers found."]
-              res -> res
+search string = either ((:[]) . NoResult) parseResponse <$> query string
+
+parseResponse :: String -> [HoogleResult]
+parseResponse jsn =
+  case eitherDecode $ LBS.fromStrict $ CBS.pack jsn of
+    Left err -> [NoResult err]
+    Right results ->
+      case map SearchResult $ (\(HoogleResponseList l) -> l) results of
+        []  -> [NoResult "no matching identifiers found."]
+        res -> res
 
 -- | Look up an identifier on Hoogle. Return documentation for that identifier. If there are many
 -- identifiers, include documentation for all of them.
@@ -118,13 +125,13 @@ document string = do
     matches _ = False
 
     toDocResult (SearchResult resp) = Just $ DocResult resp
-    toDocResult (DocResult _) = Nothing
-    toDocResult (NoResult _) = Nothing
+    toDocResult (DocResult _)       = Nothing
+    toDocResult (NoResult _)        = Nothing
 
 -- | Render a Hoogle search result into an output format.
 render :: OutputFormat -> HoogleResult -> String
 render Plain = renderPlain
-render HTML = renderHtml
+render HTML  = renderHtml
 
 -- | Render a Hoogle result to plain text.
 renderPlain :: HoogleResult -> String
@@ -181,6 +188,12 @@ renderSelf string loc
                 span "hoogle-class" (link loc $ extractNewtype string) ++
                 packageSub package
 
+  | "type" `isPrefixOf` string =
+      let package = extractPackageName loc
+      in nwt ++ " " ++
+                span "hoogle-class" (link loc $ extractType string) ++
+                packageSub package
+
   | otherwise =
       let [name, args] = split "::" string
           package = extractPackageName loc
@@ -197,6 +210,7 @@ renderSelf string loc
     extractClass = strip . replace "class" ""
     extractData = strip . replace "data" ""
     extractNewtype = strip . replace "newtype" ""
+    extractType = strip . replace "newtype" ""
     pkg = span "hoogle-head" "package"
     mdl = span "hoogle-head" "module"
     cls = span "hoogle-head" "class"
@@ -223,21 +237,7 @@ renderSelf string loc
                              ", " ++ mdl ++ " " ++ span "hoogle-module" modname ++ ")"
 
 renderDocs :: String -> String
-renderDocs doc =
-  let groups = List.groupBy bothAreCode $ lines doc
-      nonull = filter (not . null . strip)
-      bothAreCode s1 s2 =
-                           isPrefixOf ">" (strip s1) &&
-                           isPrefixOf ">" (strip s2)
-      isCode xs =
-        case xs of
-          [] -> False
-          (s:_) -> isPrefixOf ">" $ strip s
-      makeBlock xs =
-        if isCode xs
-          then div' "hoogle-code" $ unlines $ nonull xs
-          else div' "hoogle-text" $ unlines $ nonull xs
-  in div' "hoogle-doc" $ unlines $ map makeBlock groups
+renderDocs doc = div' "hoogle-doc" doc
 
 extractPackageName :: String -> Maybe String
 extractPackageName lnk = do
@@ -259,3 +259,19 @@ span = printf "<span class='%s'>%s</span>"
 
 link :: String -> String -> String
 link = printf "<a target='_blank' href='%s'>%s</a>"
+
+-- | very explicit cleaning of the type signature in the hoogle 5 response,
+-- to remove html markup and escaped characters.
+removeMarkup :: String -> String
+removeMarkup s = T.unpack $ List.foldl (flip ($)) (T.pack s) replaceAll
+  where replacements :: [ (T.Text, T.Text) ]
+        replacements = [ ( "<span class=name>", "" )
+                       , ( "</span>", "" )
+                       , ( "<0>", "" )
+                       , ( "</0>", "" )
+                       , ( "&gt;", ">" )
+                       , ( "&lt;", "<" )
+                       , ( "<b>", "")
+                       , ( "</b>", "")
+                       ]
+        replaceAll = uncurry T.replace <$> replacements

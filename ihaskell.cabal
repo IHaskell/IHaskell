@@ -164,6 +164,7 @@ Test-Suite hspec
         IHaskell.Test.Completion
         IHaskell.Test.Util
         IHaskell.Test.Parser
+        IHaskell.Test.Hoogle
     default-language: Haskell2010
     build-depends:
         base,
@@ -178,6 +179,7 @@ Test-Suite hspec
         directory,
         text,
         shelly,
+        raw-strings-qq,
         setenv
 
 source-repository head
