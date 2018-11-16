@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveDataTypeable, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings, DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-unused-binds -fno-warn-name-shadowing -fno-warn-unused-matches #-}
 
 -- | This module contains all types used to create an IPython language kernel.
@@ -16,7 +16,6 @@ module IHaskell.IPython.Types (
     Message(..),
     MessageHeader(..),
     Username,
-    Metadata,
     MessageType(..),
     CodeReview(..),
     Width,
@@ -27,6 +26,7 @@ module IHaskell.IPython.Types (
     HistoryAccessType(..),
     HistoryReplyElement(..),
     LanguageInfo(..),
+    Metadata(..),
     replyType,
     showMessageType,
 
@@ -169,7 +169,8 @@ instance ToJSON MessageHeader where
 type Username = Text
 
 -- | A metadata dictionary.
-type Metadata = Map Text Text
+newtype Metadata = Metadata Object
+  deriving (Show, Read, ToJSON, Monoid)
 
 -- | The type of a message, corresponding to IPython message types.
 data MessageType = KernelInfoReplyMessage

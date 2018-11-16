@@ -148,7 +148,8 @@ executable ihaskell
                        strict               >=0.3,
                        unix                 >= 2.6,
                        directory            -any,
-                       ipython-kernel       >=0.7
+                       ipython-kernel       >=0.7,
+                       unordered-containers -any
 
 Test-Suite hspec
     Type: exitcode-stdio-1.0

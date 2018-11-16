@@ -34,6 +34,7 @@ import           Control.Concurrent (MVar, readChan, writeChan, newMVar, readMVa
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad (forever, when, void)
 
+import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
 import qualified Data.Text as T
@@ -123,7 +124,7 @@ createReplyHeader parent = do
   let repType = fromMaybe err (replyType $ mhMsgType parent)
       err = error $ "No reply for message " ++ show (mhMsgType parent)
 
-  return $ MessageHeader (mhIdentifiers parent) (Just parent) (Map.fromList [])
+  return $ MessageHeader (mhIdentifiers parent) (Just parent) (Metadata (HashMap.fromList []))
             newMessageId (mhSessionId parent) (mhUsername parent) repType
 
 
@@ -219,7 +220,7 @@ replyTo config _ _ req@CompleteRequest{} replyHeader = do
 
   let start = pos - T.length matchedText
       end = pos
-      reply = CompleteReply replyHeader completions start end Map.empty True
+      reply = CompleteReply replyHeader completions start end (Metadata HashMap.empty) True
   return reply
 
 replyTo config _ _ req@InspectRequest{} replyHeader = do

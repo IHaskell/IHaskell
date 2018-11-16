@@ -20,6 +20,7 @@ import           System.Environment (getArgs)
 import           System.Environment (setEnv)
 import           System.Posix.Signals
 import qualified Data.Map as Map
+import qualified Data.HashMap.Strict as HashMap
 import           Data.List (break, last)
 import           Data.Version (showVersion)
 
@@ -328,7 +329,7 @@ replyTo _ req@CompleteRequest{} replyHeader state = do
 
   let start = pos - length matchedText
       end = pos
-      reply = CompleteReply replyHeader (map T.pack completions) start end Map.empty True
+      reply = CompleteReply replyHeader (map T.pack completions) start end (Metadata HashMap.empty) True
   return (state, reply)
 
 replyTo _ req@InspectRequest{} replyHeader state = do
