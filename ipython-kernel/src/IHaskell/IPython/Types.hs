@@ -44,6 +44,7 @@ import           Data.List (find)
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
+import           Data.Semigroup (Semigroup)
 import           Data.Serialize
 import           Data.Serialize.Text ()
 import           Data.Text (Text, pack)
@@ -170,7 +171,7 @@ type Username = Text
 
 -- | A metadata dictionary.
 newtype Metadata = Metadata Object
-  deriving (Show, Read, ToJSON, Monoid)
+  deriving (Show, Read, ToJSON, Semigroup, Monoid)
 
 -- | The type of a message, corresponding to IPython message types.
 data MessageType = KernelInfoReplyMessage
