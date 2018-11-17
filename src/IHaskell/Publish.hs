@@ -67,7 +67,7 @@ publishResult send replyHeader displayed updateNeeded poutput upager result = do
     sendOutput (ManyDisplay manyOuts) = mapM_ sendOutput manyOuts
     sendOutput (Display outs) = do
       hdr <- dupHeader replyHeader DisplayDataMessage
-      send $ PublishDisplayData hdr $ map (convertSvgToHtml . prependCss) outs
+      send $ PublishDisplayData hdr (map (convertSvgToHtml . prependCss) outs) Nothing
 
     convertSvgToHtml (DisplayData MimeSvg s) = html $ makeSvgImg $ base64 $ E.encodeUtf8 s
     convertSvgToHtml x = x

@@ -168,7 +168,7 @@ displayDataParser :: LByteString -> Message
 displayDataParser = requestParser $ \obj -> do
   dataDict :: Object <- obj .: "data"
   let displayDatas = makeDisplayDatas dataDict
-  return $ PublishDisplayData noHeader displayDatas
+  return $ PublishDisplayData noHeader displayDatas Nothing
 
 requestParser :: FromJSON a => (a -> Parser Message) -> LByteString -> Message
 requestParser parser content =
