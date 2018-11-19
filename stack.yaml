@@ -1,4 +1,4 @@
-resolver: lts-12.18
+resolver: lts-12.19
 
 flags: {}
 packages:
