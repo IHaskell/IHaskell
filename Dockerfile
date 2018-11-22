@@ -59,4 +59,5 @@ RUN stack build && stack install
 ENV PATH $(stack path --local-install-root)/bin:$(stack path --snapshot-install-root)/bin:$(stack path --compiler-bin):/home/${NB_USER}/.local/bin:${PATH}
 RUN ihaskell install --stack
 WORKDIR ${HOME}
+RUN jupyter notebook --generate-config
 CMD ["jupyter", "notebook", "--ip", "0.0.0.0"]
