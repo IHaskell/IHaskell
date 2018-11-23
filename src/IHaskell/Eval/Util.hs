@@ -27,11 +27,17 @@ module IHaskell.Eval.Util (
     ) where
 
 import           IHaskellPrelude
+#if MIN_VERSION_ghc(8,6,0)
+#else
 import qualified Data.ByteString.Char8 as CBS
+#endif
 
 -- GHC imports.
 import           DynFlags
+#if MIN_VERSION_ghc(8,6,0)
+#else
 import           FastString
+#endif
 import           GHC
 import           GhcMonad
 import           HscTypes
