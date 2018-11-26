@@ -1,103 +1,39 @@
 let
-  fetcher = { owner, repo, rev, sha256 }: builtins.fetchTarball {
-    inherit sha256;
-    url = "https://github.com/${owner}/${repo}/archive/${rev}.tar.gz";
-  };
-  head-hackage = fetcher {
-    owner = "mpickering";
-    repo = "head.hackage";
-    rev = "d26e4c7ad9e2bd6419338c644b1393f41109a9fa";
-    sha256 = "0vr2pl7yhfjik8q5ayak97xkkdr2d5anjl1s5p60nhg83r034pfc";
+  overlay = sel: sup: {
+    haskell = sup.haskell // {
+      packages = sup.haskell.packages // {
+        ghc862 = sup.haskell.packages.ghc862.override {
+          overrides = self: super: {
+            base-orphans           = self.callHackage "base-orphans" "0.8" {};
+            contravariant          = self.callHackage "contravariant" "1.5" {};
+            doctest                = sel.haskell.lib.dontCheck (self.callHackage "doctest" "0.16.0.1" {});
+            entropy                = self.callHackage "entropy" "0.4.1.3" {};
+            foldl                  = self.callHackage "foldl" "1.4.5" {};
+            haskell-src-exts       = self.callHackage "haskell-src-exts" "1.20.3" {};
+            haskell-src-meta       = sel.haskell.lib.doJailbreak super.haskell-src-meta;
+            hspec-core             = sel.haskell.lib.dontCheck super.hspec-core;
+            lifted-async           = self.callHackage "lifted-async" "0.10.0.3" {};
+            memory                 = self.callHackage "memory" "0.14.18" {};
+            polyparse              = self.callHackage "polyparse" "1.12.1" {};
+            quickcheck-instances   = self.callHackage "quickcheck-instances" "0.3.19" {};
+            semigroupoids          = self.callHackage "semigroupoids" "5.3.1" {};
+            system-fileio          = sel.haskell.lib.dontCheck super.system-fileio;
+            tasty-expected-failure = sel.haskell.lib.doJailbreak super.tasty-expected-failure;
+            th-expand-syns         = sel.haskell.lib.doJailbreak super.th-expand-syns;
+            unliftio-core          = self.callHackage "unliftio-core" "0.1.2.0" {};
+            unliftio               = self.callHackage "unliftio" "0.2.8.1" {};
+            unordered-containers   = sel.haskell.lib.dontCheck super.unordered-containers;
+          };
+        };
+      };
+    };
   };
 in
-{ compiler ? "ghc861"
-, nixpkgs ? import head-hackage {}
+{ compiler ? "ghc862"
+, nixpkgs ? import <nixpkgs> { overlays = [ overlay ]; }
 , packages ? (_: [])
 , pythonPackages ? (_: [])
 , rtsopts ? "-M3g -N2"
 , systemPackages ? (_: [])
 }:
-
-let
-  inherit (builtins) any elem filterSource listToAttrs;
-  lib = nixpkgs.lib;
-  cleanSource = name: type: let
-    baseName = baseNameOf (toString name);
-  in lib.cleanSourceFilter name type && !(
-    (type == "directory" && (elem baseName [ ".stack-work" "dist"])) ||
-    any (lib.flip lib.hasSuffix baseName) [ ".hi" ".ipynb" ".nix" ".sock" ".yaml" ".yml" ]
-  );
-  ihaskellSourceFilter = src: name: type: let
-    relPath = lib.removePrefix (toString src + "/") (toString name);
-  in cleanSource name type && ( any (lib.flip lib.hasPrefix relPath) [
-    "src" "main" "html" "Setup.hs" "ihaskell.cabal" "LICENSE"
-  ]);
-  ihaskell-src         = filterSource (ihaskellSourceFilter ./.) ./.;
-  ipython-kernel-src   = filterSource cleanSource ./ipython-kernel;
-  ghc-parser-src       = filterSource cleanSource ./ghc-parser;
-  ihaskell-display-src = filterSource cleanSource ./ihaskell-display;
-  th-lift-src = fetcher {
-    owner = "mboes";
-    repo = "th-lift";
-    rev = "8969cfb5f670d09d7d18b1e55325ada82c300ddd";
-    sha256 = "1cd55zh6iagc040w65yppcg9d9sxhxy4jn9qhd2l56wc422ywcb2";
-  };
-  displays = self: listToAttrs (
-    map
-      (display: { name = display; value = self.callCabal2nix display "${ihaskell-display-src}/${display}" {}; })
-      [
-        "ihaskell-aeson"
-        "ihaskell-blaze"
-        "ihaskell-charts"
-        "ihaskell-diagrams"
-        "ihaskell-gnuplot"
-        "ihaskell-hatex"
-        "ihaskell-juicypixels"
-        "ihaskell-magic"
-        "ihaskell-plot"
-        "ihaskell-rlangqq"
-        "ihaskell-static-canvas"
-        "ihaskell-widgets"
-      ]);
-  haskellPackages = nixpkgs.haskellPackages.extend (self: super: {
-    ihaskell          = nixpkgs.haskell.lib.overrideCabal (
-                        self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
-      preCheck = ''
-        export HOME=$(${nixpkgs.pkgs.coreutils}/bin/mktemp -d)
-        export PATH=$PWD/dist/build/ihaskell:$PATH
-        export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
-      '';
-      doCheck = true;
-      configureFlags = (_drv.configureFlags or []) ++ [
-        # otherwise the tests are agonisingly slow and the kernel times out
-        "--enable-executable-dynamic"
-      ];
-    });
-    ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
-    ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
-    th-lift           = super.callCabal2nix "th-lift" th-lift-src {};
-  } // displays self);
-  ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
-  jupyter = nixpkgs.python3.withPackages (ps: [ ps.notebook ] ++ pythonPackages ps);
-  ihaskellSh = cmd: extraArgs: nixpkgs.writeScriptBin "ihaskell-${cmd}" ''
-    #! ${nixpkgs.stdenv.shell}
-    export GHC_PACKAGE_PATH="$(echo ${ihaskellEnv}/lib/*/package.conf.d| tr ' ' ':'):$GHC_PACKAGE_PATH"
-    export PATH="${nixpkgs.stdenv.lib.makeBinPath ([ ihaskellEnv jupyter ] ++ systemPackages nixpkgs)}:$PATH"
-    ${ihaskellEnv}/bin/ihaskell install -l $(${ihaskellEnv}/bin/ghc --print-libdir) --use-rtsopts="${rtsopts}" && ${jupyter}/bin/jupyter ${cmd} ${extraArgs} "$@"
-  '';
-in
-nixpkgs.buildEnv {
-  name = "ihaskell-with-packages";
-  buildInputs = [ nixpkgs.makeWrapper ];
-  paths = [ ihaskellEnv jupyter ];
-  postBuild = ''
-    ln -s ${ihaskellSh "notebook" ""}/bin/ihaskell-notebook $out/bin/
-    ln -s ${ihaskellSh "nbconvert" ""}/bin/ihaskell-nbconvert $out/bin/
-    ln -s ${ihaskellSh "console" "--kernel=haskell"}/bin/ihaskell-console $out/bin/
-    for prg in $out/bin"/"*;do
-      if [[ -f $prg && -x $prg ]]; then
-        wrapProgram $prg --set PYTHONPATH "$(echo ${jupyter}/lib/*/site-packages)"
-      fi
-    done
-  '';
-}
+  import (./release.nix) { inherit compiler nixpkgs packages pythonPackages rtsopts systemPackages; }
