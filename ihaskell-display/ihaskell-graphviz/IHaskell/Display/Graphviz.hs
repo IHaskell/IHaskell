@@ -14,7 +14,7 @@
 -- @ dot "digraph { l -> o; o -> v; v -> e; h -> a ; a -> s; s -> k ; k -> e ; e -> l ; l -> l}" @
 module IHaskell.Display.Graphviz (
     dot
-  , Graphviz
+  , Graphviz(..)
   ) where
 
 import qualified Data.ByteString.Char8 as Char
@@ -37,23 +37,19 @@ dot = Dot
 
 instance IHaskellDisplay Graphviz where
   display fig = do
-    pngDisp <- graphDataPNG fig
-    return $ Display [pngDisp]
+    svgDisp <- graphDataSVG fig
+    return $ Display [svgDisp]
 
 name = "ihaskell-graphviz."
 
--- Width and height
-w = 300
-h = 300
-
-graphDataPNG :: Graphviz -> IO DisplayData
-graphDataPNG (Dot dotBody) = do
+graphDataSVG :: Graphviz -> IO DisplayData
+graphDataSVG (Dot dotBody) = do
   switchToTmpDir
 
-  let fname = name ++ "png"
+  let fname = name ++ "svg"
   -- Write the image.
-  ret <- readProcess "dot" ["-Tpng", "-o", fname] dotBody
+  ret <- readProcess "dot" ["-Tsvg", "-o", fname] dotBody
 
-  -- Force strictness on readProcess, read file, and convert to base64.
-  imgData <- seq (length ret) $ Char.readFile fname
-  return $ png w h $ base64 imgData
+  -- Force strictness on readProcess, read file, and output as SVG
+  imgData <- seq (length ret) $ readFile fname
+  return $ svg imgData
