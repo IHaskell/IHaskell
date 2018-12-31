@@ -171,7 +171,7 @@ defaultKernelState :: KernelState
 defaultKernelState = KernelState
   { getExecutionCounter = 1
   , getLintStatus = LintOn
-  , useSvg = False
+  , useSvg = True
   , useShowErrors = False
   , useShowTypes = False
   , usePager = True
