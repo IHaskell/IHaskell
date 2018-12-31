@@ -10,16 +10,13 @@
 --
 -- Minimal notebook example:
 --
--- @ :extension OverloadedStrings @
 -- @ import IHaskell.Display.Graphviz @
--- @ dot LeftToRight "digraph { l -> o; o -> v; v -> e; h -> a ; a -> s; s -> k ; k -> e ; e -> l ; l -> l}" @
+-- @ dot "digraph { l -> o; o -> v; v -> e; h -> a ; a -> s; s -> k ; k -> e ; e -> l ; l -> l}" @
 module IHaskell.Display.Graphviz (
     dot
-  , RankDir(..)
   , Graphviz
   ) where
 
-import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as Char
 import           System.Process (readProcess)
 import           IHaskell.Display
@@ -27,29 +24,21 @@ import           IHaskell.Display
 -- | The body of a Graphviz program.
 --
 -- e.g. @ graph { a -- b } @
-type GraphvizProgramBody = ByteString
-
--- | Plot direction when laying out with Dot.
-data RankDir = LeftToRight | TopToBottom
-  deriving (Show, Eq, Ord)
+type GraphvizProgramBody = String
 
 -- | Main Graphviz object.
 data Graphviz =
-  Dot !RankDir !ByteString
+  Dot !GraphvizProgramBody
   -- ^ A Graphviz plotted using Dot (only available currently).
 
 -- | Create a 'Graphviz' using 'dot'.
-dot :: RankDir -> GraphvizProgramBody -> Graphviz
+dot :: GraphvizProgramBody -> Graphviz
 dot = Dot
 
 instance IHaskellDisplay Graphviz where
   display fig = do
     pngDisp <- graphDataPNG fig
     return $ Display [pngDisp]
-
-rankdirOpt :: RankDir -> String
-rankdirOpt LeftToRight = "-Grankdir=LR"
-rankdirOpt TopToBottom = "-Grankdir=TB"
 
 name = "ihaskell-graphviz."
 
@@ -58,12 +47,12 @@ w = 300
 h = 300
 
 graphDataPNG :: Graphviz -> IO DisplayData
-graphDataPNG (Dot rankdir dotBody) = do
+graphDataPNG (Dot dotBody) = do
   switchToTmpDir
 
   let fname = name ++ "png"
   -- Write the image.
-  ret <- readProcess "dot" ["-Tpng", "-o", fname, rankdirOpt rankdir] (Char.unpack dotBody)
+  ret <- readProcess "dot" ["-Tpng", "-o", fname] dotBody
 
   -- Force strictness on readProcess, read file, and convert to base64.
   imgData <- seq (length ret) $ Char.readFile fname
