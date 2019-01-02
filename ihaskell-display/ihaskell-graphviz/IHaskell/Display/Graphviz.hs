@@ -17,9 +17,8 @@ module IHaskell.Display.Graphviz (
   , Graphviz(..)
   ) where
 
-import qualified Data.ByteString.Char8 as Char
-import           System.Process (readProcess)
-import           IHaskell.Display
+import System.Process (readProcess)
+import IHaskell.Display
 
 -- | The body of a Graphviz program.
 --
