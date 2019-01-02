@@ -1,4 +1,4 @@
-resolver: nightly-2018-11-23
+resolver: lts-13.1
 
 flags: {}
 packages:
