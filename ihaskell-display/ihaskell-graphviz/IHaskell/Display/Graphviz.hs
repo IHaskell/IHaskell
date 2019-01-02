@@ -40,16 +40,5 @@ instance IHaskellDisplay Graphviz where
     svgDisp <- graphDataSVG fig
     return $ Display [svgDisp]
 
-name = "ihaskell-graphviz."
-
 graphDataSVG :: Graphviz -> IO DisplayData
-graphDataSVG (Dot dotBody) = do
-  switchToTmpDir
-
-  let fname = name ++ "svg"
-  -- Write the image.
-  ret <- readProcess "dot" ["-Tsvg", "-o", fname] dotBody
-
-  -- Force strictness on readProcess, read file, and output as SVG
-  imgData <- seq (length ret) $ readFile fname
-  return $ svg imgData
+graphDataSVG (Dot dotBody) = svg <$> readProcess "dot" ["-Tsvg"] dotBody
