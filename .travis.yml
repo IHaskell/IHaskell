@@ -161,7 +161,7 @@ matrix:
               # Images are rendered differently on different systems, so filter them out in the comparison
               diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
           fi
-    - env: DISPLAY=true   USE_STACK_YAML="stack.yaml"     # GHC 8.4.3
+    - env: DISPLAY=true   USE_STACK_YAML="stack-8.4.yaml"     # GHC 8.4.3
       language: python
       # Test against different stack LTS versions.
 
@@ -240,7 +240,7 @@ matrix:
               # Images are rendered differently on different systems, so filter them out in the comparison
               diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
           fi
-    - env: DISPLAY=false   USE_STACK_YAML="stack-8.6.yaml"     # GHC 8.6.2
+    - env: DISPLAY=false   USE_STACK_YAML="stack.yaml"     # GHC 8.6.3
       language: python
       # Test against different stack LTS versions.
 

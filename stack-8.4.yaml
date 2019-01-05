@@ -1,4 +1,4 @@
-resolver: lts-13.1
+resolver: lts-12.26
 
 flags: {}
 packages:
@@ -7,27 +7,27 @@ packages:
     - ./ghc-parser
     - ./ihaskell-display/ihaskell-aeson
     - ./ihaskell-display/ihaskell-blaze
-    # - ./ihaskell-display/ihaskell-charts
-    # - ./ihaskell-display/ihaskell-diagrams
+    - ./ihaskell-display/ihaskell-charts
+    - ./ihaskell-display/ihaskell-diagrams
     - ./ihaskell-display/ihaskell-gnuplot
-    # - ./ihaskell-display/ihaskell-hatex
+    - ./ihaskell-display/ihaskell-hatex
     - ./ihaskell-display/ihaskell-juicypixels
-    # - ./ihaskell-display/ihaskell-magic
-    # - ./ihaskell-display/ihaskell-plot
-    # - ./ihaskell-display/ihaskell-static-canvas
-    # - ./ihaskell-display/ihaskell-widgets
+    - ./ihaskell-display/ihaskell-magic
+    - ./ihaskell-display/ihaskell-plot
+    - ./ihaskell-display/ihaskell-static-canvas
+    - ./ihaskell-display/ihaskell-widgets
 
 extra-deps:
-# - magic-1.1
-# - Chart-1.9
-# - Chart-cairo-1.9
-# - plot-0.2.3.9
+- magic-1.1
+- Chart-1.9
+- Chart-cairo-1.9
+- plot-0.2.3.9
 
 ghc-options:
   # Eventually we want "$locals": -Wall -Wpartial-fields -Werror
   ghc-parser: -Wall -Wpartial-fields -Werror
   ihaskell: -Wall -Wpartial-fields -Werror
-  # ihaskell-widgets: -Wall -Wpartial-fields -Werror
+  ihaskell-widgets: -Wall -Wpartial-fields -Werror
 
 nix:
   enable: false
