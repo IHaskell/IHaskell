@@ -103,7 +103,7 @@ getInputLine dir = do
 
 recordParentHeader :: String -> MessageHeader -> IO ()
 recordParentHeader dir hdr =
-  writeFile (dir ++ "/.last-req-hdr") $ show hdr
+  writeFile (dir ++ "/.last-req-header") $ show hdr
 
 recordKernelProfile :: String -> Profile -> IO ()
 recordKernelProfile dir profile =
