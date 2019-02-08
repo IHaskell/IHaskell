@@ -15,7 +15,7 @@ packages:
     # - ./ihaskell-display/ihaskell-magic
     # - ./ihaskell-display/ihaskell-plot
     # - ./ihaskell-display/ihaskell-static-canvas
-    # - ./ihaskell-display/ihaskell-widgets
+    - ./ihaskell-display/ihaskell-widgets
 
 extra-deps:
 # - magic-1.1
