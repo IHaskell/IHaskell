@@ -5,6 +5,7 @@ matrix:
   include:
     - env: DISPLAY=true   USE_STACK_YAML="stack-8.0.yaml"     # GHC 8.0.2
       language: python
+      dist: xenial
       # Test against different stack LTS versions.
 
       # Choose a lightweight base image; we provide our own build tools.
@@ -84,6 +85,7 @@ matrix:
           fi
     - env: DISPLAY=true   USE_STACK_YAML="stack-8.2.yaml"     # GHC 8.2.2
       language: python
+      dist: xenial
       # Test against different stack LTS versions.
 
       # Choose a lightweight base image; we provide our own build tools.
@@ -163,6 +165,7 @@ matrix:
           fi
     - env: DISPLAY=true   USE_STACK_YAML="stack-8.4.yaml"     # GHC 8.4.3
       language: python
+      dist: xenial
       # Test against different stack LTS versions.
 
       # Choose a lightweight base image; we provide our own build tools.
@@ -242,6 +245,7 @@ matrix:
           fi
     - env: DISPLAY=false   USE_STACK_YAML="stack.yaml"     # GHC 8.6.3
       language: python
+      dist: xenial
       # Test against different stack LTS versions.
 
       # Choose a lightweight base image; we provide our own build tools.
@@ -320,6 +324,7 @@ matrix:
               diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
           fi
     - language: nix
+      dist: xenial
       env: RELEASE_NIX="release.nix"
       cache:
         directories:
@@ -350,6 +355,7 @@ matrix:
         - result/bin/ihaskell-nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
         - diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
     - language: nix
+      dist: xenial
       env: RELEASE_NIX="release-8.2.nix"
       cache:
         directories:
