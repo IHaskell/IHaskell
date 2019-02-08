@@ -75,7 +75,12 @@ import           Text.Printf (printf)
 import           Data.Aeson hiding (pairs)
 import           Data.Aeson.Types (Pair)
 import           Data.Int (Int16)
+#if MIN_VERSION_vinyl(0,9,0)
+import           Data.Vinyl (Rec(..), Dict(..))
+import           Data.Vinyl.Recursive ((<+>), recordToList, reifyConstraint, rmap)
+#else
 import           Data.Vinyl (Rec(..), (<+>), recordToList, reifyConstraint, rmap, Dict(..))
+#endif
 import           Data.Vinyl.Functor (Compose(..), Const(..))
 import           Data.Vinyl.Lens (rget, rput, type (∈))
 import           Data.Vinyl.TypeLevel (RecAll)
@@ -844,7 +849,11 @@ setField' widget sfield val = do
 
 -- | Pluck an attribute from a record
 getAttr :: (f ∈ WidgetFields w) => IPythonWidget w -> SField f -> IO (Attr f)
+#if MIN_VERSION_vinyl(0,9,0)
+getAttr widget _ = rget <$> _getState <$> readIORef (state widget)
+#else
 getAttr widget sfield = rget sfield <$> _getState <$> readIORef (state widget)
+#endif
 
 -- | Get the value of a field.
 getField :: (f ∈ WidgetFields w) => IPythonWidget w -> SField f -> IO (FieldType f)
