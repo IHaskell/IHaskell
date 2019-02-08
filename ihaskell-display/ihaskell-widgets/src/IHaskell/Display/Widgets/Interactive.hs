@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
@@ -18,7 +19,12 @@ module IHaskell.Display.Widgets.Interactive
 import           Data.Text
 import           Data.Proxy
 
-import           Data.Vinyl.Core
+#if MIN_VERSION_vinyl(0,9,0)
+import           Data.Vinyl.Core (Rec(..))
+import           Data.Vinyl.Recursive (recordToList, rmap, rtraverse)
+#else
+import           Data.Vinyl.Core (Rec(..), recordToList, rmap, rtraverse)
+#endif
 import           Data.Vinyl.Functor (Identity(..), Const(..))
 import           Data.Vinyl.Derived (HList)
 import           Data.Vinyl.Lens (type (∈))
