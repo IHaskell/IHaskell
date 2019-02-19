@@ -1,4 +1,4 @@
-resolver: lts-13.6
+resolver: lts-13.8
 
 flags: {}
 packages:
@@ -13,7 +13,7 @@ packages:
     # - ./ihaskell-display/ihaskell-hatex
     - ./ihaskell-display/ihaskell-juicypixels
     # - ./ihaskell-display/ihaskell-magic
-    # - ./ihaskell-display/ihaskell-plot
+    - ./ihaskell-display/ihaskell-plot
     # - ./ihaskell-display/ihaskell-static-canvas
     - ./ihaskell-display/ihaskell-widgets
 
