@@ -26,8 +26,9 @@ publishResult :: (Message -> IO ()) -- ^ A function to send messages
               -> MVar [DisplayData] -- ^ A MVar to use for storing pager output
               -> Bool               -- ^ Whether to use the pager
               -> EvaluationResult   -- ^ The evaluation result
+              -> Bool               -- ^ Whether evaluation completed successfully
               -> IO ()
-publishResult send replyHeader displayed updateNeeded poutput upager result = do
+publishResult send replyHeader displayed updateNeeded poutput upager result success = do
   let final =
         case result of
           IntermediateResult{} -> False
