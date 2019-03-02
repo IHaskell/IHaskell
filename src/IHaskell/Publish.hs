@@ -6,6 +6,7 @@ module IHaskell.Publish
 import           IHaskellPrelude
 
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as E
 
 import           IHaskell.Display
 import           IHaskell.Types
@@ -66,7 +67,15 @@ publishResult send replyHeader displayed updateNeeded poutput upager result = do
     sendOutput (ManyDisplay manyOuts) = mapM_ sendOutput manyOuts
     sendOutput (Display outs) = do
       hdr <- dupHeader replyHeader DisplayDataMessage
-      send $ PublishDisplayData hdr (map prependCss outs) Nothing
+      send $ PublishDisplayData hdr (map (convertSvgToHtml . prependCss) outs) Nothing
+
+    convertSvgToHtml (DisplayData MimeSvg s) = html $ makeSvgImg $ base64 $ E.encodeUtf8 s
+    convertSvgToHtml x = x
+
+    makeSvgImg :: Base64 -> String
+    makeSvgImg base64data = T.unpack $ "<img src=\"data:image/svg+xml;base64," <>
+                                       base64data <>
+                                       "\"/>"
 
     prependCss (DisplayData MimeHtml h) =
       DisplayData MimeHtml $ mconcat ["<style>", T.pack ihaskellCSS, "</style>", h]
