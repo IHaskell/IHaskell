@@ -6,11 +6,7 @@ module IHaskell.Publish
 import           IHaskellPrelude
 
 import qualified Data.Text as T
-<<<<<<< HEAD
-import qualified Data.Text.Encoding as E
-=======
 import qualified Data.Time.Clock.System as Time
->>>>>>> Make unique labels using a timestamp for svg elements.
 
 import           IHaskell.Display
 import           IHaskell.Types
@@ -75,19 +71,7 @@ publishResult send replyHeader displayed updateNeeded poutput upager result = do
       mapM_ (sendOutput uniqueLabel) manyOuts
     sendOutput uniqueLabel (Display outs) = do
       hdr <- dupHeader replyHeader DisplayDataMessage
-<<<<<<< HEAD
-      send $ PublishDisplayData hdr (map (convertSvgToHtml . prependCss) outs) Nothing
-
-    convertSvgToHtml (DisplayData MimeSvg s) = html $ makeSvgImg $ base64 $ E.encodeUtf8 s
-    convertSvgToHtml x = x
-
-    makeSvgImg :: Base64 -> String
-    makeSvgImg base64data = T.unpack $ "<img src=\"data:image/svg+xml;base64," <>
-                                       base64data <>
-                                       "\"/>"
-=======
       send $ PublishDisplayData hdr (map (makeUnique uniqueLabel . prependCss) outs) Nothing
->>>>>>> Make unique labels using a timestamp for svg elements.
 
     prependCss (DisplayData MimeHtml h) =
       DisplayData MimeHtml $ mconcat ["<style>", T.pack ihaskellCSS, "</style>", h]
