@@ -6,7 +6,7 @@ module IHaskell.Publish
 import           IHaskellPrelude
 
 import qualified Data.Text as T
-import qualified Data.Time.Clock.System as Time
+import qualified Data.Time as Time
 
 import           IHaskell.Display
 import           IHaskell.Types
@@ -90,5 +90,5 @@ publishResult send replyHeader displayed updateNeeded poutput upager result = do
     makeUnique _ x = x
 
     getUniqueLabel =
-      fmap (\(Time.MkSystemTime s p) -> T.pack (show s) <> T.pack (show p))
-        Time.getSystemTime
+      fmap (\(Time.UTCTime d s) -> T.pack (show d) <> T.pack (show s))
+        Time.getCurrentTime
