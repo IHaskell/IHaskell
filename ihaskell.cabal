@@ -82,6 +82,7 @@ library
                        strict               >=0.3,
                        system-argv0         -any,
                        text                 >=0.11,
+                       time                 >= 1.8,
                        transformers         -any,
                        unix                 >= 2.6,
                        unordered-containers -any,
