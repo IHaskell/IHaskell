@@ -70,9 +70,6 @@ import           Data.Version (versionBranch)
 #endif
 
 
-data ErrorOccurred = Success
-                   | Failure
-  deriving (Show, Eq)
 
 -- | Set GHC's verbosity for debugging
 ghcVerbosity :: Maybe Int
@@ -250,8 +247,8 @@ initializeItVariable =
 
 -- | Publisher for IHaskell outputs. The first argument indicates whether this output is final
 -- (true) or intermediate (false). The second argument indicates whether the evaluation
--- completed successfully (true) or an error occurred (false).
-type Publisher = (EvaluationResult -> Bool -> IO ())
+-- completed successfully (Success) or an error occurred (Failure).
+type Publisher = (EvaluationResult -> ErrorOccurred -> IO ())
 
 -- | Output of a command evaluation.
 data EvalOut =
@@ -278,11 +275,6 @@ cleanString istr = if allBrackets
     -- should never happen:
     removeBracket other = error $ "Expected bracket as first char, but got string: " ++ other
 
--- | Converts Success/Failure to a boolean to set the output cell type.
-successStatus :: ErrorOccurred -> Bool
-successStatus Success = True
-successStatus Failure = False
-
 -- | Evaluate some IPython input code.
 evaluate :: KernelState                  -- ^ The kernel state.
          -> String                       -- ^ Haskell code or other interpreter commands.
@@ -304,7 +296,7 @@ evaluate kernelState code output widgetHandler = do
                  when (getLintStatus kernelState /= LintOff) $ liftIO $ do
                    lintSuggestions <- lint cmds
                    unless (noResults lintSuggestions) $
-                     output (FinalResult lintSuggestions [] []) True
+                     output (FinalResult lintSuggestions [] []) Success
 
                  runUntilFailure kernelState (map unloc cmds ++ [storeItCommand execCount])
                -- Print all parse errors.
@@ -313,7 +305,7 @@ evaluate kernelState code output widgetHandler = do
                    out <- evalCommand output err kernelState
                    liftIO $ output
                      (FinalResult (evalResult out) [] [])
-                     (successStatus $ evalStatus out)
+                     (evalStatus out)
                  return kernelState
 
   return updated { getExecutionCounter = execCount + 1 }
@@ -348,7 +340,7 @@ evaluate kernelState code output widgetHandler = do
       unless (noResults result && null (evalPager evalOut)) $
         liftIO $ output
           (FinalResult result (evalPager evalOut) [])
-          (successStatus $ evalStatus evalOut)
+          (evalStatus evalOut)
 
       let tempMsgs = evalMsgs evalOut
           tempState = evalState evalOut { evalMsgs = [] }
@@ -703,7 +695,7 @@ evalCommand publish (Directive ShellCmd cmd) state = wrapExecution state $
             case mExitCode of
               Nothing -> do
                 -- Write to frontend and repeat.
-                readMVar outputAccum >>= flip output True
+                readMVar outputAccum >>= flip output Success
                 loop
               Just exitCode -> do
                 next <- readChars pipe "" maxSize
@@ -1232,7 +1224,7 @@ evalStatementOrIO publish state cmd = do
     CapturedIO _ ->
       write state "Evaluating Action"
 
-  (printed, result) <- capturedEval (flip output True) cmd
+  (printed, result) <- capturedEval (flip output Success) cmd
   case result of
     ExecComplete (Right names) _ -> do
       dflags <- getSessionDynFlags
