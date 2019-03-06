@@ -18,6 +18,7 @@ module IHaskell.Types (
     StreamType(..),
     MimeType(..),
     DisplayData(..),
+    ErrorOccurred(..),
     EvaluationResult(..),
     evaluationOutputs,
     ExecuteReplyStatus(..),
@@ -274,5 +275,9 @@ evaluationOutputs er =
 dupHeader :: MessageHeader -> MessageType -> IO MessageHeader
 dupHeader hdr messageType = do
   uuid <- liftIO random
-
   return hdr { mhMessageId = uuid, mhMsgType = messageType }
+
+-- | Whether or not an error occurred.
+data ErrorOccurred = Success
+                   | Failure
+  deriving (Show, Eq)

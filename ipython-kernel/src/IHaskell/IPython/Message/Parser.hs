@@ -148,7 +148,7 @@ executeErrorParser = requestParser $ \obj -> do
   traceback <- obj .: "traceback"
   ename <- obj .: "ename"
   evalue <- obj .: "evalue"
-  return $ ExecuteError noHeader [] traceback ename evalue
+  return $ ExecuteError noHeader traceback ename evalue
 
 makeDisplayDatas :: Object -> [DisplayData]
 makeDisplayDatas dataDict = [DisplayData (read $ unpack mimeType) content | (mimeType, String content) <- HM.toList

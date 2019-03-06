@@ -378,7 +378,6 @@ data Message =
              -- | An error reply to an execute request
                ExecuteError
                  { header :: MessageHeader
-                 , pagerOutput :: [DisplayData]          -- ^ The mimebundles to display in the pager.
                  , traceback :: [Text]
                  , ename :: Text
                  , evalue :: Text
@@ -561,6 +560,13 @@ instance ToJSON Message where
                         , "data" .= object (map displayDataToJson o)
                         ]
                     ]
+  toJSON ExecuteError { header = header, traceback = traceback, ename = ename, evalue = evalue } =
+    object
+      [ "header" .= show header
+      , "traceback" .= map toJSON traceback
+      , "ename" .= ename
+      , "evalue" .= evalue
+      ]
   toJSON PublishStatus { executionState = executionState } =
     object ["execution_state" .= executionState]
   toJSON PublishStream { streamType = streamType, streamContent = content } =

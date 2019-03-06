@@ -12,7 +12,7 @@ import qualified Data.ByteString.Lazy as LBS
 -- Standard library imports.
 import           Control.Concurrent.Chan
 import           Control.Arrow (second)
-import           Data.Aeson
+import           Data.Aeson hiding (Success)
 import           System.Process (readProcess, readProcessWithExitCode)
 import           System.Exit (exitSuccess, ExitCode(ExitSuccess))
 import           Control.Exception (try, SomeException)
@@ -151,7 +151,7 @@ runKernel kOpts profileSrc = do
               kernelState { supportLibrariesAvailable = hasSupportLibraries }
 
     -- Initialize the context by evaluating everything we got from the command line flags.
-    let noPublish _ = return ()
+    let noPublish _ _ = return ()
         noWidget s _ = return s
         evaluator line = void $ do
           -- Create a new state each time.
@@ -429,12 +429,12 @@ handleComm send kernelState req replyHeader = do
         CommDataMessage -> do
           disp <- run $ comm widget dat communicate
           pgrOut <- liftIO $ readMVar pOut
-          liftIO $ publish $ FinalResult disp (if toUsePager then pgrOut else []) []
+          liftIO $ publish (FinalResult disp (if toUsePager then pgrOut else []) []) Success
           return kernelState
         CommCloseMessage -> do
           disp <- run $ close widget dat
           pgrOut <- liftIO $ readMVar pOut
-          liftIO $ publish $ FinalResult disp (if toUsePager then pgrOut else []) []
+          liftIO $ publish (FinalResult disp (if toUsePager then pgrOut else []) []) Success
           return kernelState { openComms = Map.delete uuid widgets }
         _ ->
           -- Only sensible thing to do.

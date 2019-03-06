@@ -78,7 +78,7 @@ matrix:
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
               stack install --fast
               stack exec -- ihaskell install --stack
-              stack exec -- jupyter nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
+              stack exec -- jupyter nbconvert --to=notebook --execute --allow-errors --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
 
               # Images are rendered differently on different systems, so filter them out in the comparison
               diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
@@ -158,7 +158,7 @@ matrix:
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
               stack install --fast
               stack exec -- ihaskell install --stack
-              stack exec -- jupyter nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
+              stack exec -- jupyter nbconvert --to=notebook --execute --allow-errors --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
 
               # Images are rendered differently on different systems, so filter them out in the comparison
               diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
@@ -238,7 +238,7 @@ matrix:
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
               stack install --fast
               stack exec -- ihaskell install --stack
-              stack exec -- jupyter nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
+              stack exec -- jupyter nbconvert --to=notebook --execute --allow-errors --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
 
               # Images are rendered differently on different systems, so filter them out in the comparison
               diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
@@ -318,7 +318,7 @@ matrix:
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
               stack install --fast
               stack exec -- ihaskell install --stack
-              stack exec -- jupyter nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
+              stack exec -- jupyter nbconvert --to=notebook --execute --allow-errors --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
 
               # Images are rendered differently on different systems, so filter them out in the comparison
               diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
@@ -352,7 +352,7 @@ matrix:
             ihaskell-plot
             ihaskell-static-canvas
           ])'
-        - result/bin/ihaskell-nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
+        - result/bin/ihaskell-nbconvert --to=notebook --execute --allow-errors --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
         - diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
     - language: nix
       dist: xenial
@@ -383,5 +383,5 @@ matrix:
             ihaskell-plot
             ihaskell-static-canvas
           ])'
-        - result/bin/ihaskell-nbconvert --to=notebook --execute --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
+        - result/bin/ihaskell-nbconvert --to=notebook --execute --allow-errors --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
         - diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)

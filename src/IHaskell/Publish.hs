@@ -26,8 +26,9 @@ publishResult :: (Message -> IO ()) -- ^ A function to send messages
               -> MVar [DisplayData] -- ^ A MVar to use for storing pager output
               -> Bool               -- ^ Whether to use the pager
               -> EvaluationResult   -- ^ The evaluation result
+              -> ErrorOccurred      -- ^ Whether evaluation completed successfully
               -> IO ()
-publishResult send replyHeader displayed updateNeeded poutput upager result = do
+publishResult send replyHeader displayed updateNeeded poutput upager result success = do
   let final =
         case result of
           IntermediateResult{} -> False
@@ -69,9 +70,13 @@ publishResult send replyHeader displayed updateNeeded poutput upager result = do
 
     sendOutput uniqueLabel (ManyDisplay manyOuts) =
       mapM_ (sendOutput uniqueLabel) manyOuts
-    sendOutput uniqueLabel (Display outs) = do
-      hdr <- dupHeader replyHeader DisplayDataMessage
-      send $ PublishDisplayData hdr (map (makeUnique uniqueLabel . prependCss) outs) Nothing
+    sendOutput uniqueLabel (Display outs) = case success of
+      Success -> do
+        hdr <- dupHeader replyHeader DisplayDataMessage
+        send $ PublishDisplayData hdr (map (makeUnique uniqueLabel . prependCss) outs) Nothing
+      Failure -> do
+        hdr <- dupHeader replyHeader ExecuteErrorMessage
+        send $ ExecuteError hdr [T.pack (extractPlain outs)] "" ""
 
     prependCss (DisplayData MimeHtml h) =
       DisplayData MimeHtml $ mconcat ["<style>", T.pack ihaskellCSS, "</style>", h]
