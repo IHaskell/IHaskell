@@ -28,30 +28,29 @@ let
     map
       (display: { name = "ihaskell-${display}"; value = self.callCabal2nix display "${ihaskell-display-src}/ihaskell-${display}" {}; })
       [ "aeson" "blaze" "charts" "diagrams" "gnuplot" "graphviz" "hatex" "juicypixels" "magic" "plot" "rlangqq" "static-canvas" "widgets" ]);
-  haskellPackages = nixpkgs.haskell.packages."${compiler}".override
-   { overrides = self: super:
-    {
-    ihaskell          = nixpkgs.haskell.lib.overrideCabal (
-                        self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
-      preCheck = ''
-        export HOME=$(${nixpkgs.pkgs.coreutils}/bin/mktemp -d)
-        export PATH=$PWD/dist/build/ihaskell:$PATH
-        export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
-      '';
-      configureFlags = (_drv.configureFlags or []) ++ [
-        # otherwise the tests are agonisingly slow and the kernel times out
-        "--enable-executable-dynamic"
-      ];
-      doHaddock = false;
-    });
-    ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
-    inline-r          = nixpkgs.haskell.lib.dontCheck super.inline-r;
-    ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
+  haskellPackages = nixpkgs.haskell.packages."${compiler}".override (old: {
+    overrides = nixpkgs.lib.composeExtensions (old.overrides or (_: _: {})) (self: super: {
+      ihaskell          = nixpkgs.haskell.lib.overrideCabal (
+                          self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
+        preCheck = ''
+          export HOME=$(${nixpkgs.pkgs.coreutils}/bin/mktemp -d)
+          export PATH=$PWD/dist/build/ihaskell:$PATH
+          export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
+        '';
+        configureFlags = (_drv.configureFlags or []) ++ [
+          # otherwise the tests are agonisingly slow and the kernel times out
+          "--enable-executable-dynamic"
+        ];
+        doHaddock = false;
+      });
+      ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
+      ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
 
-    static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
-    zeromq4-haskell   = nixpkgs.haskell.lib.dontCheck super.zeromq4-haskell;
-   } // displays self;
-  };
+      inline-r          = nixpkgs.haskell.lib.dontCheck super.inline-r;
+      static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
+      zeromq4-haskell   = nixpkgs.haskell.lib.dontCheck super.zeromq4-haskell;
+    } // displays self);
+  });
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
   jupyterlab = nixpkgs.python3.withPackages (ps: [ ps.jupyterlab ] ++ pythonPackages ps);
   ihaskellSh = cmd: extraArgs: nixpkgs.writeScriptBin "ihaskell-${cmd}" ''
