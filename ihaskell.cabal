@@ -4,10 +4,10 @@ name:                ihaskell
 -- The package version.  See the Haskell package versioning policy (PVP)
 -- for standards guiding when and how versions should be incremented.
 -- http://www.haskell.org/haskellwiki/Package_versioning_policy
--- PVP summary:      +-+------- breaking API changes
---                   | | +----- non-breaking API additions
---                   | | | +--- code changes with no API change
-version:             0.9.1.0
+-- PVP summary:      +--+------- breaking API changes
+--                   |  | +----- non-breaking API additions
+--                   |  | | +--- code changes with no API change
+version:             0.10.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            A Haskell backend kernel for the IPython project.
