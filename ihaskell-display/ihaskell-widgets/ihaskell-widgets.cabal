@@ -10,7 +10,7 @@ name:                ihaskell-widgets
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.2.3.2
+version:             0.2.3.3
 
 -- A short (one-line) description of the package.
 synopsis:            IPython standard widgets for IHaskell.
