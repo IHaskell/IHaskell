@@ -54,11 +54,22 @@ let
   });
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
   jupyterlab = nixpkgs.python3.withPackages (ps: [ ps.jupyterlab ] ++ pythonPackages ps);
-  ihaskellSh = cmd: extraArgs: nixpkgs.writeScriptBin "ihaskell-${cmd}" ''
+
+  ihaskellWrapperSh = nixpkgs.writeScriptBin "ihaskell-wrapper" ''
     #! ${nixpkgs.stdenv.shell}
     export GHC_PACKAGE_PATH="$(echo ${ihaskellEnv}/lib/*/package.conf.d| tr ' ' ':'):$GHC_PACKAGE_PATH"
-    export PATH="${nixpkgs.stdenv.lib.makeBinPath ([ ihaskellEnv jupyterlab ] ++ systemPackages nixpkgs)}:$PATH"
-    ${ihaskellEnv}/bin/ihaskell install -l $(${ihaskellEnv}/bin/ghc --print-libdir) --use-rtsopts="${rtsopts}" && ${jupyterlab}/bin/jupyter ${cmd} ${extraArgs} "$@"
+    export PATH="${nixpkgs.stdenv.lib.makeBinPath ([ ihaskellEnv jupyterlab ] ++ systemPackages nixpkgs)}''${PATH:+:}$PATH"
+    exec ${ihaskellEnv}/bin/ihaskell "$@"
+  '';
+
+  ihaskellJupyterCmdSh = cmd: extraArgs: nixpkgs.writeScriptBin "ihaskell-${cmd}" ''
+    #! ${nixpkgs.stdenv.shell}
+    export GHC_PACKAGE_PATH="$(echo ${ihaskellEnv}/lib/*/package.conf.d| tr ' ' ':'):$GHC_PACKAGE_PATH"
+    export PATH="${nixpkgs.stdenv.lib.makeBinPath ([ ihaskellEnv jupyterlab ] ++ systemPackages nixpkgs)}''${PATH:+:}$PATH"
+    ${ihaskellEnv}/bin/ihaskell install \
+      -l $(${ihaskellEnv}/bin/ghc --print-libdir) \
+      --use-rtsopts="${rtsopts}" \
+      && ${jupyterlab}/bin/jupyter ${cmd} ${extraArgs} "$@"
   '';
 in
 nixpkgs.buildEnv {
@@ -66,14 +77,23 @@ nixpkgs.buildEnv {
   buildInputs = [ nixpkgs.makeWrapper ];
   paths = [ ihaskellEnv jupyterlab ];
   postBuild = ''
-    ln -s ${ihaskellSh "lab" ""}/bin/ihaskell-lab $out/bin/
-    ln -s ${ihaskellSh "notebook" ""}/bin/ihaskell-notebook $out/bin/
-    ln -s ${ihaskellSh "nbconvert" ""}/bin/ihaskell-nbconvert $out/bin/
-    ln -s ${ihaskellSh "console" "--kernel=haskell"}/bin/ihaskell-console $out/bin/
+    ln -s ${ihaskellJupyterCmdSh "lab" ""}/bin/ihaskell-lab $out/bin/
+    ln -s ${ihaskellJupyterCmdSh "notebook" ""}/bin/ihaskell-notebook $out/bin/
+    ln -s ${ihaskellJupyterCmdSh "nbconvert" ""}/bin/ihaskell-nbconvert $out/bin/
+    ln -s ${ihaskellJupyterCmdSh "console" "--kernel=haskell"}/bin/ihaskell-console $out/bin/
     for prg in $out/bin"/"*;do
       if [[ -f $prg && -x $prg ]]; then
         wrapProgram $prg --set PYTHONPATH "$(echo ${jupyterlab}/lib/*/site-packages)"
       fi
     done
   '';
+
+  passthru = {
+    inherit ihaskellEnv;
+    inherit jupyterlab;
+    inherit ihaskellJupyterCmdSh;
+    inherit ihaskellWrapperSh;
+    ihaskellJsFile = ./. + "/html/kernel.js";
+    ihaskellLogo64 = ./. + "/html/logo-64x64.svg";
+  };
 }
