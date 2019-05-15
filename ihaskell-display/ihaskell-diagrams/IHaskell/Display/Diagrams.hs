@@ -4,6 +4,7 @@
 module IHaskell.Display.Diagrams
          ( diagram, animation
          , ManuallySized, withSizeSpec, withImgWidth, withImgHeight
+         , ManuallySampled, withAnimFps
          ) where
 
 import qualified Data.ByteString.Char8 as Char
