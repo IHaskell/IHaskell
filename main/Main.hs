@@ -191,6 +191,10 @@ runKernel kOpts profileSrc = do
           -- Write the reply to the reply channel.
           liftIO $ writeChan (shellReplyChannel interface) reply
 
+      -- Notify the frontend that we're done computing.
+      idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
+      liftIO $ writeChan (iopubChannel interface) $ PublishStatus idleHeader Idle
+
   where
     ignoreCtrlC =
       installHandler keyboardSignal (CatchOnce $ putStrLn "Press Ctrl-C again to quit kernel.")
@@ -289,10 +293,6 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
   let widgetMessageHandler = widgetHandler send replyHeader
       publish = publishResult send replyHeader displayed updateNeeded pOut (usePager state)
   updatedState <- evaluate state (T.unpack code) publish widgetMessageHandler
-
-  -- Notify the frontend that we're done computing.
-  idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
-  send $ PublishStatus idleHeader Idle
 
   -- Take pager output if we're using the pager.
   pager <- if usePager state
@@ -439,9 +439,5 @@ handleComm send kernelState req replyHeader = do
         _ ->
           -- Only sensible thing to do.
           return kernelState
-
-  -- Notify the frontend that the kernel is idle once again
-  idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
-  liftIO . send $ PublishStatus idleHeader Idle
 
   return newState
