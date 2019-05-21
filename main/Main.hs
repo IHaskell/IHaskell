@@ -171,6 +171,12 @@ runKernel kOpts profileSrc = do
       -- Create a header for the reply.
       replyHeader <- createReplyHeader (header request)
 
+      -- Notify the frontend that the kernel is busy computing. All the headers are copies of the reply
+      -- header with a different message type, because this preserves the session ID, parent header, and
+      -- other important information.
+      busyHeader <- liftIO $ dupHeader replyHeader StatusMessage
+      liftIO $ writeChan (iopubChannel interface) $ PublishStatus busyHeader Busy
+
       -- We handle comm messages and normal ones separately. The normal ones are a standard
       -- request/response style, while comms can be anything, and don't necessarily require a response.
       if isCommMessage request
@@ -269,12 +275,6 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
   -- Log things so that we can use stdin.
   dir <- liftIO getIHaskellDir
   liftIO $ Stdin.recordParentHeader dir $ header req
-
-  -- Notify the frontend that the kernel is busy computing. All the headers are copies of the reply
-  -- header with a different message type, because this preserves the session ID, parent header, and
-  -- other important information.
-  busyHeader <- liftIO $ dupHeader replyHeader StatusMessage
-  send $ PublishStatus busyHeader Busy
 
   -- Construct a function for publishing output as this is going. This function accepts a boolean
   -- indicating whether this is the final output and the thing to display. Store the final outputs in
@@ -417,10 +417,6 @@ handleComm send kernelState req replyHeader = do
   -- the frontend simultaneously.
   let run = capturedIO publish kernelState
       publish = publishResult send replyHeader displayed updateNeeded pOut toUsePager
-
-  -- Notify the frontend that the kernel is busy
-  busyHeader <- liftIO $ dupHeader replyHeader StatusMessage
-  liftIO . send $ PublishStatus busyHeader Busy
 
   newState <- case Map.lookup uuid widgets of
     Nothing -> return kernelState
