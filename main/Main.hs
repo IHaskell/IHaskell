@@ -171,6 +171,12 @@ runKernel kOpts profileSrc = do
       -- Create a header for the reply.
       replyHeader <- createReplyHeader (header request)
 
+      -- Notify the frontend that the kernel is busy computing. All the headers are copies of the reply
+      -- header with a different message type, because this preserves the session ID, parent header, and
+      -- other important information.
+      busyHeader <- liftIO $ dupHeader replyHeader StatusMessage
+      liftIO $ writeChan (iopubChannel interface) $ PublishStatus busyHeader Busy
+
       -- We handle comm messages and normal ones separately. The normal ones are a standard
       -- request/response style, while comms can be anything, and don't necessarily require a response.
       if isCommMessage request
@@ -190,6 +196,10 @@ runKernel kOpts profileSrc = do
 
           -- Write the reply to the reply channel.
           liftIO $ writeChan (shellReplyChannel interface) reply
+
+      -- Notify the frontend that we're done computing.
+      idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
+      liftIO $ writeChan (iopubChannel interface) $ PublishStatus idleHeader Idle
 
   where
     ignoreCtrlC =
@@ -266,12 +276,6 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
   dir <- liftIO getIHaskellDir
   liftIO $ Stdin.recordParentHeader dir $ header req
 
-  -- Notify the frontend that the kernel is busy computing. All the headers are copies of the reply
-  -- header with a different message type, because this preserves the session ID, parent header, and
-  -- other important information.
-  busyHeader <- liftIO $ dupHeader replyHeader StatusMessage
-  send $ PublishStatus busyHeader Busy
-
   -- Construct a function for publishing output as this is going. This function accepts a boolean
   -- indicating whether this is the final output and the thing to display. Store the final outputs in
   -- a list so that when we receive an updated non-final output, we can clear the entire output and
@@ -289,10 +293,6 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
   let widgetMessageHandler = widgetHandler send replyHeader
       publish = publishResult send replyHeader displayed updateNeeded pOut (usePager state)
   updatedState <- evaluate state (T.unpack code) publish widgetMessageHandler
-
-  -- Notify the frontend that we're done computing.
-  idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
-  send $ PublishStatus idleHeader Idle
 
   -- Take pager output if we're using the pager.
   pager <- if usePager state
@@ -418,10 +418,6 @@ handleComm send kernelState req replyHeader = do
   let run = capturedIO publish kernelState
       publish = publishResult send replyHeader displayed updateNeeded pOut toUsePager
 
-  -- Notify the frontend that the kernel is busy
-  busyHeader <- liftIO $ dupHeader replyHeader StatusMessage
-  liftIO . send $ PublishStatus busyHeader Busy
-
   newState <- case Map.lookup uuid widgets of
     Nothing -> return kernelState
     Just (Widget widget) ->
@@ -439,9 +435,5 @@ handleComm send kernelState req replyHeader = do
         _ ->
           -- Only sensible thing to do.
           return kernelState
-
-  -- Notify the frontend that the kernel is idle once again
-  idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
-  liftIO . send $ PublishStatus idleHeader Idle
 
   return newState
