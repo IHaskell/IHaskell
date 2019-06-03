@@ -48,6 +48,13 @@ extension to get syntax highlighting with:
 jupyter labextension install ihaskell_jupyterlab
 ```
 
+Run Jupyter.
+
+```bash
+stack exec jupyter -- notebook
+```
+
+
 ## Mac
 
 You need to have [Homebrew](https://brew.sh) installed. 
@@ -68,49 +75,106 @@ ihaskell install --stack
 
 If you have Homebrew installed to a custom location, you'd need to specify `--extra-include-dirs ${HOMEBREW_PREFIX}/include ----extra-lib-dir ${HOMEBREW_PREFIX}/lib` to the `stack` command. 
 
-_Tested on macOS Sierra (10.12.6)_
-
-# Running
+Run Jupyter.
 
 ```bash
 stack exec jupyter -- notebook
 ```
 
+_Tested on macOS Sierra (10.12.6)_
+
 ## Docker
 
-If you prefer a Docker-based workflow, you can use it to create an IHaskell
-notebook environment. For example:
+To quickly run a Jupyter notebook with the IHaskell kernel, try the `Dockerfile`
+in the top directory.
 
 ```bash
-$ docker build -t ihaskell:latest .
-$ docker run -it -p8888:8888 ihaskell:latest
+docker build -t ihaskell:latest .
+docker run --rm -it -p8888:8888 ihaskell:latest
 ```
 
-Currently the component that takes the longest time to compile is
-`ihaskell-widgets`, so if you're in a hurry you may want to comment that out in
-`stack.yaml`.
+## Stack and Docker
 
-## Stack development with Docker
-This is an alternative way to use Docker than above, taking advantage of stack's Docker support.
-Makes it easy to install new packages with `stack --docker install <pkg>` without having to rebuild a docker image.
-Like the other Docker workflow, this doesn't require any host dependecies to be installed.
+IHaskell, being a Jupyter kernel, depends at runtime on a tall pile of software
+provided by, traditionally, `apt`, `pip`, and `npm`.
+To develop IHaskell, we want to be able to isolate and control all of the
+dependencies. We can use
+[Stack's Docker integration](https://docs.haskellstack.org/en/stable/docker_integration/)
+to install all of those runtime dependencies into an isolated environment.
+
+* The system library dependencies installed with `apt` will be isolated
+  in the `ihaskell-dev` Docker image.
+* Dependencies installed by `pip` and `npm` will be isolated in
+  the `IHaskell/.stack-work` subdirectory.
+* All Stack build products and installed binaries will be isolated in the
+  `IHaskell/.stack-work` subdirectory.
+
+The following `stack --docker` commands require a Docker image
+named `ihaskell-dev`, so build that image from the `docker/Dockerfile` with this
+command:
 
 ```bash
 docker build -t ihaskell-dev docker
-stack --docker setup
-stack --docker install
-stack --docker exec ihaskell -- install --stack
-stack --docker exec jupyter -- notebook --ip=0.0.0.0 notebooks
 ```
 
-Everything in the LTS can be made available!
-To add a package outside the LTS, simply add it to the `stack.yaml` file  (See: "Where are my packages?" below).
-Then install the package with stack before restarting `jupyter`
+Install the `ghc` version specified by the Stack `resolver`.
+
+```bash
+stack --docker setup
+```
+
+Install Jupyter and all of its requirements.
+```bash
+stack --docker exec pip3 -- install jupyter
+```
+
+Build IHaskell and all of its packages.
+
+```bash
+stack --docker install
+```
+
+Direct IHaskell to register itself as a Jupyter kernel.
+
+```bash
+stack --docker exec ihaskell -- install --stack
+```
+
+Optionally, install JupyterLab and the IHaskell JupyterLab extension for
+syntax highlighting. See the
+[`ihaskell_labextension/README.md`](ihaskell_labextension/README.md).
+
+```bash
+stack --docker exec pip3 -- install jupyterlab
+stack --docker exec bash -- -c 'cd ihaskell_labextension;npm install;npm run build;jupyter labextension link .'
+```
+
+Run the Jupyter notebook, with security disabled for testing.
+
+```bash
+stack --docker exec jupyter -- notebook --NotebookApp.token='' notebooks
+```
+
+Run JupyterLab (if you installed it), with security disabled for testing.
+```bash
+stack --docker exec jupyter -- lab --NotebookApp.token='' notebooks
+```
+Everything in Stackage can be installed by `stack --docker install`.
+
+To install a local package, add it to the `stack.yaml`
+file  (See: "Where are my packages?" below).
+Install the package with `stack`, then restart `jupyter`.
 
 ```bash
 # after adding details about mypackage to stack.yaml
 stack --docker install mypackage
-stack --docker exec jupyter -- notebook notebooks
+```
+
+To cleanly delete the entire Stack Docker development environment:
+
+```bash
+docker image rm ihaskell-dev
+stack clean --full
 ```
 
 ## Nix
@@ -169,3 +233,14 @@ with an `lts-9` project the mismatch between GHC 8.2 and GHC 8.0 will cause
 this error. Stack also has the notion of a 'global project' located at
 `~/.stack/global-project/` and the `stack.yaml` for that project should be on
 the same LTS as the version of IHaskell installed to avoid this issue.
+
+## openFile: does not exist (Stack + Docker)
+
+If you try to run a notebook with `stack --docker` and see an IHaskell kernel
+error that looks like this:
+
+```
+ihaskell: /opt/ghc/8.6.5/lib/ghc-8.6.5/settings: openFile: does not exist
+```
+
+Then delete your `~/.stack` directory and start over.
