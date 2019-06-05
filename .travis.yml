@@ -78,10 +78,7 @@ matrix:
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
               stack install --fast
               stack exec -- ihaskell install --stack
-              stack exec -- jupyter nbconvert --to=notebook --execute --allow-errors --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
-
-              # Images are rendered differently on different systems, so filter them out in the comparison
-              diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
+              test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert
           fi
     - env: DISPLAY=true   USE_STACK_YAML="stack-8.2.yaml"     # GHC 8.2.2
       language: python
@@ -158,10 +155,7 @@ matrix:
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
               stack install --fast
               stack exec -- ihaskell install --stack
-              stack exec -- jupyter nbconvert --to=notebook --execute --allow-errors --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
-
-              # Images are rendered differently on different systems, so filter them out in the comparison
-              diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
+              test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert
           fi
     - env: DISPLAY=true   USE_STACK_YAML="stack-8.4.yaml"     # GHC 8.4.3
       language: python
@@ -238,10 +232,7 @@ matrix:
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
               stack install --fast
               stack exec -- ihaskell install --stack
-              stack exec -- jupyter nbconvert --to=notebook --execute --allow-errors --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
-
-              # Images are rendered differently on different systems, so filter them out in the comparison
-              diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
+              test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert
           fi
     - env: DISPLAY=false   USE_STACK_YAML="stack.yaml"     # GHC 8.6.3
       language: python
@@ -318,10 +309,7 @@ matrix:
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
               stack install --fast
               stack exec -- ihaskell install --stack
-              stack exec -- jupyter nbconvert --to=notebook --execute --allow-errors --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
-
-              # Images are rendered differently on different systems, so filter them out in the comparison
-              diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
+              test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert
           fi
     - language: nix
       dist: xenial
@@ -352,8 +340,7 @@ matrix:
             ihaskell-plot
             ihaskell-static-canvas
           ])'
-        - result/bin/ihaskell-nbconvert --to=notebook --execute --allow-errors --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
-        - diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
+        - test/acceptance.nbconvert.sh result/bin/ihaskell-nbconvert
     - language: nix
       dist: xenial
       env: RELEASE_NIX="release-8.2.nix"
@@ -383,5 +370,4 @@ matrix:
             ihaskell-plot
             ihaskell-static-canvas
           ])'
-        - result/bin/ihaskell-nbconvert --to=notebook --execute --allow-errors --stdout notebooks/IHaskell.ipynb > ~/ihaskell-out.ipynb
-        - diff <(egrep -v 'image/png|version|pygments' ~/ihaskell-out.ipynb) <(egrep -v 'image/png|version|pygments' notebooks/IHaskell.ipynb)
+        - test/acceptance.nbconvert.sh result/bin/ihaskell-nbconvert
