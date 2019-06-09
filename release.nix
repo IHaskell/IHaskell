@@ -51,6 +51,8 @@ let
       inline-r          = nixpkgs.haskell.lib.dontCheck super.inline-r;
       static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
       system-fileio     = nixpkgs.haskell.lib.doJailbreak super.system-fileio;
+      Chart             = nixpkgs.haskell.lib.doJailbreak super.Chart;
+      Chart-cairo       = nixpkgs.haskell.lib.doJailbreak super.Chart-cairo;
     } // displays self);
   });
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
