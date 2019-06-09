@@ -50,6 +50,7 @@ let
       haskell-src-exts  = self.haskell-src-exts_1_21_0;
       inline-r          = nixpkgs.haskell.lib.dontCheck super.inline-r;
       static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
+      system-fileio     = nixpkgs.haskell.lib.doJailbreak super.system-fileio;
     } // displays self);
   });
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
