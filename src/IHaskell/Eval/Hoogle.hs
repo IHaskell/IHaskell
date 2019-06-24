@@ -119,9 +119,7 @@ document string = do
 
   where
     matches (SearchResult resp) =
-      case split " " $ self resp of
-        name:_ -> strip string == strip name
-        _      -> False
+      ("<s0>" ++ strip string ++ "</s0>") `elem` (split " " $ self resp)
     matches _ = False
 
     toDocResult (SearchResult resp) = Just $ DocResult resp
