@@ -24,6 +24,7 @@ import           Control.Concurrent (forkIO, threadDelay)
 import           Data.Foldable (foldMap)
 import           Prelude (head, tail, last, init)
 import           Data.List (nubBy)
+import qualified Data.Set as Set
 import           Data.Char as Char
 import           Data.Dynamic
 import qualified Data.Serialize as Serialize
@@ -116,6 +117,9 @@ ihaskellGlobalImports =
   , "import qualified IHaskell.Eval.Widgets"
   ]
 
+hiddenPackageNames :: Set.Set String
+hiddenPackageNames = Set.fromList ["ghc-lib", "ghc-lib-parser"]
+
 -- | Interpreting function for testing.
 testInterpret :: Interpreter a -> IO a
 testInterpret v = interpret GHC.Paths.libdir False (const v)
@@ -182,7 +186,8 @@ initializeImports = do
   (dflgs, _) <- liftIO $ initPackages dflags
   let db = getPackageConfigs dflgs
       packageNames = map (packageIdString' dflgs) db
-
+      hiddenPackages = Set.intersection hiddenPackageNames (Set.fromList packageNames)
+      hiddenFlags = fmap HidePackage $ Set.toList hiddenPackages
       initStr = "ihaskell-"
 
 #if MIN_VERSION_ghc(8,2,0)
@@ -221,6 +226,8 @@ initializeImports = do
 #endif
 
       displayImports = map toImportStmt displayPkgs
+
+  void $ setSessionDynFlags $ dflgs { packageFlags = hiddenFlags ++ packageFlags dflgs }
 
   -- Import implicit prelude.
   importDecl <- parseImportDecl "import Prelude"
