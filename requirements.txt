@@ -5,4 +5,4 @@ ipykernel
 ipywidgets==7.1.1
 jupyter-client==5.2.2
 jupyter-console==5.2.0
-jupyter-core==4.4.0
+jupyter-core==4.5.0
