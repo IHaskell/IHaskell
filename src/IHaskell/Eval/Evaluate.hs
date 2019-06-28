@@ -1104,7 +1104,10 @@ capturedEval output stmt = do
       writeVariable = var "file_write_var_"
 
       -- Variable where to store old stdout.
-      oldVariable = var "old_var_"
+      oldVariableStdout = var "old_var_stdout_"
+
+      -- Variable where to store old stderr.
+      oldVariableStderr = var "old_var_stderr_"
 
       -- Variable used to store true `it` value.
       itVariable = var "it_var_"
@@ -1115,9 +1118,12 @@ capturedEval output stmt = do
       initStmts =
         [ printf "let %s = it" itVariable
         , printf "(%s, %s) <- IHaskellIO.createPipe" readVariable writeVariable
-        , printf "%s <- IHaskellIO.dup IHaskellIO.stdOutput" oldVariable
+        , printf "%s <- IHaskellIO.dup IHaskellIO.stdOutput" oldVariableStdout
+        , printf "%s <- IHaskellIO.dup IHaskellIO.stdError" oldVariableStderr
         , voidpf "IHaskellIO.dupTo %s IHaskellIO.stdOutput" writeVariable
+        , voidpf "IHaskellIO.dupTo %s IHaskellIO.stdError" writeVariable
         , voidpf "IHaskellSysIO.hSetBuffering IHaskellSysIO.stdout IHaskellSysIO.NoBuffering"
+        , voidpf "IHaskellSysIO.hSetBuffering IHaskellSysIO.stderr IHaskellSysIO.NoBuffering"
         , printf "let it = %s" itVariable
         ]
 
@@ -1125,7 +1131,9 @@ capturedEval output stmt = do
       postStmts =
         [ printf "let %s = it" itVariable
         , voidpf "IHaskellSysIO.hFlush IHaskellSysIO.stdout"
-        , voidpf "IHaskellIO.dupTo %s IHaskellIO.stdOutput" oldVariable
+        , voidpf "IHaskellSysIO.hFlush IHaskellSysIO.stderr"
+        , voidpf "IHaskellIO.dupTo %s IHaskellIO.stdOutput" oldVariableStdout
+        , voidpf "IHaskellIO.dupTo %s IHaskellIO.stdError" oldVariableStderr
         , voidpf "IHaskellIO.closeFd %s" writeVariable
         , printf "let it = %s" itVariable
         ]
