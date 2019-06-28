@@ -169,3 +169,9 @@ testEval =
 #endif
       ":k Maybe" `becomes` ["Maybe :: * -> *"]
       ":in String" `pages` ["type String = [Char] \t-- Defined in \8216GHC.Base\8217"]
+
+    it "captures stderr" $ do
+      [hereLit|
+        import Debug.Trace
+        trace "test" 5
+      |] `becomes` ["test\n5"]
