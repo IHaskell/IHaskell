@@ -26,7 +26,6 @@ import           System.Exit (exitFailure)
 import           Data.Aeson (toJSON)
 import           Data.Aeson.Text (encodeToTextBuilder)
 import           Data.Text.Lazy.Builder (toLazyText)
-import           Control.Monad (mplus)
 
 import qualified Paths_ihaskell as Paths
 
@@ -115,30 +114,13 @@ verifyIPythonVersion = do
   case pathMay of
     Nothing -> badIPython
                  "No Jupyter / IPython detected -- install Jupyter 3.0+ before using IHaskell."
-    Just path -> do
-      sout <- SH.silently (SH.run path ["--version"])
-      serr <- SH.lastStderr
-      let majorVersion = join . fmap listToMaybe . parseVersion . T.unpack
-      case mplus (majorVersion serr) (majorVersion sout) of
-        Nothing -> badIPython $ T.concat
-                                  [ "Detected Jupyter, but could not parse version number."
-                                  , "\n"
-                                  , "(stdout = "
-                                  , sout
-                                  , ", stderr = "
-                                  , serr
-                                  , ")"
-                                  ]
-
-        Just version -> when (version < 3) oldIPython
+    Just _ -> pure ()
 
   where
     badIPython :: Text -> SH.Sh ()
     badIPython message = liftIO $ do
       IO.hPutStrLn IO.stderr (T.unpack message)
       exitFailure
-    oldIPython = badIPython
-                   "Detected old version of Jupyter / IPython. IHaskell requires 3.0.0 or up."
 
 -- | Install an IHaskell kernelspec into the right location. The right location is determined by
 -- using `ipython kernelspec install --user`.
@@ -191,14 +173,6 @@ subHome :: String -> IO String
 subHome path = SH.shelly $ do
   home <- T.unpack <$> fromMaybe "~" <$> SH.get_env "HOME"
   return $ replace "~" home path
-
--- | Parse an IPython version string into a list of integers.
-parseVersion :: String -> Maybe [Int]
-parseVersion versionStr =
-  let versions = map readMay $ split "." versionStr
-  in if all isJust versions
-       then Just $ catMaybes versions
-       else Nothing
 
 -- | Get the absolute path to this IHaskell executable.
 getIHaskellPath :: SH.Sh FilePath
