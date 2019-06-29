@@ -93,6 +93,12 @@ mergeArg (ConvertTo outputFile) convertSpec
         (prev@(Just _), _) -> prev
         (Nothing, format)  -> fmap (== IpynbFile) format
       }
+mergeArg (ConvertToFormat format) convertSpec = case format of
+  LhsMarkdown -> convertSpec { convertToIpynb = Just False }
+  IpynbFile -> convertSpec { convertToIpynb = Just True }
+mergeArg (ConvertFromFormat format) convertSpec = case format of
+  LhsMarkdown -> convertSpec { convertToIpynb = Just True }
+  IpynbFile -> convertSpec { convertToIpynb = Just False }
 mergeArg unexpectedArg _ = error $ "IHaskell.Convert.mergeArg: impossible argument: "
                                    ++ show unexpectedArg
 
