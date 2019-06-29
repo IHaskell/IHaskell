@@ -28,7 +28,6 @@ USER ${NB_UID}
 # Set up stack
 COPY stack.yaml stack.yaml
 RUN stack config set system-ghc --global true
-RUN stack setup
 
 # Install dependencies for IHaskell
 COPY ihaskell.cabal ihaskell.cabal
