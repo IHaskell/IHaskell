@@ -29,9 +29,6 @@ import           Data.Char as Char
 import           Data.Dynamic
 import qualified Data.Serialize as Serialize
 import           System.Directory
-#if !MIN_VERSION_base(4,8,0)
-import           System.Posix.IO (createPipe)
-#endif
 import           System.Posix.IO (fdToHandle)
 import           System.IO (hGetChar, hSetEncoding, utf8)
 import           System.Random (getStdGen, randomRs)
@@ -661,7 +658,7 @@ evalCommand publish (Directive ShellCmd cmd) state = wrapExecution state $
           return mempty
         else return $ displayError $ printf "No such directory: '%s'" directory
     cmd1 -> liftIO $ do
-      (pipe, hdl) <- createPipe'
+      (pipe, hdl) <- createPipe
       let initProcSpec = shell $ unwords cmd1
           procSpec = initProcSpec
             { std_in = Inherit
@@ -715,16 +712,6 @@ evalCommand publish (Directive ShellCmd cmd) state = wrapExecution state $
                                ]
 
       loop
-      where
-#if MIN_VERSION_base(4,8,0)
-        createPipe' = createPipe
-#else
-        createPipe' = do
-          (readEnd, writeEnd) <- createPipe
-          handle <- fdToHandle writeEnd
-          pipe <- fdToHandle readEnd
-          return (pipe, handle)
-#endif
 -- This is taken largely from GHCi's info section in InteractiveUI.
 evalCommand _ (Directive GetHelp _) state = do
   write state "Help via :help or :?."
