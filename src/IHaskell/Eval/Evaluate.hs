@@ -1142,7 +1142,7 @@ capturedEval output stmt = do
   -- This works fine on GHC 8.0 and newer
   dyn <- dynCompileExpr readVariable
   pipe <- case fromDynamic dyn of
-            Nothing -> fail "Evaluate: Bad pipe"
+            Nothing -> error "Evaluate: Bad pipe"
             Just fd -> liftIO $ do
                 hdl <- fdToHandle fd
                 hSetEncoding hdl utf8
