@@ -224,6 +224,7 @@ initializeImports = do
 
       displayImports = map toImportStmt displayPkgs
 
+  -- Hide `ghc-lib` and `ghc-lib-parser` to prevent ambiguous imports.
   void $ setSessionDynFlags $ dflgs { packageFlags = hiddenFlags ++ packageFlags dflgs }
 
   -- Import implicit prelude.
@@ -236,6 +237,8 @@ initializeImports = do
                                                                else []
   setContext $ map IIDecl $ implicitPrelude : imports
 
+  -- Unhide previously hidden packages. Getting a fresh copy might be
+  -- unnecessary, as we might be able to reuse `dflgs`.
   dflags' <- getSessionDynFlags
   void $ setSessionDynFlags $ dflags' { packageFlags = packageFlags dflags' \\ hiddenFlags }
 
