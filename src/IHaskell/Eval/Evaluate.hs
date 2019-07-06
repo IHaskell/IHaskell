@@ -23,7 +23,7 @@ import           IHaskellPrelude
 import           Control.Concurrent (forkIO, threadDelay)
 import           Data.Foldable (foldMap)
 import           Prelude (head, tail, last, init)
-import           Data.List (nubBy)
+import           Data.List (nubBy, (\\))
 import qualified Data.Set as Set
 import           Data.Char as Char
 import           Data.Dynamic
@@ -235,6 +235,9 @@ initializeImports = do
                                                                then ihaskellGlobalImports ++ displayImports
                                                                else []
   setContext $ map IIDecl $ implicitPrelude : imports
+
+  dflags' <- getSessionDynFlags
+  void $ setSessionDynFlags $ dflags' { packageFlags = packageFlags dflags' \\ hiddenFlags }
 
   return hasIHaskellPackage
 
