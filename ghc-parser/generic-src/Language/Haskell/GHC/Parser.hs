@@ -18,6 +18,7 @@ module Language.Haskell.GHC.Parser (
   parserTypeSignature,
   parserModule,
   parserExpression,
+  parsePragmasIntoDynFlags,
 
   -- Haskell string preprocessing.
   removeComments,
@@ -28,6 +29,7 @@ import Data.List (intercalate, findIndex, isInfixOf)
 import Data.Char (isAlphaNum)
 
 import Bag
+import DynFlags (parseDynamicFilePragma)
 import ErrUtils hiding (ErrMsg)
 import FastString
 #if MIN_VERSION_ghc(8,4,0)
@@ -35,8 +37,10 @@ import GHC hiding (Located, Parsed, parser)
 #else
 import GHC hiding (Located, parser)
 #endif
+import HeaderInfo (getOptions)
 import Lexer hiding (buffer)
 import OrdList
+import Panic (handleGhcException)
 import qualified SrcLoc as SrcLoc
 import StringBuffer hiding (len)
 
@@ -152,6 +156,21 @@ runParser flags (Parser parser) str =
 
     -- Convert the bag of errors into an error string.
     printErrorBag bag = joinLines . map show $ bagToList bag
+
+-- Taken from http://blog.shaynefletcher.org/2019/06/have-ghc-parsing-respect-dynamic-pragmas.html
+parsePragmasIntoDynFlags :: DynFlags -> FilePath -> String -> IO (Maybe DynFlags)
+parsePragmasIntoDynFlags flags filepath str =
+  catchErrors $ do
+    let opts = getOptions flags (stringToStringBuffer str) filepath
+    (flags', _, _) <- parseDynamicFilePragma flags opts
+    return $ Just flags'
+  where
+    catchErrors :: IO (Maybe DynFlags) -> IO (Maybe DynFlags)
+    catchErrors act =
+      handleGhcException reportErr (handleSourceError reportErr act)
+    reportErr e = do
+      putStrLn $ "error : " ++ show e
+      return Nothing
 
 -- Not the same as 'unlines', due to trailing \n
 joinLines :: [String] -> String
