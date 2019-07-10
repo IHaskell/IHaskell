@@ -79,6 +79,7 @@ parseString codeString = do
   flags <- do
     result <- liftIO $ parsePragmasIntoDynFlags flags' "<interactive>" codeString
     return $ fromMaybe flags' result
+  _ <- setSessionDynFlags flags
   let output = runParser flags parserModule codeString
   case output of
     Parsed mdl
