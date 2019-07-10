@@ -176,10 +176,10 @@ testEval =
         trace "test" 5
       |] `becomes` ["test\n5"]
 
-    -- it "immediately applies language extensions" $ do
-    --   [hereLit|
-    --     {-# LANGUAGE RankNTypes #-}
+    it "immediately applies language extensions" $ do
+      [hereLit|
+        {-# LANGUAGE RankNTypes #-}
 
-    --     identity :: forall a. a -> a
-    --     identity a = a
-    --   |] `becomes` []
+        identity :: forall a. a -> a
+        identity a = a
+      |] `becomes` []
