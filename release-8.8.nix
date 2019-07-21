@@ -1,7 +1,7 @@
 let
   head-hackage-src = builtins.fetchTarball {
-    url = "https://github.com/hvr/head.hackage/archive/0f9995b6be2de4f1e85bf1facd928c5b91bbddba.tar.gz";
-    sha256 = "1vkc23xl0nycmd1pqyxxnrvhf5sw1mgs0049bp4gr6r872gdny01";
+    url = "https://github.com/hvr/head.hackage/archive/78fbe0096b860e7beb448a3a79f91b916fb14b8d.tar.gz";
+    sha256 = "1p2lxm4a3kp9x4q0dv3ca92x6c6s2xpsmwjywh381nqckakwrr6p";
   };
 in
 { compiler ? "ghc881"
@@ -51,7 +51,7 @@ let
       });
       ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
       ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
-      hlint             = self.callHackage "hlint" "2.1.14" {};
+      hlint             = self.callHackage "hlint" "2.1.17" {};
       zeromq4-haskell   = self.callHackage "zeromq4-haskell" "0.8.0" {};
 
       inline-r          = nixpkgs.haskell.lib.dontCheck super.inline-r;
