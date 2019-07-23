@@ -92,14 +92,14 @@ serveProfile profile debug = do
   -- complete, the context or socket become invalid.
   _ <- forkIO $ withContext $ \ctxt -> do
     -- Serve on all sockets.
-    _ <- forkIO $ serveSocket ctxt Rep (hbPort profile) $ heartbeat channels
-    _ <- forkIO $ serveSocket ctxt Router (controlPort profile) $ control debug channels
-    _ <- forkIO $ serveSocket ctxt Router (shellPort profile) $ shell debug channels
+    _ <- forkIO $ serveSocket ctxt Rep (ip profile) (hbPort profile) $ heartbeat channels
+    _ <- forkIO $ serveSocket ctxt Router (ip profile) (controlPort profile) $ control debug channels
+    _ <- forkIO $ serveSocket ctxt Router (ip profile) (shellPort profile) $ shell debug channels
 
     -- The ctxt is reference counted in this thread only. Thus, the last serveSocket cannot be
     -- asynchronous, because otherwise ctxt would be garbage collectable - since it would only be
     -- used in other threads. Thus, keep the last serveSocket in this thread.
-    serveSocket ctxt Pub (iopubPort profile) $ iopub debug channels
+    serveSocket ctxt Pub (ip profile) (iopubPort profile) $ iopub debug channels
 
   return channels
 
@@ -182,7 +182,7 @@ serveStdin profile = do
   -- complete, the context or socket become invalid.
   _ <- forkIO $ withContext $ \ctxt ->
     -- Serve on all sockets.
-    serveSocket ctxt Router (stdinPort profile) $ \sock -> do
+    serveSocket ctxt Router (ip profile) (stdinPort profile) $ \sock -> do
       -- Read the request from the interface channel and send it.
       readChan reqChannel >>= sendMessage False (signatureKey profile) sock
 
@@ -193,10 +193,10 @@ serveStdin profile = do
 
 -- | Serve on a given sock in a separate thread. Bind the sock in the | given context and then
 -- loop the provided action, which should listen | on the sock and respond to any events.
-serveSocket :: SocketType a => Context -> a -> Port -> (Socket a -> IO b) -> IO ()
-serveSocket ctxt socketType port action = void $
+serveSocket :: SocketType a => Context -> a -> IP -> Port -> (Socket a -> IO b) -> IO ()
+serveSocket ctxt socketType ip port action = void $
   withSocket ctxt socketType $ \sock -> do
-    bind sock $ "tcp://127.0.0.1:" ++ show port
+    bind sock $ "tcp://" ++ ip ++ ":" ++ show port
     forever $ action sock
 
 -- | Listener on the heartbeat port. Echoes back any data it was sent.
