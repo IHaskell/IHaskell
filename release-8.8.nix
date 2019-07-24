@@ -1,7 +1,7 @@
 let
   head-hackage-src = builtins.fetchTarball {
-    url = "https://github.com/hvr/head.hackage/archive/78fbe0096b860e7beb448a3a79f91b916fb14b8d.tar.gz";
-    sha256 = "1p2lxm4a3kp9x4q0dv3ca92x6c6s2xpsmwjywh381nqckakwrr6p";
+    url = "https://gitlab.haskell.org/api/v4/projects/ghc%2Fhead%2Ehackage/repository/archive.tar.gz?sha=5e2f799858630937673f62535f3fc0acc7c28b19";
+    sha256 = "1zjqgcnqc0yafiv77s77jji6laz7d8z8nc92y3nby5b7712lcbn1";
   };
 in
 { compiler ? "ghc881"
