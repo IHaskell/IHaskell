@@ -16,11 +16,6 @@ The [wiki](https://github.com/gibiansky/IHaskell/wiki) also has more extensive d
 
 ### Interactive In-Browser Notebook
 
-
-**Note:** IHaskell does not support Windows. To use on Windows, install
-Virtualbox, install Ubuntu or another Linux distribution, and proceed with the
-install instructions.
-
 # Installation
 
 ## Linux
@@ -30,6 +25,9 @@ Some prerequisites; adapt to your distribution.
 ```bash
 sudo apt-get install -y python3-pip git libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev libmagic-dev libblas-dev liblapack-dev
 ```
+
+Install `stack`, clone this repository, install Python requirements, install
+`ihaskell`, and install the Jupyter kernelspec with `ihaskell`.
 
 ```bash
 curl -sSL https://get.haskellstack.org/ | sh
@@ -41,8 +39,8 @@ stack install --fast
 ihaskell install --stack
 ```
 
-if you want to use jupyterlab (right now only version ~0.33), you need to install the jupyterlab ihaskell
-extension to get syntax highlighting with:
+If you want to use jupyterlab (right now only version ~0.33), you need to
+install the jupyterlab ihaskell extension to get syntax highlighting with:
 
 ```bash
 jupyter labextension install ihaskell_jupyterlab
@@ -57,7 +55,7 @@ stack exec jupyter -- notebook
 
 ## Mac
 
-You need to have [Homebrew](https://brew.sh) installed. 
+You need to have [Homebrew](https://brew.sh) installed.
 If you do not have it yet run `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"` in your terminal.
 
 You also need the Xcode command line tools.
@@ -73,7 +71,7 @@ stack install --fast
 ihaskell install --stack
 ```
 
-If you have Homebrew installed to a custom location, you'd need to specify `--extra-include-dirs ${HOMEBREW_PREFIX}/include --extra-lib-dir ${HOMEBREW_PREFIX}/lib` to the `stack` command. 
+If you have Homebrew installed to a custom location, you'd need to specify `--extra-include-dirs ${HOMEBREW_PREFIX}/include --extra-lib-dir ${HOMEBREW_PREFIX}/lib` to the `stack` command.
 
 Run Jupyter.
 
@@ -82,6 +80,35 @@ stack exec jupyter -- notebook
 ```
 
 _Tested on macOS Sierra (10.12.6)_
+
+## Windows
+
+IHaskell does not support Windows, however it can be used on Windows 10 via
+Windows Subsystem for Linux (WSL). If WSL is not installed, follow the
+[Installation Guide for Windows 10](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
+The following assumes that Ubuntu is picked as the Linux distribution.
+
+In the Ubuntu app, follow the steps above for Linux.
+
+Jupyter Notebook is now ready to use. In the Ubuntu app, launch a Notebook
+Server, without opening the notebook in a browser:
+
+```bash
+jupyter notebook --no-browser
+```
+
+Returning to Windows 10, open a browser and copy and paste the URL output in the
+step above (the token will differ).
+
+```bash
+Or copy and paste one of these URLs:
+     http://localhost:8888/?token=9ca8a725ddb1fdded176d9e0e675ba557ebb5fbef6c65fdf
+```
+
+_Tested on Windows 10 (build 18362.175) with Ubuntu 18.04 on WSL_
+
+Alternatively, install Virtualbox, install Ubuntu or another Linux distribution,
+and proceed with the install instructions.
 
 ## Docker
 
