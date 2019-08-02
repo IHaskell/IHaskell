@@ -23,7 +23,6 @@ define(['require',
                 IPython.keyboard.keycodes.down = downArrow; // space
 
                 IPython.CodeCell.options_default['cm_config']['mode'] = 'ihaskell';
-                IPython.CodeCell.options_default['cm_config']['autoCloseBrackets'] = '()[]{}';
 
                 utils.requireCodeMirrorMode('haskell', function(){
                     // Create a multiplexing mode that uses Haskell highlighting by default but
@@ -48,7 +47,6 @@ define(['require',
                             // This is necessary, otherwise sometimes highlighting just doesn't happen.
                             // This may be an IPython bug.
                             c.code_mirror.setOption('mode', 'ihaskell');
-                            c.code_mirror.setOption('autoCloseBrackets', '()[]{}');
                             c.force_highlight('ihaskell');
                         }
                     }
