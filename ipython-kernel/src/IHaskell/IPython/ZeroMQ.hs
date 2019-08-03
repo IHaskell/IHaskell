@@ -194,9 +194,9 @@ serveStdin profile = do
 -- | Serve on a given sock in a separate thread. Bind the sock in the | given context and then
 -- loop the provided action, which should listen | on the sock and respond to any events.
 serveSocket :: SocketType a => Context -> a -> IP -> Port -> (Socket a -> IO b) -> IO ()
-serveSocket ctxt socketType ip port action = void $
+serveSocket ctxt socketType ipAddress port action = void $
   withSocket ctxt socketType $ \sock -> do
-    bind sock $ "tcp://" ++ ip ++ ":" ++ show port
+    bind sock $ "tcp://" ++ ipAddress ++ ":" ++ show port
     forever $ action sock
 
 -- | Listener on the heartbeat port. Echoes back any data it was sent.
