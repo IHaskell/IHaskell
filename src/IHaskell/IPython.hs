@@ -17,11 +17,11 @@ import           IHaskellPrelude
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 
-import           System.Argv0
 import qualified Shelly as SH
 import qualified System.IO as IO
 import qualified System.FilePath as FP
 import           System.Directory
+import           System.Environment (getExecutablePath)
 import           System.Exit (exitFailure)
 import           Data.Aeson (toJSON)
 import           Data.Aeson.Text (encodeToTextBuilder)
@@ -178,7 +178,7 @@ subHome path = SH.shelly $ do
 getIHaskellPath :: SH.Sh FilePath
 getIHaskellPath = do
   --  Get the absolute filepath to the argument.
-  f <- T.unpack <$> SH.toTextIgnore <$> liftIO getArgv0
+  f <- liftIO getExecutablePath
 
   -- If we have an absolute path, that's the IHaskell we're interested in.
   if FP.isAbsolute f
