@@ -15,7 +15,7 @@ import           Data.ByteString hiding (unpack)
 import qualified Data.ByteString.Lazy as Lazy
 import           Data.HashMap.Strict as HM
 import           Data.Maybe (fromMaybe)
-import           Data.Text (Text, unpack)
+import           Data.Text (unpack)
 import           Debug.Trace
 import           IHaskell.IPython.Types
 
