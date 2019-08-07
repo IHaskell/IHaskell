@@ -225,6 +225,8 @@ $ NIXPKGS_ALLOW_BROKEN=1 nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs-c
 
 We use GHC 8.4 here because not all dependencies have been updated to support GHC 8.6 yet.
 
+For more examples of using IHaskell with Nix, see https://github.com/vaibhavsagar/notebooks.
+
 # Troubleshooting
 
 ## Where are my packages? (IHaskell + Stack)
