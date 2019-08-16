@@ -779,6 +779,7 @@ data MimeType = PlainText
               | MimeVega
               | MimeVegalite
               | MimeVdom
+              | MimeCustom Text
   deriving (Eq, Typeable, Generic)
 
 -- Extract the plain text from a list of displays.
@@ -806,6 +807,7 @@ instance Show MimeType where
   show MimeVega = "application/vnd.vega.v2+json"
   show MimeVegalite = "application/vnd.vegalite.v2+json"
   show MimeVdom = "application/vdom.v1+json"
+  show (MimeCustom custom) = Text.unpack custom
 
 instance Read MimeType where
   readsPrec _ "text/plain" = [(PlainText, "")]
@@ -822,7 +824,7 @@ instance Read MimeType where
   readsPrec _ "application/vnd.vega.v2+json" = [(MimeVega, "")]
   readsPrec _ "application/vnd.vegalite.v1+json" = [(MimeVegalite, "")]
   readsPrec _ "application/vdom.v1+json" = [(MimeVdom, "")]
-  readsPrec _ _ = []
+  readsPrec _ t = [(MimeCustom (Text.pack t), "")]
 
 -- | Convert a MIME type and value into a JSON dictionary pair.
 displayDataToJson :: DisplayData -> (Text, Value)
