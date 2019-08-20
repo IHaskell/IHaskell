@@ -834,6 +834,8 @@ displayDataToJson (DisplayData MimeVegalite dataStr) =
     pack (show MimeVegalite) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
 displayDataToJson (DisplayData MimeVega dataStr) =
     pack (show MimeVega) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
+displayDataToJson (DisplayData (MimeCustom custom) dataStr) =
+    custom .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
 displayDataToJson (DisplayData mimeType dataStr) =
   pack (show mimeType) .= String dataStr
 

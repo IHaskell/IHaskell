@@ -16,6 +16,8 @@ module IHaskell.Display.Widgets.Button
 import           Prelude
 
 import           Data.Aeson
+import           Data.Aeson.Text (encodeToLazyText)
+import qualified Data.Text.Lazy as L
 import           Data.IORef (newIORef)
 import           Data.Vinyl (Rec(..), (<+>))
 
@@ -25,6 +27,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.IPython.Types (MimeType(MimeCustom))
 
 -- | A 'Button' represents a Button from IPython.html.widgets.
 type Button = IPythonWidget 'ButtonType
@@ -58,7 +61,17 @@ mkButton = do
 instance IHaskellDisplay Button where
   display b = do
     widgetSendView b
-    return $ Display []
+    return $ Display
+      [ DisplayData
+          (MimeCustom "application/vnd.jupyter.widget-view+json")
+          (L.toStrict
+            (encodeToLazyText
+              (object
+                [ "model_id" .= uuid b
+                , "version_major" .= (2 :: Integer)
+                , "version_minor" .= (0 :: Integer)
+                ])))
+      ]
 
 instance IHaskellWidget Button where
   getCommUUID = uuid

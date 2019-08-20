@@ -12,7 +12,7 @@ The kernel will open a comm for the widget, and store a reference to that comm. 
 also holds the initial state of the widget in it, which is used by the frontend to create a model for
 the widget.
 
-> The comm should be opened with a `target_name` of `"ipython.widget"`.
+> The comm should be opened with a `target_name` of `"jupyter.widget"`.
 
 Any *numeric* property initialized with the empty string is provided the default value by the
 frontend. Some numbers need to be sent as actual numbers (when non-null), whereas the ones representing

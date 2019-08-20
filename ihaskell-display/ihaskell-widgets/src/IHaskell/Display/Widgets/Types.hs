@@ -114,7 +114,7 @@ type (a :++ b) = a ++ b
 #endif
 
 -- Classes from IPython's widget hierarchy. Defined as such to reduce code duplication.
-type WidgetClass = ['S.ViewModule, 'S.ViewName, 'S.ModelModule, 'S.ModelName,
+type WidgetClass = ['S.ViewModule, 'S.ViewModuleVersion, 'S.ViewName, 'S.ModelModule, 'S.ModelModuleVersion, 'S.ModelName,
   'S.MsgThrottle, 'S.Version, 'S.DisplayHandler]
 
 type DOMWidgetClass = WidgetClass :++ ['S.Visible, 'S.CSS, 'S.DOMClasses, 'S.Width, 'S.Height, 'S.Padding,
@@ -156,8 +156,10 @@ type SelectionContainerClass = BoxClass :++ ['S.Titles, 'S.SelectedIndex, 'S.Cha
 
 type family FieldType (f :: Field) :: * where
         FieldType 'S.ViewModule = Text
+        FieldType 'S.ViewModuleVersion = Text
         FieldType 'S.ViewName = Text
         FieldType 'S.ModelModule = Text
+        FieldType 'S.ModelModuleVersion = Text
         FieldType 'S.ModelName = Text
         FieldType 'S.MsgThrottle = Integer
         FieldType 'S.Version = Integer
@@ -375,11 +377,17 @@ class ToPairs a where
 instance ToPairs (Attr 'S.ViewModule) where
   toPairs x = ["_view_module" .= toJSON x]
 
+instance ToPairs (Attr 'S.ViewModuleVersion) where
+  toPairs x = ["_view_module_version" .= toJSON x]
+
 instance ToPairs (Attr 'S.ViewName) where
   toPairs x = ["_view_name" .= toJSON x]
 
 instance ToPairs (Attr 'S.ModelModule) where
   toPairs x = ["_model_module" .= toJSON x]
+
+instance ToPairs (Attr 'S.ModelModuleVersion) where
+  toPairs x = ["_model_module_version" .= toJSON x]
 
 instance ToPairs (Attr 'S.ModelName) where
   toPairs x = ["_model_name" .= toJSON x]
@@ -643,9 +651,11 @@ reflect = fromSing
 
 -- | A record representing an object of the Widget class from IPython
 defaultWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr WidgetClass
-defaultWidget viewName modelName = (ViewModule =:: "jupyter-js-widgets")
+defaultWidget viewName modelName = (ViewModule =:: "@jupyter-widgets/controls") -- "@jupyter-widgets/base"
+                                   :& (ViewModuleVersion =:: "1.5.0")
                                    :& (ViewName =:: viewName)
-                                   :& (ModelModule =:: "jupyter-js-widgets")
+                                   :& (ModelModule =:: "@jupyter-widgets/controls")
+                                   :& (ModelModuleVersion =:: "1.5.0")
                                    :& (ModelName =:: modelName)
                                    :& (MsgThrottle =:+ 3)
                                    :& (Version =:: 0)

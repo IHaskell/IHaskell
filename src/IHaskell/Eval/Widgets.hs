@@ -51,7 +51,11 @@ widgetSend mtype widget value = queue $ mtype (Widget widget) value
 
 -- | Send a message to open a comm
 widgetSendOpen :: IHaskellWidget a => a -> Value -> IO ()
-widgetSendOpen = widgetSend Open
+widgetSendOpen widget val = widgetSend Open widget
+  (object
+    [ "state" .= val
+    , "buffer_paths" .= ([] :: [String])
+    ])
 
 -- | Send a state update message
 widgetSendUpdate :: IHaskellWidget a => a -> Value -> IO ()
@@ -191,7 +195,7 @@ instance ToJSON IPythonMessage where
       , "parent_header" .= str ""
       , "metadata" .= str "{}"
       , "content" .= val
-      , "msg_type" .= (toJSON . showMessageType $ mtype)
+      , "msg_type" .= showMessageType mtype
       ]
 
 str :: String -> String

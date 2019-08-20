@@ -25,8 +25,10 @@ singletons
   [d|
 
   data Field = ViewModule
+             | ViewModuleVersion
              | ViewName
              | ModelModule
+             | ModelModuleVersion
              | ModelName
              | MsgThrottle
              | Version
