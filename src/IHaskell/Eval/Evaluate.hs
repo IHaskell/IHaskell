@@ -319,6 +319,14 @@ evaluate kernelState code output widgetHandler = do
     runUntilFailure state (cmd:rest) = do
       evalOut <- evalCommand output cmd state
 
+      let tempMsgs = evalMsgs evalOut
+          tempState = evalState evalOut { evalMsgs = [] }
+
+      -- Handle the widget messages
+      newState <- if supportLibrariesAvailable state
+                    then flushWidgetMessages tempState tempMsgs widgetHandler
+                    else return tempState
+
       -- Get displayed channel outputs. Merge them with normal display outputs.
       dispsMay <- if supportLibrariesAvailable state
                     then do
@@ -341,14 +349,6 @@ evaluate kernelState code output widgetHandler = do
         liftIO $ output
           (FinalResult result (evalPager evalOut) [])
           (evalStatus evalOut)
-
-      let tempMsgs = evalMsgs evalOut
-          tempState = evalState evalOut { evalMsgs = [] }
-
-      -- Handle the widget messages
-      newState <- if supportLibrariesAvailable state
-                    then flushWidgetMessages tempState tempMsgs widgetHandler
-                    else return tempState
 
       case evalStatus evalOut of
         Success -> runUntilFailure newState rest
