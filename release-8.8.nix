@@ -1,11 +1,11 @@
 let
-  head-hackage-src = builtins.fetchTarball {
-    url = "https://gitlab.haskell.org/api/v4/projects/ghc%2Fhead%2Ehackage/repository/archive.tar.gz?sha=7f4d461991d5bd50bd6bd2d00f07d18a2386c0ee";
-    sha256 = "13x6scdnhx0pnk877mx44c8lldpcxi58prqdahslwj2payrqz1gi";
+  nixpkgs-src = builtins.fetchTarball {
+    url = "https://github.com/NixOS/nixpkgs/tarball/48b430568e4277868909f8a9789581d3cf2d47a2";
+    sha256 = "08z4zjxck12ab1vvb9y55b90waj5c7xy0xdiy951mws76ll89m54";
   };
 in
 { compiler ? "ghc881"
-, nixpkgs ? import head-hackage-src {}
+, nixpkgs ? import nixpkgs-src {}
 , packages ? (_: [])
 , pythonPackages ? (_: [])
 , rtsopts ? "-M3g -N2"
@@ -34,7 +34,7 @@ let
     map
       (display: { name = "ihaskell-${display}"; value = self.callCabal2nix display "${ihaskell-display-src}/ihaskell-${display}" {}; })
       [ "aeson" "blaze" "charts" "diagrams" "gnuplot" "graphviz" "hatex" "juicypixels" "magic" "plot" "rlangqq" "static-canvas" "widgets" ]);
-  haskellPackages = nixpkgs.haskellPackages.override (old: {
+  haskellPackages = nixpkgs.haskell.packages."${compiler}".override (old: {
     overrides = nixpkgs.lib.composeExtensions (old.overrides or (_: _: {})) (self: super: {
       ihaskell          = nixpkgs.haskell.lib.overrideCabal (
                           self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
