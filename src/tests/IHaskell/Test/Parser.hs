@@ -1,4 +1,5 @@
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE CPP         #-}
 module IHaskell.Test.Parser (testParser) where
 
 import           Prelude
@@ -227,4 +228,8 @@ testParseString = describe "Parser" $ do
        |]) >>= (`shouldBe` [Located 2 (Expression "first"), Located 4 (Expression "second")])
   where
     dataKindsError = ParseError (Loc 1 10) msg
+#if MIN_VERSION_ghc(8,8,0)
+    msg = "Cannot parse data constructor in a data/newtype declaration:\n  3"
+#else
     msg = "Cannot parse data constructor in a data/newtype declaration: 3"
+#endif
