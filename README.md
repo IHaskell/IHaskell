@@ -236,24 +236,42 @@ will only have access to a few packages that happen to be required for
 ihaskell. To make packages available add them to the stack.yaml in the ihaskell
 directory and run `stack solver && stack install`.
 
-Packages should be added to the `packages:` section and can take the following
-form
-([reproduced here from the stack documentation](https://github.com/commercialhaskell/stack/blob/master/doc/yaml_configuration.md#packages)). If
-you've already installed a package by `stack install` you can simply list its
-name even if it's local.
+Dependencies should be added to the `extra-deps` section. You can also add to the `packages` section for multi-package projects.
+
+[See the stack documentation](https://docs.haskellstack.org/en/stable/GUIDE/#curated-package-sets) for detailed documentation on these two sections.
+
+For example adding some dependencies would look like this
 
 ```
-- package-name
-- location: .
-- location: dir1/dir2
-- location: https://example.com/foo/bar/baz-0.0.2.tar.gz
-- location: http://github.com/yesodweb/wai/archive/2f8a8e1b771829f4a8a77c0111352ce45a14c30f.zip
-- location:
-    git: git@github.com:commercialhaskell/stack.git
-    commit: 6a86ee32e5b869a877151f74064572225e1a0398
-- location:
-    hg: https://example.com/hg/repo
-    commit: da39a3ee5e6b4b0d3255bfef95601890afd80709
+extra-deps:
+  - aeson-1.4.3.0
+
+  - git: https://github.com/isovector/polysemy.git
+    commit: 829e3202fc7d09faaf757cddd11a8a741b687a70
+
+  - lens-4.17.1@sha256:61f6956d463e4c6d44d9d3f0637ed957e4a6756145c0f433fffa6371608276fe,15822
+```
+
+This shows three ways to add packages. Each of these methods is described in the stack documentation in detail. In brief they are
+
+
+1. `aeson` is added by referencing a version
+1. `polysemy` is added by referencing a git repo and a particular commit
+1. `lens` is added by referencing a stackage version sha. You can find this pinned version for the stackage resolver you are using by 
+  1. Visiting [https://www.stackage.org](https://www.stackage.org)
+  1. Selecting the resolver 
+  1. Searching for the package you want to use
+  1. Copy the version string from the package details page
+
+
+For local packages (multi-package projects) add your references to the `packages` section
+
+```
+packages:
+    - .
+    - ./ipython-kernel
+    - ./ghc-parser
+    - ./ihaskell-display/ihaskell-aeson
 ```
 
 ## The kernel keeps dying (IHaskell + Stack)
