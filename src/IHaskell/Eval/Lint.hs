@@ -1,16 +1,13 @@
-{-# LANGUAGE NoImplicitPrelude, FlexibleContexts, ViewPatterns #-}
+{-# LANGUAGE NoImplicitPrelude, FlexibleContexts, ViewPatterns, CPP #-}
 
 module IHaskell.Eval.Lint (lint) where
 
 import           IHaskellPrelude
 
-import           Prelude (last)
+
 import           Data.Maybe (mapMaybe)
 import           System.IO.Unsafe (unsafePerformIO)
 
-import           Language.Haskell.Exts.Syntax hiding (Module)
-import qualified Language.Haskell.Exts.Syntax as SrcExts
-import           Language.Haskell.Exts (parseFileContentsWithMode)
 import           Language.Haskell.Exts hiding (Module)
 
 import           Language.Haskell.HLint as HLint
@@ -21,7 +18,15 @@ import           IHaskell.Display
 import           IHaskell.Eval.Parser hiding (line)
 import           StringUtils (replace)
 
-type ExtsModule = SrcExts.Module SrcSpanInfo
+#if MIN_VERSION_hlint(2,1,18)
+
+#else
+
+import           Prelude (last)
+import qualified Language.Haskell.Exts.Syntax as SrcExts
+import           Language.Haskell.Exts (parseFileContentsWithMode)
+
+#endif
 
 data LintSuggestion =
        Suggest
@@ -42,10 +47,47 @@ hlintSettings = unsafePerformIO newEmptyMVar
 lintIdent :: String
 lintIdent = "lintIdentAEjlkQeh"
 
+#if MIN_VERSION_hlint(2,1,18)
+
+-- | Given code chunks, perform linting and output a displayable report on linting warnings
+-- and errors.
+lint :: String -> [Located CodeBlock] -> IO Display
+lint code _blocks = do
+  -- Initialize hlint settings
+  initialized <- not <$> isEmptyMVar hlintSettings
+  unless initialized $
+    autoSettings' >>= putMVar hlintSettings
+
+  -- Get hlint settings
+  (flags, classify, hint) <- readMVar hlintSettings
+
+  parsed <- parseModuleEx flags "-" (Just code)
+
+  -- create 'suggestions'
+  let ideas = case parsed of
+        Left _ -> []
+        Right mods -> applyHints classify hint [mods]
+      suggestions = mapMaybe showIdea $ filter (not . ignoredIdea) ideas
+
+  return $ Display $
+    if null suggestions
+      then []
+      else [plain $ concatMap plainSuggestion suggestions, html $ htmlSuggestions suggestions]
+  where
+    autoSettings' = do
+      (fixts, classify, hints) <- autoSettings
+      let hidingIgnore = Classify Ignore "Unnecessary hiding" "" ""
+      return (fixts, hidingIgnore:classify, hints)
+    ignoredIdea idea = ideaSeverity idea == Ignore
+
+#else
+
+type ExtsModule = SrcExts.Module SrcSpanInfo
+
 -- | Given parsed code chunks, perform linting and output a displayable report on linting warnings
 -- and errors.
-lint :: [Located CodeBlock] -> IO Display
-lint blocks = do
+lint :: String -> [Located CodeBlock] -> IO Display
+lint _code blocks = do
   -- Initialize hlint settings
   initialized <- not <$> isEmptyMVar hlintSettings
   unless initialized $
@@ -69,20 +111,6 @@ lint blocks = do
       let hidingIgnore = Classify Ignore "Unnecessary hiding" "" ""
       return (fixts, hidingIgnore:classify, hints)
     ignoredIdea idea = ideaSeverity idea == Ignore
-
-showIdea :: Idea -> Maybe LintSuggestion
-showIdea idea =
-  case ideaTo idea of
-    Nothing -> Nothing
-    Just wn ->
-      Just
-        Suggest
-          { line = srcSpanStartLine $ ideaSpan idea
-          , found = showSuggestion $ ideaFrom idea
-          , whyNot = showSuggestion wn
-          , severity = ideaSeverity idea
-          , suggestion = ideaHint idea
-          }
 
 createModule :: ParseMode -> Located CodeBlock -> Maybe ExtsModule
 createModule md (Located ln block) =
@@ -153,6 +181,23 @@ createModule md (Located ln block) =
 
     imptToModule :: String -> ParseResult ExtsModule
     imptToModule = parseFileContentsWithMode md
+
+#endif
+
+showIdea :: Idea -> Maybe LintSuggestion
+showIdea idea =
+  case ideaTo idea of
+    Nothing -> Nothing
+    Just wn ->
+      Just
+        Suggest
+          { line = srcSpanStartLine $ ideaSpan idea
+          , found = showSuggestion $ ideaFrom idea
+          , whyNot = showSuggestion wn
+          , severity = ideaSeverity idea
+          , suggestion = ideaHint idea
+          }
+
 
 plainSuggestion :: LintSuggestion -> String
 plainSuggestion suggest =
