@@ -1,7 +1,7 @@
 let
   nixpkgs-src = builtins.fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/tarball/48b430568e4277868909f8a9789581d3cf2d47a2";
-    sha256 = "08z4zjxck12ab1vvb9y55b90waj5c7xy0xdiy951mws76ll89m54";
+    url = "https://github.com/NixOS/nixpkgs/tarball/4f31c024d1e40b8e19badc832c8a99ce19143a5b";
+    sha256 = "0gqkf7spy60y4bycy3f3fg99wv77q7mhkg8c1a4s3gw51nakwvq8";
   };
 in
 { compiler ? "ghc881"
@@ -51,8 +51,6 @@ let
       });
       ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
       ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
-      hlint             = self.callHackage "hlint" "2.1.17" {};
-      zeromq4-haskell   = self.callHackage "zeromq4-haskell" "0.8.0" {};
 
       inline-r          = nixpkgs.haskell.lib.dontCheck super.inline-r;
       static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
