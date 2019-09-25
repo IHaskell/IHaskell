@@ -294,7 +294,7 @@ evaluate kernelState code output widgetHandler = do
                -- Only run things if there are no parse errors.
                [] -> do
                  when (getLintStatus kernelState /= LintOff) $ liftIO $ do
-                   lintSuggestions <- lint cmds
+                   lintSuggestions <- lint code cmds
                    unless (noResults lintSuggestions) $
                      output (FinalResult lintSuggestions [] []) Success
 
