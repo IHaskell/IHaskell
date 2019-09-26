@@ -65,7 +65,7 @@ library
                        directory            -any,
                        filepath             -any,
                        ghc                  >=8.0,
-                       ghc-parser           >=0.1.7,
+                       ghc-parser           >=0.2.1,
                        ghc-paths            >=0.1,
                        haskeline            -any,
                        hlint                >=1.9,
