@@ -119,19 +119,21 @@ hiddenPackageNames = Set.fromList ["ghc-lib", "ghc-lib-parser"]
 
 -- | Interpreting function for testing.
 testInterpret :: Interpreter a -> IO a
-testInterpret v = interpret GHC.Paths.libdir False (const v)
+testInterpret v = interpret GHC.Paths.libdir False False (const v)
 
 -- | Evaluation function for testing.
 testEvaluate :: String -> IO ()
 testEvaluate str = void $ testInterpret $
   evaluate defaultKernelState str (\_ _ -> return ()) (\state _ -> return state)
 
--- | Run an interpreting action. This is effectively runGhc with initialization and importing. First
--- argument indicates whether `stdin` is handled specially, which cannot be done in a testing
--- environment. The argument passed to the action indicates whether Haskell support libraries are
--- available.
-interpret :: String -> Bool -> (Bool -> Interpreter a) -> IO a
-interpret libdir allowedStdin action = runGhc (Just libdir) $ do
+-- | Run an interpreting action. This is effectively runGhc with initialization
+-- and importing. The `allowedStdin` argument indicates whether `stdin` is
+-- handled specially, which cannot be done in a testing environment. The
+-- `needsSupportLibraries` argument indicates whether we want support libraries
+-- to be imported, which is not the case during testing. The argument passed to
+-- the action indicates whether the IHaskell library is available.
+interpret :: String -> Bool -> Bool -> (Bool -> Interpreter a) -> IO a
+interpret libdir allowedStdin needsSupportLibraries action = runGhc (Just libdir) $ do
   -- If we're in a sandbox, add the relevant package database
   sandboxPackages <- liftIO getSandboxPackageConf
   initGhci sandboxPackages
@@ -141,7 +143,7 @@ interpret libdir allowedStdin action = runGhc (Just libdir) $ do
       void $ setSessionDynFlags $ dflags { verbosity = verb }
     Nothing -> return ()
 
-  hasSupportLibraries <- initializeImports
+  hasSupportLibraries <- initializeImports needsSupportLibraries
 
   -- Close stdin so it can't be used. Otherwise it'll block the kernel forever.
   dir <- liftIO getIHaskellDir
@@ -173,9 +175,9 @@ getPackageConfigs dflags =
     Just pkgDb = pkgDatabase dflags
 
 -- | Initialize our GHC session with imports and a value for 'it'. Return whether the IHaskell
--- support libraries are available.
-initializeImports :: Interpreter Bool
-initializeImports = do
+-- library is available.
+initializeImports :: Bool -> Interpreter Bool
+initializeImports importSupportLibraries = do
   -- Load packages that start with ihaskell-*, aren't just IHaskell, and depend directly on the right
   -- version of the ihaskell library. Also verify that the packages we load are not broken.
   dflags <- getSessionDynFlags
@@ -229,10 +231,11 @@ initializeImports = do
   -- Import implicit prelude.
   importDecl <- parseImportDecl "import Prelude"
   let implicitPrelude = importDecl { ideclImplicit = True }
+      displayImports' = if importSupportLibraries then displayImports else []
 
   -- Import modules.
   imports <- mapM parseImportDecl $ requiredGlobalImports ++ if hasIHaskellPackage
-                                                               then ihaskellGlobalImports ++ displayImports
+                                                               then ihaskellGlobalImports ++ displayImports'
                                                                else []
   setContext $ map IIDecl $ implicitPrelude : imports
 

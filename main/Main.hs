@@ -142,7 +142,7 @@ runKernel kOpts profileSrc = do
     kernelState { kernelDebug = debug }
 
   -- Receive and reply to all messages on the shell socket.
-  interpret libdir True $ \hasSupportLibraries -> do
+  interpret libdir True True $ \hasSupportLibraries -> do
     -- Ignore Ctrl-C the first time. This has to go inside the `interpret`, because GHC API resets the
     -- signal handlers for some reason (completely unknown to me).
     _ <- liftIO ignoreCtrlC
