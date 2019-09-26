@@ -34,7 +34,7 @@ eval string = do
 
   getTemporaryDirectory >>= setCurrentDirectory
   let state = defaultKernelState { getLintStatus = LintOff }
-  _ <- interpret GHC.Paths.libdir False $ const $
+  _ <- interpret GHC.Paths.libdir False False $ const $
         IHaskell.Eval.Evaluate.evaluate state string publish noWidgetHandling
   out <- readIORef outputAccum
   pagerout <- readIORef pagerAccum
