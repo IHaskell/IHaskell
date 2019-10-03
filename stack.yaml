@@ -12,13 +12,19 @@ packages:
     - ./ihaskell-display/ihaskell-gnuplot
     - ./ihaskell-display/ihaskell-hatex
     - ./ihaskell-display/ihaskell-juicypixels
-    # - ./ihaskell-display/ihaskell-magic
+    - ./ihaskell-display/ihaskell-magic
     # - ./ihaskell-display/ihaskell-plot
     # - ./ihaskell-display/ihaskell-static-canvas
     - ./ihaskell-display/ihaskell-widgets
 
 extra-deps:
-# - magic-1.1
+- Chart-cairo-1.9.1
+- diagrams-cairo-1.4.1
+- cairo-0.13.6.0
+- pango-0.13.6.0
+- glib-0.13.7.0
+- gtk2hs-buildtools-0.13.5.0
+- magic-1.1
 # - plot-0.2.3.9
 
 ghc-options:
