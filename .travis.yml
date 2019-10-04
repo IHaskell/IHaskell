@@ -234,7 +234,7 @@ matrix:
               stack exec -- ihaskell install --stack
               test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert
           fi
-    - env: DISPLAY=false   USE_STACK_YAML="stack.yaml"     # GHC 8.6.5
+    - env: DISPLAY=true   USE_STACK_YAML="stack.yaml"     # GHC 8.6.5
       language: python
       dist: xenial
       # Test against different stack LTS versions.
