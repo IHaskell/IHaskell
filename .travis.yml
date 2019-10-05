@@ -313,18 +313,19 @@ matrix:
           fi
     - language: nix
       dist: xenial
-      env: RELEASE_NIX="release-8.6.nix" NIXPKGS_ALLOW_BROKEN=1
+      env: NIXPKGS_ALLOW_BROKEN=1
       before_install:
         - export NIX_CONF_DIR=~
         - echo "binary-caches = https://cache.nixos.org https://ihaskell.cachix.org" >> $NIX_CONF_DIR/nix.conf
         - echo "binary-cache-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ihaskell.cachix.org-1:WoIvex/Ft/++sjYW3ntqPUL3jDGXIKDpX60pC8d5VLM=" >> $NIX_CONF_DIR/nix.conf
-        - glibcLocales=$(nix-build https://github.com/NixOS/nixpkgs-channels/tarball/6420e2649fa9e267481fb78e602022dab9d1dcd1 -A glibcLocales)
+        - glibcLocales=$(nix-build https://github.com/NixOS/nixpkgs-channels/tarball/nixos-19.03 -A glibcLocales)
         - echo $glibcLocales
         - export LOCALE_ARCHIVE_2_27="${glibcLocales}/lib/locale/locale-archive"
       script:
         - >
           nix-build
-          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/tarball/6420e2649fa9e267481fb78e602022dab9d1dcd1
-          $RELEASE_NIX
-        - nix-shell -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/tarball/6420e2649fa9e267481fb78e602022dab9d1dcd1 -p cachix --run 'cachix push ihaskell result'
+          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/tarball/nixos-19.03
+          release.nix
+          --argstr compiler "ghc864"
+        - nix-shell -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/tarball/nixos-19.03 -p cachix --run 'cachix push ihaskell result'
         - test/acceptance.nbconvert.sh result/bin/ihaskell-nbconvert
