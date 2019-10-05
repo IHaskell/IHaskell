@@ -313,61 +313,19 @@ matrix:
           fi
     - language: nix
       dist: xenial
-      env: RELEASE_NIX="release.nix"
-      cache:
-        directories:
-        - /nix/store
-        timeout: 1000
-      install:
+      env: NIXPKGS_ALLOW_BROKEN=1
+      before_install:
         - export NIX_CONF_DIR=~
-        - echo "binary-caches = http://128.199.234.106:3000" >> $NIX_CONF_DIR/nix.conf
-        - echo "binary-cache-public-keys = 128.199.234.106:jzUyrIQHov5i6f94jQVriqPDLuPYlZPAsga3W3k+L8E=" >> $NIX_CONF_DIR/nix.conf
-        - nix-env -i curl jq
+        - echo "binary-caches = https://cache.nixos.org https://ihaskell.cachix.org" >> $NIX_CONF_DIR/nix.conf
+        - echo "binary-cache-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ihaskell.cachix.org-1:WoIvex/Ft/++sjYW3ntqPUL3jDGXIKDpX60pC8d5VLM=" >> $NIX_CONF_DIR/nix.conf
+        - glibcLocales=$(nix-build https://github.com/NixOS/nixpkgs-channels/tarball/nixos-19.03 -A glibcLocales)
+        - echo $glibcLocales
+        - export LOCALE_ARCHIVE_2_27="${glibcLocales}/lib/locale/locale-archive"
       script:
         - >
           nix-build
-          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/$(curl "https://api.github.com/repos/NixOS/nixpkgs-channels/branches/nixos-17.09" | jq -r '.commit.sha').tar.gz
-          $RELEASE_NIX
-          --arg packages '(p: with p; [
-            ihaskell-aeson
-            ihaskell-blaze
-            ihaskell-charts
-            ihaskell-diagrams
-            ihaskell-gnuplot
-            ihaskell-hatex
-            ihaskell-juicypixels
-            ihaskell-magic
-            ihaskell-plot
-            ihaskell-static-canvas
-          ])'
-        - test/acceptance.nbconvert.sh result/bin/ihaskell-nbconvert
-    - language: nix
-      dist: xenial
-      env: RELEASE_NIX="release-8.2.nix"
-      cache:
-        directories:
-        - /nix/store
-        timeout: 1000
-      install:
-        - export NIX_CONF_DIR=~
-        - echo "binary-caches = http://128.199.234.106:3000" >> $NIX_CONF_DIR/nix.conf
-        - echo "binary-cache-public-keys = 128.199.234.106:jzUyrIQHov5i6f94jQVriqPDLuPYlZPAsga3W3k+L8E=" >> $NIX_CONF_DIR/nix.conf
-        - nix-env -i curl jq
-      script:
-        - >
-          nix-build
-          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/$(curl "https://api.github.com/repos/NixOS/nixpkgs-channels/branches/nixos-17.09" | jq -r '.commit.sha').tar.gz
-          $RELEASE_NIX
-          --arg packages '(p: with p; [
-            ihaskell-aeson
-            ihaskell-blaze
-            ihaskell-charts
-            ihaskell-diagrams
-            ihaskell-gnuplot
-            ihaskell-hatex
-            ihaskell-juicypixels
-            ihaskell-magic
-            ihaskell-plot
-            ihaskell-static-canvas
-          ])'
+          -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/tarball/nixos-19.03
+          release.nix
+          --argstr compiler "ghc864"
+        - nix-shell -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/tarball/nixos-19.03 -p cachix --run 'cachix push ihaskell result'
         - test/acceptance.nbconvert.sh result/bin/ihaskell-nbconvert
