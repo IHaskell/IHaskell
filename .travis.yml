@@ -326,4 +326,5 @@ matrix:
           nix-build
           -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/tarball/6420e2649fa9e267481fb78e602022dab9d1dcd1
           $RELEASE_NIX
+        - nix-shell -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/tarball/6420e2649fa9e267481fb78e602022dab9d1dcd1 -p cachix --run 'cachix push ihaskell result'
         - test/acceptance.nbconvert.sh result/bin/ihaskell-nbconvert
