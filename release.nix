@@ -45,14 +45,9 @@ let
       });
       ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
       ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
-      zeromq4-haskell   = self.callHackage "zeromq4-haskell" "0.8.0" {};
 
-      haskell-src-exts  = self.haskell-src-exts_1_21_0;
       inline-r          = nixpkgs.haskell.lib.dontCheck super.inline-r;
       static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
-      system-fileio     = nixpkgs.haskell.lib.doJailbreak super.system-fileio;
-      Chart             = nixpkgs.haskell.lib.doJailbreak super.Chart;
-      Chart-cairo       = nixpkgs.haskell.lib.doJailbreak super.Chart-cairo;
     } // displays self);
   });
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
