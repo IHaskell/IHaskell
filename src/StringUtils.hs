@@ -9,6 +9,7 @@ module StringUtils (
 
 import           IHaskellPrelude
 import qualified Data.Text as T
+import           Data.List.Split (splitOn)
 
 lstrip :: String -> String
 lstrip = dropWhile (`elem` (" \t\r\n" :: String))
@@ -24,4 +25,4 @@ replace needle replacement haystack =
   T.unpack $ T.replace (T.pack needle) (T.pack replacement) (T.pack haystack)
 
 split :: String -> String -> [String]
-split delim = map T.unpack . T.splitOn (T.pack delim) . T.pack
+split = splitOn
