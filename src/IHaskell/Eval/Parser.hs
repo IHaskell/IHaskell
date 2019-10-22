@@ -293,7 +293,11 @@ parseDirective _ _ = error "Directive must start with colon!"
 -- piece by piece.
 getModuleName :: GhcMonad m => String -> m [String]
 getModuleName moduleSrc = do
-  flags <- getSessionDynFlags
+  flags' <- getSessionDynFlags
+  flags <- do
+    result <- liftIO $ parsePragmasIntoDynFlags flags' "<interactive>" moduleSrc
+    return $ fromMaybe flags' result
+  _ <- setSessionDynFlags flags
   let output = runParser flags parserModule moduleSrc
   case output of
     Failure{} -> error "Module parsing failed."
