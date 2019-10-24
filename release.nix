@@ -33,7 +33,7 @@ let
       ihaskell          = nixpkgs.haskell.lib.overrideCabal (
                           self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
         preCheck = ''
-          export HOME=$(${nixpkgs.pkgs.coreutils}/bin/mktemp -d)
+          export HOME=$TMPDIR/home
           export PATH=$PWD/dist/build/ihaskell:$PATH
           export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
         '';
