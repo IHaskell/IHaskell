@@ -37,6 +37,7 @@ module IHaskell.Display (
     vega,
     vegalite,
     vdom,
+    custom,
     many,
 
     -- ** Image and data encoding functions
@@ -115,6 +116,10 @@ vegalite = DisplayData MimeVegalite . T.pack
 -- | Generate a Vdom display.
 vdom :: String -> DisplayData
 vdom = DisplayData MimeVdom . T.pack
+
+-- | Generate a custom display.
+custom :: T.Text -> String -> DisplayData
+custom mtype = DisplayData (MimeCustom mtype) . T.pack
 
 -- | Generate a Markdown display.
 markdown :: String -> DisplayData
