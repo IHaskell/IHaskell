@@ -1,4 +1,5 @@
 { compiler
+, jupyterlabAppDir ? null
 , nixpkgs ? import <nixpkgs> {}
 , packages ? (_: [])
 , pythonPackages ? (_: [])
@@ -69,13 +70,16 @@ let
       --use-rtsopts="${rtsopts}" \
       && ${jupyterlab}/bin/jupyter ${cmd} ${extraArgs} "$@"
   '';
+  appDir = if jupyterlabAppDir != null
+    then "--app-dir=${jupyterlabAppDir}"
+    else "";
 in
 nixpkgs.buildEnv {
   name = "ihaskell-with-packages";
   buildInputs = [ nixpkgs.makeWrapper ];
   paths = [ ihaskellEnv jupyterlab ];
   postBuild = ''
-    ln -s ${ihaskellJupyterCmdSh "lab" ""}/bin/ihaskell-lab $out/bin/
+    ln -s ${ihaskellJupyterCmdSh "lab" appDir}/bin/ihaskell-lab $out/bin/
     ln -s ${ihaskellJupyterCmdSh "notebook" ""}/bin/ihaskell-notebook $out/bin/
     ln -s ${ihaskellJupyterCmdSh "nbconvert" ""}/bin/ihaskell-nbconvert $out/bin/
     ln -s ${ihaskellJupyterCmdSh "console" "--kernel=haskell"}/bin/ihaskell-console $out/bin/
