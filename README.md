@@ -42,11 +42,11 @@ stack install --fast
 ihaskell install --stack
 ```
 
-If you want to use jupyterlab (right now only version ~0.33), you need to
-install the jupyterlab ihaskell extension to get syntax highlighting with:
+If you want to use jupyterlab, you need to install the jupyterlab ihaskell
+extension to get syntax highlighting with:
 
 ```bash
-jupyter labextension install ihaskell_jupyterlab
+jupyter labextension install jupyterlab-ihaskell
 ```
 
 Run Jupyter.
