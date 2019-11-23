@@ -29,6 +29,9 @@ sudo apt-get install -y python3-pip git libtinfo-dev libzmq3-dev libcairo2-dev l
 Install `stack`, clone this repository, install Python requirements, install
 `ihaskell`, and install the Jupyter kernelspec with `ihaskell`.
 
+These instructions assume you don't already have Stack or a Jupyter
+installation, please skip the relevant steps if this is not the case.
+
 ```bash
 curl -sSL https://get.haskellstack.org/ | sh
 git clone https://github.com/gibiansky/IHaskell
@@ -60,6 +63,9 @@ If you do not have it yet run `/usr/bin/ruby -e "$(curl -fsSL https://raw.github
 
 You also need the Xcode command line tools.
 You can install them by running `xcode-select --install` in the terminal and following the prompts.
+
+These instructions assume you don't already have Stack or a Jupyter
+installation, please skip the relevant steps if this is not the case.
 
 ```bash
 brew install python3 zeromq libmagic cairo pkg-config haskell-stack pango
