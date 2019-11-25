@@ -216,7 +216,7 @@ If you have the `nix` package manager installed, you can create an IHaskell
 notebook environment with one command. For example:
 
 ```bash
-$ nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/nixos-19.03.tar.gz --argstr compiler ghc864 --arg packages "haskellPackages: [ haskellPackages.lens ]"
+$ nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/nixos-19.03.tar.gz --argstr compiler ghc864 --arg packages "haskellPackages: [ haskellPackages.lens ]" release.nix
 <result path>
 $ <result path>/bin/ihaskell-notebook
 ```
