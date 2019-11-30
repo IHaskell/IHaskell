@@ -426,3 +426,14 @@ matrix:
           release.nix
           --argstr compiler "ghc881"
         - test/acceptance.nbconvert.sh result/bin/ihaskell-nbconvert
+    - language: c
+      dist: xenial
+      addons:
+        apt:
+          packages:
+            - docker-ce
+      script:
+        - docker build -t gibiansky/ihaskell:latest .
+      after_success:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        - docker push gibiansky/ihaskell
