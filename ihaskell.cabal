@@ -87,7 +87,7 @@ library
                        unordered-containers -any,
                        utf8-string          -any,
                        vector               -any,
-                       ipython-kernel       >=0.9.1,
+                       ipython-kernel       >=0.10,
                        ghc-boot             >=8.0 && <8.9
 
   exposed-modules: IHaskell.Display
