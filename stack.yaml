@@ -1,4 +1,4 @@
-resolver: lts-14.19
+resolver: lts-14.20
 
 flags: {}
 packages:
