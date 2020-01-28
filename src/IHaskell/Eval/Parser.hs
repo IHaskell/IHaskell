@@ -63,6 +63,7 @@ data DirectiveType = GetType      -- ^ Get the type of an expression via ':type'
                    | GetDoc       -- ^ Get documentation for an identifier via Hoogle.
                    | GetKind      -- ^ Get the kind of a type via ':kind'.
                    | LoadModule   -- ^ Load and unload modules via ':module'.
+                   | SPrint       -- ^ Print without evaluating via ':sprint'.
   deriving (Show, Eq)
 
 -- | Pragma types. Only LANGUAGE pragmas are currently supported. Other pragma types are kept around
@@ -285,6 +286,7 @@ parseDirective (':':directive) ln =
       , (SetExtension, "extension")
       , (GetHelp, "?")
       , (GetHelp, "help")
+      , (SPrint, "sprint")
       ]
 parseDirective _ _ = error "Directive must start with colon!"
 

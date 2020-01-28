@@ -28,6 +28,7 @@ import qualified Data.Set as Set
 import           Data.Char as Char
 import           Data.Dynamic
 import qualified Data.Serialize as Serialize
+import qualified Debugger
 import           System.Directory
 import           System.Posix.IO (fdToHandle)
 import           System.IO (hGetChar, hSetEncoding, utf8)
@@ -735,7 +736,7 @@ evalCommand _ (Directive GetHelp _) state = do
                     , "    :type <expression>        -  Print expression type."
                     , "    :info <name>              -  Print all info for a name."
                     , "    :hoogle <query>           -  Search for a query on Hoogle."
-                    , "    :doc <ident>              -  Get documentation for an identifier via Hogole."
+                    , "    :doc <ident>              -  Get documentation for an identifier via Hoogle."
                     , "    :set -XFlag -Wall         -  Set an option (like ghci)."
                     , "    :option <opt>             -  Set an option."
                     , "    :option no-<opt>          -  Unset an option."
@@ -784,6 +785,17 @@ evalCommand _ (Directive SearchHoogle query) state = safely state $ do
 evalCommand _ (Directive GetDoc query) state = safely state $ do
   results <- liftIO $ Hoogle.document query
   return $ hoogleResults state results
+
+evalCommand _ (Directive SPrint binding) state = safely state $ do
+  Debugger.pprintClosureCommand False False binding
+  return
+    EvalOut
+      { evalStatus = Success
+      , evalResult = mempty
+      , evalState = state
+      , evalPager = []
+      , evalMsgs = []
+      }
 
 evalCommand output (Statement stmt) state = wrapExecution state $ evalStatementOrIO output state
                                                                     (CapturedStmt stmt)
