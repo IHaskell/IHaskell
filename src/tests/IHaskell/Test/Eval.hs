@@ -169,6 +169,10 @@ testEval =
 #endif
       ":k Maybe" `becomes` ["Maybe :: * -> *"]
       ":in String" `pages` ["type String = [Char] \t-- Defined in \8216GHC.Base\8217"]
+      [hereLit|
+        let x = ['a'..'z']
+        :sprint x
+      |] `becomes` ["x = _"]
 
     it "captures stderr" $ do
       [hereLit|
