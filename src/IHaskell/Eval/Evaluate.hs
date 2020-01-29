@@ -786,16 +786,16 @@ evalCommand _ (Directive GetDoc query) state = safely state $ do
   results <- liftIO $ Hoogle.document query
   return $ hoogleResults state results
 
-evalCommand _ (Directive SPrint binding) state = safely state $ do
+evalCommand _ (Directive SPrint binding) state = wrapExecution state $ do
+  flags <- getSessionDynFlags
+  contents <- liftIO $ newIORef []
+  let action = \_dflags _sev _srcspan _ppr _style msg -> modifyIORef' contents (showSDoc flags msg :)
+  let flags' = flags { log_action = action }
+  _ <- setSessionDynFlags flags'
   Debugger.pprintClosureCommand False False binding
-  return
-    EvalOut
-      { evalStatus = Success
-      , evalResult = mempty
-      , evalState = state
-      , evalPager = []
-      , evalMsgs = []
-      }
+  _ <- setSessionDynFlags flags
+  sprint <- liftIO $ readIORef contents
+  return $ formatType (unlines sprint)
 
 evalCommand output (Statement stmt) state = wrapExecution state $ evalStatementOrIO output state
                                                                     (CapturedStmt stmt)
