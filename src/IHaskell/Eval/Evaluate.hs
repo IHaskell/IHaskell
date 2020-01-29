@@ -741,6 +741,7 @@ evalCommand _ (Directive GetHelp _) state = do
                     , "    :option <opt>             -  Set an option."
                     , "    :option no-<opt>          -  Unset an option."
                     , "    :?, :help                 -  Show this help text."
+                    , "    :sprint <value>           -  Print a value without forcing evaluation."
                     , ""
                     , "Any prefix of the commands will also suffice, e.g. use :ty for :type."
                     , ""
