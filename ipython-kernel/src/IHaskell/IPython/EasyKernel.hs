@@ -144,7 +144,7 @@ easyKernel profileFile config = do
     repHeader <- createReplyHeader (header req)
     when (debug config) . liftIO $ print req
     reply <- replyTo config execCount zmq req repHeader
-    liftIO $ writeChan (shellRequestChannel zmq) reply
+    liftIO $ writeChan (shellReplyChannel zmq) reply
 
 replyTo :: MonadIO m
         => KernelConfig m output result
