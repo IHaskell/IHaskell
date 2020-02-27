@@ -125,7 +125,7 @@ createReplyHeader parent = do
       err = error $ "No reply for message " ++ show (mhMsgType parent)
 
   return $ MessageHeader (mhIdentifiers parent) (Just parent) (Metadata (HashMap.fromList []))
-            newMessageId (mhSessionId parent) (mhUsername parent) repType
+            newMessageId (mhSessionId parent) (mhUsername parent) repType []
 
 
 -- | Execute an IPython kernel for a config. Your 'main' action should call this as the last thing

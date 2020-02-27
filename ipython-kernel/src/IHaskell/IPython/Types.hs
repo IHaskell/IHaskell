@@ -153,6 +153,7 @@ data MessageHeader =
          , mhSessionId :: UUID                    -- ^ A unique session UUID.
          , mhUsername :: Username                 -- ^ The user who sent this message.
          , mhMsgType :: MessageType               -- ^ The message type.
+         , mhBuffers :: [ByteString]              -- ^ Extra raw data buffer(s)
          }
   deriving (Show, Read)
 

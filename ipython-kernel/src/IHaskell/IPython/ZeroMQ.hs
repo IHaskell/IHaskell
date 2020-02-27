@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DoAndIfThenElse #-}
+{-# LANGUAGE OverloadedStrings, DoAndIfThenElse, FlexibleContexts #-}
 
 -- | Description : Low-level ZeroMQ communication wrapper.
 --
@@ -30,6 +30,7 @@ import           Data.Monoid ((<>))
 import qualified Data.Text.Encoding as Text
 import           System.ZMQ4 as ZMQ4
 import           Text.Read (readMaybe)
+import           Text.Parsec (runParserT, manyTill, anyToken, (<|>), eof, tokenPrim, incSourceColumn)
 
 import           IHaskell.IPython.Message.Parser
 import           IHaskell.IPython.Types
@@ -268,38 +269,28 @@ checkedIOpub debug channels sock = do
 -- | Receive and parse a message from a socket.
 receiveMessage :: Receiver a => Bool -> Socket a -> IO Message
 receiveMessage debug sock = do
-  -- Read all identifiers until the identifier/message delimiter.
-  idents <- readUntil "<IDS|MSG>"
-
-  -- Ignore the signature for now.
-  void next
-
-  headerData <- next
-  parentHeader <- next
-  metadata <- next
-  content <- next
-
-  when debug $ do
-    putStr "Header: "
-    Char.putStrLn headerData
-    putStr "Content: "
-    Char.putStrLn content
-
-  return $ parseMessage idents headerData parentHeader metadata content
-
+  blobs <- receiveMulti sock
+  runParserT parseBlobs () "" blobs >>= \r -> case r of
+    Left parseerr -> fail $ "Malformed Wire Protocol message: " <> show parseerr
+    Right (idents, headerData, parentHeader, metaData, content, buffers) -> do
+      when debug $ do
+        putStr "Header: "
+        Char.putStrLn headerData
+        putStr "Content: "
+        Char.putStrLn content
+      return $ parseMessage idents headerData parentHeader metaData content buffers
   where
-    -- Receive the next piece of data from the socket.
-    next = receive sock
-
-    -- Read data from the socket until we hit an ending string. Return all data as a list, which does
-    -- not include the ending string.
-    readUntil str = do
-      line <- next
-      if line /= str
-        then do
-          remaining <- readUntil str
-          return $ line : remaining
-        else return []
+    parseBlobs = do
+      idents       <- manyTill anyToken (satisfy (=="<IDS|MSG>"))
+      _            <- anyToken <|> fail "No signature"
+      headerData   <- anyToken <|> fail "No headerData"
+      parentHeader <- anyToken <|> fail "No parentHeader"
+      metaData     <- anyToken <|> fail "No metaData"
+      content      <- anyToken <|> fail "No contents"
+      buffers      <- manyTill anyToken eof
+      pure (idents, headerData, parentHeader, metaData, content, buffers)
+    satisfy f = tokenPrim Char.unpack (\pos _ _ -> incSourceColumn pos 1)
+                                      (\c -> if f c then Just c else Nothing)
 
 -- | Encode a message in the IPython ZeroMQ communication protocol and send it through the provided
 -- socket. Sign it using HMAC with SHA-256 using the provided key.
@@ -320,10 +311,18 @@ sendMessage debug hmackey sock msg = do
   sendPiece parentHeaderStr
   sendPiece metadata
 
-  -- Conclude transmission with content.
-  sendLast content
+  -- If there are no mhBuffers, then conclude transmission with content.
+  case mhBuffers hdr of
+    [] -> sendLast content
+    _  -> sendPiece content
+
+  sendBuffers $ mhBuffers hdr
 
   where
+    sendBuffers [] = pure ()
+    sendBuffers [b] = sendLast b
+    sendBuffers (b:bs) = sendPiece b >> sendBuffers bs
+
     sendPiece = send sock [SendMore]
     sendLast = send sock []
 

@@ -22,14 +22,16 @@ import           IHaskell.IPython.Types
 type LByteString = Lazy.ByteString
 
 -- --- External interface ----- | Parse a message from its ByteString components into a Message.
+--   See https://jupyter-client.readthedocs.io/en/stable/messaging.html#the-wire-protocol
 parseMessage :: [ByteString] -- ^ The list of identifiers sent with the message.
              -> ByteString   -- ^ The header data.
              -> ByteString   -- ^ The parent header, which is just "{}" if there is no header.
              -> ByteString   -- ^ The metadata map, also "{}" for an empty map.
              -> ByteString   -- ^ The message content.
+             -> [ByteString] -- ^ Extra raw data buffer(s)
              -> Message      -- ^ A parsed message.
-parseMessage idents headerData parentHeader metadata content =
-  let header = parseHeader idents headerData parentHeader metadata
+parseMessage idents headerData parentHeader metadata content buffers =
+  let header = parseHeader idents headerData parentHeader metadata buffers
       messageType = mhMsgType header
       messageWithoutHeader = parser messageType $ Lazy.fromStrict content
   in messageWithoutHeader { header = header }
@@ -39,16 +41,17 @@ parseHeader :: [ByteString]  -- ^ The list of identifiers.
             -> ByteString    -- ^ The header data.
             -> ByteString    -- ^ The parent header, or "{}" for Nothing.
             -> ByteString    -- ^ The metadata, or "{}" for an empty map.
+            -> [ByteString]  -- ^ Extra raw data buffer(s)
             -> MessageHeader -- The resulting message header.
-parseHeader idents headerData parentHeader metadata =
-  MessageHeader idents parentResult metadataMap messageUUID sessionUUID username messageType
+parseHeader idents headerData parentHeader metadata buffers =
+  MessageHeader idents parentResult metadataMap messageUUID sessionUUID username messageType buffers
   where
     -- Decode the header data and the parent header data into JSON objects. If the parent header data is
     -- absent, just have Nothing instead.
     Just result = decode $ Lazy.fromStrict headerData :: Maybe Object
     parentResult = if parentHeader == "{}"
                      then Nothing
-                     else Just $ parseHeader idents parentHeader "{}" metadata
+                     else Just $ parseHeader idents parentHeader "{}" metadata []
 
     Success (messageType, username, messageUUID, sessionUUID) = flip parse result $ \obj -> do
       messType <- obj .: "msg_type"
