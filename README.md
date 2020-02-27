@@ -128,8 +128,8 @@ docker run --rm -it -p8888:8888 ihaskell:latest
 
 ## Stack and Docker
 
-IHaskell, being a Jupyter kernel, depends at runtime on a tall pile of software
-provided by, traditionally, `apt`, `pip`, and `npm`.
+IHaskell, being a Jupyter kernel, has a tall pile of compile-time and run-time
+dependencies provided by, traditionally, `apt`, `pip`, and `npm`.
 To develop IHaskell, we want to be able to isolate and control all of the
 dependencies. We can use
 [Stack's Docker integration](https://docs.haskellstack.org/en/stable/docker_integration/)
@@ -182,15 +182,15 @@ stack --docker exec pip3 -- install jupyterlab
 stack --docker exec bash -- -c 'cd ihaskell_labextension;npm install;npm run build;jupyter labextension link .'
 ```
 
-Run the Jupyter notebook, with security disabled for testing.
+Run the Jupyter notebook, with security disabled for testing, listening on all interfaces.
 
 ```bash
-stack --docker exec jupyter -- notebook --NotebookApp.token='' notebooks
+stack --docker exec jupyter -- notebook --NotebookApp.token='' --no-browser --LabApp.ip=0.0.0.0 notebooks
 ```
 
-Run JupyterLab (if you installed it), with security disabled for testing.
+Run JupyterLab (if you installed it), with security disabled for testing, listening on all interfaces.
 ```bash
-stack --docker exec jupyter -- lab --NotebookApp.token='' notebooks
+stack --docker exec jupyter -- lab --NotebookApp.token='' --no-browser --LabApp.ip=0.0.0.0 notebooks
 ```
 Everything in Stackage can be installed by `stack --docker install`.
 

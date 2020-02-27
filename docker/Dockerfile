@@ -30,13 +30,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libtinfo-dev \
     libzmq3-dev \
     libpango1.0-dev \
-##
-## IHaskell.Display dependencies
-#    libmagic-dev \
-#    libcairo2-dev \
-#    libblas-dev \
-#    liblapack-dev \
-#    g++ \
+#
+# IHaskell.Display dependencies
+    libmagic-dev \
+    libcairo2-dev \
+    libblas-dev \
+    liblapack-dev \
+    g++ \
 #
 # Required for building ihaskell_labextension
     npm \
