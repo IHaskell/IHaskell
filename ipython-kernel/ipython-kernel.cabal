@@ -52,7 +52,8 @@ library
                        transformers    ,
                        unordered-containers,
                        uuid            ,
-                       zeromq4-haskell
+                       zeromq4-haskell ,
+                       parsec
 
 -- Example program
 executable simple-calc-example

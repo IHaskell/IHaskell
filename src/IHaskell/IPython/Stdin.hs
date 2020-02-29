@@ -94,6 +94,7 @@ getInputLine dir = do
                 . readMay <$> readFile fpath
   let hdr = MessageHeader (mhIdentifiers parentHdr) (Just parentHdr) mempty
               uuid (mhSessionId parentHdr) (mhUsername parentHdr) InputRequestMessage
+              []
   let msg = RequestInput hdr ""
   writeChan req msg
 

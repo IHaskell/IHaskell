@@ -221,7 +221,7 @@ createReplyHeader parent = do
       err = error $ "No reply for message " ++ show (mhMsgType parent)
 
   return $ MessageHeader (mhIdentifiers parent) (Just parent) mempty
-            newMessageId (mhSessionId parent) (mhUsername parent) repType
+            newMessageId (mhSessionId parent) (mhUsername parent) repType []
 
 -- | Compute a reply to a message.
 replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> Interpreter (KernelState, Message)
