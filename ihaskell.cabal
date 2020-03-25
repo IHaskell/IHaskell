@@ -88,7 +88,7 @@ library
                        utf8-string          -any,
                        vector               -any,
                        ipython-kernel       >=0.10,
-                       ghc-boot             >=8.0 && <8.9
+                       ghc-boot             >=8.0 && <8.11
 
   exposed-modules: IHaskell.Display
                    IHaskell.Convert
@@ -135,10 +135,10 @@ executable ihaskell
   default-language:    Haskell2010
   build-depends:
                        ihaskell -any,
-                       base                 >=4.9 && < 4.14,
+                       base                 >=4.9 && < 4.15,
                        text                 >=0.11,
                        transformers         -any,
-                       ghc                  >=8.0 && < 8.9,
+                       ghc                  >=8.0 && < 8.11,
                        process              >=1.1,
                        aeson                >=0.7,
                        bytestring           >=0.10,

@@ -227,7 +227,11 @@ testParseString = describe "Parser" $ do
         second
        |]) >>= (`shouldBe` [Located 2 (Expression "first"), Located 4 (Expression "second")])
   where
+#if MIN_VERSION_ghc(8,10,0)
+    dataKindsError = ParseError (Loc 1 11) msg
+#else
     dataKindsError = ParseError (Loc 1 10) msg
+#endif
 #if MIN_VERSION_ghc(8,8,0)
     msg = "Cannot parse data constructor in a data/newtype declaration:\n  3"
 #else

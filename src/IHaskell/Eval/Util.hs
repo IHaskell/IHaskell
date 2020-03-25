@@ -115,7 +115,9 @@ pprDynFlags show_all dflags =
         is_on = test f dflags
         quiet = not show_all && test f default_dflags == is_on
 
-#if MIN_VERSION_ghc(8,6,0)
+#if MIN_VERSION_ghc(8,10,0)
+    default_dflags = defaultDynFlags (settings dflags) (llvmConfig dflags)
+#elif MIN_VERSION_ghc(8,6,0)
     default_dflags = defaultDynFlags (settings dflags) (llvmTargets dflags, llvmPasses dflags)
 #elif MIN_VERSION_ghc(8,4,0)
     default_dflags = defaultDynFlags (settings dflags) (llvmTargets dflags)
@@ -167,7 +169,9 @@ pprLanguages show_all dflags =
         quiet = not show_all && test f default_dflags == is_on
 
     default_dflags =
-#if MIN_VERSION_ghc(8,6,0)
+#if MIN_VERSION_ghc(8,10,0)
+      defaultDynFlags (settings dflags) (llvmConfig dflags) `lang_set`
+#elif MIN_VERSION_ghc(8,6,0)
       defaultDynFlags (settings dflags) (llvmTargets dflags, llvmPasses dflags) `lang_set`
 #elif MIN_VERSION_ghc(8,4,0)
       defaultDynFlags (settings dflags) (llvmTargets dflags) `lang_set`
@@ -319,7 +323,11 @@ evalImport imports = do
 #endif
     importOf _ (IIModule _) = False
     importOf imp (IIDecl decl) =
+#if MIN_VERSION_ghc(8,10,0)
+      ((==) `on` (unLoc . ideclName)) decl imp && not (isImportDeclQualified $ ideclQualified decl)
+#else
       ((==) `on` (unLoc . ideclName)) decl imp && not (ideclQualified decl)
+#endif
 
     -- Check whether an import is an *implicit* import of something.
 #if MIN_VERSION_ghc(8,4,0)
