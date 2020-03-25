@@ -168,7 +168,11 @@ testEval =
       ":typ 3" `becomes` ["3 :: forall t. Num t => t"]
 #endif
       ":k Maybe" `becomes` ["Maybe :: * -> *"]
+#if MIN_VERSION_ghc(8,10,0)
+      ":in String" `pages` ["type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Base\8217"]
+#else
       ":in String" `pages` ["type String = [Char] \t-- Defined in \8216GHC.Base\8217"]
+#endif
 
     it "captures stderr" $ do
       [hereLit|

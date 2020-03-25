@@ -1085,7 +1085,11 @@ doLoadModule name modName = do
       return $ displayError $ "Failed to load module " ++ modName ++ ": " ++ show exception
 
 objTarget :: DynFlags -> HscTarget
+#if MIN_VERSION_ghc(8,10,0)
+objTarget = defaultObjectTarget
+#else
 objTarget flags = defaultObjectTarget $ targetPlatform flags
+#endif
 
 data Captured a = CapturedStmt String
                 | CapturedIO (IO a)
