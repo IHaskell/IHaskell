@@ -30,7 +30,10 @@ import Data.Char (isAlphaNum)
 
 import Bag
 import DynFlags (parseDynamicFilePragma)
+#if MIN_VERSION_ghc(8,10,0)
+#else
 import ErrUtils hiding (ErrMsg)
+#endif
 import FastString
 #if MIN_VERSION_ghc(8,4,0)
 import GHC hiding (Located, Parsed, parser)
@@ -133,23 +136,37 @@ runParser flags (Parser parser) str =
     toParseOut $ unP parser parseState
   where
     toParseOut :: ParseResult a -> ParseOutput a
-#if MIN_VERSION_ghc(8,4,0)
+#if MIN_VERSION_ghc(8,10,0)
+    toParseOut (PFailed pstate) =
+      let realSpan = last_loc pstate
+          errMsg = printErrorBag $ snd $ (messages pstate) flags
+          ln = srcLocLine $ SrcLoc.realSrcSpanStart realSpan
+          col = srcLocCol $ SrcLoc.realSrcSpanStart realSpan
+        in Failure errMsg $ Loc ln col
+#elif MIN_VERSION_ghc(8,4,0)
     toParseOut (PFailed _ spn@(RealSrcSpan realSpan) err) =
-#else
-    toParseOut (PFailed spn@(RealSrcSpan realSpan) err) =
-#endif
       let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags spn err
           ln = srcLocLine $ SrcLoc.realSrcSpanStart realSpan
           col = srcLocCol $ SrcLoc.realSrcSpanStart realSpan
         in Failure errMsg $ Loc ln col
-
-#if MIN_VERSION_ghc(8,4,0)
-    toParseOut (PFailed _ spn err) =
 #else
-    toParseOut (PFailed spn err) =
+    toParseOut (PFailed spn@(RealSrcSpan realSpan) err) =
+      let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags spn err
+          ln = srcLocLine $ SrcLoc.realSrcSpanStart realSpan
+          col = srcLocCol $ SrcLoc.realSrcSpanStart realSpan
+        in Failure errMsg $ Loc ln col
 #endif
+
+#if MIN_VERSION_ghc(8,10,0)
+#elif MIN_VERSION_ghc(8,4,0)
+    toParseOut (PFailed _ spn err) =
       let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags spn err
         in Failure errMsg $ Loc 0 0
+#else
+    toParseOut (PFailed spn err) =
+      let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags spn err
+        in Failure errMsg $ Loc 0 0
+#endif
 
     toParseOut (POk _parseState result) =
       Parsed result
