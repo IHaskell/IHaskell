@@ -1,5 +1,5 @@
 import {
-  JupyterLab, JupyterLabPlugin
+  JupyterFrontEnd, JupyterFrontEndPlugin
 } from '@jupyterlab/application';
 
 import './codemirror-ihaskell';
@@ -9,11 +9,11 @@ import '../style/index.css';
 /**
  * Initialization data for the extension1 extension.
  */
-const extension: JupyterLabPlugin<void> = {
+const extension: JupyterFrontEndPlugin<void> = {
   id: 'ihaskell',
   autoStart: true,
   requires: [],
-  activate: (app: JupyterLab) =>
+  activate: (app: JupyterFrontEnd) =>
   {
     app.serviceManager.ready
       .then(() => {defineIHaskell()});

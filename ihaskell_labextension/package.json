@@ -1,6 +1,6 @@
 {
   "name": "ihaskell_jupyterlab",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "adds ihaskell syntax highlighting to jupyterlab",
   "keywords": [
     "jupyter",
@@ -30,17 +30,16 @@
     "watch": "tsc -w"
   },
   "dependencies": {
-    "@jupyterlab/application": "0.17.1 - 2.0.0",
-    "@jupyterlab/apputils": "0.17.2 - 2.0.0",
-    "@jupyterlab/docregistry": "0.17.1 - 2.0.0",
-    "@jupyterlab/notebook": "0.17.1 - 2.0.0",
+    "@jupyterlab/application": ">=2.0.0",
+    "@jupyterlab/apputils": ">=2.0.0",
+    "@jupyterlab/docregistry": ">=2.0.0",
+    "@jupyterlab/notebook": ">=2.0.0",
     "@jupyterlab/services": ">=3.0.1",
-    "@phosphor/disposable": "^1.1.2"
+    "@lumino/disposable": "^1.1.2"
   },
   "devDependencies": {
-    "rimraf": "^2.6.1",
-    "typescript": "~2.6.0",
-    "webpack": "~4.12.0"
+    "rimraf": "^3.0.0",
+    "typescript": "~3.7.3"
   },
   "jupyterlab": {
     "extension": true
