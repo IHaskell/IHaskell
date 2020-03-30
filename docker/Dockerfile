@@ -10,7 +10,7 @@
 #     docker build --build-arg BASE_CONTAINER=ubuntu:16.04 -t ihaskell-dev .
 #
 
-ARG BASE_CONTAINER=ubuntu:bionic-20180526@sha256:c8c275751219dadad8fa56b3ac41ca6cb22219ff117ca98fe82b42f24e1ba64e
+ARG BASE_CONTAINER=ubuntu:bionic-20200219@sha256:0925d086715714114c1988f7c947db94064fd385e171a63c07730f1fa014e6f9
 FROM $BASE_CONTAINER
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -40,20 +40,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 #
 # Required for building ihaskell_labextension
     npm \
-    && \
+#
+# Required for upgrading nodejs
+    curl \
 #
 # Clean apt install
-    rm -rf /var/lib/apt/lists/* \
-    && \
+  && rm -rf /var/lib/apt/lists/* \
 #
 # Install latest npm, which is not in Ubuntu repo
 # Because ihaskell_labextension requires npm >= 4.0
-    npm install npm@latest -g \
-    && \
+  && npm install npm@latest -g \
 #
 # Clean npm install cache
-    npm cache clean --force \
-    && true
+  && npm cache clean --force
+
+# Setup nodejs repository
+# https://github.com/nodesource/distributions/blob/master/README.md#installation-instructions
+# Need nodejs later than 8.16.2 for jupyterlab 2.0.2 → rendermime → marked 0.8.0
+# Otherwise when we build ihaskell_labextension we get errors like this:
+#
+#     ihaskell_labextension $ npm install
+#     npm WARN notsup Unsupported engine for marked@0.8.2: wanted: {"node":">= 8.16.2"} (current: {"node":"8.10.0","npm":"6.14.4"})
+#
+RUN curl -sL https://deb.nodesource.com/setup_13.x | bash - \
+  && apt-get install -y nodejs \
+#
+# Clean apt install
+  && rm -rf /var/lib/apt/lists/*
 
 ENV LANG     C.UTF-8
 ENV LANGUAGE C.UTF-8
