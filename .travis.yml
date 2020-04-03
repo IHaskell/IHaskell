@@ -5,7 +5,7 @@ matrix:
   include:
     - env: DISPLAY=true   USE_STACK_YAML="stack-8.0.yaml"     # GHC 8.0.2
       language: python
-      dist: xenial
+      dist: bionic
       # Test against different stack LTS versions.
 
       # Choose a lightweight base image; we provide our own build tools.
@@ -82,7 +82,7 @@ matrix:
           fi
     - env: DISPLAY=true   USE_STACK_YAML="stack-8.2.yaml"     # GHC 8.2.2
       language: python
-      dist: xenial
+      dist: bionic
       # Test against different stack LTS versions.
 
       # Choose a lightweight base image; we provide our own build tools.
@@ -159,7 +159,7 @@ matrix:
           fi
     - env: DISPLAY=true   USE_STACK_YAML="stack-8.4.yaml"     # GHC 8.4.3
       language: python
-      dist: xenial
+      dist: bionic
       # Test against different stack LTS versions.
 
       # Choose a lightweight base image; we provide our own build tools.
@@ -236,7 +236,7 @@ matrix:
           fi
     - env: DISPLAY=true   USE_STACK_YAML="stack.yaml"     # GHC 8.6.5
       language: python
-      dist: xenial
+      dist: bionic
       # Test against different stack LTS versions.
 
       # Choose a lightweight base image; we provide our own build tools.
@@ -313,7 +313,7 @@ matrix:
           fi
     - env: DISPLAY=true   USE_STACK_YAML="stack-8.8.yaml"     # GHC 8.8.1
       language: python
-      dist: xenial
+      dist: bionic
       # Test against different stack LTS versions.
 
       # Choose a lightweight base image; we provide our own build tools.
@@ -390,7 +390,7 @@ matrix:
           fi
     - language: nix
       nix: 2.3
-      dist: xenial
+      dist: bionic
       env: NIXPKGS_ALLOW_BROKEN=1
       before_install:
         - export NIX_CONF_DIR=~
@@ -409,7 +409,7 @@ matrix:
         - test/acceptance.nbconvert.sh result/bin/ihaskell-nbconvert
     - language: nix
       nix: 2.3
-      dist: xenial
+      dist: bionic
       env: NIXPKGS_ALLOW_BROKEN=1
       before_install:
         - export NIX_CONF_DIR=~
