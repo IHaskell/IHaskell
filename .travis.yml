@@ -9,7 +9,7 @@ matrix:
       # Test against different stack LTS versions.
 
       # Choose a lightweight base image; we provide our own build tools.
-      python: "3.6"
+      python: "3.8"
 
       # Enable caching.
       sudo: false
@@ -86,7 +86,7 @@ matrix:
       # Test against different stack LTS versions.
 
       # Choose a lightweight base image; we provide our own build tools.
-      python: "3.6"
+      python: "3.8"
 
       # Enable caching.
       sudo: false
@@ -163,7 +163,7 @@ matrix:
       # Test against different stack LTS versions.
 
       # Choose a lightweight base image; we provide our own build tools.
-      python: "3.6"
+      python: "3.8"
 
       # Enable caching.
       sudo: false
@@ -240,7 +240,7 @@ matrix:
       # Test against different stack LTS versions.
 
       # Choose a lightweight base image; we provide our own build tools.
-      python: "3.6"
+      python: "3.8"
 
       # Enable caching.
       sudo: false
@@ -317,7 +317,7 @@ matrix:
       # Test against different stack LTS versions.
 
       # Choose a lightweight base image; we provide our own build tools.
-      python: "3.6"
+      python: "3.8"
 
       # Enable caching.
       sudo: false
