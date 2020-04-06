@@ -126,6 +126,35 @@ docker build -t ihaskell:latest .
 docker run --rm -it -p8888:8888 ihaskell:latest
 ```
 
+Or use the continously updated Docker image 
+[on Docker Hub](https://hub.docker.com/r/gibiansky/ihaskell).
+
+```sh
+docker run --rm -p 8888:8888 gibiansky/ihaskell
+```
+
+In order to mount your own local files into the Docker container
+use following command:
+
+```sh
+docker run --rm -p 8888:8888 -v "$PWD":/home/jovyan/work gibiansky/ihaskell
+```
+
+Be aware that the directory you're mounting must contain
+a `stack.yaml` file.
+A simple version would be:
+
+```yaml
+resolver: lts-14.23
+packages: []
+```
+
+It's recommended to use the same LTS version as the iHaskell image is using itself 
+(as can be seen in [its stack.yaml](./stack.yaml)).
+This guarantees that stack doesn't have to first perform 
+a lengthy installation of GHC before running your notebook.
+
+
 ## Stack and Docker
 
 IHaskell, being a Jupyter kernel, has a tall pile of compile-time and run-time
