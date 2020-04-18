@@ -1,12 +1,12 @@
 let
-  haskell-updates = builtins.fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/tarball/218a3b3651cff1c830927beb504c78f992c08d35";
-    sha256 = "18zc31lnm7wzagyhhari0qmrlw2iww8yq1s9llgvdyd53ynwchqm";
+  nixpkgs-src = builtins.fetchTarball {
+    url = "https://github.com/NixOS/nixpkgs/tarball/ce283f055bd625d6ba80a8f5b7315721252ce5a9";
+    sha256 = "000gpazdj5ih3p9niw2kvrd2lnd2r9ik6xklvmhcgn8lcbngaiv3";
   };
 in
 { compiler ? "ghc8101"
 , jupyterlabAppDir ? null
-, nixpkgs ? import haskell-updates {}
+, nixpkgs ? import nixpkgs-src {}
 , packages ? (_: [])
 , pythonPackages ? (_: [])
 , rtsopts ? "-M3g -N2"
@@ -59,18 +59,13 @@ let
       criterion                = nixpkgs.haskell.lib.dontCheck super.criterion;
       polyparse                = nixpkgs.haskell.lib.doJailbreak super.polyparse;
       lifted-async             = nixpkgs.haskell.lib.doJailbreak super.lifted-async;
-      doctest                  = nixpkgs.haskell.lib.doJailbreak (nixpkgs.haskell.lib.appendPatch super.doctest (nixpkgs.fetchpatch {
-        url = "https://gitlab.haskell.org/ghc/head.hackage/-/raw/5dd85a5b49143caf6ec0df8a72e0c5448f0b53e6/patches/doctest-0.16.2.patch";
-        sha256 = "176d8lp3ks2l547lz9wz40mkcmijiaw9h55j8nlw9hi61chxn2p2";
-      }));
-      language-haskell-extract = nixpkgs.haskell.lib.appendPatch super.language-haskell-extract (nixpkgs.fetchpatch {
-        url = "https://gitlab.haskell.org/ghc/head.hackage/-/raw/111b91723aa65f6ae1bb3a883ffa3e187b93c951/patches/language-haskell-extract-0.2.4.patch";
-        sha256 = "1122izp17qzqyjpv905lakpkg6082vnvym9prpzhwzpgxv8pa117";
-      });
       th-expand-syns           = nixpkgs.haskell.lib.doJailbreak super.th-expand-syns;
-      ghc-lib-parser           = nixpkgs.haskell.lib.doJailbreak super.ghc-lib-parser;
+      ghc-lib-parser           = super.ghc-lib-parser_8_10_1_20200412;
       ghc-lib-parser-ex        = nixpkgs.haskell.lib.addBuildDepend super.ghc-lib-parser-ex self.ghc-lib-parser;
-      hlint                    = nixpkgs.haskell.lib.doJailbreak super.hlint;
+      hlint                    = nixpkgs.haskell.lib.doJailbreak (self.callCabal2nix "hlint" (builtins.fetchTarball {
+        url = "https://github.com/ndmitchell/hlint/tarball/bcb586a833c7726087bfff885e3e301b6a110fa7";
+        sha256 = "1k56vgvfgh44qhdcfanhn0hfhibqila7xmnx7rq1hb15nk0lsp44";
+      }) {});
     } // displays self);
   });
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
