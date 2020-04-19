@@ -23,23 +23,19 @@ RUN adduser --disabled-password \
 RUN wget -qO- https://github.com/commercialhaskell/stack/releases/download/v$STACK_VERSION/stack-$STACK_VERSION-linux-x86_64.tar.gz | tar xz --wildcards --strip-components=1 -C /usr/bin '*/stack'
 
 # Set up a working directory for IHaskell
-RUN mkdir ${HOME}/ihaskell
+RUN install -d -o ${NB_UID} -g ${NB_UID} ${HOME} ${HOME}/ihaskell
 WORKDIR ${HOME}/ihaskell
 
-USER root
-RUN chown -R ${NB_UID} ${HOME}
 USER ${NB_UID}
 
-# Set up stack
-COPY --chown=${NB_UID}:${NB_UID} stack.yaml stack.yaml
-RUN stack config set system-ghc --global true
-
 # Install dependencies for IHaskell
+COPY --chown=${NB_UID}:${NB_UID} stack.yaml stack.yaml
 COPY --chown=${NB_UID}:${NB_UID} ihaskell.cabal ihaskell.cabal
 COPY --chown=${NB_UID}:${NB_UID} ipython-kernel ipython-kernel
 COPY --chown=${NB_UID}:${NB_UID} ghc-parser ghc-parser
 COPY --chown=${NB_UID}:${NB_UID} ihaskell-display ihaskell-display
 
+RUN stack setup
 RUN stack build --only-snapshot
 
 # Install IHaskell itself. Don't just COPY . so that
