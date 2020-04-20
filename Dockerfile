@@ -1,6 +1,7 @@
 FROM ubuntu:18.04
 
 ARG STACK_VERSION=2.1.3
+ARG RESOLVER=lts-14.23
 
 # Install all necessary Ubuntu packages
 RUN apt-get update && apt-get install -y python3-pip libgmp-dev libmagic-dev libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev libblas-dev liblapack-dev gcc g++ wget && \
@@ -46,6 +47,8 @@ COPY --chown=${NB_UID}:${NB_UID} main ${HOME}/ihaskell/main
 COPY --chown=${NB_UID}:${NB_UID} LICENSE ${HOME}/ihaskell/LICENSE
 
 RUN stack build && stack install
+RUN mkdir -p ${HOME}/.stack/global-project && \
+    echo "packages: []\nresolver: ${RESOLVER}\n" > ${HOME}/.stack/global-project/stack.yaml
 
 # Run the notebook
 ENV PATH $(stack path --local-install-root)/bin:$(stack path --snapshot-install-root)/bin:$(stack path --compiler-bin):/home/${NB_USER}/.local/bin:${PATH}
