@@ -145,7 +145,7 @@ a `stack.yaml` file.
 A simple version would be:
 
 ```yaml
-resolver: lts-14.23
+resolver: lts-14.27
 packages: []
 ```
 
