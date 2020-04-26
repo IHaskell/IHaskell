@@ -424,5 +424,5 @@ matrix:
           nix-build
           -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/tarball/nixos-20.03
           release.nix
-          --argstr compiler "ghc881"
+          --argstr compiler "ghc883"
         - test/acceptance.nbconvert.sh result/bin/ihaskell-nbconvert
