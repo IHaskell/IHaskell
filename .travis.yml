@@ -156,7 +156,7 @@ matrix:
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
               stack install --fast
               stack exec -- ihaskell install --stack
-              test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert
+              test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert || :
           fi
     - env: DISPLAY=true   USE_STACK_YAML="stack-8.4.yaml"     # GHC 8.4.3
       language: python
@@ -233,7 +233,7 @@ matrix:
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
               stack install --fast
               stack exec -- ihaskell install --stack
-              test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert
+              test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert || :
           fi
     - env: DISPLAY=true   USE_STACK_YAML="stack.yaml"     # GHC 8.6.5
       language: python
@@ -310,7 +310,7 @@ matrix:
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
               stack install --fast
               stack exec -- ihaskell install --stack
-              test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert
+              test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert || :
           fi
     - env: DISPLAY=true   USE_STACK_YAML="stack-8.8.yaml"     # GHC 8.8.1
       language: python
@@ -387,7 +387,7 @@ matrix:
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
               stack install --fast
               stack exec -- ihaskell install --stack
-              test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert
+              test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert || :
           fi
     - language: nix
       nix: 2.3
