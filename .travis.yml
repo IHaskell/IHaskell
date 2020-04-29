@@ -148,6 +148,7 @@ matrix:
           if $DISPLAY; then
               TOP=$(pwd)
               stack build --no-terminal --fast
+              stack exec env | grep GHC_PACKAGE_PATH
 
               # Ensure that ipython-kernel examples build successfully.
               stack build ipython-kernel --flag ipython-kernel:examples --fast
@@ -226,6 +227,7 @@ matrix:
           if $DISPLAY; then
               TOP=$(pwd)
               stack build --no-terminal --fast
+              stack exec env | grep GHC_PACKAGE_PATH
 
               # Ensure that ipython-kernel examples build successfully.
               stack build ipython-kernel --flag ipython-kernel:examples --fast
@@ -304,6 +306,7 @@ matrix:
           if $DISPLAY; then
               TOP=$(pwd)
               stack build --no-terminal --fast
+              stack exec env | grep GHC_PACKAGE_PATH
 
               # Ensure that ipython-kernel examples build successfully.
               stack build ipython-kernel --flag ipython-kernel:examples --fast
@@ -382,6 +385,7 @@ matrix:
           if $DISPLAY; then
               TOP=$(pwd)
               stack build --no-terminal --fast
+              stack exec env | grep GHC_PACKAGE_PATH
 
               # Ensure that ipython-kernel examples build successfully.
               stack build ipython-kernel --flag ipython-kernel:examples --fast
