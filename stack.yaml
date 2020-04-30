@@ -8,14 +8,14 @@ packages:
     - ./ihaskell-display/ihaskell-aeson
     - ./ihaskell-display/ihaskell-blaze
     - ./ihaskell-display/ihaskell-charts
-    - ./ihaskell-display/ihaskell-diagrams
+    # - ./ihaskell-display/ihaskell-diagrams
     - ./ihaskell-display/ihaskell-gnuplot
     - ./ihaskell-display/ihaskell-hatex
     - ./ihaskell-display/ihaskell-juicypixels
     - ./ihaskell-display/ihaskell-magic
     # - ./ihaskell-display/ihaskell-plot
     # - ./ihaskell-display/ihaskell-static-canvas
-    - ./ihaskell-display/ihaskell-widgets
+    # - ./ihaskell-display/ihaskell-widgets
 
 extra-deps:
 - Chart-cairo-1.9.1
