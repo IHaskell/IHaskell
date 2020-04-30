@@ -59,24 +59,24 @@ matrix:
           echo "apply-ghc-options: everything" >> stack.yaml
 
         - stack setup
-        - stack install gtk2hs-buildtools --fast
-        - stack build hmatrix --fast
-        - stack build --dependencies-only --fast
+        - stack install gtk2hs-buildtools
+        - stack build hmatrix
+        - stack build --dependencies-only
 
       script:
-        - stack test --no-terminal --fast
+        - stack test --no-terminal
         - |
           set -e
           if $DISPLAY; then
               TOP=$(pwd)
-              stack build --no-terminal --fast
+              stack build --no-terminal
 
               # Ensure that ipython-kernel examples build successfully.
-              stack build ipython-kernel --flag ipython-kernel:examples --fast
+              stack build ipython-kernel --flag ipython-kernel:examples
 
               # Ensure that IHaskell notebook remains unchanged.
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
-              stack install --fast
+              stack install
               stack exec -- ihaskell install --stack
               test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert
           fi
@@ -136,24 +136,24 @@ matrix:
           echo "apply-ghc-options: everything" >> stack.yaml
 
         - stack setup
-        - stack install gtk2hs-buildtools --fast
-        - stack build hmatrix --fast
-        - stack build --dependencies-only --fast
+        - stack install gtk2hs-buildtools
+        - stack build hmatrix
+        - stack build --dependencies-only
 
       script:
-        - stack test --no-terminal --fast
+        - stack test --no-terminal
         - |
           set -e
           if $DISPLAY; then
               TOP=$(pwd)
-              stack build --no-terminal --fast
+              stack build --no-terminal
 
               # Ensure that ipython-kernel examples build successfully.
-              stack build ipython-kernel --flag ipython-kernel:examples --fast
+              stack build ipython-kernel --flag ipython-kernel:examples
 
               # Ensure that IHaskell notebook remains unchanged.
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
-              stack install --fast
+              stack install
               stack exec -- ihaskell install --stack
               test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert
           fi
@@ -213,24 +213,24 @@ matrix:
           echo "apply-ghc-options: everything" >> stack.yaml
 
         - stack setup
-        # - stack install gtk2hs-buildtools --fast
-        - stack build hmatrix --fast
-        - stack build --dependencies-only --fast
+        # - stack install gtk2hs-buildtools
+        - stack build hmatrix
+        - stack build --dependencies-only
 
       script:
-        - stack test --no-terminal --fast
+        - stack test --no-terminal
         - |
           set -e
           if $DISPLAY; then
               TOP=$(pwd)
-              stack build --no-terminal --fast
+              stack build --no-terminal
 
               # Ensure that ipython-kernel examples build successfully.
-              stack build ipython-kernel --flag ipython-kernel:examples --fast
+              stack build ipython-kernel --flag ipython-kernel:examples
 
               # Ensure that IHaskell notebook remains unchanged.
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
-              stack install --fast
+              stack install
               stack exec -- ihaskell install --stack
               test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert
           fi
@@ -290,24 +290,24 @@ matrix:
           echo "apply-ghc-options: everything" >> stack.yaml
 
         - stack setup
-        # - stack install gtk2hs-buildtools --fast
-        - stack build hmatrix --fast
-        - stack build --dependencies-only --fast
+        # - stack install gtk2hs-buildtools
+        - stack build hmatrix
+        - stack build --dependencies-only
 
       script:
-        - stack test --no-terminal --fast
+        - stack test --no-terminal
         - |
           set -e
           if $DISPLAY; then
               TOP=$(pwd)
-              stack build --no-terminal --fast
+              stack build --no-terminal
 
               # Ensure that ipython-kernel examples build successfully.
-              stack build ipython-kernel --flag ipython-kernel:examples --fast
+              stack build ipython-kernel --flag ipython-kernel:examples
 
               # Ensure that IHaskell notebook remains unchanged.
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
-              stack install --fast
+              stack install
               stack exec -- ihaskell install --stack
               test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert
           fi
@@ -367,24 +367,24 @@ matrix:
           echo "apply-ghc-options: everything" >> stack.yaml
 
         - stack setup
-        # - stack install gtk2hs-buildtools --fast
-        - stack build hmatrix --fast
-        - stack build --dependencies-only --fast
+        # - stack install gtk2hs-buildtools
+        - stack build hmatrix
+        - stack build --dependencies-only
 
       script:
-        - stack test --no-terminal --fast
+        - stack test --no-terminal
         - |
           set -e
           if $DISPLAY; then
               TOP=$(pwd)
-              stack build --no-terminal --fast
+              stack build --no-terminal
 
               # Ensure that ipython-kernel examples build successfully.
-              stack build ipython-kernel --flag ipython-kernel:examples --fast
+              stack build ipython-kernel --flag ipython-kernel:examples
 
               # Ensure that IHaskell notebook remains unchanged.
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
-              stack install --fast
+              stack install
               stack exec -- ihaskell install --stack
               test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert
           fi
