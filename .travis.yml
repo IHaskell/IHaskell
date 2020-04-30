@@ -64,15 +64,14 @@ matrix:
         - stack build --dependencies-only
 
       script:
+        # Ensure that ipython-kernel examples build successfully.
+        - stack build ipython-kernel --flag ipython-kernel:examples
         - stack test --no-terminal
         - |
           set -e
           if $DISPLAY; then
               TOP=$(pwd)
               stack build --no-terminal
-
-              # Ensure that ipython-kernel examples build successfully.
-              stack build ipython-kernel --flag ipython-kernel:examples
 
               # Ensure that IHaskell notebook remains unchanged.
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
@@ -141,15 +140,14 @@ matrix:
         - stack build --dependencies-only
 
       script:
+        # Ensure that ipython-kernel examples build successfully.
+        - stack build ipython-kernel --flag ipython-kernel:examples
         - stack test --no-terminal
         - |
           set -e
           if $DISPLAY; then
               TOP=$(pwd)
               stack build --no-terminal
-
-              # Ensure that ipython-kernel examples build successfully.
-              stack build ipython-kernel --flag ipython-kernel:examples
 
               # Ensure that IHaskell notebook remains unchanged.
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
@@ -218,15 +216,14 @@ matrix:
         - stack build --dependencies-only
 
       script:
+        # Ensure that ipython-kernel examples build successfully.
+        - stack build ipython-kernel --flag ipython-kernel:examples
         - stack test --no-terminal
         - |
           set -e
           if $DISPLAY; then
               TOP=$(pwd)
               stack build --no-terminal
-
-              # Ensure that ipython-kernel examples build successfully.
-              stack build ipython-kernel --flag ipython-kernel:examples
 
               # Ensure that IHaskell notebook remains unchanged.
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
@@ -295,15 +292,14 @@ matrix:
         - stack build --dependencies-only
 
       script:
+        # Ensure that ipython-kernel examples build successfully.
+        - stack build ipython-kernel --flag ipython-kernel:examples
         - stack test --no-terminal
         - |
           set -e
           if $DISPLAY; then
               TOP=$(pwd)
               stack build --no-terminal
-
-              # Ensure that ipython-kernel examples build successfully.
-              stack build ipython-kernel --flag ipython-kernel:examples
 
               # Ensure that IHaskell notebook remains unchanged.
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
@@ -372,15 +368,14 @@ matrix:
         - stack build --dependencies-only
 
       script:
+        # Ensure that ipython-kernel examples build successfully.
+        - stack build ipython-kernel --flag ipython-kernel:examples
         - stack test --no-terminal
         - |
           set -e
           if $DISPLAY; then
               TOP=$(pwd)
               stack build --no-terminal
-
-              # Ensure that ipython-kernel examples build successfully.
-              stack build ipython-kernel --flag ipython-kernel:examples
 
               # Ensure that IHaskell notebook remains unchanged.
               # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
