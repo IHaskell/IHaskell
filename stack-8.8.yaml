@@ -1,4 +1,4 @@
-resolver: nightly-2019-10-05
+resolver: lts-15.10
 
 flags: {}
 packages:
