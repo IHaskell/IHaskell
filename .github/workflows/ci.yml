@@ -8,15 +8,21 @@ jobs:
   linux:
 
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.versions.flaky }}
     strategy:
       fail-fast: false
       matrix:
         versions:
           - stack-yaml: 'stack-8.0.yaml'
+            flaky: true
           - stack-yaml: 'stack-8.2.yaml'
+            flaky: false
           - stack-yaml: 'stack-8.4.yaml'
+            flaky: false
           - stack-yaml: 'stack.yaml'
+            flaky: false
           - stack-yaml: 'stack-8.8.yaml'
+            flaky: false
 
     steps:
       - uses: actions/checkout@v2
