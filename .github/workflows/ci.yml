@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: ${{ matrix.versions.flaky }}
     strategy:
-      fail-fast: false
       matrix:
         versions:
           - stack-yaml: 'stack-8.0.yaml'
