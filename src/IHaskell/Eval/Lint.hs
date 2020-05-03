@@ -8,8 +8,7 @@ import           IHaskellPrelude
 import           Data.Maybe (mapMaybe)
 import           System.IO.Unsafe (unsafePerformIO)
 
--- FIXME change this conditional to use the `hlint` version after a new release
-#if MIN_VERSION_ghc(8,10,1)
+#if MIN_VERSION_hlint(3,0,0)
 import           Language.Haskell.HLint
 import           SrcLoc (SrcSpan(..), srcSpanStartLine)
 #else
@@ -204,8 +203,7 @@ showIdea idea =
           }
   where
     getSrcSpanStartLine span =
--- FIXME change this conditional to use the `hlint` version after a new release
-#if MIN_VERSION_ghc(8,10,1)
+#if MIN_VERSION_hlint(3,0,0)
       case span of
         RealSrcSpan realSpan -> srcSpanStartLine realSpan
         UnhelpfulSpan _ -> 1

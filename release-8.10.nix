@@ -61,10 +61,13 @@ let
       lifted-async             = nixpkgs.haskell.lib.doJailbreak super.lifted-async;
       th-expand-syns           = nixpkgs.haskell.lib.doJailbreak super.th-expand-syns;
       ghc-lib-parser           = super.ghc-lib-parser_8_10_1_20200412;
-      ghc-lib-parser-ex        = nixpkgs.haskell.lib.addBuildDepend super.ghc-lib-parser-ex self.ghc-lib-parser;
+      ghc-lib-parser-ex        = self.callCabal2nix "ghc-lib-parser-ex" (builtins.fetchTarball {
+        url = "https://github.com/shayne-fletcher/ghc-lib-parser-ex/tarball/ede4490fa7fd446df1ae2d68f24c4cf6831fa14b";
+        sha256 = "1yzw5bhj20as698g774mbjvfmw7kx92gs6fda7xnkrfkbv5sc754";
+      }) {};
       hlint                    = nixpkgs.haskell.lib.doJailbreak (self.callCabal2nix "hlint" (builtins.fetchTarball {
-        url = "https://github.com/ndmitchell/hlint/tarball/bcb586a833c7726087bfff885e3e301b6a110fa7";
-        sha256 = "1k56vgvfgh44qhdcfanhn0hfhibqila7xmnx7rq1hb15nk0lsp44";
+        url = "https://github.com/ndmitchell/hlint/tarball/5f75e621a77ae3eb28883250a959084396467a59";
+        sha256 = "0r7laz1xa634v544iwdmq8hf04ni85yb8s00ga1k2bwr46111wqv";
       }) {});
     } // displays self);
   });
