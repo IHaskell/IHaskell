@@ -7,7 +7,7 @@ name:                ihaskell
 -- PVP summary:      +--+------- breaking API changes
 --                   |  | +----- non-breaking API additions
 --                   |  | | +--- code changes with no API change
-version:             0.10.0.2
+version:             0.10.1.0
 
 -- A short (one-line) description of the package.
 synopsis:            A Haskell backend kernel for the IPython project.
@@ -87,7 +87,7 @@ library
                        unordered-containers -any,
                        utf8-string          -any,
                        vector               -any,
-                       ipython-kernel       >=0.10,
+                       ipython-kernel       >=0.10.2.0,
                        ghc-boot             >=8.0 && <8.11
 
   exposed-modules: IHaskell.Display
