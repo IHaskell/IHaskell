@@ -1,0 +1,28 @@
+name: "Nix"
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        versions:
+          - compiler: 'ghc865'
+          - compiler: 'ghc883'
+    steps:
+    - uses: actions/checkout@v2
+    - uses: cachix/install-nix-action@v8
+    - uses: cachix/cachix-action@v6
+      with:
+        name: ihaskell
+        signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
+    - run: |
+        nix-build \
+        -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/tarball/nixos-20.03 \
+        release.nix \
+        --argstr compiler ${{ matrix.versions.compiler }}
+        test/acceptance.nbconvert.sh result/bin/ihaskell-nbconvert
+
