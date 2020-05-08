@@ -5,6 +5,7 @@ on:
       - master
     paths:
       - '.dockerignore'
+      - '.github/workflows/docker.yml'
       - 'Dockerfile'
       - 'LICENSE'
       - 'ghc-parser/**'
