@@ -4,7 +4,29 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - 'demo/**'
+      - 'docker/**'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - '.ghci'
+      - '.gitignore'
+      - 'images/**'
+      - 'notebooks/**'
+      - 'README.md'
+      - '*.nix'
   pull_request:
+    paths-ignore:
+      - 'demo/**'
+      - 'docker/**'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - '.ghci'
+      - '.gitignore'
+      - 'images/**'
+      - 'notebooks/**'
+      - 'README.md'
+      - '*.nix'
 
 jobs:
   linux:
