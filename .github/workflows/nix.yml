@@ -5,7 +5,29 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - 'demo/**'
+      - 'docker/**'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - '.ghci'
+      - '.gitignore'
+      - 'images/**'
+      - 'notebooks/**'
+      - 'README.md'
+      - '*.yaml'
   pull_request:
+    paths-ignore:
+      - 'demo/**'
+      - 'docker/**'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - '.ghci'
+      - '.gitignore'
+      - 'images/**'
+      - 'notebooks/**'
+      - 'README.md'
+      - '*.yaml'
 jobs:
   build:
     runs-on: ubuntu-latest
