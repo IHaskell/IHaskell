@@ -3,6 +3,18 @@ on:
   push:
     branches:
       - master
+    paths:
+      - '.dockerignore'
+      - 'Dockerfile'
+      - 'LICENSE'
+      - 'ghc-parser/**'
+      - 'html/**'
+      - 'ihaskell-display/**'
+      - 'ihaskell.cabal'
+      - 'ipython-kernel/**'
+      - 'main/**'
+      - 'src/**'
+      - 'stack.yaml'
 jobs:
   build:
     runs-on: ubuntu-latest
