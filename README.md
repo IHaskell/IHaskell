@@ -245,7 +245,7 @@ If you have the `nix` package manager installed, you can create an IHaskell
 notebook environment with one command. For example:
 
 ```bash
-$ nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/nixos-19.09.tar.gz release.nix --argstr compiler ghc865 --arg packages "haskellPackages: [ haskellPackages.lens ]"
+$ nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/nixos-20.03.tar.gz release.nix --argstr compiler ghc865 --arg packages "haskellPackages: [ haskellPackages.lens ]"
 <result path>
 $ <result path>/bin/ihaskell-notebook
 ```
@@ -258,10 +258,8 @@ prebuilt artifacts.
 The IHaskell display modules are not loaded by default and have to be specified as additional packages:
 
 ```bash
-$ NIXPKGS_ALLOW_BROKEN=1 nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/nixos-19.09.tar.gz release.nix --argstr compiler ghc844 --arg packages "haskellPackages: [ haskellPackages.ihaskell-blaze haskellPackages.ihaskell-charts ]"
+$ nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/nixos-20.03.tar.gz release.nix --argstr compiler ghc865 --arg packages "haskellPackages: [ haskellPackages.ihaskell-blaze haskellPackages.ihaskell-charts ]"
 ```
-
-We use GHC 8.4 here because not all dependencies have been updated to support GHC 8.6 yet.
 
 For more examples of using IHaskell with Nix, see https://github.com/vaibhavsagar/notebooks.
 
