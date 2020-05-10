@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-ARG STACK_VERSION=2.1.3
+ARG STACK_VERSION=2.3.1
 ARG RESOLVER=lts-14.27
 
 # Install all necessary Ubuntu packages
