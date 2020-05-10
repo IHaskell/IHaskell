@@ -250,7 +250,10 @@ $ nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/nixos-1
 $ <result path>/bin/ihaskell-notebook
 ```
 
-It might take a while the first time, but subsequent builds will be much faster.
+It might take a while the first time, but subsequent builds will be much
+faster. You can use the
+[https://ihaskell.cachix.org](https://app.cachix.org/cache/ihaskell) cache for
+prebuilt artifacts.
 
 The IHaskell display modules are not loaded by default and have to be specified as additional packages:
 
