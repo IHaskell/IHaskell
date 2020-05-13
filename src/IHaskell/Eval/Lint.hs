@@ -8,7 +8,9 @@ import           IHaskellPrelude
 import           Data.Maybe (mapMaybe)
 import           System.IO.Unsafe (unsafePerformIO)
 
-#if MIN_VERSION_hlint(3,0,0)
+#if MIN_VERSION_hlint(3,1,1)
+import           Language.Haskell.HLint
+#elif MIN_VERSION_hlint(3,0,0)
 import           Language.Haskell.HLint
 import           SrcLoc (SrcSpan(..), srcSpanStartLine)
 #else
@@ -203,7 +205,11 @@ showIdea idea =
           }
   where
     getSrcSpanStartLine span =
-#if MIN_VERSION_hlint(3,0,0)
+#if MIN_VERSION_hlint(3,1,1)
+      case unpackSrcSpan span of
+        Just (_, (startLine, _), _) -> startLine
+        Nothing -> 1
+#elif MIN_VERSION_hlint(3,0,0)
       case span of
         RealSrcSpan realSpan -> srcSpanStartLine realSpan
         UnhelpfulSpan _ -> 1
