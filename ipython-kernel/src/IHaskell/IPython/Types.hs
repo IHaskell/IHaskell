@@ -781,6 +781,7 @@ data MimeType = PlainText
               | MimeVegalite
               | MimeVdom
               | MimeCustom Text
+              | MimeCustomJson Text
   deriving (Eq, Typeable, Generic)
 
 -- Extract the plain text from a list of displays.
@@ -809,6 +810,7 @@ instance Show MimeType where
   show MimeVegalite = "application/vnd.vegalite.v2+json"
   show MimeVdom = "application/vdom.v1+json"
   show (MimeCustom custom) = Text.unpack custom
+  show (MimeCustomJson custom) = Text.unpack custom
 
 instance Read MimeType where
   readsPrec _ "text/plain" = [(PlainText, "")]
@@ -826,17 +828,23 @@ instance Read MimeType where
   readsPrec _ "application/vnd.vegalite.v1+json" = [(MimeVegalite, "")]
   readsPrec _ "application/vdom.v1+json" = [(MimeVdom, "")]
   readsPrec _ t = [(MimeCustom (Text.pack t), "")]
+  -- can not create a MimeCustomJson
 
 -- | Convert a MIME type and value into a JSON dictionary pair.
 displayDataToJson :: DisplayData -> (Text, Value)
 displayDataToJson (DisplayData MimeJson dataStr) =
-    pack (show MimeJson) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
+    pack (show MimeJson) .= textToJson dataStr
+displayDataToJson (DisplayData (MimeCustomJson mimeType) dataStr) =
+    mimeType .= textToJson dataStr
 displayDataToJson (DisplayData MimeVegalite dataStr) =
-    pack (show MimeVegalite) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
+    pack (show MimeVegalite) .= textToJson dataStr
 displayDataToJson (DisplayData MimeVega dataStr) =
-    pack (show MimeVega) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
+    pack (show MimeVega) .= textToJson dataStr
 displayDataToJson (DisplayData mimeType dataStr) =
   pack (show mimeType) .= String dataStr
+
+textToJson :: Text -> Value
+textToJson dataStr = fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
 
 string :: String -> String
 string = id
