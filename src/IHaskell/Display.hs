@@ -38,7 +38,6 @@ module IHaskell.Display (
     vegalite,
     vdom,
     custom,
-    customJson,
     many,
 
     -- ** Image and data encoding functions
@@ -118,15 +117,20 @@ vegalite = DisplayData MimeVegalite . T.pack
 vdom :: String -> DisplayData
 vdom = DisplayData MimeVdom . T.pack
 
--- | Generate a custom display. The first argument is the mimetype and the second argument is the
--- payload.
-custom :: T.Text -> String -> DisplayData
-custom mimetype = DisplayData (MimeCustom mimetype) . T.pack
-
--- | Generate a custom display. The first argument is the mimetype and the second argument is the
--- payload (which is encoded as JSON).
-customJson :: T.Text -> String -> DisplayData
-customJson mimetype = DisplayData (MimeCustomJson mimetype) . T.pack
+-- | Generate a custom display.
+--
+custom ::
+  T.Text
+  -- ^ The mime type.
+  -> Bool
+  -- ^ How to convert the display data to Json to be sent to Jupyter.
+  --   A value of `False` means that `String` is used, otherwise the
+  --   text is parsed as Json (falling back to the emoty string if it
+  --   can not be converted).
+  -> String
+  -- ^ The data.
+  -> DisplayData
+custom mimetype flag = DisplayData (MimeCustom mimetype flag) . T.pack
 
 -- | Generate a Markdown display.
 markdown :: String -> DisplayData
