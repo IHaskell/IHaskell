@@ -344,6 +344,6 @@ sendMessage debug hmackey sock msg = do
     hdr = header msg
     parentHeaderStr = maybe "{}" encodeStrict $ mhParentHeader hdr
     idents = mhIdentifiers hdr
-    metadata = "{}"
+    metadata = let Metadata mdobject = mhMetadata hdr in encodeStrict mdobject
     content = encodeStrict msg
     headStr = encodeStrict hdr
