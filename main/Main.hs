@@ -248,6 +248,7 @@ replyTo interface KernelInfoRequest{} replyHeader state = do
                 , languageFileExtension = ".hs"
                 , languageCodeMirrorMode = "ihaskell"
                 , languagePygmentsLexer = "Haskell"
+                , languageMimeType = "text/x-haskell" -- https://jupyter-client.readthedocs.io/en/stable/wrapperkernels.html#MyKernel.language_info
                 }
               , status = Ok
               })

@@ -281,6 +281,10 @@ instance FromJSON MessageType where
       _                     -> fail ("Unknown message type: " ++ show s)
   parseJSON _ = fail "Must be a string."
 
+-- | Kernel language info, see
+--
+-- * https://jupyter-client.readthedocs.io/en/stable/messaging.html#kernel-info
+-- * https://jupyter-client.readthedocs.io/en/stable/wrapperkernels.html#MyKernel.language_info
 data LanguageInfo =
        LanguageInfo
          { languageName :: String        -- ^ The language name, e.g. "haskell"
@@ -288,6 +292,7 @@ data LanguageInfo =
          , languageFileExtension :: String        -- ^ .hs
          , languageCodeMirrorMode :: String        -- ^ 'ihaskell'. can be 'null'
          , languagePygmentsLexer :: String
+         , languageMimeType :: String       -- "text/x-haskell"
          }
   deriving (Show, Eq)
 
@@ -298,6 +303,7 @@ instance ToJSON LanguageInfo where
                   , "file_extension" .= languageFileExtension info
                   , "codemirror_mode" .= languageCodeMirrorMode info
                   , "pygments_lexer" .= languagePygmentsLexer info
+                  , "mimetype" .= languageMimeType info
                   ]
 
 data CodeReview = CodeComplete
@@ -317,6 +323,9 @@ instance ToJSON Transient where
                     ]
 
 -- | A message used to communicate with the IPython frontend.
+--
+-- See
+-- https://jupyter-client.readthedocs.io/en/stable/messaging.html
 data Message =
              -- | A request from a frontend for information about the kernel.
               KernelInfoRequest { header :: MessageHeader }
