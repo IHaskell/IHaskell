@@ -123,7 +123,7 @@ executable ihaskell
   hs-source-dirs: main
   other-modules:
                    Paths_ihaskell
-  ghc-options: -threaded -rtsopts -Wall
+  ghc-options: -threaded -rtsopts -Wall -dynamic
 
   if os(darwin)
     ghc-options: -optP-Wno-nonportable-include-path
