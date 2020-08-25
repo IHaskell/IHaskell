@@ -814,8 +814,8 @@ instance Show MimeType where
   show MimeMarkdown = "text/markdown"
   show MimeJavascript = "application/javascript"
   show MimeJson = "application/json"
-  show MimeVega = "application/vnd.vega.v2+json"
-  show MimeVegalite = "application/vnd.vegalite.v2+json"
+  show MimeVega = "application/vnd.vega.v5+json"
+  show MimeVegalite = "application/vnd.vegalite.v4+json"
   show MimeVdom = "application/vdom.v1+json"
   show (MimeCustom custom) = Text.unpack custom
 
@@ -831,8 +831,8 @@ instance Read MimeType where
   readsPrec _ "text/markdown" = [(MimeMarkdown, "")]
   readsPrec _ "application/javascript" = [(MimeJavascript, "")]
   readsPrec _ "application/json" = [(MimeJson, "")]
-  readsPrec _ "application/vnd.vega.v2+json" = [(MimeVega, "")]
-  readsPrec _ "application/vnd.vegalite.v1+json" = [(MimeVegalite, "")]
+  readsPrec _ "application/vnd.vega.v5+json" = [(MimeVega, "")]
+  readsPrec _ "application/vnd.vegalite.v4+json" = [(MimeVegalite, "")]
   readsPrec _ "application/vdom.v1+json" = [(MimeVdom, "")]
   readsPrec _ t = [(MimeCustom (Text.pack t), "")]
 
