@@ -10,7 +10,7 @@ Haskell Syntax Highlighting in Jupyterlab
 ## Installation
 
 ```bash
-jupyter labextension install ihaskell_labextension
+jupyter labextension install jupyterlab-ihaskell
 ```
 
 ## Development
