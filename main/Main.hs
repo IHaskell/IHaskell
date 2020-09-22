@@ -88,6 +88,8 @@ parseKernelArgs = foldl' addFlag defaultKernelSpecOptions
       kernelSpecOpts { kernelSpecConfFile = return (Just filename) }
     addFlag kernelSpecOpts KernelDebug =
       kernelSpecOpts { kernelSpecDebug = True }
+    addFlag kernelSpecOpts (CodeMirror codemirror) =
+      kernelSpecOpts { kernelSpecCodeMirror = codemirror }
     addFlag kernelSpecOpts (GhcLibDir libdir) =
       kernelSpecOpts { kernelSpecGhcLibdir = libdir }
     addFlag kernelSpecOpts (RTSFlags rts) =
@@ -191,7 +193,7 @@ runKernel kOpts profileSrc = do
         else do
           -- Create the reply, possibly modifying kernel state.
           oldState <- liftIO $ takeMVar state
-          (newState, reply) <- replyTo interface request replyHeader oldState
+          (newState, reply) <- replyTo kOpts interface request replyHeader oldState
           liftIO $ putMVar state newState
 
           -- Write the reply to the reply channel.
@@ -224,11 +226,11 @@ createReplyHeader parent = do
             newMessageId (mhSessionId parent) (mhUsername parent) repType []
 
 -- | Compute a reply to a message.
-replyTo :: ZeroMQInterface -> Message -> MessageHeader -> KernelState -> Interpreter (KernelState, Message)
+replyTo :: KernelSpecOptions -> ZeroMQInterface -> Message -> MessageHeader -> KernelState -> Interpreter (KernelState, Message)
 -- Reply to kernel info requests with a kernel info reply. No computation needs to be done, as a
 -- kernel info reply is a static object (all info is hard coded into the representation of that
 -- message type).
-replyTo interface KernelInfoRequest{} replyHeader state = do
+replyTo kOpts interface KernelInfoRequest{} replyHeader state = do
   let send msg = liftIO $ writeChan (iopubChannel interface) msg
 
   -- Notify the frontend that the Kernel is idle
@@ -246,14 +248,14 @@ replyTo interface KernelInfoRequest{} replyHeader state = do
                 { languageName = "haskell"
                 , languageVersion = VERSION_ghc
                 , languageFileExtension = ".hs"
-                , languageCodeMirrorMode = "ihaskell"
+                , languageCodeMirrorMode = kernelSpecCodeMirror kOpts
                 , languagePygmentsLexer = "Haskell"
                 , languageMimeType = "text/x-haskell" -- https://jupyter-client.readthedocs.io/en/stable/wrapperkernels.html#MyKernel.language_info
                 }
               , status = Ok
               })
 
-replyTo _ CommInfoRequest{} replyHeader state =
+replyTo _ _ CommInfoRequest{} replyHeader state =
   let comms = Map.mapKeys (UUID.uuidToString) (openComms state) in
   return
     (state, CommInfoReply
@@ -263,13 +265,13 @@ replyTo _ CommInfoRequest{} replyHeader state =
 
 -- Reply to a shutdown request by exiting the main thread. Before shutdown, reply to the request to
 -- let the frontend know shutdown is happening.
-replyTo interface ShutdownRequest { restartPending = pending } replyHeader _ = liftIO $ do
+replyTo _ interface ShutdownRequest { restartPending = pending } replyHeader _ = liftIO $ do
   writeChan (shellReplyChannel interface) $ ShutdownReply replyHeader pending
   exitSuccess
 
 -- Reply to an execution request. The reply itself does not require computation, but this causes
 -- messages to be sent to the IOPub socket with the output of the code in the execution request.
-replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
+replyTo _ interface req@ExecuteRequest { getCode = code } replyHeader state = do
   -- Convenience function to send a message to the IOPub socket.
   let send msg = liftIO $ writeChan (iopubChannel interface) msg
 
@@ -310,7 +312,7 @@ replyTo interface req@ExecuteRequest { getCode = code } replyHeader state = do
 -- Check for a trailing empty line. If it doesn't exist, we assume the code is incomplete,
 -- otherwise we assume the code is complete. Todo: Implement a mechanism that only requests
 -- a trailing empty line, when multiline code is entered.
-replyTo _ req@IsCompleteRequest{} replyHeader state = do
+replyTo _ _ req@IsCompleteRequest{} replyHeader state = do
   isComplete <- isInputComplete
   let reply  = IsCompleteReply { header = replyHeader, reviewResult = isComplete }
   return (state, reply)
@@ -323,7 +325,7 @@ replyTo _ req@IsCompleteRequest{} replyHeader state = do
          else return $ CodeIncomplete $ indent 4
     indent n = take n $ repeat ' '
 
-replyTo _ req@CompleteRequest{} replyHeader state = do
+replyTo _ _ req@CompleteRequest{} replyHeader state = do
   let code = getCode req
       pos = getCursorPos req
   (matchedText, completions) <- complete (T.unpack code) pos
@@ -333,7 +335,7 @@ replyTo _ req@CompleteRequest{} replyHeader state = do
       reply = CompleteReply replyHeader (map T.pack completions) start end (Metadata HashMap.empty) True
   return (state, reply)
 
-replyTo _ req@InspectRequest{} replyHeader state = do
+replyTo _ _ req@InspectRequest{} replyHeader state = do
   result <- inspect (T.unpack $ inspectCode req) (inspectCursorPos req)
   let reply =
         case result of
@@ -346,7 +348,7 @@ replyTo _ req@InspectRequest{} replyHeader state = do
   return (state, reply)
 
 -- TODO: Implement history_reply.
-replyTo _ HistoryRequest{} replyHeader state = do
+replyTo _ _ HistoryRequest{} replyHeader state = do
   let reply = HistoryReply
         { header = replyHeader
         -- FIXME
@@ -365,7 +367,7 @@ replyTo _ HistoryRequest{} replyHeader state = do
 --
 -- Sending the message only on the shell_reply channel doesn't work, so we send it as a comm message
 -- on the iopub channel and return the SendNothing message.
-replyTo interface ocomm@CommOpen{} replyHeader state = do
+replyTo _ interface ocomm@CommOpen{} replyHeader state = do
   let send = liftIO . writeChan (iopubChannel interface)
 
       incomingUuid = commUuid ocomm
@@ -393,7 +395,7 @@ replyTo interface ocomm@CommOpen{} replyHeader state = do
   return (state, SendNothing)
 
 -- TODO: What else can be implemented?
-replyTo _ message _ state = do
+replyTo _ _ message _ state = do
   liftIO $ hPutStrLn stderr $ "Unimplemented message: " ++ show message
   return (state, SendNothing)
 
