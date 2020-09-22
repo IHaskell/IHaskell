@@ -31,6 +31,7 @@ data Argument = ConfFile String     -- ^ A file with commands to load at startup
               | KernelDebug         -- ^ Spew debugging output from the kernel.
               | Help                -- ^ Display help text.
               | Version             -- ^ Display version text.
+              | CodeMirror String   -- ^ change codemirror mode (default=ihaskell)
               | ConvertFrom String
               | ConvertTo String
               | ConvertFromFormat NotebookFormat
@@ -113,6 +114,10 @@ kernelDebugFlag = flagNone ["debug"] addDebug "Print debugging output from the k
   where
     addDebug (Args md prev) = Args md (KernelDebug : prev)
 
+kernelCodeMirrorFlag :: Flag Args
+kernelCodeMirrorFlag = flagReq ["codemirror"] (store CodeMirror) "<codemirror>"
+        "Specify codemirror mode that is used for syntax highlighting (default: ihaskell)."
+
 kernelStackFlag :: Flag Args
 kernelStackFlag = flagNone ["stack"] addStack
                     "Inherit environment from `stack` when it is installed"
@@ -143,7 +148,7 @@ installKernelSpec =
 
 kernel :: Mode Args
 kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg
-           [ghcLibFlag, kernelDebugFlag, confFlag, kernelStackFlag]
+           [ghcLibFlag, kernelDebugFlag, confFlag, kernelStackFlag, kernelCodeMirrorFlag]
   where
     kernelArg = flagArg update "<json-kernel-file>"
     update filename (Args _ flags) = Right $ Args (Kernel $ Just filename) flags

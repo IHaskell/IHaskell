@@ -39,6 +39,7 @@ data KernelSpecOptions =
          { kernelSpecGhcLibdir :: String           -- ^ GHC libdir.
          , kernelSpecRTSOptions :: [String]        -- ^ Runtime options to use.
          , kernelSpecDebug :: Bool                 -- ^ Spew debugging output?
+         , kernelSpecCodeMirror :: String          -- ^ CodeMirror mode
          , kernelSpecConfFile :: IO (Maybe String) -- ^ Filename of profile JSON file.
          , kernelSpecInstallPrefix :: Maybe String
          , kernelSpecUseStack :: Bool              -- ^ Whether to use @stack@ environments.
@@ -50,6 +51,7 @@ defaultKernelSpecOptions = KernelSpecOptions
   , kernelSpecRTSOptions = ["-M3g", "-N2"]  -- Memory cap 3 GiB,
                                             -- multithreading on two processors.
   , kernelSpecDebug = False
+  , kernelSpecCodeMirror = "ihaskell"
   , kernelSpecConfFile = defaultConfFile
   , kernelSpecInstallPrefix = Nothing
   , kernelSpecUseStack = False
