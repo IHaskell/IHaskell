@@ -38,9 +38,7 @@ jobs:
           - compiler: 'ghc883'
     steps:
     - uses: actions/checkout@v2
-    - uses: cachix/install-nix-action@v9
-      with:
-        skip_adding_nixpkgs_channel: true
+    - uses: cachix/install-nix-action@v11
     - uses: cachix/cachix-action@v6
       with:
         name: ihaskell
