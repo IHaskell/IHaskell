@@ -54,6 +54,9 @@ jobs:
         with:
           path: ~/.stack
           key: ${{ runner.os }}-${{ matrix.versions.stack-yaml }}-stack-global
+      - name: Update system dependencies
+        run: |
+          sudo apt update
       - name: Install system dependencies
         run: |
           sudo apt install libmagic-dev libgmp-dev libblas-dev liblapack-dev libcairo2-dev libpango1.0-dev libzmq3-dev

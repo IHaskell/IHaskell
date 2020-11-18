@@ -232,13 +232,12 @@ htmlSuggestions = concatMap toHtml
                        [ named $ suggestion suggest
                        , floating "left" $ styl severityClass "Found:" ++
                                            -- Things that look like this get highlighted.
-                                           styleId "highlight-code" "haskell" (escapeDollar $ found suggest)
+                                           styleId "highlight-code" "haskell" (found suggest)
                        , floating "left" $ styl severityClass "Why Not:" ++
                                            -- Things that look like this get highlighted.
-                                           styleId "highlight-code" "haskell" (escapeDollar $ whyNot suggest)
+                                           styleId "highlight-code" "haskell" (whyNot suggest)
                        ]
       where
-        escapeDollar = replace "$" "\\$"
         severityClass =
           case severity suggest of
             Error -> "error"
