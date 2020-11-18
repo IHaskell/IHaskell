@@ -35,6 +35,7 @@ jobs:
       matrix:
         versions:
           - compiler: 'ghc884'
+          - compiler: 'ghc8102'
     steps:
     - uses: actions/checkout@v2
     - uses: cachix/install-nix-action@v12
