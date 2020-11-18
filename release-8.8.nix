@@ -1,4 +1,4 @@
-{ compiler ? "ghc881"
+{ compiler ? "ghc884"
 , jupyterlabAppDir ? null
 , nixpkgs ? import <nixpkgs> {}
 , packages ? (_: [])

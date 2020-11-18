@@ -29,5 +29,5 @@ set -euo pipefail
 
 $* --to=notebook --execute --allow-errors --stdout test/acceptance.nbconvert.in.ipynb > test/acceptance.nbconvert.out.ipynb
 
-diff <(grep -v -e 'version' -e 'Line ' test/acceptance.nbconvert.in.ipynb) <(grep -v -e 'version' -e 'Line ' test/acceptance.nbconvert.out.ipynb)
+diff <(grep -v -e 'version' -e 'Line ' -e 'Integral' test/acceptance.nbconvert.in.ipynb) <(grep -v -e 'version' -e 'Line ' -e 'Integral' test/acceptance.nbconvert.out.ipynb)
 
