@@ -34,8 +34,7 @@ jobs:
     strategy:
       matrix:
         versions:
-          - compiler: 'ghc865'
-          - compiler: 'ghc883'
+          - compiler: 'ghc884'
     steps:
     - uses: actions/checkout@v2
     - uses: cachix/install-nix-action@v12
@@ -45,7 +44,7 @@ jobs:
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
     - run: |
         nix-build \
-        -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/tarball/nixos-20.03 \
+        -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-20.09 \
         release.nix \
         --argstr compiler ${{ matrix.versions.compiler }}
         test/acceptance.nbconvert.sh result/bin/ihaskell-nbconvert
