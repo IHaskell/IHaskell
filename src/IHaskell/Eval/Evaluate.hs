@@ -709,11 +709,7 @@ evalCommand publish (Directive ShellCmd cmd) state = wrapExecution state $
                   ExitSuccess -> return $ Display [plain out]
                   ExitFailure code -> do
                     let errMsg = "Process exited with error code " ++ show code
-                        htmlErr = printf "<span class='err-msg'>%s</span>" errMsg
-                    return $ Display
-                               [ plain $ out ++ "\n" ++ errMsg
-                               , html $ printf "<span class='mono'>%s</span>" out ++ htmlErr
-                               ]
+                    return $ Display [plain $ out ++ "\n" ++ errMsg]
 
       loop
 -- This is taken largely from GHCi's info section in InteractiveUI.
