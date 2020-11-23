@@ -10,6 +10,7 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE TypeApplications #-}
 
 module IHaskell.Display.Widgets.Singletons where
 

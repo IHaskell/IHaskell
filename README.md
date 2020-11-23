@@ -126,7 +126,7 @@ docker build -t ihaskell:latest .
 docker run --rm -it -p8888:8888 ihaskell:latest
 ```
 
-Or use the continously updated Docker image 
+Or use the continuously updated Docker image 
 [on Docker Hub](https://hub.docker.com/r/gibiansky/ihaskell).
 
 ```sh
@@ -145,11 +145,11 @@ a `stack.yaml` file.
 A simple version would be:
 
 ```yaml
-resolver: lts-14.27
+resolver: lts-16.23
 packages: []
 ```
 
-It's recommended to use the same LTS version as the iHaskell image is using itself 
+It's recommended to use the same LTS version as the IHaskell image is using itself 
 (as can be seen in [its stack.yaml](./stack.yaml)).
 This guarantees that stack doesn't have to first perform 
 a lengthy installation of GHC before running your notebook.
@@ -269,7 +269,7 @@ For more examples of using IHaskell with Nix, see https://github.com/vaibhavsaga
 
 Stack manages separate environments for every package. By default your notebooks
 will only have access to a few packages that happen to be required for
-ihaskell. To make packages available add them to the stack.yaml in the ihaskell
+IHaskell. To make packages available add them to the stack.yaml in the IHaskell
 directory and run `stack solver && stack install`.
 
 Packages should be added to the `packages:` section and can take the following
