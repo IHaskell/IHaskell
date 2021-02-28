@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE PolyKinds #-}
@@ -11,6 +12,9 @@
 {-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeApplications #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE StandaloneKindSignatures #-}
+#endif
 
 module IHaskell.Display.Widgets.Singletons where
 
