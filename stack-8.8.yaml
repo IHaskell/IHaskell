@@ -1,5 +1,4 @@
-resolver: lts-17.4
-allow-newer: true
+resolver: lts-16.23
 
 flags: {}
 packages:
@@ -19,14 +18,8 @@ packages:
     - ./ihaskell-display/ihaskell-widgets
 
 extra-deps:
-- active-0.2.0.14
 - Chart-cairo-1.9.3
-- diagrams-1.4
 - diagrams-cairo-1.4.1.1
-- diagrams-contrib-1.4.4
-- diagrams-core-1.4.2
-- diagrams-lib-1.4.3
-- diagrams-svg-1.4.3
 - cairo-0.13.8.1
 - pango-0.13.8.1
 - glib-0.13.8.1
@@ -34,12 +27,7 @@ extra-deps:
 - magic-1.1
 - plot-0.2.3.11
 # - static-canvas-0.2.0.3
-- statestack-0.3
 - vinyl-0.13.0
-- dual-tree-0.2.2.1
-- monoid-extras-0.5.1
-- svg-builder-0.1.1
-- force-layout-0.4.0.6
 
 ghc-options:
   # Eventually we want "$locals": -Wall -Wpartial-fields -Werror
