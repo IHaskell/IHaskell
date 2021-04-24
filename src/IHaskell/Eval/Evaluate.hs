@@ -28,7 +28,6 @@ import qualified Data.Set as Set
 import           Data.Char as Char
 import           Data.Dynamic
 import qualified Data.Serialize as Serialize
-import qualified Debugger
 import           System.Directory
 import           System.Posix.IO (fdToHandle)
 import           System.IO (hGetChar, hSetEncoding, utf8)
@@ -38,18 +37,33 @@ import           System.Exit
 import           Data.Maybe (mapMaybe)
 import           System.Environment (getEnv)
 
-import qualified GHC.Paths
-import           InteractiveEval
+#if MIN_VERSION_ghc(9,0,0)
+import qualified GHC.Runtime.Debugger as Debugger
+import           GHC.Runtime.Eval
+import           GHC.Driver.Session
+import           GHC.Driver.Types
+import           GHC.Unit.State
+import           Control.Monad.Catch as MC
+import           GHC.Utils.Outputable hiding ((<>))
+import           GHC.Data.Bag
+import           GHC.Unit.Types (UnitId)
+import qualified GHC.Utils.Error as ErrUtils
+#else
+import qualified Debugger
+import           Bag
 import           DynFlags
-import           Exception (gtry)
 import           HscTypes
-import           GhcMonad (liftIO)
-import           GHC hiding (Stmt, TypeSig)
+import           InteractiveEval
+import           Exception (gtry)
 import           Exception hiding (evaluate)
+import           GhcMonad (liftIO)
 import           Outputable hiding ((<>))
 import           Packages
-import           Bag
 import qualified ErrUtils
+#endif
+
+import qualified GHC.Paths
+import           GHC hiding (Stmt, TypeSig)
 
 import           IHaskell.Types
 import           IHaskell.IPython
@@ -61,13 +75,31 @@ import           IHaskell.Eval.Util
 import           IHaskell.BrokenPackages
 import           StringUtils (replace, split, strip, rstrip)
 
-#if MIN_VERSION_ghc(8,2,0)
+#if MIN_VERSION_ghc(9,0,0)
+import           GHC.Data.FastString
+#elif MIN_VERSION_ghc(8,2,0)
 import           FastString (unpackFS)
 #else
 import           Paths_ihaskell (version)
 import           Data.Version (versionBranch)
 #endif
 
+#if MIN_VERSION_ghc(9,0,0)
+gcatch :: Ghc a -> (SomeException -> Ghc a) -> Ghc a
+gcatch = MC.catch
+
+gtry :: IO a -> IO (Either SomeException a)
+gtry = MC.try
+
+gfinally :: Ghc a -> Ghc b -> Ghc a
+gfinally = MC.finally
+
+ghandle :: (MonadCatch m, Exception e) => (e -> m a) -> m a -> m a
+ghandle = MC.handle
+
+throw :: SomeException -> Ghc a
+throw = MC.throwM
+#endif
 
 
 -- | Set GHC's verbosity for debugging
@@ -157,9 +189,19 @@ interpret libdir allowedStdin needsSupportLibraries action = runGhc (Just libdir
   -- Run the rest of the interpreter
   action hasSupportLibraries
 
+#if MIN_VERSION_ghc(9,0,0)
+packageIdString' :: DynFlags -> UnitInfo -> String
+#else
 packageIdString' :: DynFlags -> PackageConfig -> String
+#endif
 packageIdString' dflags pkg_cfg =
-#if MIN_VERSION_ghc(8,2,0)
+#if MIN_VERSION_ghc(9,0,0)
+    case (lookupUnit (unitState dflags) $ mkUnit pkg_cfg) of
+      Nothing -> "(unknown)"
+      Just cfg -> let
+        PackageName name = unitPackageName cfg
+        in unpackFS name
+#elif MIN_VERSION_ghc(8,2,0)
     case (lookupPackage dflags $ packageConfigId pkg_cfg) of
       Nothing -> "(unknown)"
       Just cfg -> let
@@ -169,11 +211,19 @@ packageIdString' dflags pkg_cfg =
     fromMaybe "(unknown)" (unitIdPackageIdString dflags $ packageConfigId pkg_cfg)
 #endif
 
+#if MIN_VERSION_ghc(9,0,0)
+getPackageConfigs :: DynFlags -> [GenUnitInfo UnitId]
+getPackageConfigs dflags =
+    foldMap unitDatabaseUnits pkgDb
+  where
+    Just pkgDb = unitDatabases dflags
+#else
 getPackageConfigs :: DynFlags -> [PackageConfig]
 getPackageConfigs dflags =
     foldMap snd pkgDb
   where
     Just pkgDb = pkgDatabase dflags
+#endif
 
 -- | Initialize our GHC session with imports and a value for 'it'. Return whether the IHaskell
 -- library is available.
@@ -183,7 +233,11 @@ initializeImports importSupportLibraries = do
   -- version of the ihaskell library. Also verify that the packages we load are not broken.
   dflags <- getSessionDynFlags
   broken <- liftIO getBrokenPackages
+#if MIN_VERSION_ghc(9,0,0)
+  dflgs <- liftIO $ initUnits dflags
+#else
   (dflgs, _) <- liftIO $ initPackages dflags
+#endif
   let db = getPackageConfigs dflgs
       packageNames = map (packageIdString' dflgs) db
       hiddenPackages = Set.intersection hiddenPackageNames (Set.fromList packageNames)
@@ -786,7 +840,11 @@ evalCommand _ (Directive GetDoc query) state = safely state $ do
 evalCommand _ (Directive SPrint binding) state = wrapExecution state $ do
   flags <- getSessionDynFlags
   contents <- liftIO $ newIORef []
+#if MIN_VERSION_ghc(9,0,0)
+  let action = \_dflags _warn _sev _srcspan msg -> modifyIORef' contents (showSDoc flags msg :)
+#else
   let action = \_dflags _sev _srcspan _ppr _style msg -> modifyIORef' contents (showSDoc flags msg :)
+#endif
   let flags' = flags { log_action = action }
   _ <- setSessionDynFlags flags'
   Debugger.pprintClosureCommand False False binding
@@ -1028,7 +1086,11 @@ doLoadModule name modName = do
     _ <- setSessionDynFlags $ flip gopt_set Opt_BuildDynamicToo
       flags
         { hscTarget = objTarget flags
+#if MIN_VERSION_ghc(9,0,0)
+        , log_action = \_dflags _warn _sev _srcspan msg -> modifyIORef' errRef (showSDoc flags msg :)
+#else
         , log_action = \_dflags _sev _srcspan _ppr _style msg -> modifyIORef' errRef (showSDoc flags msg :)
+#endif
         }
 
     -- Load the new target.

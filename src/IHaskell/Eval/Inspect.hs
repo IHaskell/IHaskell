@@ -12,7 +12,11 @@ import qualified Prelude as P
 
 import           Data.List.Split (splitOn)
 
+#if MIN_VERSION_ghc(9,0,0)
+import qualified Control.Monad.Catch as MC
+#else
 import           Exception (ghandle)
+#endif
 
 import           IHaskell.Eval.Evaluate (Interpreter)
 import           IHaskell.Display
@@ -44,7 +48,11 @@ inspect code pos = do
   let identifier = getIdentifier code pos
       handler :: SomeException -> Interpreter (Maybe a)
       handler _ = return Nothing
+#if MIN_VERSION_ghc(9,0,0)
+  response <- MC.handle handler (Just <$> getType identifier)
+#else
   response <- ghandle handler (Just <$> getType identifier)
+#endif
   let prefix = identifier ++ " :: "
       fmt str = Display [plain $ prefix ++ str]
   return $ fmt <$> response
