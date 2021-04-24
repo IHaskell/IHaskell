@@ -33,12 +33,21 @@ import qualified Data.ByteString.Char8 as CBS
 #endif
 
 -- GHC imports.
-import           DynFlags
-#if MIN_VERSION_ghc(8,6,0)
+#if MIN_VERSION_ghc(9,0,0)
+import           GHC.Core.InstEnv (is_cls, is_tys)
+import           GHC.Core.Unify
+import           GHC.Core.Ppr.TyThing
+import           GHC.Driver.CmdLine
+import           GHC.Driver.Monad (modifySession)
+import           GHC.Driver.Session
+import           GHC.Driver.Types
+import           GHC.Types.Name (pprInfixName)
+import           GHC.Types.Name.Set
+import qualified GHC.Driver.Session as DynFlags
+import qualified GHC.Utils.Outputable as O
+import qualified GHC.Utils.Ppr as Pretty
 #else
-import           FastString
-#endif
-import           GHC
+import           DynFlags
 import           GhcMonad
 import           HscTypes
 import           NameSet
@@ -48,6 +57,12 @@ import           InstEnv (ClsInst(..))
 import           Unify (tcMatchTys)
 import qualified Pretty
 import qualified Outputable as O
+#endif
+#if MIN_VERSION_ghc(8,6,0)
+#else
+import           FastString
+#endif
+import           GHC
 
 import           Control.Monad (void)
 import           Data.Function (on)
@@ -55,7 +70,8 @@ import           Data.List (nubBy)
 
 import           StringUtils (replace)
 
-#if MIN_VERSION_ghc(8,4,0)
+#if MIN_VERSION_ghc(9,0,0)
+#elif MIN_VERSION_ghc(8,4,0)
 import           CmdLineParser (warnMsg)
 #endif
 
@@ -228,7 +244,9 @@ doc :: GhcMonad m => O.SDoc -> m String
 doc sdoc = do
   flags <- getSessionDynFlags
   unqual <- getPrintUnqual
-#if MIN_VERSION_ghc(8,2,0)
+#if MIN_VERSION_ghc(9,0,0)
+  let style = O.mkUserStyle unqual O.AllTheWay
+#elif MIN_VERSION_ghc(8,2,0)
   let style = O.mkUserStyle flags unqual O.AllTheWay
 #else
   let style = O.mkUserStyle unqual O.AllTheWay
@@ -270,7 +288,11 @@ initGhci sandboxPackages = do
         case sandboxPackages of
           Nothing -> packageDBFlags originalFlags
           Just path ->
+#if MIN_VERSION_ghc(9,0,0)
+            let pkg = PackageDB $ PkgDbPath path
+#else
             let pkg = PackageDB $ PkgConfFile path
+#endif
             in packageDBFlags originalFlags ++ [pkg]
 
   void $ setSessionDynFlags $ dflags

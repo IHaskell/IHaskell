@@ -22,10 +22,18 @@ import qualified Data.List.Split.Internals as Split
 import           System.Environment (getEnv)
 
 import           GHC
+#if MIN_VERSION_ghc(9,0,0)
+import           GHC.Unit.Database
+import           GHC.Unit.State
+import           GHC.Driver.Session
+import           GHC.Driver.Monad as GhcMonad
+import           GHC.Utils.Outputable (showPpr)
+#else
 import           GHC.PackageDb
 import           DynFlags
 import           GhcMonad
 import           Outputable (showPpr)
+#endif
 
 import           System.Directory
 import           Control.Exception (try)
@@ -74,9 +82,15 @@ complete code posOffset = do
       unqualNames = nub $ filter (not . isQualified) rdrNames
       qualNames = nub $ scopeNames ++ filter isQualified rdrNames
 
+#if MIN_VERSION_ghc(9,0,0)
+  let Just db = unitDatabases flags
+      getNames = map (moduleNameString . exposedName) . unitExposedModules
+      moduleNames = nub $ concatMap getNames $ concatMap unitDatabaseUnits db
+#else
   let Just db = pkgDatabase flags
       getNames = map (moduleNameString . exposedName) . exposedModules
       moduleNames = nub $ concatMap getNames $ concatMap snd db
+#endif
 
   let target = completionTarget line pos
       completion = completionType line pos target
