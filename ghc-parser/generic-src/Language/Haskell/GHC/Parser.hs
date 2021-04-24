@@ -28,24 +28,36 @@ module Language.Haskell.GHC.Parser (
 import Data.List (intercalate, findIndex, isInfixOf)
 import Data.Char (isAlphaNum)
 
+#if MIN_VERSION_ghc(9,0,0)
+import GHC.Data.Bag
+import GHC.Driver.Session (parseDynamicFilePragma)
+import GHC.Data.FastString
+import GHC.Parser.Header (getOptions)
+import GHC.Parser.Lexer hiding (buffer)
+import GHC.Data.OrdList
+import GHC.Utils.Panic (handleGhcException)
+import qualified GHC.Types.SrcLoc as SrcLoc
+import GHC.Data.StringBuffer hiding (len)
+#else
 import Bag
 import DynFlags (parseDynamicFilePragma)
-#if MIN_VERSION_ghc(8,10,0)
-#else
-import ErrUtils hiding (ErrMsg)
-#endif
 import FastString
-#if MIN_VERSION_ghc(8,4,0)
-import GHC hiding (Located, Parsed, parser)
-#else
-import GHC hiding (Located, parser)
-#endif
 import HeaderInfo (getOptions)
 import Lexer hiding (buffer)
 import OrdList
 import Panic (handleGhcException)
 import qualified SrcLoc as SrcLoc
 import StringBuffer hiding (len)
+#endif
+#if MIN_VERSION_ghc(8,10,0)
+#else
+import ErrUtils hiding (ErrMsg)
+#endif
+#if MIN_VERSION_ghc(8,4,0)
+import GHC hiding (Located, Parsed, parser)
+#else
+import GHC hiding (Located, parser)
+#endif
 
 import qualified Language.Haskell.GHC.HappyParser as Parse
 
@@ -115,9 +127,10 @@ parserTypeSignature :: Parser (SrcLoc.Located (OrdList (LHsDecl RdrName)))
 #endif
 parserTypeSignature = Parser Parse.fullTypeSignature
 
-#if MIN_VERSION_ghc(8,4,0)
+#if MIN_VERSION_ghc(9,0,0)
+parserModule :: Parser (SrcLoc.Located HsModule)
+#elif MIN_VERSION_ghc(8,4,0)
 parserModule :: Parser (SrcLoc.Located (HsModule GhcPs))
-
 #else
 parserModule :: Parser (SrcLoc.Located (HsModule RdrName))
 #endif
@@ -136,7 +149,14 @@ runParser flags (Parser parser) str =
     toParseOut $ unP parser parseState
   where
     toParseOut :: ParseResult a -> ParseOutput a
-#if MIN_VERSION_ghc(8,10,0)
+#if MIN_VERSION_ghc(9,0,0)
+    toParseOut (PFailed pstate) =
+      let realSpan = SrcLoc.psRealSpan $ last_loc pstate
+          errMsg = printErrorBag $ snd $ (messages pstate) flags
+          ln = srcLocLine $ SrcLoc.realSrcSpanStart realSpan
+          col = srcLocCol $ SrcLoc.realSrcSpanStart realSpan
+        in Failure errMsg $ Loc ln col
+#elif MIN_VERSION_ghc(8,10,0)
     toParseOut (PFailed pstate) =
       let realSpan = last_loc pstate
           errMsg = printErrorBag $ snd $ (messages pstate) flags
