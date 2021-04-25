@@ -35,7 +35,7 @@ jobs:
       matrix:
         versions:
           - compiler: 'ghc884'
-          - compiler: 'ghc8102'
+          - compiler: 'ghc8104'
     steps:
     - uses: actions/checkout@v2
     - uses: cachix/install-nix-action@v12
@@ -48,5 +48,8 @@ jobs:
         -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-20.09 \
         release.nix \
         --argstr compiler ${{ matrix.versions.compiler }}
-        test/acceptance.nbconvert.sh result/bin/ihaskell-nbconvert
+        nix-shell \
+        -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-20.09 \
+        -p jq --run \
+        'test/acceptance.nbconvert.sh result/bin/ihaskell-nbconvert'
 
