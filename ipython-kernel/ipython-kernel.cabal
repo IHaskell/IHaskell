@@ -12,7 +12,7 @@ maintainer:          andrew.gibiansky@gmail.com
 category:            Development
 build-type:          Simple
 
-cabal-version:       >=1.16
+cabal-version:       1.16
 
 data-dir:            example-data
 data-files:          calc_profile.tar
