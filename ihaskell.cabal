@@ -7,7 +7,7 @@ name:                ihaskell
 -- PVP summary:      +--+------- breaking API changes
 --                   |  | +----- non-breaking API additions
 --                   |  | | +--- code changes with no API change
-version:             0.10.1.2
+version:             0.10.2.0
 
 -- A short (one-line) description of the package.
 synopsis:            A Haskell backend kernel for the IPython project.
@@ -40,7 +40,7 @@ category:            Development
 build-type:          Simple
 
 -- Constraint on the version of Cabal needed to build this package.
-cabal-version:       >=1.16
+cabal-version:       1.16
 
 data-files:
     html/kernel.js
