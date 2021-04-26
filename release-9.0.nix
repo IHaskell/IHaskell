@@ -1,7 +1,7 @@
 let
   nixpkgs-src = builtins.fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/tarball/8c2e70a7ac627662b47443a69684eadfd50f28a7";
-    sha256 = "140knlrvag2m3m2wxysyr9mhjj7zdn9s0yzyhr6yxb5bqiyx0gi2";
+    url = "https://github.com/NixOS/nixpkgs/tarball/8795d39ce70f04e3fd609422d522e5b2594f3a70";
+    sha256 = "01w7q0nqydippj0ygbg77byb770snhc5rnqzc6isws58642l8z4s";
   };
 in
 { compiler ? "ghc901"
@@ -32,12 +32,6 @@ let
   ghc-parser-src       = filterSource cleanSource ./ghc-parser;
   ihaskell-display-src = filterSource cleanSource ./ihaskell-display;
 
-  foundation-src = nixpkgs.fetchFromGitHub {
-    owner = "haskell-foundation";
-    repo = "foundation";
-    rev = "c87c00c5988398f7fb6bbf8ebc79250fc3e9a363";
-    sha256 = "122kddjxyykkvw58v6wvvmgyqng9383iy2awpa39hs6zw0cbh3bl";
-  };
   profunctors-src = nixpkgs.fetchFromGitHub {
     owner = "ekmett";
     repo = "profunctors";
@@ -72,11 +66,8 @@ let
 
       cryptohash-md5    = nixpkgs.haskell.lib.doJailbreak super.cryptohash-md5;
       cryptohash-sha1   = nixpkgs.haskell.lib.doJailbreak super.cryptohash-sha1;
-      basement          = self.callCabal2nix "basement" (foundation-src + "/basement") {};
-      foundation        = nixpkgs.haskell.lib.appendPatch super.foundation (nixpkgs.fetchpatch {
-        url = "https://gitlab.haskell.org/ghc/head.hackage/-/raw/a89f0189a628e5de9a6e8fe9830e29a3e61e316c/patches/foundation-0.0.25.patch";
-        sha256 = "0fhdqw01qqmzjn67d289m8gpb8wl1rwwc3hcjx92djxk493ialvj";
-      });
+      basement          = super.basement_0_0_12;
+      foundation        = super.foundation_0_0_26_1;
       memory            = nixpkgs.haskell.lib.appendPatch super.memory (nixpkgs.fetchpatch {
         url = "https://gitlab.haskell.org/ghc/head.hackage/-/raw/c89c1e27af8f180b3be476e102147557f922b224/patches/memory-0.15.0.patch";
         sha256 = "0mkjbrzi05h1xds8rf5wfky176hrl03q0d7ipklp9x4ls3yyqj5x";
