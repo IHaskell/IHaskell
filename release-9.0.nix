@@ -1,7 +1,7 @@
 let
   nixpkgs-src = builtins.fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/tarball/8795d39ce70f04e3fd609422d522e5b2594f3a70";
-    sha256 = "01w7q0nqydippj0ygbg77byb770snhc5rnqzc6isws58642l8z4s";
+    url = "https://github.com/NixOS/nixpkgs/tarball/5d4dc79acbb98f935f55fec733c16c0d730cbdeb";
+    sha256 = "197h9bqsjl0na7nfvkll587pjx7vwd3jswab73wxlkcbwx4j66zf";
   };
 in
 { compiler ? "ghc901"
@@ -66,9 +66,7 @@ let
 
       cryptohash-md5    = nixpkgs.haskell.lib.doJailbreak super.cryptohash-md5;
       cryptohash-sha1   = nixpkgs.haskell.lib.doJailbreak super.cryptohash-sha1;
-      basement          = super.basement_0_0_12;
-      foundation        = super.foundation_0_0_26_1;
-      memory            = nixpkgs.haskell.lib.appendPatch super.memory (nixpkgs.fetchpatch {
+      memory            = nixpkgs.haskell.lib.appendPatch (nixpkgs.haskell.lib.doJailbreak super.memory) (nixpkgs.fetchpatch {
         url = "https://gitlab.haskell.org/ghc/head.hackage/-/raw/c89c1e27af8f180b3be476e102147557f922b224/patches/memory-0.15.0.patch";
         sha256 = "0mkjbrzi05h1xds8rf5wfky176hrl03q0d7ipklp9x4ls3yyqj5x";
       });
