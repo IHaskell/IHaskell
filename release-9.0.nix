@@ -32,13 +32,6 @@ let
   ghc-parser-src       = filterSource cleanSource ./ghc-parser;
   ihaskell-display-src = filterSource cleanSource ./ihaskell-display;
 
-  profunctors-src = nixpkgs.fetchFromGitHub {
-    owner = "ekmett";
-    repo = "profunctors";
-    rev = "e49490572687efedbd60f7caf38486989e28500c";
-    sha256 = "0mfnx8xrzm6k72q0lmsl78g5zg10ng5ykwl5pxzhrvvp27a22dzm";
-  };
-
   displays = self: listToAttrs (
     map
       (display: { name = "ihaskell-${display}"; value = self.callCabal2nix display "${ihaskell-display-src}/ihaskell-${display}" {}; })
@@ -74,7 +67,7 @@ let
         url = "https://gitlab.haskell.org/ghc/head.hackage/-/raw/6a65307bbdc73c5eb4165a67ee97c7b9faa818e1/patches/cryptonite-0.28.patch";
         sha256 = "1wq9hw16qj2yqy7lyqbi7106lhk199hvnkj5xr7h0ip854gjsr5j";
       });
-      profunctors       = self.callCabal2nix "profunctors" profunctors-src {};
+      profunctors       = self.profunctors_5_6_2;
       mono-traversable  = nixpkgs.haskell.lib.dontCheck super.mono-traversable;
     } // displays self);
   });
