@@ -270,7 +270,7 @@ For more examples of using IHaskell with Nix, see https://github.com/vaibhavsaga
 Stack manages separate environments for every package. By default your notebooks
 will only have access to a few packages that happen to be required for
 IHaskell. To make packages available add them to the stack.yaml in the IHaskell
-directory and run `stack solver && stack install`.
+directory and run `stack install --fast`.
 
 Packages should be added to the `packages:` section and can take the following
 form
