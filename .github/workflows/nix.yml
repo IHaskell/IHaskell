@@ -45,11 +45,11 @@ jobs:
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
     - run: |
         nix-build \
-        -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-20.09 \
+        -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-21.05 \
         release.nix \
         --argstr compiler ${{ matrix.versions.compiler }}
         nix-shell \
-        -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-20.09 \
+        -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-21.05 \
         -p jq --run \
         'test/acceptance.nbconvert.sh result/bin/ihaskell-nbconvert'
 
