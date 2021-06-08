@@ -263,6 +263,22 @@ $ nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/nixos-2
 
 For more examples of using IHaskell with Nix, see https://github.com/vaibhavsagar/notebooks.
 
+# Tooling
+
+## Haskell Language Server
+
+If you install Stack and Nix and change the [`stack.yaml`](./stack.yaml) file to set
+
+```yaml
+nix:
+    enable: true
+```
+
+then the
+[haskell-language-server](https://github.com/haskell/haskell-language-server)
+should be able to build all of the projects in this repository.
+
+
 # Troubleshooting
 
 ## Where are my packages? (IHaskell + Stack)
