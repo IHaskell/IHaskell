@@ -51,7 +51,7 @@ defaultKernelSpecOptions = KernelSpecOptions
   , kernelSpecRTSOptions = ["-M3g", "-N2"]  -- Memory cap 3 GiB,
                                             -- multithreading on two processors.
   , kernelSpecDebug = False
-  , kernelSpecCodeMirror = "ihaskell"
+  , kernelSpecCodeMirror = "Haskell"
   , kernelSpecConfFile = defaultConfFile
   , kernelSpecInstallPrefix = Nothing
   , kernelSpecUseStack = False
@@ -138,6 +138,7 @@ installKernelspec repl opts = void $ do
            Nothing   -> []
            Just file -> ["--conf", file])
         ++ ["--ghclib", kernelSpecGhcLibdir opts]
+        ++ ["--codemirror", kernelSpecCodeMirror opts]
         ++ (case kernelSpecRTSOptions opts of
              [] -> []
              _ -> "+RTS" : kernelSpecRTSOptions opts ++ ["-RTS"])
