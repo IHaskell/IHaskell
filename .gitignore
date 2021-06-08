@@ -22,5 +22,5 @@ cabal.sandbox.config
 .tmp1
 .tmp2
 .tmp3
-stack.yaml.lock
+*.yaml.lock
 result

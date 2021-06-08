@@ -1,0 +1,73 @@
+# stack-nix.yaml is a copy of stack.yaml, but with nix enable: true.
+# This is for the hie.yaml file.
+#
+# Will have a different stack.yaml.lock,
+# see https://docs.haskellstack.org/en/stable/lock_files/#creation
+
+resolver: lts-17.4
+allow-newer: true
+
+flags: {}
+packages:
+    - .
+    - ./ipython-kernel
+    - ./ghc-parser
+    - ./ihaskell-display/ihaskell-aeson
+    - ./ihaskell-display/ihaskell-blaze
+    - ./ihaskell-display/ihaskell-charts
+    - ./ihaskell-display/ihaskell-diagrams
+    - ./ihaskell-display/ihaskell-gnuplot
+    - ./ihaskell-display/ihaskell-hatex
+    - ./ihaskell-display/ihaskell-juicypixels
+    - ./ihaskell-display/ihaskell-magic
+    - ./ihaskell-display/ihaskell-plot
+    # - ./ihaskell-display/ihaskell-static-canvas
+    - ./ihaskell-display/ihaskell-widgets
+
+extra-deps:
+- active-0.2.0.14
+- Chart-cairo-1.9.3
+- diagrams-1.4
+- diagrams-cairo-1.4.1.1
+- diagrams-contrib-1.4.4
+- diagrams-core-1.4.2
+- diagrams-lib-1.4.3
+- diagrams-svg-1.4.3
+- cairo-0.13.8.1
+- pango-0.13.8.1
+- glib-0.13.8.1
+- gtk2hs-buildtools-0.13.8.0
+- magic-1.1
+- plot-0.2.3.11
+# - static-canvas-0.2.0.3
+- statestack-0.3
+- vinyl-0.13.0
+- dual-tree-0.2.2.1
+- monoid-extras-0.5.1
+- svg-builder-0.1.1
+- force-layout-0.4.0.6
+
+ghc-options:
+  # Eventually we want "$locals": -Wall -Wpartial-fields -Werror
+  # ghc-parser: -Wall -Wpartial-fields -Werror
+  # ihaskell: -Wall -Wpartial-fields -Werror
+  # ihaskell-widgets: -Wall -Wpartial-fields -Werror
+
+docker:
+    repo: "ihaskell-dev:latest"
+    enable: false
+
+nix:
+  enable: true
+  packages:
+    - blas
+    - cairo
+    - file
+    - gcc
+    - gfortran.cc.lib
+    - liblapack
+    - ncurses
+    - pango
+    - pkgconfig
+    - zeromq
+    - zlib
