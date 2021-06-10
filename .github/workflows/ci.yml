@@ -14,6 +14,7 @@ on:
       - 'images/**'
       - 'notebooks/**'
       - 'README.md'
+      - 'hie.yaml'
       - '*.nix'
   pull_request:
     paths-ignore:
@@ -26,6 +27,7 @@ on:
       - 'images/**'
       - 'notebooks/**'
       - 'README.md'
+      - 'hie.yaml'
       - '*.nix'
 
 jobs:
