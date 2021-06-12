@@ -109,7 +109,8 @@ handleMessage send replyHeader state msg = do
         else do
           -- Send the comm open, with the initial state
           hdr <- dupHeader replyHeader CommOpenMessage
-          send $ CommOpen hdr target_name target_module uuid value
+          let hdrV = setVersion hdr $ getVersion widget
+          send $ CommOpen hdrV target_name target_module uuid value
 
           -- Send anything else the widget requires.
           open widget communicate
@@ -189,7 +190,7 @@ instance ToJSON IPythonMessage where
     object
       [ "header" .= replyHeader
       , "parent_header" .= str ""
-      , "metadata" .= str "{}"
+      , "metadata" .= object []
       , "content" .= val
       , "msg_type" .= (toJSON . showMessageType $ mtype)
       ]

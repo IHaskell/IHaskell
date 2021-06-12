@@ -62,6 +62,7 @@ instance IHaskellDisplay IntSlider where
 
 instance IHaskellWidget IntSlider where
   getCommUUID = uuid
+  getVersion _ = "2.0.0"
   comm widget val _ =
     case nestedObjectLookup val ["sync_data", "value"] of
       Just (Number value) -> do

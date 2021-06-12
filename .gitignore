@@ -24,3 +24,6 @@ cabal.sandbox.config
 .tmp3
 stack.yaml.lock
 result
+default.nix
+dist-*/
+cabal.project.local

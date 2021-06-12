@@ -11,6 +11,7 @@ module IHaskell.Types (
     MessageHeader(..),
     MessageType(..),
     dupHeader,
+    setVersion,
     Username,
     Metadata,
     replyType,
@@ -41,8 +42,10 @@ module IHaskell.Types (
 
 import           IHaskellPrelude
 
-import           Data.Aeson (ToJSON (..), Value, (.=), object)
+import qualified Data.HashMap.Strict as HashMap
+import           Data.Aeson (ToJSON (..), Value, (.=), object, Object, Value(String))
 import           Data.Function (on)
+import           Data.Text (pack)
 import           Data.Serialize
 import           GHC.Generics
 
@@ -72,6 +75,9 @@ class IHaskellDisplay a => IHaskellWidget a where
   -- | Get the uuid for comm associated with this widget. The widget is responsible for storing the
   -- UUID during initialization.
   getCommUUID :: a -> UUID
+
+  -- | Get the version for this widget. Sent as metadata during comm_open.
+  getVersion :: a -> String
 
   -- | Called when the comm is opened. Allows additional messages to be sent after comm open.
   open :: a                -- ^ Widget to open a comm port with.
@@ -125,6 +131,7 @@ instance IHaskellWidget Widget where
   targetName (Widget widget) = targetName widget
   targetModule (Widget widget) = targetModule widget
   getCommUUID (Widget widget) = getCommUUID widget
+  getVersion (Widget widget) = getVersion widget
   open (Widget widget) = open widget
   comm (Widget widget) = comm widget
   close (Widget widget) = close widget
@@ -276,6 +283,12 @@ dupHeader :: MessageHeader -> MessageType -> IO MessageHeader
 dupHeader hdr messageType = do
   uuid <- liftIO random
   return hdr { mhMessageId = uuid, mhMsgType = messageType }
+
+-- | Modyfies a header and appends the version as metadata
+setVersion :: MessageHeader  -- ^ The header to modify
+           -> String         -- ^ The version to set
+           -> MessageHeader  -- ^ The modified header
+setVersion hdr v = hdr { mhMetadata = Metadata (HashMap.fromList [("version", String $ pack v)]) } 
 
 -- | Whether or not an error occurred.
 data ErrorOccurred = Success

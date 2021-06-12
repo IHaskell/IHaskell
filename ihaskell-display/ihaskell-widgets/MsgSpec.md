@@ -14,6 +14,8 @@ the widget.
 
 > The comm should be opened with a `target_name` of `"ipython.widget"`.
 
+> The comm_open message's metadata gives the version of the widget messaging protocol, i.e., `{'version': '2.0.0'}`
+
 Any *numeric* property initialized with the empty string is provided the default value by the
 frontend. Some numbers need to be sent as actual numbers (when non-null), whereas the ones representing
 lengths in CSS units need to be sent as strings.

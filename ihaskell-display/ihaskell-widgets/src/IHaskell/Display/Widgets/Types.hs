@@ -13,7 +13,6 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE AutoDeriveTypeable #-}
 {-# LANGUAGE CPP #-}
 
 -- | This module houses all the type-trickery needed to make widgets happen.
