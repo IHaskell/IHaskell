@@ -18,6 +18,7 @@ import           Control.Concurrent.STM (atomically)
 import           Control.Concurrent.STM.TChan
 import           Control.Monad (foldM)
 import           Data.Aeson
+import           Data.Aeson.Types (emptyArray)
 import qualified Data.Map as Map
 import           System.IO.Unsafe (unsafePerformIO)
 
@@ -99,6 +100,8 @@ handleMessage send replyHeader state msg = do
           newComms = Map.insert uuid widget oldComms
           newState = state { openComms = newComms }
 
+          content = object [ "state" .= value, "buffer_paths" .= emptyArray ]
+
           communicate val = do
             head <- dupHeader replyHeader CommDataMessage
             send $ CommData head uuid val
@@ -109,8 +112,8 @@ handleMessage send replyHeader state msg = do
         else do
           -- Send the comm open, with the initial state
           hdr <- dupHeader replyHeader CommOpenMessage
-          let hdrV = setVersion hdr $ getVersion widget
-          send $ CommOpen hdrV target_name target_module uuid value
+          let hdrV = setVersion hdr "2.0.0" -- Widget Messaging Protocol Version
+          send $ CommOpen hdrV target_name target_module uuid content
 
           -- Send anything else the widget requires.
           open widget communicate

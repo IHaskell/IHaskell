@@ -1,6 +1,6 @@
-# IPython widget messaging specification
+# IPython widget messaging specification version 2
 
-> Largely based on: https://github.com/ipython/ipython/wiki/IPEP-23:-Backbone.js-Widgets
+> Largely based on: https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/messages.md
 
 > The messaging specification as detailed is riddled with assumptions the IHaskell widget
 > implementation makes. It works for us, so it should work for everyone.
@@ -20,21 +20,18 @@ Any *numeric* property initialized with the empty string is provided the default
 frontend. Some numbers need to be sent as actual numbers (when non-null), whereas the ones representing
 lengths in CSS units need to be sent as strings.
 
-The initial state must *at least* have the following fields:
+The initial state must *at least* have the following fields in the `data.state` value of the message:
 
-  - `msg_throttle` (default 3): To prevent the kernel from flooding with messages, the messages from
-    the widget to the kernel are throttled. If `msg_throttle` messages were sent, and all are still
-    processing, the widget will not send anymore state messages.
+  - `_model_module`
+  - `_model_module_version`
+  - `_model_name`
+  - `_view_module`
+  - `_view_module_version`
+  - `_view_name`
 
-  - `_view_name` (depends on the widget): The frontend uses a generic model to represent
-    widgets. This field determines how a set of widget properties gets rendered into a
-    widget. Has the form `IPython.<widgetname>`, e.g `IPython.Button`.
+You can see more info on the model state of widgets [here](https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/jupyterwidgetmodels.latest.md).
 
-  - `_css` (default value = empty list): A list of 3-tuples, (selector, key, value).
-
-  - `visible` (default = True): Whether the widget is visible or not.
-
-  - Rest of the properties as required initially.
+> Warning!: By default there are two widgets modules: `@jupyter-widgets/controls` and `@jupyter-widgets/base`.
 
 This state is also used with fragments of the overall state to sync changes between the frontend and
 the kernel.

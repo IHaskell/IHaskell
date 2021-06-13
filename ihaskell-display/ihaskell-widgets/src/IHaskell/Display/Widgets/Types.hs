@@ -113,8 +113,8 @@ type (a :++ b) = a ++ b
 #endif
 
 -- Classes from IPython's widget hierarchy. Defined as such to reduce code duplication.
-type WidgetClass = ['S.ViewModule, 'S.ViewName, 'S.ModelModule, 'S.ModelName,
-  'S.MsgThrottle, 'S.Version, 'S.DisplayHandler]
+type WidgetClass = ['S.ViewModule, 'S.ViewModuleVersion, 'S.ViewName, 
+  'S.ModelModule, 'S.ModelModuleVersion, 'S.ModelName, 'S.MsgThrottle, 'S.DisplayHandler]
 
 type DOMWidgetClass = WidgetClass :++ ['S.Visible, 'S.CSS, 'S.DOMClasses, 'S.Width, 'S.Height, 'S.Padding,
   'S.Margin, 'S.Color, 'S.BackgroundColor, 'S.BorderColor, 'S.BorderWidth,
@@ -155,11 +155,12 @@ type SelectionContainerClass = BoxClass :++ ['S.Titles, 'S.SelectedIndex, 'S.Cha
 
 type family FieldType (f :: Field) :: * where
         FieldType 'S.ViewModule = Text
+        FieldType 'S.ViewModuleVersion = Text
         FieldType 'S.ViewName = Text
         FieldType 'S.ModelModule = Text
+        FieldType 'S.ModelModuleVersion = Text
         FieldType 'S.ModelName = Text
         FieldType 'S.MsgThrottle = Integer
-        FieldType 'S.Version = Integer
         FieldType 'S.DisplayHandler = IO ()
         FieldType 'S.Visible = Bool
         FieldType 'S.CSS = [(Text, Text, Text)]
@@ -374,20 +375,23 @@ class ToPairs a where
 instance ToPairs (Attr 'S.ViewModule) where
   toPairs x = ["_view_module" .= toJSON x]
 
+instance ToPairs (Attr 'S.ViewModuleVersion) where
+  toPairs x = ["_view_module_version" .= toJSON x]
+
 instance ToPairs (Attr 'S.ViewName) where
   toPairs x = ["_view_name" .= toJSON x]
 
 instance ToPairs (Attr 'S.ModelModule) where
   toPairs x = ["_model_module" .= toJSON x]
 
+instance ToPairs (Attr 'S.ModelModuleVersion) where
+  toPairs x = ["_model_module_version" .= toJSON x]
+
 instance ToPairs (Attr 'S.ModelName) where
   toPairs x = ["_model_name" .= toJSON x]
 
 instance ToPairs (Attr 'S.MsgThrottle) where
   toPairs x = ["msg_throttle" .= toJSON x]
-
-instance ToPairs (Attr 'S.Version) where
-  toPairs x = ["version" .= toJSON x]
 
 instance ToPairs (Attr 'S.DisplayHandler) where
   toPairs _ = [] -- Not sent to the frontend
@@ -640,20 +644,21 @@ s =:+ val = Attr
 reflect :: forall (f :: Field). (SingI f) => Sing f -> Field
 reflect = fromSing
 
--- | A record representing an object of the Widget class from IPython
-defaultWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr WidgetClass
-defaultWidget viewName modelName = (ViewModule =:: "jupyter-js-widgets")
+-- | A record representing a Widget class from IPython from the controls modules
+defaultControlWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr WidgetClass
+defaultControlWidget viewName modelName = (ViewModule =:: "@jupyter-widgets/controls")
+                                   :& (ViewModuleVersion =:: "2.0.0")
                                    :& (ViewName =:: viewName)
-                                   :& (ModelModule =:: "jupyter-js-widgets")
+                                   :& (ModelModule =:: "@jupyter-widgets/controls")
+                                   :& (ModelModuleVersion =:: "2.0.0")
                                    :& (ModelName =:: modelName)
                                    :& (MsgThrottle =:+ 3)
-                                   :& (Version =:: 0)
                                    :& (DisplayHandler =:: return ())
                                    :& RNil
 
 -- | A record representing an object of the DOMWidget class from IPython
 defaultDOMWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr DOMWidgetClass
-defaultDOMWidget viewName modelName = defaultWidget viewName modelName <+> domAttrs
+defaultDOMWidget viewName modelName = defaultControlWidget viewName modelName <+> domAttrs
   where
     domAttrs = (Visible =:: True)
                :& (CSS =:: [])

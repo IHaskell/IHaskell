@@ -76,9 +76,6 @@ class IHaskellDisplay a => IHaskellWidget a where
   -- UUID during initialization.
   getCommUUID :: a -> UUID
 
-  -- | Get the version for this widget. Sent as metadata during comm_open.
-  getVersion :: a -> String
-
   -- | Called when the comm is opened. Allows additional messages to be sent after comm open.
   open :: a                -- ^ Widget to open a comm port with.
        -> (Value -> IO ()) -- ^ A function for sending messages.
@@ -131,7 +128,6 @@ instance IHaskellWidget Widget where
   targetName (Widget widget) = targetName widget
   targetModule (Widget widget) = targetModule widget
   getCommUUID (Widget widget) = getCommUUID widget
-  getVersion (Widget widget) = getVersion widget
   open (Widget widget) = open widget
   comm (Widget widget) = comm widget
   close (Widget widget) = close widget

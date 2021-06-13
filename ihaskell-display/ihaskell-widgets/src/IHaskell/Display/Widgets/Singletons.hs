@@ -17,7 +17,7 @@
 #endif
 
 module IHaskell.Display.Widgets.Singletons where
-
+  
 import           Data.Singletons.TH
 
 #if MIN_VERSION_singletons(2,4,0)
@@ -30,11 +30,12 @@ singletons
   [d|
 
   data Field = ViewModule
+             | ViewModuleVersion
              | ViewName
              | ModelModule
+             | ModelModuleVersion
              | ModelName
              | MsgThrottle
-             | Version
              | DisplayHandler
              | Visible
              | CSS

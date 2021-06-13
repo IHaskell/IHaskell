@@ -26,11 +26,12 @@ import           IHaskell.Eval.Widgets (widgetSendClose)
 import qualified IHaskell.Display.Widgets.Singletons as S
 
 pattern ViewModule = S.SViewModule
+pattern ViewModuleVersion = S.SViewModuleVersion
 pattern ViewName = S.SViewName
 pattern ModelModule = S.SModelModule
+pattern ModelModuleVersion = S.SModelModuleVersion
 pattern ModelName = S.SModelName
 pattern MsgThrottle = S.SMsgThrottle
-pattern Version = S.SVersion
 pattern DisplayHandler = S.SDisplayHandler
 pattern Visible = S.SVisible
 pattern CSS = S.SCSS
