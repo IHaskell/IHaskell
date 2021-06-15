@@ -39,11 +39,17 @@ the kernel.
 ## Displaying widgets
 
 The creation of a widget does not display it. To display a widget, the kernel sends a display
-message to the frontend on the widget's comm.
+message to the frontend on the widget's iopub, with a custom mimetype instead of text/plain.
 
 ```json
-{
-    "method": "display"
+method = "display_data",
+content = {
+    "data": {
+      "application/vnd.jupyter.widget-view+json": {
+      "model_id": "u-u-i-d",
+      "version_major": 2,
+      "version_minor": 0,
+    }
 }
 ```
 

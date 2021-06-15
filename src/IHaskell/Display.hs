@@ -37,6 +37,7 @@ module IHaskell.Display (
     vega,
     vegalite,
     vdom,
+    widgetdisplay,
     custom,
     many,
 
@@ -149,6 +150,10 @@ png width height = DisplayData (MimePng width height)
 -- this format.
 jpg :: Width -> Height -> Base64 -> DisplayData
 jpg width height = DisplayData (MimeJpg width height)
+
+-- | Generate a Widget display given the uuid and the view version
+widgetdisplay :: String -> DisplayData
+widgetdisplay = DisplayData MimeWidget .T.pack
 
 -- | Convert from a string into base 64 encoded data.
 encode64 :: String -> Base64

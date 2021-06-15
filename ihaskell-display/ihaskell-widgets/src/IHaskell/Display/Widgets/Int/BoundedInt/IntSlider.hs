@@ -17,6 +17,8 @@ import           Prelude
 
 import           Control.Monad (void)
 import           Data.Aeson
+import           Data.Text.Lazy (unpack)
+import           Data.Text.Lazy.Encoding
 import           Data.IORef (newIORef)
 import qualified Data.Scientific as Sci
 import           Data.Vinyl (Rec(..), (<+>))
@@ -58,7 +60,7 @@ mkIntSlider = do
 instance IHaskellDisplay IntSlider where
   display b = do
     widgetSendView b
-    return $ Display []
+    return $ Display [ widgetdisplay $ unpack $ decodeUtf8 $ encode $ object [ "model_id" .= getCommUUID b, "version_major" .= toInteger 2, "version_minor" .= toInteger 0] ]
 
 instance IHaskellWidget IntSlider where
   getCommUUID = uuid
