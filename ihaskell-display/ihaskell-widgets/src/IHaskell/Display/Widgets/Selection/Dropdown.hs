@@ -49,11 +49,6 @@ mkDropdown = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay Dropdown where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget Dropdown where
   getCommUUID = uuid
   comm widget val _ =

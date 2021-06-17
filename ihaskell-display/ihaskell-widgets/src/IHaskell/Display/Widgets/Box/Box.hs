@@ -45,10 +45,5 @@ mkBox = do
   -- Return the widget
   return box
 
-instance IHaskellDisplay Box where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget Box where
   getCommUUID = uuid

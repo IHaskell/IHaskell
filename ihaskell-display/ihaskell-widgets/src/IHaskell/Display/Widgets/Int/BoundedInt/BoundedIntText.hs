@@ -48,11 +48,6 @@ mkBoundedIntText = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay BoundedIntText where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget BoundedIntText where
   getCommUUID = uuid
   comm widget val _ =

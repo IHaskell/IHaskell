@@ -48,11 +48,6 @@ mkTextArea = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay TextArea where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget TextArea where
   getCommUUID = uuid
   comm widget val _ =

@@ -47,11 +47,6 @@ mkTabWidget = do
   -- Return the widget
   return box
 
-instance IHaskellDisplay TabWidget where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget TabWidget where
   getCommUUID = uuid
   comm widget val _ =

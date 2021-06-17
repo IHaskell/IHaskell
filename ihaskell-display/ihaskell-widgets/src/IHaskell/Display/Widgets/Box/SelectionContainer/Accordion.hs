@@ -48,11 +48,6 @@ mkAccordion = do
   -- Return the widget
   return box
 
-instance IHaskellDisplay Accordion where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget Accordion where
   getCommUUID = uuid
   comm widget val _ =

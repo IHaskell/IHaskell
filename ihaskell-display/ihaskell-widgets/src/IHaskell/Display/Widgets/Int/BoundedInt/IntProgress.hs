@@ -51,10 +51,5 @@ mkIntProgress = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay IntProgress where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget IntProgress where
   getCommUUID = uuid

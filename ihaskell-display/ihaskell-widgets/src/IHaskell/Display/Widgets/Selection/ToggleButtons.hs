@@ -52,11 +52,6 @@ mkToggleButtons = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay ToggleButtons where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget ToggleButtons where
   getCommUUID = uuid
   comm widget val _ =

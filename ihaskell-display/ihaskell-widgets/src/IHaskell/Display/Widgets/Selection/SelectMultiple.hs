@@ -47,11 +47,6 @@ mkSelectMultiple = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay SelectMultiple where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget SelectMultiple where
   getCommUUID = uuid
   comm widget val _ =

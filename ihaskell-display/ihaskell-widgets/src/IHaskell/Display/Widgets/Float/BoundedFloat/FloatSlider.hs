@@ -55,11 +55,6 @@ mkFloatSlider = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay FloatSlider where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget FloatSlider where
   getCommUUID = uuid
   comm widget val _ =

@@ -44,10 +44,5 @@ mkHTMLWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay HTMLWidget where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget HTMLWidget where
   getCommUUID = uuid

@@ -48,11 +48,6 @@ mkIntText = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay IntText where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget IntText where
   getCommUUID = uuid
   comm widget val _ =

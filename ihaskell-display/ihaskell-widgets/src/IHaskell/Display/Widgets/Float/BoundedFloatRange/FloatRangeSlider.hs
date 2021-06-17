@@ -56,11 +56,6 @@ mkFloatRangeSlider = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay FloatRangeSlider where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget FloatRangeSlider where
   getCommUUID = uuid
   comm widget val _ =

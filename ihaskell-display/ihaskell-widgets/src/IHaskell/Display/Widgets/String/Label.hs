@@ -44,10 +44,5 @@ mkLabelWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay LabelWidget where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget LabelWidget where
   getCommUUID = uuid

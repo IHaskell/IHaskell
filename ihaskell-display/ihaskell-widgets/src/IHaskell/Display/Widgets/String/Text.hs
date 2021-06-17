@@ -49,11 +49,6 @@ mkTextWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay TextWidget where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget TextWidget where
   getCommUUID = uuid
   -- Two possibilities: 1. content -> event -> "submit" 2. sync_data -> value -> <new_value>

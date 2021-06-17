@@ -55,11 +55,6 @@ mkButton = do
   -- Return the button widget
   return button
 
-instance IHaskellDisplay Button where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget Button where
   getCommUUID = uuid
   comm widget val _ =

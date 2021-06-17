@@ -46,11 +46,6 @@ mkSelect = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay Select where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget Select where
   getCommUUID = uuid
   comm widget val _ =

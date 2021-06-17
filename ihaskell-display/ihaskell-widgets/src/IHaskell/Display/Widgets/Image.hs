@@ -54,10 +54,5 @@ mkImageWidget = do
   -- Return the image widget
   return widget
 
-instance IHaskellDisplay ImageWidget where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget ImageWidget where
   getCommUUID = uuid

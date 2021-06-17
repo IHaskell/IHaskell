@@ -70,10 +70,5 @@ replaceOutput widget d = do
   clearOutput_ widget
   appendOutput widget d
 
-instance IHaskellDisplay OutputWidget where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget OutputWidget where
   getCommUUID = uuid

@@ -53,11 +53,6 @@ mkToggleButton = do
   -- Return the image widget
   return widget
 
-instance IHaskellDisplay ToggleButton where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget ToggleButton where
   getCommUUID = uuid
   comm widget val _ =

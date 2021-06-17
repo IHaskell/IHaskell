@@ -14,6 +14,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 -- | This module houses all the type-trickery needed to make widgets happen.
 --
@@ -90,12 +91,15 @@ import           Data.Singletons.Prelude.List
 import           Data.Singletons.Prelude ((:++))
 #endif
 
+import           Data.Text.Lazy (unpack)
+import           Data.Text.Lazy.Encoding
+
 import           Data.Singletons.TH
 
 import           GHC.IO.Exception
 
-import           IHaskell.Eval.Widgets (widgetSendUpdate)
-import           IHaskell.Display (Base64, IHaskellWidget(..))
+import           IHaskell.Eval.Widgets (widgetSendUpdate, widgetSendView)
+import           IHaskell.Display (Base64, IHaskellWidget(..), IHaskellDisplay(..), Display(..), widgetdisplay)
 import           IHaskell.IPython.Message.UUID
 
 import           IHaskell.Display.Widgets.Singletons (Field, SField)
@@ -909,3 +913,14 @@ triggerSubmit = triggerEvent SubmitHandler
 
 triggerDisplay :: ('S.DisplayHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
 triggerDisplay = triggerEvent DisplayHandler
+
+-- | Every IHaskellWidget widget has the same IHaskellDisplay instance, for this
+-- reason we need to use FlexibleContexts. The display implementation can still
+-- be overriden per widget
+instance IHaskellWidget (IPythonWidget w) => IHaskellDisplay (IPythonWidget w) where
+  display b = do
+    widgetSendView b -- Keeping compatibility with classic notebook
+    return $ Display [ widgetdisplay $ unpack $ decodeUtf8 $ encode $ object [
+      "model_id" .= getCommUUID b, 
+      "version_major" .= toInteger 2, 
+      "version_minor" .= toInteger 0] ]

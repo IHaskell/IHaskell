@@ -47,11 +47,6 @@ mkCheckBox = do
   -- Return the image widget
   return widget
 
-instance IHaskellDisplay CheckBox where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget CheckBox where
   getCommUUID = uuid
   comm widget val _ =

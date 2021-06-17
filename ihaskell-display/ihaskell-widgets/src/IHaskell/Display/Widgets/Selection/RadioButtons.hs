@@ -46,11 +46,6 @@ mkRadioButtons = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay RadioButtons where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget RadioButtons where
   getCommUUID = uuid
   comm widget val _ =
