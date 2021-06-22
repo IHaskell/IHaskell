@@ -40,6 +40,8 @@ the kernel.
 
 The creation of a widget does not display it. To display a widget, the kernel sends a display
 message to the frontend on the widget's iopub, with a custom mimetype instead of text/plain.
+You can also send the ViewModuleVersion in the two fields `version_major` and `verison_minor`.
+Only the `model_id` is required.
 
 ```json
 method = "display_data",
