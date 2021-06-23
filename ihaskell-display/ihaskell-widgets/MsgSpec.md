@@ -39,9 +39,12 @@ the kernel.
 ## Displaying widgets
 
 The creation of a widget does not display it. To display a widget, the kernel sends a display
-message to the frontend on the widget's iopub, with a custom mimetype instead of text/plain.
-You can also send the ViewModuleVersion in the two fields `version_major` and `verison_minor`.
-Only the `model_id` is required.
+message to the frontend on the widget's iopub, with a custom mimetype instead of text/plain. Since 5.0, all custom json metadata should be encoded as a json object, instead of as a serialized string.
+
+The `version_major` and `version_minor` fields are the version number of the schema of this specific message
+(currently in sync with the WMP version). However, only the `model_id` field is required to display the widget.
+
+[Source](https://github.com/jupyter-widgets/ipywidgets/issues/3220)
 
 ```json
 method = "display_data",

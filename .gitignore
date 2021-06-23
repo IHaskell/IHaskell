@@ -27,3 +27,4 @@ result
 default.nix
 dist-*/
 cabal.project.local
+cabal.config

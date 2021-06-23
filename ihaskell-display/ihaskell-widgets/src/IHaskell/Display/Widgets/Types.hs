@@ -918,16 +918,13 @@ triggerDisplay = triggerEvent DisplayHandler
 -- | Every IHaskellWidget widget has the same IHaskellDisplay instance, for this
 -- reason we need to use FlexibleContexts. The display implementation can still
 -- be overriden per widget
-instance ('S.ViewModuleVersion ∈ WidgetFields w, IHaskellWidget (IPythonWidget w)) => IHaskellDisplay (IPythonWidget w) where
+instance IHaskellWidget (IPythonWidget w) => IHaskellDisplay (IPythonWidget w) where
   display b = do
     widgetSendView b -- Keeping compatibility with classic notebook
-    (version_major,version_minor) <- versionToInteger <$> getField b ViewModuleVersion
     return $ Display [ widgetdisplay $ unpack $ decodeUtf8 $ encode $ object [
       "model_id" .= getCommUUID b, 
-      "version_major" .= version_major, 
+      "version_major" .= version_major,
       "version_minor" .= version_minor] ]
     where
-      versionToInteger :: Text -> (Int,Int)
-      versionToInteger str = toTuple (fmap (val.decimal) (splitOn "." str))
-      toTuple (x:y:_) = (x,y)
-      val (Right (v,_)) = v             
+      version_major = 2 :: Int
+      version_minor = 0 :: Int

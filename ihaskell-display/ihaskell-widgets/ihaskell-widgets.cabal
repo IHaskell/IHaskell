@@ -110,7 +110,7 @@ library
 
 					 -- The singletons package version is locked to the compiler
 					 -- so let cabal choose the right one.
-                     , singletons -any
+                     , singletons < 3.0.0
 
   -- Directories containing source files.
   hs-source-dirs:      src
