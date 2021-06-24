@@ -281,5 +281,5 @@ nestedObjectLookup :: Value -> [Text] -> Maybe Value
 nestedObjectLookup val [] = Just val
 nestedObjectLookup val (x:xs) =
   case val of
-    Object o -> maybe Nothing (`nestedObjectLookup` xs) $ HM.lookup x o
+    Object o -> (`nestedObjectLookup` xs) =<< HM.lookup x o
     _ -> Nothing

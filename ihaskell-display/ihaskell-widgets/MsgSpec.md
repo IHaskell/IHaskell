@@ -1,5 +1,7 @@
 # IPython widget messaging specification version 2
 
+The model implemented is the Model State v8, for ipywidgets 7.4., @jupyter-widgets/base 1.1., and @jupyter-widgets/controls 1.4.*.
+
 > Largely based on: https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/messages.md
 
 > The messaging specification as detailed is riddled with assumptions the IHaskell widget
@@ -29,7 +31,7 @@ The initial state must *at least* have the following fields in the `data.state` 
   - `_view_module_version`
   - `_view_name`
 
-You can see more info on the model state of widgets [here](https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/jupyterwidgetmodels.latest.md).
+You can see more info on the model state of widgets [here](https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/jupyterwidgetmodels.v8.md).
 
 > Warning!: By default there are two widgets modules: `@jupyter-widgets/controls` and `@jupyter-widgets/base`.
 

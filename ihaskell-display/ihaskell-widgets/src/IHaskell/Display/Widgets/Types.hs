@@ -652,10 +652,10 @@ reflect = fromSing
 -- | A record representing a Widget class from IPython from the controls modules
 defaultControlWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr WidgetClass
 defaultControlWidget viewName modelName = (ViewModule =:: "@jupyter-widgets/controls")
-                                   :& (ViewModuleVersion =:: "2.0.0")
+                                   :& (ViewModuleVersion =:: "1.4.0")
                                    :& (ViewName =:: viewName)
                                    :& (ModelModule =:: "@jupyter-widgets/controls")
-                                   :& (ModelModuleVersion =:: "2.0.0")
+                                   :& (ModelModuleVersion =:: "1.4.0")
                                    :& (ModelName =:: modelName)
                                    :& (MsgThrottle =:+ 3)
                                    :& (DisplayHandler =:: return ())
