@@ -51,7 +51,7 @@ mkFloatText = do
 instance IHaskellWidget FloatText where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "value"] of
+    case nestedObjectLookup val ["state", "value"] of
       Just (Number value) -> do
         void $ setField' widget FloatValue (Sci.toRealFloat value)
         triggerChange widget

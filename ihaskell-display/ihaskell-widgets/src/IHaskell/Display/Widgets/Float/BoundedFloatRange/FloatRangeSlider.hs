@@ -59,7 +59,7 @@ mkFloatRangeSlider = do
 instance IHaskellWidget FloatRangeSlider where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "value"] of
+    case nestedObjectLookup val ["state", "value"] of
       Just (Array values) ->
         case map (\(Number x) -> Sci.toRealFloat x) $ V.toList values of
           [x, y] -> do

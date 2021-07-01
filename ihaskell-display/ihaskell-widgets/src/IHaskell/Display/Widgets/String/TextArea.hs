@@ -51,7 +51,7 @@ mkTextArea = do
 instance IHaskellWidget TextArea where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "value"] of
+    case nestedObjectLookup val ["state", "value"] of
       Just (String value) -> do
         void $ setField' widget StringValue value
         triggerChange widget

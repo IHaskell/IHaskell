@@ -38,7 +38,7 @@ mkIntRangeSlider = do
   -- Default properties, with a random uuid
   wid <- U.random
 
-  let boundedIntAttrs = defaultBoundedIntRangeWidget "IntSliderView" "IntSliderModel"
+  let boundedIntAttrs = defaultBoundedIntRangeWidget "IntRangeSliderView" "IntRangeSliderModel"
       sliderAttrs = (Orientation =:: HorizontalOrientation)
                     :& (ShowRange =:: True)
                     :& (ReadOut =:: True)
@@ -59,7 +59,7 @@ mkIntRangeSlider = do
 instance IHaskellWidget IntRangeSlider where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "value"] of
+    case nestedObjectLookup val ["state", "value"] of
       Just (Array values) ->
         case map (\(Number x) -> Sci.coefficient x) $ V.toList values of
           [x, y] -> do

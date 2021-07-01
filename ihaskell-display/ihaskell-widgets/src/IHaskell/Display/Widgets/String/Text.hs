@@ -53,7 +53,7 @@ instance IHaskellWidget TextWidget where
   getCommUUID = uuid
   -- Two possibilities: 1. content -> event -> "submit" 2. sync_data -> value -> <new_value>
   comm tw val _ = do
-    case nestedObjectLookup val ["sync_data", "value"] of
+    case nestedObjectLookup val ["state", "value"] of
       Just (String value) -> setField' tw StringValue value >> triggerChange tw
       _                 -> pure ()
     case nestedObjectLookup val ["content", "event"] of

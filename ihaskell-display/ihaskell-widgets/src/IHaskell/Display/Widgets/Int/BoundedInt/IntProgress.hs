@@ -35,7 +35,7 @@ mkIntProgress = do
   -- Default properties, with a random uuid
   wid <- U.random
 
-  let boundedIntAttrs = defaultBoundedIntWidget "ProgressView" "ProgressModel"
+  let boundedIntAttrs = defaultBoundedIntWidget "ProgressView" "IntProgressModel"
       progressAttrs = (Orientation =:: HorizontalOrientation)
                       :& (BarStyle =:: DefaultBar)
                       :& RNil
