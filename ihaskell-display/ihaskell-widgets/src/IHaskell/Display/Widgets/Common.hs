@@ -31,7 +31,6 @@ pattern ViewName = S.SViewName
 pattern ModelModule = S.SModelModule
 pattern ModelModuleVersion = S.SModelModuleVersion
 pattern ModelName = S.SModelName
-pattern MsgThrottle = S.SMsgThrottle
 pattern DisplayHandler = S.SDisplayHandler
 pattern Visible = S.SVisible
 pattern CSS = S.SCSS

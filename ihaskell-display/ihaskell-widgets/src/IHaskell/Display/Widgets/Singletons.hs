@@ -35,7 +35,6 @@ singletons
              | ModelModule
              | ModelModuleVersion
              | ModelName
-             | MsgThrottle
              | DisplayHandler
              | Visible
              | CSS

@@ -580,7 +580,8 @@ instance ToJSON Message where
   toJSON PublishStatus { executionState = executionState } =
     object ["execution_state" .= executionState]
   toJSON PublishStream { streamType = streamType, streamContent = content } =
-    object ["data" .= content, "name" .= streamType]
+    -- Since 5.0 "data" key was renamed to "text"
+    object ["text" .= content, "name" .= streamType, "output_type" .= string "stream"]
   toJSON r@PublishDisplayData { displayData = datas }
     = object
     $ case transient r of

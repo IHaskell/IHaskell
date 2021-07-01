@@ -119,7 +119,7 @@ type (a :++ b) = a ++ b
 
 -- Classes from IPython's widget hierarchy. Defined as such to reduce code duplication.
 type WidgetClass = ['S.ViewModule, 'S.ViewModuleVersion, 'S.ViewName, 
-  'S.ModelModule, 'S.ModelModuleVersion, 'S.ModelName, 'S.MsgThrottle, 'S.DisplayHandler]
+  'S.ModelModule, 'S.ModelModuleVersion, 'S.ModelName, 'S.DisplayHandler]
 
 type DOMWidgetClass = WidgetClass :++ ['S.Visible, 'S.CSS, 'S.DOMClasses, 'S.Width, 'S.Height, 'S.Padding,
   'S.Margin, 'S.Color, 'S.BackgroundColor, 'S.BorderColor, 'S.BorderWidth,
@@ -165,7 +165,6 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.ModelModule = Text
         FieldType 'S.ModelModuleVersion = Text
         FieldType 'S.ModelName = Text
-        FieldType 'S.MsgThrottle = Integer
         FieldType 'S.DisplayHandler = IO ()
         FieldType 'S.Visible = Bool
         FieldType 'S.CSS = [(Text, Text, Text)]
@@ -394,9 +393,6 @@ instance ToPairs (Attr 'S.ModelModuleVersion) where
 
 instance ToPairs (Attr 'S.ModelName) where
   toPairs x = ["_model_name" .= toJSON x]
-
-instance ToPairs (Attr 'S.MsgThrottle) where
-  toPairs x = ["msg_throttle" .= toJSON x]
 
 instance ToPairs (Attr 'S.DisplayHandler) where
   toPairs _ = [] -- Not sent to the frontend
@@ -657,7 +653,6 @@ defaultControlWidget viewName modelName = (ViewModule =:: "@jupyter-widgets/cont
                                    :& (ModelModule =:: "@jupyter-widgets/controls")
                                    :& (ModelModuleVersion =:: "1.4.0")
                                    :& (ModelName =:: modelName)
-                                   :& (MsgThrottle =:+ 3)
                                    :& (DisplayHandler =:: return ())
                                    :& RNil
 
