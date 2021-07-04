@@ -222,6 +222,7 @@ mkConfig var = KernelConfig
     , languageFileExtension = ".txt"
     , languageCodeMirrorMode = "null"
     , languagePygmentsLexer = "Text"
+    , languageMimeType = "x/extended-huttons-razor"
     }
   , writeKernelspec = const $ return $ KernelSpec
     { kernelDisplayName = "Hutton's Razor"
