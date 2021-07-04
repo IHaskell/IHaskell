@@ -62,6 +62,7 @@ languageConfig = LanguageInfo
   , languageFileExtension = ".txt"
   , languageCodeMirrorMode = "null"
   , languagePygmentsLexer = "Text"
+  , languageMimeType = "x/funcalc"
   }
 
 languageKernelspec :: KernelSpec
