@@ -18,11 +18,13 @@
 
 module IHaskell.Display.Widgets.Singletons where
 
+#if MIN_VERSION_singletons(3,0,0)
+import           Data.Singletons.Base.TH
+#elif MIN_VERSION_singletons(2,4,0)
 import           Data.Singletons.TH
-
-#if MIN_VERSION_singletons(2,4,0)
 #else
 import           Data.Singletons.Prelude.Ord
+import           Data.Singletons.TH
 #endif
 
 -- Widget properties

@@ -112,6 +112,9 @@ library
 					 -- so let cabal choose the right one.
                      , singletons -any
 
+  if impl (ghc >= 9.0)
+    build-depends:     singletons-base -any
+
   -- Directories containing source files.
   hs-source-dirs:      src
 

@@ -85,13 +85,19 @@ import           Data.Vinyl.Functor (Compose(..), Const(..))
 import           Data.Vinyl.Lens (rget, rput, type (∈))
 import           Data.Vinyl.TypeLevel (RecAll)
 
-#if MIN_VERSION_singletons(2,4,0)
+#if MIN_VERSION_singletons(3,0,0)
+import           Data.List.Singletons
+#elif MIN_VERSION_singletons(2,4,0)
 import           Data.Singletons.Prelude.List
 #else
 import           Data.Singletons.Prelude ((:++))
 #endif
 
+#if MIN_VERSION_singletons(3,0,0)
+import           Data.Singletons.Base.TH
+#else
 import           Data.Singletons.TH
+#endif
 
 import           GHC.IO.Exception
 
