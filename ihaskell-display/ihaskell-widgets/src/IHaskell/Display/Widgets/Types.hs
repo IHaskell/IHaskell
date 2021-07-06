@@ -68,8 +68,7 @@ import           Control.Applicative ((<$>))
 import qualified Control.Exception as Ex
 import           Data.Typeable (Typeable, TypeRep, typeOf)
 import           Data.IORef (IORef, readIORef, modifyIORef)
-import           Data.Text (Text, pack, splitOn)
-import           Data.Text.Read (decimal)
+import           Data.Text (Text, pack)
 import           System.IO.Error
 import           System.Posix.IO
 import           Text.Printf (printf)
@@ -100,6 +99,9 @@ import           Data.Singletons.Base.TH
 #else
 import           Data.Singletons.TH
 #endif
+
+import           Data.Text.Lazy (unpack)
+import           Data.Text.Lazy.Encoding
 
 import           GHC.IO.Exception
 
