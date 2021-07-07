@@ -68,13 +68,11 @@ singletons
              | ImageFormat
              | BoolValue
              | Options
-             | SelectedLabel
-             | SelectedValue
+             | Index
              | SelectionHandler
              | Tooltips
              | Icons
-             | SelectedLabels
-             | SelectedValues
+             | Indices
              | IntValue
              | StepInt
              | MaxInt

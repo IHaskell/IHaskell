@@ -18,6 +18,7 @@ import           Prelude
 import           Control.Monad (void)
 import           Data.Aeson
 import           Data.IORef (newIORef)
+import qualified Data.Scientific as Sci
 import qualified Data.Vector as V
 
 import           IHaskell.Display
@@ -50,19 +51,9 @@ mkSelectMultiple = do
 instance IHaskellWidget SelectMultiple where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "selected_labels"] of
-      Just (Array labels) -> do
-        let labelList = map (\(String x) -> x) $ V.toList labels
-        opts <- getField widget Options
-        case opts of
-          OptionLabels _ -> do
-            void $ setField' widget SelectedLabels labelList
-            void $ setField' widget SelectedValues labelList
-          OptionDict ps ->
-            case mapM (`lookup` ps) labelList of
-              Nothing -> pure ()
-              Just valueList -> do
-                void $ setField' widget SelectedLabels labelList
-                void $ setField' widget SelectedValues valueList
+    case nestedObjectLookup val ["state", "index"] of
+      Just (Array indices) -> do
+        let indicesList = map (\(Number x) -> Sci.coefficient x) $ V.toList indices
+        void $ setField' widget Indices indicesList
         triggerSelection widget
       _ -> pure ()

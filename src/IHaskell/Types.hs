@@ -43,7 +43,7 @@ module IHaskell.Types (
 import           IHaskellPrelude
 
 import qualified Data.HashMap.Strict as HashMap
-import           Data.Aeson (ToJSON (..), Value, (.=), object, Object, Value(String))
+import           Data.Aeson (ToJSON (..), Value, (.=), object, Value(String))
 import           Data.Function (on)
 import           Data.Text (pack)
 import           Data.Serialize

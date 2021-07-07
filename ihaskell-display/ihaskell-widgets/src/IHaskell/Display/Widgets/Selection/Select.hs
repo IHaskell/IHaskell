@@ -18,6 +18,7 @@ import           Prelude
 import           Control.Monad (void)
 import           Data.Aeson
 import           Data.IORef (newIORef)
+import qualified Data.Scientific as Sci
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -49,18 +50,8 @@ mkSelect = do
 instance IHaskellWidget Select where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "selected_label"] of
-      Just (String label) -> do
-        opts <- getField widget Options
-        case opts of
-          OptionLabels _ -> do
-            void $ setField' widget SelectedLabel label
-            void $ setField' widget SelectedValue label
-          OptionDict ps ->
-            case lookup label ps of
-              Nothing -> pure ()
-              Just value -> do
-                void $ setField' widget SelectedLabel label
-                void $ setField' widget SelectedValue value
+    case nestedObjectLookup val ["state", "index"] of
+      Just (Number index) -> do
+        void $ setField' widget Index (Sci.coefficient index)
         triggerSelection widget
       _ -> pure ()

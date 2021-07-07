@@ -136,10 +136,10 @@ type StringClass = DOMWidgetClass :++ ['S.StringValue, 'S.Disabled, 'S.Descripti
 
 type BoolClass = DOMWidgetClass :++ ['S.BoolValue, 'S.Disabled, 'S.Description, 'S.ChangeHandler]
 
-type SelectionClass = DOMWidgetClass :++ ['S.Options, 'S.SelectedValue, 'S.SelectedLabel, 'S.Disabled,
+type SelectionClass = DOMWidgetClass :++ ['S.Options, 'S.Index, 'S.Disabled,
   'S.Description, 'S.SelectionHandler]
 
-type MultipleSelectionClass = DOMWidgetClass :++ ['S.Options, 'S.SelectedValues, 'S.SelectedLabels, 'S.Disabled,
+type MultipleSelectionClass = DOMWidgetClass :++ ['S.Options, 'S.Indices, 'S.Disabled,
   'S.Description, 'S.SelectionHandler]
 
 type IntClass = DOMWidgetClass :++ ['S.IntValue, 'S.Disabled, 'S.Description, 'S.ChangeHandler]
@@ -202,13 +202,11 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.ImageFormat = ImageFormatValue
         FieldType 'S.BoolValue = Bool
         FieldType 'S.Options = SelectionOptions
-        FieldType 'S.SelectedLabel = Text
-        FieldType 'S.SelectedValue = Text
+        FieldType 'S.Index = Integer
         FieldType 'S.SelectionHandler = IO ()
         FieldType 'S.Tooltips = [Text]
         FieldType 'S.Icons = [Text]
-        FieldType 'S.SelectedLabels = [Text]
-        FieldType 'S.SelectedValues = [Text]
+        FieldType 'S.Indices = [Integer]
         FieldType 'S.IntValue = Integer
         FieldType 'S.StepInt = Integer
         FieldType 'S.MinInt = Integer
@@ -490,11 +488,8 @@ instance ToPairs (Attr 'S.ImageFormat) where
 instance ToPairs (Attr 'S.BoolValue) where
   toPairs x = ["value" .= toJSON x]
 
-instance ToPairs (Attr 'S.SelectedLabel) where
-  toPairs x = ["selected_label" .= toJSON x]
-
-instance ToPairs (Attr 'S.SelectedValue) where
-  toPairs x = ["value" .= toJSON x]
+instance ToPairs (Attr 'S.Index) where
+  toPairs x = ["index" .= toJSON x]
 
 instance ToPairs (Attr 'S.Options) where
   toPairs x =
@@ -514,11 +509,8 @@ instance ToPairs (Attr 'S.Tooltips) where
 instance ToPairs (Attr 'S.Icons) where
   toPairs x = ["icons" .= toJSON x]
 
-instance ToPairs (Attr 'S.SelectedLabels) where
-  toPairs x = ["selected_labels" .= toJSON x]
-
-instance ToPairs (Attr 'S.SelectedValues) where
-  toPairs x = ["values" .= toJSON x]
+instance ToPairs (Attr 'S.Indices) where
+  toPairs x = ["index" .= toJSON x]
 
 instance ToPairs (Attr 'S.IntValue) where
   toPairs x = ["value" .= toJSON x]
@@ -710,8 +702,7 @@ defaultSelectionWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec
 defaultSelectionWidget viewName modelName = defaultDOMWidget viewName modelName <+> selectionAttrs
   where
     selectionAttrs = (Options =:: OptionLabels [])
-                     :& (SelectedValue =:: "")
-                     :& (SelectedLabel =:: "")
+                     :& (Index =:: 0)
                      :& (Disabled =:: False)
                      :& (Description =:: "")
                      :& (SelectionHandler =:: return ())
@@ -722,8 +713,7 @@ defaultMultipleSelectionWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelNam
 defaultMultipleSelectionWidget viewName modelName = defaultDOMWidget viewName modelName <+> mulSelAttrs
   where
     mulSelAttrs = (Options =:: OptionLabels [])
-                  :& (SelectedValues =:: [])
-                  :& (SelectedLabels =:: [])
+                  :& (Indices =:: [])
                   :& (Disabled =:: False)
                   :& (Description =:: "")
                   :& (SelectionHandler =:: return ())
