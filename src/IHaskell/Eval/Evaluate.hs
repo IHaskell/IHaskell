@@ -677,6 +677,15 @@ evalCommand _ (Directive GetKind expr) state = wrapExecution state $ do
   let typeStr = showSDocUnqual flags $ ppr kind
   return $ formatType $ expr ++ " :: " ++ typeStr
 
+evalCommand _ (Directive GetKindBang expr) state = wrapExecution state $ do
+  write state $ "Kind!: " ++ expr
+  (typ, kind) <- GHC.typeKind True expr
+  flags <- getSessionDynFlags
+  let kindStr = text expr <+> dcolon <+> ppr kind
+  let typeStr = equals <+> ppr typ
+  let finalStr = showSDocUnqual flags $ vcat [kindStr, typeStr]
+  return $ formatType finalStr
+
 evalCommand _ (Directive LoadFile names) state = wrapExecution state $ do
   write state $ "Load: " ++ names
 
