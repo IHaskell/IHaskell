@@ -25,7 +25,7 @@ import           Data.Vector             (toList)
 import           Network.HTTP.Client
 import           Network.HTTP.Client.TLS
 
-import           StringUtils             (replace, split, strip)
+import           StringUtils             (replace, split, splitFirst, strip)
 
 -- | Types of formats to render output to.
 data OutputFormat = Plain      -- ^ Render to plain text.
@@ -193,7 +193,7 @@ renderSelf string loc
                 packageSub package
 
   | otherwise =
-      let [name, args] = split "::" string
+      let [name, args] = splitFirst "::" string
           package = extractPackageName loc
           modname = extractModuleName loc
       in span "hoogle-name"
