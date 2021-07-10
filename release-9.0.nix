@@ -1,7 +1,7 @@
 let
   nixpkgs-src = builtins.fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/tarball/5d4dc79acbb98f935f55fec733c16c0d730cbdeb";
-    sha256 = "197h9bqsjl0na7nfvkll587pjx7vwd3jswab73wxlkcbwx4j66zf";
+    url = "https://github.com/NixOS/nixpkgs/tarball/d136ae17bc720b93f99333e950839c464c41b716";
+    sha256 = "17r60s8mwvlv1djc9kasn8qhgnvk327sqabpscqssp5nklj906i4";
   };
 in
 { compiler ? "ghc901"
@@ -57,18 +57,13 @@ let
       inline-r          = nixpkgs.haskell.lib.dontCheck super.inline-r;
       static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
 
-      cryptohash-md5    = nixpkgs.haskell.lib.doJailbreak super.cryptohash-md5;
-      cryptohash-sha1   = nixpkgs.haskell.lib.doJailbreak super.cryptohash-sha1;
-      memory            = nixpkgs.haskell.lib.appendPatch (nixpkgs.haskell.lib.doJailbreak super.memory) (nixpkgs.fetchpatch {
-        url = "https://gitlab.haskell.org/ghc/head.hackage/-/raw/c89c1e27af8f180b3be476e102147557f922b224/patches/memory-0.15.0.patch";
-        sha256 = "0mkjbrzi05h1xds8rf5wfky176hrl03q0d7ipklp9x4ls3yyqj5x";
+      hlint = super.hlint_3_3_1.overrideScope (self: super: {
+        ghc-lib-parser = nixpkgs.haskell.lib.overrideCabal self.ghc-lib-parser_9_0_1_20210324 {
+          doHaddock = false;
+        };
+        ghc-lib-parser-ex = self.ghc-lib-parser-ex_9_0_0_4;
       });
-      cryptonite        = nixpkgs.haskell.lib.appendPatch super.cryptonite (nixpkgs.fetchpatch {
-        url = "https://gitlab.haskell.org/ghc/head.hackage/-/raw/6a65307bbdc73c5eb4165a67ee97c7b9faa818e1/patches/cryptonite-0.28.patch";
-        sha256 = "1wq9hw16qj2yqy7lyqbi7106lhk199hvnkj5xr7h0ip854gjsr5j";
-      });
-      profunctors       = self.profunctors_5_6_2;
-      mono-traversable  = nixpkgs.haskell.lib.dontCheck super.mono-traversable;
+
     } // displays self);
   });
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
