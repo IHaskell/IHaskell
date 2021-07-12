@@ -76,6 +76,7 @@ library
                        IHaskell.Display.Widgets.Float.BoundedFloat.BoundedFloatText
                        IHaskell.Display.Widgets.Float.BoundedFloat.FloatProgress
                        IHaskell.Display.Widgets.Float.BoundedFloat.FloatSlider
+                       IHaskell.Display.Widgets.Float.BoundedFloat.FloatLogSlider
                        IHaskell.Display.Widgets.Float.BoundedFloatRange.FloatRangeSlider
                        IHaskell.Display.Widgets.Image
                        IHaskell.Display.Widgets.Output

@@ -35,7 +35,7 @@ mkFloatProgress = do
   -- Default properties, with a random uuid
   wid <- U.random
 
-  let boundedFloatAttrs = defaultBoundedFloatWidget "ProgressView" "ProgressModel"
+  let boundedFloatAttrs = defaultBoundedFloatWidget "ProgressView" "FloatProgressModel"
       progressAttrs = (Orientation =:: HorizontalOrientation)
                       :& (BarStyle =:: DefaultBar)
                       :& RNil

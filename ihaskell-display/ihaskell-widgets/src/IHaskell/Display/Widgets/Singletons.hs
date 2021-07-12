@@ -88,6 +88,7 @@ singletons
              | LowerFloat
              | UpperFloat
              | Orientation
+             | BaseFloat
              | ShowRange
              | ReadOut
              | SliderColor

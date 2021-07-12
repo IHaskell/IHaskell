@@ -5,11 +5,11 @@
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
-module IHaskell.Display.Widgets.Int.BoundedInt.BoundedIntText
-  ( -- * The BoundedIntText Widget
-    BoundedIntText
+module IHaskell.Display.Widgets.Float.BoundedFloat.FloatLogSlider
+  ( -- * The FloatSlider Widget
+    FloatLogSlider
     -- * Constructor
-  , mkBoundedIntText
+  , mkFloatLogSlider
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -19,6 +19,7 @@ import           Control.Monad (void)
 import           Data.Aeson
 import           Data.IORef (newIORef)
 import qualified Data.Scientific as Sci
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -27,16 +28,23 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | 'BoundedIntText' represents an BoundedIntText widget from IPython.html.widgets.
-type BoundedIntText = IPythonWidget 'BoundedIntTextType
+-- | 'FloatLogSlider' represents an FloatLogSlider widget from IPython.html.widgets.
+type FloatLogSlider = IPythonWidget 'FloatLogSliderType
 
 -- | Create a new widget
-mkBoundedIntText :: IO BoundedIntText
-mkBoundedIntText = do
+mkFloatLogSlider :: IO FloatLogSlider
+mkFloatLogSlider = do
   -- Default properties, with a random uuid
   wid <- U.random
 
-  let widgetState = WidgetState $ defaultBoundedIntWidget "IntTextView" "BoundedIntTextModel"
+  let boundedFloatAttrs = defaultBoundedFloatWidget "FloatLogSliderView" "FloatLogSliderModel"
+      sliderAttrs = (Orientation =:: HorizontalOrientation)
+                    :& (ShowRange =:: False)
+                    :& (ReadOut =:: True)
+                    :& (SliderColor =:: "")
+                    :& (BaseFloat =:: 10.0)
+                    :& RNil
+      widgetState = WidgetState $ boundedFloatAttrs <+> sliderAttrs
 
   stateIO <- newIORef widgetState
 
@@ -48,11 +56,11 @@ mkBoundedIntText = do
   -- Return the widget
   return widget
 
-instance IHaskellWidget BoundedIntText where
+instance IHaskellWidget FloatLogSlider where
   getCommUUID = uuid
   comm widget val _ =
     case nestedObjectLookup val ["state", "value"] of
       Just (Number value) -> do
-        void $ setField' widget IntValue (Sci.coefficient value)
+        void $ setField' widget FloatValue (Sci.toRealFloat value)
         triggerChange widget
       _ -> pure ()

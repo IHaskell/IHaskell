@@ -82,6 +82,7 @@ pattern FloatPairValue = S.SFloatPairValue
 pattern LowerFloat = S.SLowerFloat
 pattern UpperFloat = S.SUpperFloat
 pattern Orientation = S.SOrientation
+pattern BaseFloat = S.SBaseFloat
 pattern ShowRange = S.SShowRange
 pattern ReadOut = S.SReadOut
 pattern SliderColor = S.SSliderColor

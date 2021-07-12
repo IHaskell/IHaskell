@@ -215,6 +215,7 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.UpperInt = Integer
         FieldType 'S.IntPairValue = (Integer, Integer)
         FieldType 'S.Orientation = OrientationValue
+        FieldType 'S.BaseFloat = Double
         FieldType 'S.ShowRange = Bool
         FieldType 'S.ReadOut = Bool
         FieldType 'S.SliderColor = Text
@@ -289,6 +290,7 @@ data WidgetType = ButtonType
                 | FloatTextType
                 | BoundedFloatTextType
                 | FloatSliderType
+                | FloatLogSliderType
                 | FloatProgressType
                 | FloatRangeSliderType
                 | BoxType
@@ -341,6 +343,9 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'FloatSliderType =
                   BoundedFloatClass :++
                     ['S.Orientation, 'S.ShowRange, 'S.ReadOut, 'S.SliderColor]
+  WidgetFields 'FloatLogSliderType =
+                  BoundedFloatClass :++ 
+                    ['S.Orientation, 'S.ShowRange, 'S.ReadOut, 'S.SliderColor, 'S.BaseFloat]
   WidgetFields 'FloatProgressType =
                   BoundedFloatClass :++ ['S.Orientation, 'S.BarStyle]
   WidgetFields 'FloatRangeSliderType =
@@ -556,6 +561,9 @@ instance ToPairs (Attr 'S.UpperFloat) where
 
 instance ToPairs (Attr 'S.Orientation) where
   toPairs x = ["orientation" .= toJSON x]
+
+instance ToPairs (Attr 'S.BaseFloat) where
+  toPairs x = ["base" .= toJSON x]
 
 instance ToPairs (Attr 'S.ShowRange) where
   toPairs x = ["_range" .= toJSON x]

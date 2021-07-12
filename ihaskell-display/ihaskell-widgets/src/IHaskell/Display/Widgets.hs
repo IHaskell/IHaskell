@@ -20,6 +20,7 @@ import           IHaskell.Display.Widgets.Float.FloatText as X
 import           IHaskell.Display.Widgets.Float.BoundedFloat.BoundedFloatText as X
 import           IHaskell.Display.Widgets.Float.BoundedFloat.FloatProgress as X
 import           IHaskell.Display.Widgets.Float.BoundedFloat.FloatSlider as X
+import           IHaskell.Display.Widgets.Float.BoundedFloat.FloatLogSlider as X
 import           IHaskell.Display.Widgets.Float.BoundedFloatRange.FloatRangeSlider as X
 
 import           IHaskell.Display.Widgets.Image as X
