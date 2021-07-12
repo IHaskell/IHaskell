@@ -271,6 +271,7 @@ data WidgetType = ButtonType
                 | ImageType
                 | OutputType
                 | HTMLType
+                | HTMLMathType
                 | LabelType
                 | TextType
                 | TextAreaType
@@ -309,6 +310,7 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
                   DOMWidgetClass :++ ['S.ImageFormat, 'S.Width, 'S.Height, 'S.B64Value]
   WidgetFields 'OutputType = DOMWidgetClass
   WidgetFields 'HTMLType = StringClass
+  WidgetFields 'HTMLMathType = StringClass
   WidgetFields 'LabelType = StringClass
   WidgetFields 'TextType =
                   StringClass :++ ['S.SubmitHandler, 'S.ChangeHandler]

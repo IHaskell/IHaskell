@@ -34,6 +34,7 @@ import           IHaskell.Display.Widgets.Selection.ToggleButtons as X
 import           IHaskell.Display.Widgets.Selection.SelectMultiple as X
 
 import           IHaskell.Display.Widgets.String.HTML as X
+import           IHaskell.Display.Widgets.String.HTMLMath as X
 import           IHaskell.Display.Widgets.String.Label as X
 import           IHaskell.Display.Widgets.String.Text as X
 import           IHaskell.Display.Widgets.String.TextArea as X

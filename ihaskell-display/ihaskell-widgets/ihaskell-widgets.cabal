@@ -86,6 +86,7 @@ library
                        IHaskell.Display.Widgets.Selection.ToggleButtons
                        IHaskell.Display.Widgets.Selection.SelectMultiple
                        IHaskell.Display.Widgets.String.HTML
+                       IHaskell.Display.Widgets.String.HTMLMath
                        IHaskell.Display.Widgets.String.Label
                        IHaskell.Display.Widgets.String.Text
                        IHaskell.Display.Widgets.String.TextArea
