@@ -62,6 +62,7 @@ data DirectiveType = GetType      -- ^ Get the type of an expression via ':type'
                    | SearchHoogle -- ^ Search for something via Hoogle.
                    | GetDoc       -- ^ Get documentation for an identifier via Hoogle.
                    | GetKind      -- ^ Get the kind of a type via ':kind'.
+                   | GetKindBang  -- ^ Get the kind and normalised type via ':kind!'.
                    | LoadModule   -- ^ Load and unload modules via ':module'.
                    | SPrint       -- ^ Print without evaluating via ':sprint'.
   deriving (Show, Eq)
@@ -277,6 +278,7 @@ parseDirective (':':directive) ln =
       [ (LoadModule, "module")
       , (GetType, "type")
       , (GetKind, "kind")
+      , (GetKindBang, "kind!")
       , (GetInfo, "info")
       , (SearchHoogle, "hoogle")
       , (GetDoc, "documentation")
