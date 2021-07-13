@@ -30,6 +30,8 @@ import           IHaskell.Display.Widgets.Output as X
 import           IHaskell.Display.Widgets.Selection.Dropdown as X
 import           IHaskell.Display.Widgets.Selection.RadioButtons as X
 import           IHaskell.Display.Widgets.Selection.Select as X
+import           IHaskell.Display.Widgets.Selection.SelectionSlider as X
+import           IHaskell.Display.Widgets.Selection.SelectionRangeSlider as X
 import           IHaskell.Display.Widgets.Selection.ToggleButtons as X
 import           IHaskell.Display.Widgets.Selection.SelectMultiple as X
 

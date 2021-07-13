@@ -6,7 +6,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module IHaskell.Display.Widgets.String.HTMLMath
-  ( -- * The HTML Widget
+  ( -- * The HTMLMath Widget
     HTMLMathWidget
     -- * Constructor
   , mkHTMLMathWidget

@@ -281,6 +281,8 @@ data WidgetType = ButtonType
                 | DropdownType
                 | RadioButtonsType
                 | SelectType
+                | SelectionSliderType
+                | SelectionRangeSliderType
                 | ToggleButtonsType
                 | SelectMultipleType
                 | IntTextType
@@ -327,6 +329,8 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'DropdownType = SelectionClass :++ '[ 'S.ButtonStyle]
   WidgetFields 'RadioButtonsType = SelectionClass
   WidgetFields 'SelectType = SelectionClass
+  WidgetFields 'SelectionSliderType = SelectionClass :++ '[ 'S.Orientation ]
+  WidgetFields 'SelectionRangeSliderType = MultipleSelectionClass :++ '[ 'S.Orientation ]
   WidgetFields 'ToggleButtonsType =
                   SelectionClass :++ ['S.Tooltips, 'S.Icons, 'S.ButtonStyle]
   WidgetFields 'SelectMultipleType = MultipleSelectionClass
