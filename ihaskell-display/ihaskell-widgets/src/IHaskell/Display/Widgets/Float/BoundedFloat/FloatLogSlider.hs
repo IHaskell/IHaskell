@@ -19,7 +19,7 @@ import           Control.Monad (void)
 import           Data.Aeson
 import           Data.IORef (newIORef)
 import qualified Data.Scientific as Sci
-import           Data.Vinyl (Rec(..), (<+>))
+import           Data.Vinyl (Rec(..), (<+>), rput)
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -44,7 +44,8 @@ mkFloatLogSlider = do
                     :& (SliderColor =:: "")
                     :& (BaseFloat =:: 10.0)
                     :& RNil
-      widgetState = WidgetState $ boundedFloatAttrs <+> sliderAttrs
+      widgetState = WidgetState $ rput (MaxFloat =:: 4.0)
+                                $ boundedFloatAttrs <+> sliderAttrs
 
   stateIO <- newIORef widgetState
 

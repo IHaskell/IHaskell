@@ -334,7 +334,7 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'ToggleButtonsType =
                   SelectionClass :++ ['S.Tooltips, 'S.Icons, 'S.ButtonStyle]
   WidgetFields 'SelectMultipleType = MultipleSelectionClass
-  WidgetFields 'IntTextType = IntClass
+  WidgetFields 'IntTextType = IntClass :++ '[ 'S.StepInt ]
   WidgetFields 'BoundedIntTextType = BoundedIntClass
   WidgetFields 'IntSliderType =
                   BoundedIntClass :++
@@ -344,7 +344,7 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'IntRangeSliderType =
                   BoundedIntRangeClass :++
                     ['S.Orientation, 'S.ShowRange, 'S.ReadOut, 'S.SliderColor]
-  WidgetFields 'FloatTextType = FloatClass
+  WidgetFields 'FloatTextType = FloatClass :++ '[ 'S.StepFloat ]
   WidgetFields 'BoundedFloatTextType = BoundedFloatClass
   WidgetFields 'FloatSliderType =
                   BoundedFloatClass :++
@@ -784,7 +784,7 @@ defaultFloatWidget viewName modelName = defaultDOMWidget viewName modelName <+> 
 defaultBoundedFloatWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr BoundedFloatClass
 defaultBoundedFloatWidget viewName modelName = defaultFloatWidget viewName modelName <+> boundedFloatAttrs
   where
-    boundedFloatAttrs = (StepFloat =:+ 1)
+    boundedFloatAttrs = (StepFloat =:+ 0.1)
                         :& (MinFloat =:: 0)
                         :& (MaxFloat =:: 100)
                         :& RNil

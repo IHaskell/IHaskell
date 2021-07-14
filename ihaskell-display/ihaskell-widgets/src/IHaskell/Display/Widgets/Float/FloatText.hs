@@ -19,6 +19,7 @@ import           Control.Monad (void)
 import           Data.Aeson
 import           Data.IORef (newIORef)
 import qualified Data.Scientific as Sci
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -36,7 +37,10 @@ mkFloatText = do
   -- Default properties, with a random uuid
   wid <- U.random
 
-  let widgetState = WidgetState $ defaultFloatWidget "FloatTextView" "FloatTextModel"
+  let floatAttrs = defaultFloatWidget "FloatTextView" "FloatTextModel"
+      textAttrs = (StepFloat =:+ 0.1)
+                  :& RNil
+      widgetState = WidgetState $ floatAttrs <+> textAttrs
 
   stateIO <- newIORef widgetState
 
