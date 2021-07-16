@@ -163,7 +163,7 @@ liftToWidgets func rc initvals = do
   -- Set initial values for all widgets
   setInitialValues initializers widgets initvals
   -- applyValueSetters valueSetters widgets $ getList defvals
-  setField out Width 500
+  -- setField out Width 500
   -- TODO This can't be set right now since we switched FlexBox to a regular
   --      Box. This is a styling/layout parameter now but these haven't been implemented yet.
   -- setField bx Orientation VerticalOrientation

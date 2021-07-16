@@ -38,10 +38,12 @@ mkFloatSlider = do
   wid <- U.random
 
   let boundedFloatAttrs = defaultBoundedFloatWidget "FloatSliderView" "FloatSliderModel"
-      sliderAttrs = (Orientation =:: HorizontalOrientation)
-                    :& (ShowRange =:: False)
+      sliderAttrs = (StepFloat =:: Just 0.1)
+                    :& (Orientation =:: HorizontalOrientation)
                     :& (ReadOut =:: True)
-                    :& (SliderColor =:: "")
+                    :& (ReadOutFormat =:: ".2f")
+                    :& (ContinuousUpdate =:: True)
+                    :& (Disabled =:: False)
                     :& RNil
       widgetState = WidgetState $ boundedFloatAttrs <+> sliderAttrs
 

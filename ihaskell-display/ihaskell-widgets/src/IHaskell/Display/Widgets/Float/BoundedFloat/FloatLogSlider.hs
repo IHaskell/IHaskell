@@ -19,7 +19,7 @@ import           Control.Monad (void)
 import           Data.Aeson
 import           Data.IORef (newIORef)
 import qualified Data.Scientific as Sci
-import           Data.Vinyl (Rec(..), (<+>), rput)
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -37,15 +37,16 @@ mkFloatLogSlider = do
   -- Default properties, with a random uuid
   wid <- U.random
 
-  let boundedFloatAttrs = defaultBoundedFloatWidget "FloatLogSliderView" "FloatLogSliderModel"
-      sliderAttrs = (Orientation =:: HorizontalOrientation)
-                    :& (ShowRange =:: False)
+  let boundedLogFloatAttrs = defaultBoundedLogFloatWidget "FloatLogSliderView" "FloatLogSliderModel"
+      sliderAttrs = (StepFloat =:: Just 0.1)
+                    :& (Orientation =:: HorizontalOrientation)
                     :& (ReadOut =:: True)
-                    :& (SliderColor =:: "")
+                    :& (ReadOutFormat =:: ".3g")
+                    :& (ContinuousUpdate =:: True)
+                    :& (Disabled =:: False)
                     :& (BaseFloat =:: 10.0)
                     :& RNil
-      widgetState = WidgetState $ rput (MaxFloat =:: 4.0)
-                                $ boundedFloatAttrs <+> sliderAttrs
+      widgetState = WidgetState $ boundedLogFloatAttrs <+> sliderAttrs
 
   stateIO <- newIORef widgetState
 

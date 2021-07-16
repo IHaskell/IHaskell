@@ -39,10 +39,12 @@ mkIntRangeSlider = do
   wid <- U.random
 
   let boundedIntAttrs = defaultBoundedIntRangeWidget "IntRangeSliderView" "IntRangeSliderModel"
-      sliderAttrs = (Orientation =:: HorizontalOrientation)
-                    :& (ShowRange =:: True)
+      sliderAttrs = (StepInt =:: Just 1)
+                    :& (Orientation =:: HorizontalOrientation)
                     :& (ReadOut =:: True)
-                    :& (SliderColor =:: "")
+                    :& (ReadOutFormat =:: "d")
+                    :& (ContinuousUpdate =:: True)
+                    :& (Disabled =:: False)
                     :& RNil
       widgetState = WidgetState $ boundedIntAttrs <+> sliderAttrs
 

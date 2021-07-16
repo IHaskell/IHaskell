@@ -38,23 +38,9 @@ singletons
              | ModelModuleVersion
              | ModelName
              | DisplayHandler
-             | Visible
-             | CSS
              | DOMClasses
              | Width
              | Height
-             | Padding
-             | Margin
-             | Color
-             | BackgroundColor
-             | BorderColor
-             | BorderWidth
-             | BorderRadius
-             | BorderStyle
-             | FontStyle
-             | FontWeight
-             | FontSize
-             | FontFamily
              | Description
              | ClickHandler
              | SubmitHandler
@@ -89,9 +75,8 @@ singletons
              | UpperFloat
              | Orientation
              | BaseFloat
-             | ShowRange
              | ReadOut
-             | SliderColor
+             | ReadOutFormat
              | BarStyle
              | ChangeHandler
              | Children
@@ -104,7 +89,11 @@ singletons
              | Titles
              | SelectedIndex
              | ReadOutMsg
+             | Indent
              | Child
              | Selector
+             | ContinuousUpdate
+             | Tabbable
+             | Rows
              deriving (Eq, Ord, Show)
   |]

@@ -35,15 +35,13 @@ mkButton = do
   -- Default properties, with a random uuid
   wid <- U.random
 
-  let dom = defaultDOMWidget "ButtonView" "ButtonModel"
-      but = (Description =:: "")
-            :& (Tooltip =:: "")
-            :& (Disabled =:: False)
+  let ddw = defaultDescriptionWidget "ButtonView" "ButtonModel"
+      but = (Disabled =:: False)
             :& (Icon =:: "")
             :& (ButtonStyle =:: DefaultButton)
             :& (ClickHandler =:: return ())
             :& RNil
-      buttonState = WidgetState (dom <+> but)
+      buttonState = WidgetState (ddw <+> but)
 
   stateIO <- newIORef buttonState
 

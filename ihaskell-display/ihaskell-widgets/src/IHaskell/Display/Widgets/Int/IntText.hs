@@ -38,7 +38,9 @@ mkIntText = do
   wid <- U.random
 
   let intAttrs = defaultIntWidget "IntTextView" "IntTextModel"
-      textAttrs = (StepInt =:+ 1)
+      textAttrs = (Disabled =:: False)
+                  :& (ContinuousUpdate =:: False)
+                  :& (StepInt =:: Just 1)
                   :& RNil
       widgetState = WidgetState $ intAttrs <+> textAttrs
 

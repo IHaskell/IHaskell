@@ -19,6 +19,7 @@ import           Control.Monad (void)
 import           Data.Aeson
 import           Data.IORef (newIORef)
 import qualified Data.Scientific as Sci
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -36,7 +37,12 @@ mkBoundedIntText = do
   -- Default properties, with a random uuid
   wid <- U.random
 
-  let widgetState = WidgetState $ defaultBoundedIntWidget "IntTextView" "BoundedIntTextModel"
+  let boundedIntAttrs = defaultBoundedIntWidget "IntTextView" "BoundedIntTextModel"
+      textAttrs = (Disabled =:: False)
+                  :& (ContinuousUpdate =:: False)
+                  :& (StepInt =:: Just 1)
+                  :& RNil
+      widgetState = WidgetState $ boundedIntAttrs <+> textAttrs
 
   stateIO <- newIORef widgetState
 

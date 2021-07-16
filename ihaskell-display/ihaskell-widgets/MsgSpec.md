@@ -31,7 +31,7 @@ The initial state must *at least* have the following fields in the `data.state` 
   - `_view_module_version`
   - `_view_name`
 
-You can see more info on the model state of widgets [here](https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/jupyterwidgetmodels.v8.md).
+You can see more info on the model state of widgets [here](https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/jupyterwidgetmodels.v8.md), or as a json definition [here](https://github.com/jupyter-widgets/ipywidgets/blob/79312fb164e058c3a2fddd9f3ef35493515ed64b/packages/schema/jupyterwidgetmodels.latest.json)
 
 > Warning!: By default there are two widgets modules: `@jupyter-widgets/controls` and `@jupyter-widgets/base`.
 

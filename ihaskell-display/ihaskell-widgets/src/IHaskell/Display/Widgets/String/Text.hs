@@ -36,7 +36,11 @@ mkTextWidget = do
   -- Default properties, with a random uuid
   wid <- U.random
   let strWidget = defaultStringWidget "TextView" "TextModel"
-      txtWidget = (SubmitHandler =:: return ()) :& (ChangeHandler =:: return ()) :& RNil
+      txtWidget = (Disabled =:: False)
+                  :& (ContinuousUpdate =:: True)
+                  :& (SubmitHandler =:: return ())
+                  :& (ChangeHandler =:: return ())
+                  :& RNil
       widgetState = WidgetState $ strWidget <+> txtWidget
 
   stateIO <- newIORef widgetState

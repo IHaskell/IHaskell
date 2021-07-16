@@ -35,7 +35,11 @@ mkTextArea = do
   -- Default properties, with a random uuid
   wid <- U.random
   let strAttrs = defaultStringWidget "TextareaView" "TextareaModel"
-      wgtAttrs = (ChangeHandler =:: return ()) :& RNil
+      wgtAttrs = (Rows =:: Nothing)
+                 :& (Disabled =:: False)
+                 :& (ContinuousUpdate =:: True)
+                 :& (ChangeHandler =:: return ())
+                 :& RNil
       widgetState = WidgetState $ strAttrs <+> wgtAttrs
 
   stateIO <- newIORef widgetState

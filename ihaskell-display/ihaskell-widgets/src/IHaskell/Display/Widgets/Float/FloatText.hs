@@ -38,7 +38,9 @@ mkFloatText = do
   wid <- U.random
 
   let floatAttrs = defaultFloatWidget "FloatTextView" "FloatTextModel"
-      textAttrs = (StepFloat =:+ 0.1)
+      textAttrs = (Disabled =:: False)
+                  :& (ContinuousUpdate =:: False)
+                  :& (StepFloat =:: Nothing)
                   :& RNil
       widgetState = WidgetState $ floatAttrs <+> textAttrs
 

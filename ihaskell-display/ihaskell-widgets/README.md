@@ -14,3 +14,9 @@ then remove the output from the Nootebooks with:
 ```bash
 jupyter nbconvert *.ipynb --to notebook --inplace --clear-output
 ```
+
+## Things to do
+- [ ] Validate the JSON implementation of widgets against the MsgSpec schema
+- [ ] Create integration tests for the widgets
+- [ ] Make the `output` widget work
+- [ ] Processing of widget messages concurrently

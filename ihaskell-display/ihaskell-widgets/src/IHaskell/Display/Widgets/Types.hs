@@ -124,17 +124,15 @@ type (a :++ b) = a ++ b
 #endif
 
 -- Classes from IPython's widget hierarchy. Defined as such to reduce code duplication.
-type WidgetClass = ['S.ViewModule, 'S.ViewModuleVersion, 'S.ViewName, 
-  'S.ModelModule, 'S.ModelModuleVersion, 'S.ModelName, 'S.DisplayHandler]
+type CoreWidgetClass = ['S.ViewModule, 'S.ViewModuleVersion, 'S.ModelModule, 'S.ModelModuleVersion ]
 
-type DOMWidgetClass = WidgetClass :++ ['S.Visible, 'S.CSS, 'S.DOMClasses, 'S.Width, 'S.Height, 'S.Padding,
-  'S.Margin, 'S.Color, 'S.BackgroundColor, 'S.BorderColor, 'S.BorderWidth,
-  'S.BorderRadius, 'S.BorderStyle, 'S.FontStyle, 'S.FontWeight,
-  'S.FontSize, 'S.FontFamily]
+type DOMWidgetClass = ['S.ModelName, 'S.ViewName, 'S.DOMClasses, 'S.Tabbable, 'S.Tooltip, 'S.DisplayHandler] -- TODO: Add layout
 
-type StringClass = DOMWidgetClass :++ ['S.StringValue, 'S.Disabled, 'S.Description, 'S.Placeholder]
+type DescriptionWidgetClass = CoreWidgetClass ++ DOMWidgetClass :++ '[ 'S.Description ]
 
-type BoolClass = DOMWidgetClass :++ ['S.BoolValue, 'S.Disabled, 'S.Description, 'S.ChangeHandler]
+type StringClass = DescriptionWidgetClass :++ ['S.StringValue, 'S.Placeholder]
+
+type BoolClass = DescriptionWidgetClass :++ ['S.BoolValue, 'S.Disabled, 'S.ChangeHandler]
 
 type SelectionClass = DOMWidgetClass :++ ['S.Options, 'S.Index, 'S.Disabled,
   'S.Description, 'S.SelectionHandler]
@@ -142,19 +140,21 @@ type SelectionClass = DOMWidgetClass :++ ['S.Options, 'S.Index, 'S.Disabled,
 type MultipleSelectionClass = DOMWidgetClass :++ ['S.Options, 'S.Indices, 'S.Disabled,
   'S.Description, 'S.SelectionHandler]
 
-type IntClass = DOMWidgetClass :++ ['S.IntValue, 'S.Disabled, 'S.Description, 'S.ChangeHandler]
+type IntClass = DescriptionWidgetClass :++ [ 'S.IntValue, 'S.ChangeHandler ]
 
-type BoundedIntClass = IntClass :++ ['S.StepInt, 'S.MinInt, 'S.MaxInt]
+type BoundedIntClass = IntClass :++ ['S.MaxInt, 'S.MinInt]
 
 type IntRangeClass = IntClass :++ ['S.IntPairValue, 'S.LowerInt, 'S.UpperInt]
 
-type BoundedIntRangeClass = IntRangeClass :++ ['S.StepInt, 'S.MinInt, 'S.MaxInt]
+type BoundedIntRangeClass = IntRangeClass :++ ['S.MaxInt, 'S.MinInt]
 
-type FloatClass = DOMWidgetClass :++ ['S.FloatValue, 'S.Disabled, 'S.Description, 'S.ChangeHandler]
+type FloatClass = DescriptionWidgetClass :++ [ 'S.FloatValue, 'S.ChangeHandler ]
 
-type BoundedFloatClass = FloatClass :++ ['S.StepFloat, 'S.MinFloat, 'S.MaxFloat]
+type BoundedFloatClass = FloatClass :++ ['S.MinFloat, 'S.MaxFloat]
 
-type FloatRangeClass = FloatClass :++ ['S.FloatPairValue, 'S.LowerFloat, 'S.UpperFloat]
+type BoundedLogFloatClass = FloatClass :++ [ 'S.MinFloat, 'S.MaxFloat, 'S.BaseFloat ]
+
+type FloatRangeClass = FloatClass :++ '[ 'S.FloatPairValue ]
 
 type BoundedFloatRangeClass = FloatRangeClass :++ ['S.StepFloat, 'S.MinFloat, 'S.MaxFloat]
 
@@ -172,30 +172,16 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.ModelModuleVersion = Text
         FieldType 'S.ModelName = Text
         FieldType 'S.DisplayHandler = IO ()
-        FieldType 'S.Visible = Bool
-        FieldType 'S.CSS = [(Text, Text, Text)]
         FieldType 'S.DOMClasses = [Text]
         FieldType 'S.Width = PixCount
         FieldType 'S.Height = PixCount
-        FieldType 'S.Padding = PixCount
-        FieldType 'S.Margin = PixCount
-        FieldType 'S.Color = Text
-        FieldType 'S.BackgroundColor = Text
-        FieldType 'S.BorderColor = Text
-        FieldType 'S.BorderWidth = PixCount
-        FieldType 'S.BorderRadius = PixCount
-        FieldType 'S.BorderStyle = BorderStyleValue
-        FieldType 'S.FontStyle = FontStyleValue
-        FieldType 'S.FontWeight = FontWeightValue
-        FieldType 'S.FontSize = PixCount
-        FieldType 'S.FontFamily = Text
         FieldType 'S.Description = Text
         FieldType 'S.ClickHandler = IO ()
         FieldType 'S.SubmitHandler = IO ()
         FieldType 'S.Disabled = Bool
         FieldType 'S.StringValue = Text
         FieldType 'S.Placeholder = Text
-        FieldType 'S.Tooltip = Text
+        FieldType 'S.Tooltip = Maybe Text
         FieldType 'S.Icon = Text
         FieldType 'S.ButtonStyle = ButtonStyleValue
         FieldType 'S.B64Value = Base64
@@ -208,7 +194,7 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.Icons = [Text]
         FieldType 'S.Indices = [Integer]
         FieldType 'S.IntValue = Integer
-        FieldType 'S.StepInt = Integer
+        FieldType 'S.StepInt = Maybe Integer
         FieldType 'S.MinInt = Integer
         FieldType 'S.MaxInt = Integer
         FieldType 'S.LowerInt = Integer
@@ -216,12 +202,11 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.IntPairValue = (Integer, Integer)
         FieldType 'S.Orientation = OrientationValue
         FieldType 'S.BaseFloat = Double
-        FieldType 'S.ShowRange = Bool
         FieldType 'S.ReadOut = Bool
-        FieldType 'S.SliderColor = Text
+        FieldType 'S.ReadOutFormat = Text
         FieldType 'S.BarStyle = BarStyleValue
         FieldType 'S.FloatValue = Double
-        FieldType 'S.StepFloat = Double
+        FieldType 'S.StepFloat = Maybe Double
         FieldType 'S.MinFloat = Double
         FieldType 'S.MaxFloat = Double
         FieldType 'S.LowerFloat = Double
@@ -238,8 +223,12 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.Titles = [Text]
         FieldType 'S.SelectedIndex = Integer
         FieldType 'S.ReadOutMsg = Text
+        FieldType 'S.Indent = Bool
         FieldType 'S.Child = Maybe ChildWidget
         FieldType 'S.Selector = Text
+        FieldType 'S.ContinuousUpdate = Bool
+        FieldType 'S.Tabbable = Maybe Bool
+        FieldType 'S.Rows = Maybe Integer
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
 data ChildWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => ChildWidget (IPythonWidget w)
@@ -304,10 +293,8 @@ data WidgetType = ButtonType
 
 type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'ButtonType =
-                  DOMWidgetClass :++
-                    ['S.Description, 'S.Tooltip, 'S.Disabled, 'S.Icon, 'S.ButtonStyle
-                    ,'S.ClickHandler
-                    ]
+                  DescriptionWidgetClass :++
+                    ['S.Disabled, 'S.Icon, 'S.ButtonStyle ,'S.ClickHandler]
   WidgetFields 'ImageType =
                   DOMWidgetClass :++ ['S.ImageFormat, 'S.Width, 'S.Height, 'S.B64Value]
   WidgetFields 'OutputType = DOMWidgetClass
@@ -315,17 +302,19 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'HTMLMathType = StringClass
   WidgetFields 'LabelType = StringClass
   WidgetFields 'TextType =
-                  StringClass :++ ['S.SubmitHandler, 'S.ChangeHandler]
+                  StringClass :++
+                    [ 'S.Disabled, 'S.ContinuousUpdate, 'S.SubmitHandler, 'S.ChangeHandler]
 
   -- Type level lists with a single element need both the list and the
   -- constructor ticked, and a space between the open square bracket and
   -- the first constructor. See https://ghc.haskell.org/trac/ghc/ticket/15601
-  WidgetFields 'TextAreaType = StringClass :++ '[ 'S.ChangeHandler]
+  WidgetFields 'TextAreaType =
+                  StringClass :++
+                    [ 'S.Rows, 'S.Disabled, 'S.ContinuousUpdate, 'S.ChangeHandler]
 
-  WidgetFields 'CheckBoxType = BoolClass
-  WidgetFields 'ToggleButtonType =
-                  BoolClass :++ ['S.Tooltip, 'S.Icon, 'S.ButtonStyle]
-  WidgetFields 'ValidType = BoolClass :++ '[ 'S.ReadOutMsg]
+  WidgetFields 'CheckBoxType = BoolClass :++ '[ 'S.Indent ]
+  WidgetFields 'ToggleButtonType = BoolClass :++ ['S.Icon, 'S.ButtonStyle]
+  WidgetFields 'ValidType = BoolClass :++ '[ 'S.ReadOutMsg ]
   WidgetFields 'DropdownType = SelectionClass :++ '[ 'S.ButtonStyle]
   WidgetFields 'RadioButtonsType = SelectionClass
   WidgetFields 'SelectType = SelectionClass
@@ -334,29 +323,29 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'ToggleButtonsType =
                   SelectionClass :++ ['S.Tooltips, 'S.Icons, 'S.ButtonStyle]
   WidgetFields 'SelectMultipleType = MultipleSelectionClass
-  WidgetFields 'IntTextType = IntClass :++ '[ 'S.StepInt ]
-  WidgetFields 'BoundedIntTextType = BoundedIntClass
+  WidgetFields 'IntTextType = IntClass :++ [ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepInt ]
+  WidgetFields 'BoundedIntTextType = BoundedIntClass :++ [ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepInt ]
   WidgetFields 'IntSliderType =
                   BoundedIntClass :++
-                    ['S.Orientation, 'S.ShowRange, 'S.ReadOut, 'S.SliderColor]
+                    [ 'S.StepInt, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled ]
   WidgetFields 'IntProgressType =
                   BoundedIntClass :++ ['S.Orientation, 'S.BarStyle]
   WidgetFields 'IntRangeSliderType =
                   BoundedIntRangeClass :++
-                    ['S.Orientation, 'S.ShowRange, 'S.ReadOut, 'S.SliderColor]
-  WidgetFields 'FloatTextType = FloatClass :++ '[ 'S.StepFloat ]
-  WidgetFields 'BoundedFloatTextType = BoundedFloatClass
+                    ['S.StepInt, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled ]
+  WidgetFields 'FloatTextType = FloatClass :++ '[ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepFloat ]
+  WidgetFields 'BoundedFloatTextType = BoundedFloatClass :++ '[ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepFloat ]
   WidgetFields 'FloatSliderType =
                   BoundedFloatClass :++
-                    ['S.Orientation, 'S.ShowRange, 'S.ReadOut, 'S.SliderColor]
+                    ['S.StepFloat, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled ]
   WidgetFields 'FloatLogSliderType =
-                  BoundedFloatClass :++ 
-                    ['S.Orientation, 'S.ShowRange, 'S.ReadOut, 'S.SliderColor, 'S.BaseFloat]
+                  BoundedLogFloatClass :++
+                    ['S.StepFloat, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled, 'S.BaseFloat]
   WidgetFields 'FloatProgressType =
                   BoundedFloatClass :++ ['S.Orientation, 'S.BarStyle]
   WidgetFields 'FloatRangeSliderType =
                   BoundedFloatRangeClass :++
-                    ['S.Orientation, 'S.ShowRange, 'S.ReadOut, 'S.SliderColor]
+                    ['S.StepFloat, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled ]
   WidgetFields 'BoxType = BoxClass
   WidgetFields 'AccordionType = SelectionContainerClass
   WidgetFields 'TabType = SelectionContainerClass
@@ -383,7 +372,7 @@ getFieldType Attr { _value = attrval } = typeOf $ unwrap attrval
 instance ToJSON (FieldType f) => ToJSON (Attr f) where
   toJSON attr =
     case _value attr of
-      Dummy _ -> ""
+      Dummy _ -> object []
       Real x  -> toJSON x
 
 -- Types that can be converted to Aeson Pairs.
@@ -412,12 +401,6 @@ instance ToPairs (Attr 'S.ModelName) where
 instance ToPairs (Attr 'S.DisplayHandler) where
   toPairs _ = [] -- Not sent to the frontend
 
-instance ToPairs (Attr 'S.Visible) where
-  toPairs x = ["visible" .= toJSON x]
-
-instance ToPairs (Attr 'S.CSS) where
-  toPairs x = ["_css" .= toJSON x]
-
 instance ToPairs (Attr 'S.DOMClasses) where
   toPairs x = ["_dom_classes" .= toJSON x]
 
@@ -426,42 +409,6 @@ instance ToPairs (Attr 'S.Width) where
 
 instance ToPairs (Attr 'S.Height) where
   toPairs x = ["height" .= toJSON x]
-
-instance ToPairs (Attr 'S.Padding) where
-  toPairs x = ["padding" .= toJSON x]
-
-instance ToPairs (Attr 'S.Margin) where
-  toPairs x = ["margin" .= toJSON x]
-
-instance ToPairs (Attr 'S.Color) where
-  toPairs x = ["color" .= toJSON x]
-
-instance ToPairs (Attr 'S.BackgroundColor) where
-  toPairs x = ["background_color" .= toJSON x]
-
-instance ToPairs (Attr 'S.BorderColor) where
-  toPairs x = ["border_color" .= toJSON x]
-
-instance ToPairs (Attr 'S.BorderWidth) where
-  toPairs x = ["border_width" .= toJSON x]
-
-instance ToPairs (Attr 'S.BorderRadius) where
-  toPairs x = ["border_radius" .= toJSON x]
-
-instance ToPairs (Attr 'S.BorderStyle) where
-  toPairs x = ["border_style" .= toJSON x]
-
-instance ToPairs (Attr 'S.FontStyle) where
-  toPairs x = ["font_style" .= toJSON x]
-
-instance ToPairs (Attr 'S.FontWeight) where
-  toPairs x = ["font_weight" .= toJSON x]
-
-instance ToPairs (Attr 'S.FontSize) where
-  toPairs x = ["font_size" .= toJSON x]
-
-instance ToPairs (Attr 'S.FontFamily) where
-  toPairs x = ["font_family" .= toJSON x]
 
 instance ToPairs (Attr 'S.Description) where
   toPairs x = ["description" .= toJSON x]
@@ -571,14 +518,11 @@ instance ToPairs (Attr 'S.Orientation) where
 instance ToPairs (Attr 'S.BaseFloat) where
   toPairs x = ["base" .= toJSON x]
 
-instance ToPairs (Attr 'S.ShowRange) where
-  toPairs x = ["_range" .= toJSON x]
-
 instance ToPairs (Attr 'S.ReadOut) where
   toPairs x = ["readout" .= toJSON x]
 
-instance ToPairs (Attr 'S.SliderColor) where
-  toPairs x = ["slider_color" .= toJSON x]
+instance ToPairs (Attr 'S.ReadOutFormat) where
+  toPairs x = ["readout_format" .= toJSON x]
 
 instance ToPairs (Attr 'S.BarStyle) where
   toPairs x = ["bar_style" .= toJSON x]
@@ -616,11 +560,23 @@ instance ToPairs (Attr 'S.SelectedIndex) where
 instance ToPairs (Attr 'S.ReadOutMsg) where
   toPairs x = ["readout" .= toJSON x]
 
+instance ToPairs (Attr 'S.Indent) where
+  toPairs x = ["indent" .= toJSON x]
+
 instance ToPairs (Attr 'S.Child) where
   toPairs x = ["child" .= toJSON x]
 
 instance ToPairs (Attr 'S.Selector) where
   toPairs x = ["selector" .= toJSON x]
+
+instance ToPairs (Attr 'S.ContinuousUpdate) where
+  toPairs x = ["continuous_update" .= toJSON x]
+
+instance ToPairs (Attr 'S.Tabbable) where
+  toPairs x = ["tabbable" .= toJSON x]
+
+instance ToPairs (Attr 'S.Rows) where
+  toPairs x = ["rows" .= toJSON x]
 
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.
@@ -658,56 +614,44 @@ reflect :: forall (f :: Field). (SingI f) => Sing f -> Field
 reflect = fromSing
 
 -- | A record representing a Widget class from IPython from the controls modules
-defaultControlWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr WidgetClass
-defaultControlWidget viewName modelName = (ViewModule =:: "@jupyter-widgets/controls")
-                                   :& (ViewModuleVersion =:: "1.4.0")
-                                   :& (ViewName =:: viewName)
-                                   :& (ModelModule =:: "@jupyter-widgets/controls")
-                                   :& (ModelModuleVersion =:: "1.4.0")
-                                   :& (ModelName =:: modelName)
-                                   :& (DisplayHandler =:: return ())
-                                   :& RNil
+defaultCoreWidget :: Rec Attr CoreWidgetClass
+defaultCoreWidget = (ViewModule =:: "@jupyter-widgets/controls")
+                    :& (ViewModuleVersion =:: "1.4.0")
+                    :& (ModelModule =:: "@jupyter-widgets/controls")
+                    :& (ModelModuleVersion =:: "1.4.0")
+                    :& RNil
 
 -- | A record representing an object of the DOMWidget class from IPython
 defaultDOMWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr DOMWidgetClass
-defaultDOMWidget viewName modelName = defaultControlWidget viewName modelName <+> domAttrs
+defaultDOMWidget viewName modelName = (ModelName =:: modelName)
+                                      :& (ViewName =:: viewName)
+                                      :& (DOMClasses =:: [])
+                                      :& (Tabbable =:: Nothing)
+                                      :& (Tooltip =:: Nothing)
+                                      :& (DisplayHandler =:: return ())
+                                      :& RNil
+
+-- | A record representing an object of the DescriptionWidget class from IPython
+defaultDescriptionWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr DescriptionWidgetClass
+defaultDescriptionWidget viewName modelName = defaultCoreWidget <+> defaultDOMWidget viewName modelName <+> descriptionAttrs
   where
-    domAttrs = (Visible =:: True)
-               :& (CSS =:: [])
-               :& (DOMClasses =:: [])
-               :& (Width =:+ 0)
-               :& (Height =:+ 0)
-               :& (Padding =:+ 0)
-               :& (Margin =:+ 0)
-               :& (Color =:: "")
-               :& (BackgroundColor =:: "")
-               :& (BorderColor =:: "")
-               :& (BorderWidth =:+ 0)
-               :& (BorderRadius =:+ 0)
-               :& (BorderStyle =:: DefaultBorder)
-               :& (FontStyle =:: DefaultFont)
-               :& (FontWeight =:: DefaultWeight)
-               :& (FontSize =:+ 0)
-               :& (FontFamily =:: "")
-               :& RNil
+    descriptionAttrs = (Description =:: "")
+                       :& RNil
 
 -- | A record representing a widget of the _String class from IPython
 defaultStringWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr StringClass
-defaultStringWidget viewName modelName = defaultDOMWidget viewName modelName <+> strAttrs
+defaultStringWidget viewName modelName = defaultDescriptionWidget viewName modelName <+> strAttrs
   where
     strAttrs = (StringValue =:: "")
-               :& (Disabled =:: False)
-               :& (Description =:: "")
                :& (Placeholder =:: "")
                :& RNil
 
 -- | A record representing a widget of the _Bool class from IPython
 defaultBoolWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr BoolClass
-defaultBoolWidget viewName modelName = defaultDOMWidget viewName modelName <+> boolAttrs
+defaultBoolWidget viewName modelName = defaultDescriptionWidget viewName modelName <+> boolAttrs
   where
     boolAttrs = (BoolValue =:: False)
                 :& (Disabled =:: False)
-                :& (Description =:: "")
                 :& (ChangeHandler =:: return ())
                 :& RNil
 
@@ -735,11 +679,9 @@ defaultMultipleSelectionWidget viewName modelName = defaultDOMWidget viewName mo
 
 -- | A record representing a widget of the _Int class from IPython
 defaultIntWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr IntClass
-defaultIntWidget viewName modelName = defaultDOMWidget viewName modelName <+> intAttrs
+defaultIntWidget viewName modelName = defaultDescriptionWidget viewName modelName <+> intAttrs
   where
     intAttrs = (IntValue =:: 0)
-               :& (Disabled =:: False)
-               :& (Description =:: "")
                :& (ChangeHandler =:: return ())
                :& RNil
 
@@ -747,9 +689,8 @@ defaultIntWidget viewName modelName = defaultDOMWidget viewName modelName <+> in
 defaultBoundedIntWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr BoundedIntClass
 defaultBoundedIntWidget viewName modelName = defaultIntWidget viewName modelName <+> boundedIntAttrs
   where
-    boundedIntAttrs = (StepInt =:: 1)
+    boundedIntAttrs = (MaxInt =:: 100)
                       :& (MinInt =:: 0)
-                      :& (MaxInt =:: 100)
                       :& RNil
 
 -- | A record representing a widget of the _BoundedInt class from IPython
@@ -765,18 +706,15 @@ defaultIntRangeWidget viewName modelName = defaultIntWidget viewName modelName <
 defaultBoundedIntRangeWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr BoundedIntRangeClass
 defaultBoundedIntRangeWidget viewName modelName = defaultIntRangeWidget viewName modelName <+> boundedIntRangeAttrs
   where
-    boundedIntRangeAttrs = (StepInt =:+ 1)
+    boundedIntRangeAttrs = (MaxInt =:: 100)
                            :& (MinInt =:: 0)
-                           :& (MaxInt =:: 100)
                            :& RNil
 
 -- | A record representing a widget of the _Float class from IPython
 defaultFloatWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr FloatClass
-defaultFloatWidget viewName modelName = defaultDOMWidget viewName modelName <+> intAttrs
+defaultFloatWidget viewName modelName = defaultDescriptionWidget viewName modelName <+> floatAttrs
   where
-    intAttrs = (FloatValue =:: 0)
-               :& (Disabled =:: False)
-               :& (Description =:: "")
+    floatAttrs = (FloatValue =:: 0.0)
                :& (ChangeHandler =:: return ())
                :& RNil
 
@@ -784,25 +722,32 @@ defaultFloatWidget viewName modelName = defaultDOMWidget viewName modelName <+> 
 defaultBoundedFloatWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr BoundedFloatClass
 defaultBoundedFloatWidget viewName modelName = defaultFloatWidget viewName modelName <+> boundedFloatAttrs
   where
-    boundedFloatAttrs = (StepFloat =:+ 0.1)
-                        :& (MinFloat =:: 0)
+    boundedFloatAttrs = (MinFloat =:: 0)
                         :& (MaxFloat =:: 100)
                         :& RNil
+
+-- | A record representing a widget of the _BoundedLogFloat class from IPython
+defaultBoundedLogFloatWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr BoundedLogFloatClass
+defaultBoundedLogFloatWidget viewName modelName = floatAttrs <+> boundedLogFloatAttrs
+  where
+    floatAttrs = rput (FloatValue =:: 1.0) $ defaultFloatWidget viewName modelName
+    boundedLogFloatAttrs = (MinFloat =:: 0.0)
+                           :& (MaxFloat =:: 4.0)
+                           :& (BaseFloat =:: 10.0)
+                           :& RNil
 
 -- | A record representing a widget of the _BoundedFloat class from IPython
 defaultFloatRangeWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr FloatRangeClass
 defaultFloatRangeWidget viewName modelName = defaultFloatWidget viewName modelName <+> rangeAttrs
   where
-    rangeAttrs = (FloatPairValue =:: (25, 75))
-                 :& (LowerFloat =:: 0)
-                 :& (UpperFloat =:: 100)
+    rangeAttrs = (FloatPairValue =:: (0.0, 1.0))
                  :& RNil
 
 -- | A record representing a widget of the _BoundedFloatRange class from IPython
 defaultBoundedFloatRangeWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr BoundedFloatRangeClass
 defaultBoundedFloatRangeWidget viewName modelName = defaultFloatRangeWidget viewName modelName <+> boundedFloatRangeAttrs
   where
-    boundedFloatRangeAttrs = (StepFloat =:+ 1)
+    boundedFloatRangeAttrs = (StepFloat =:: Just 1)
                              :& (MinFloat =:: 0)
                              :& (MaxFloat =:: 100)
                              :& RNil

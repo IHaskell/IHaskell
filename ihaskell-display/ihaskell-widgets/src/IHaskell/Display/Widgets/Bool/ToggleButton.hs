@@ -37,8 +37,7 @@ mkToggleButton = do
   wid <- U.random
 
   let boolState = defaultBoolWidget "ToggleButtonView" "ToggleButtonModel"
-      toggleState = (Tooltip =:: "")
-                    :& (Icon =:: "")
+      toggleState = (Icon =:: "")
                     :& (ButtonStyle =:: DefaultButton)
                     :& RNil
       widgetState = WidgetState (boolState <+> toggleState)

@@ -19,6 +19,7 @@ import           Control.Monad (void)
 import           Data.Aeson
 import           Data.IORef (newIORef)
 import qualified Data.Scientific as Sci
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -36,7 +37,12 @@ mkBoundedFloatText = do
   -- Default properties, with a random uuid
   wid <- U.random
 
-  let widgetState = WidgetState $ defaultBoundedFloatWidget "FloatTextView" "BoundedFloatTextModel"
+  let boundedFloatAttrs = defaultBoundedFloatWidget "FloatTextView" "BoundedFloatTextModel"
+      textAttrs = (Disabled =:: False)
+                  :& (ContinuousUpdate =:: False)
+                  :& (StepFloat =:: Nothing)
+                  :& RNil
+      widgetState = WidgetState $ boundedFloatAttrs <+> textAttrs
 
   stateIO <- newIORef widgetState
 
