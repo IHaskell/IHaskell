@@ -20,6 +20,7 @@ import           Data.Aeson
 import           Data.IORef (newIORef)
 import qualified Data.Scientific as Sci
 import qualified Data.Vector as V
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -36,7 +37,10 @@ mkSelectMultiple :: IO SelectMultiple
 mkSelectMultiple = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let widgetState = WidgetState $ defaultMultipleSelectionWidget "SelectMultipleView" "SelectMultipleModel"
+  let multipleSelectionAttrs = defaultMultipleSelectionWidget "SelectMultipleView" "SelectMultipleModel"
+      selectMultipleAttrs = (Rows =:: Just 5)
+                            :& RNil
+      widgetState = WidgetState $ multipleSelectionAttrs <+> selectMultipleAttrs
 
   stateIO <- newIORef widgetState
 

@@ -19,6 +19,7 @@ import           Control.Monad (void)
 import           Data.Aeson
 import           Data.IORef (newIORef)
 import qualified Data.Scientific as Sci
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -35,7 +36,10 @@ mkSelect :: IO Select
 mkSelect = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let widgetState = WidgetState $ defaultSelectionWidget "SelectView" "SelectModel"
+  let selectionAttrs = defaultSelectionWidget "SelectView" "SelectModel"
+      selectAttrs = (Rows =:: Just 5)
+                    :& RNil
+      widgetState = WidgetState $ selectionAttrs <+> selectAttrs
 
   stateIO <- newIORef widgetState
 
@@ -52,6 +56,6 @@ instance IHaskellWidget Select where
   comm widget val _ =
     case nestedObjectLookup val ["state", "index"] of
       Just (Number index) -> do
-        void $ setField' widget Index (Sci.coefficient index)
+        void $ setField' widget OptionalIndex (Just $ Sci.coefficient index)
         triggerSelection widget
       _ -> pure ()

@@ -52,6 +52,6 @@ instance IHaskellWidget RadioButtons where
   comm widget val _ =
     case nestedObjectLookup val ["state", "index"] of
       Just (Number index) -> do
-        void $ setField' widget Index (Sci.coefficient index)
+        void $ setField' widget OptionalIndex (Just $ Sci.coefficient index)
         triggerSelection widget
       _ -> pure ()

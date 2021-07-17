@@ -55,6 +55,7 @@ singletons
              | BoolValue
              | Options
              | Index
+             | OptionalIndex
              | SelectionHandler
              | Tooltips
              | Icons

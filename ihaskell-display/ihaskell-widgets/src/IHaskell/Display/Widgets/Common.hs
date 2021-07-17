@@ -48,6 +48,7 @@ pattern B64Value = S.SB64Value
 pattern ImageFormat = S.SImageFormat
 pattern BoolValue = S.SBoolValue
 pattern Options = S.SOptions
+pattern OptionalIndex = S.SOptionalIndex
 pattern Index = S.SIndex
 pattern SelectionHandler = S.SSelectionHandler
 pattern Tooltips = S.STooltips

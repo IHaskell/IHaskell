@@ -37,9 +37,11 @@ mkSelectionRangeSlider :: IO SelectionRangeSlider
 mkSelectionRangeSlider = do
   wid <- U.random
   let selectionAttrs = defaultMultipleSelectionWidget "SelectionRangeSliderView" "SelectionRangeSliderModel"
-      widgetState = WidgetState $ rput (Indices =:: [0,0]) $ selectionAttrs <+>
-        (Orientation =:: HorizontalOrientation)
-        :& RNil
+      selectionRangeSliderAttrs = (Orientation =:: HorizontalOrientation)
+                                  :& (ReadOut =:: True)
+                                  :& (ContinuousUpdate =:: True)
+                                  :& RNil
+      widgetState = WidgetState $ rput (Indices =:: [0,0]) $ selectionAttrs <+> selectionRangeSliderAttrs
 
   stateIO <- newIORef widgetState
 

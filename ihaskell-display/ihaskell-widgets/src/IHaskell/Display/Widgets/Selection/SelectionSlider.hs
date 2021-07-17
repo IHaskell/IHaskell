@@ -35,10 +35,12 @@ type SelectionSlider = IPythonWidget 'SelectionSliderType
 mkSelectionSlider :: IO SelectionSlider
 mkSelectionSlider = do
   wid <- U.random
-  let selectionAttrs = defaultSelectionWidget "SelectionSliderView" "SelectionSliderModel"
-      widgetState = WidgetState $ selectionAttrs <+>
-        (Orientation =:: HorizontalOrientation)
-        :& RNil
+  let selectionAttrs = defaultSelectionNonemptyWidget "SelectionSliderView" "SelectionSliderModel"
+      selectionSliderAttrs = (Orientation =:: HorizontalOrientation)
+                             :& (ReadOut =:: True)
+                             :& (ContinuousUpdate =:: True)
+                             :& RNil
+      widgetState = WidgetState $ selectionAttrs <+> selectionSliderAttrs
 
   stateIO <- newIORef widgetState
 

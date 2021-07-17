@@ -36,9 +36,7 @@ mkDropdown :: IO Dropdown
 mkDropdown = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let selectionAttrs = defaultSelectionWidget "DropdownView" "DropdownModel"
-      dropdownAttrs = (ButtonStyle =:: DefaultButton) :& RNil
-      widgetState = WidgetState $ selectionAttrs <+> dropdownAttrs
+  let widgetState = WidgetState $ defaultSelectionWidget "DropdownView" "DropdownModel"
 
   stateIO <- newIORef widgetState
 
@@ -55,6 +53,6 @@ instance IHaskellWidget Dropdown where
   comm widget val _ =
     case nestedObjectLookup val ["state", "index"] of
       Just (Number index) -> do
-        void $ setField' widget Index (Sci.coefficient index)
+        void $ setField' widget OptionalIndex (Just $ Sci.coefficient index)
         triggerSelection widget
       _ -> pure ()

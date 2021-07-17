@@ -134,11 +134,11 @@ type StringClass = DescriptionWidgetClass :++ ['S.StringValue, 'S.Placeholder]
 
 type BoolClass = DescriptionWidgetClass :++ ['S.BoolValue, 'S.Disabled, 'S.ChangeHandler]
 
-type SelectionClass = DOMWidgetClass :++ ['S.Options, 'S.Index, 'S.Disabled,
-  'S.Description, 'S.SelectionHandler]
+type SelectionClass = DescriptionWidgetClass :++ ['S.Options, 'S.OptionalIndex, 'S.Disabled, 'S.SelectionHandler]
 
-type MultipleSelectionClass = DOMWidgetClass :++ ['S.Options, 'S.Indices, 'S.Disabled,
-  'S.Description, 'S.SelectionHandler]
+type SelectionNonemptyClass = DescriptionWidgetClass :++ ['S.Options, 'S.Index, 'S.Disabled, 'S.SelectionHandler]
+
+type MultipleSelectionClass = DescriptionWidgetClass :++ ['S.Options, 'S.Indices, 'S.Disabled, 'S.SelectionHandler]
 
 type IntClass = DescriptionWidgetClass :++ [ 'S.IntValue, 'S.ChangeHandler ]
 
@@ -189,6 +189,7 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.BoolValue = Bool
         FieldType 'S.Options = SelectionOptions
         FieldType 'S.Index = Integer
+        FieldType 'S.OptionalIndex = Maybe Integer
         FieldType 'S.SelectionHandler = IO ()
         FieldType 'S.Tooltips = [Text]
         FieldType 'S.Icons = [Text]
@@ -315,14 +316,14 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'CheckBoxType = BoolClass :++ '[ 'S.Indent ]
   WidgetFields 'ToggleButtonType = BoolClass :++ ['S.Icon, 'S.ButtonStyle]
   WidgetFields 'ValidType = BoolClass :++ '[ 'S.ReadOutMsg ]
-  WidgetFields 'DropdownType = SelectionClass :++ '[ 'S.ButtonStyle]
+  WidgetFields 'DropdownType = SelectionClass
   WidgetFields 'RadioButtonsType = SelectionClass
-  WidgetFields 'SelectType = SelectionClass
-  WidgetFields 'SelectionSliderType = SelectionClass :++ '[ 'S.Orientation ]
-  WidgetFields 'SelectionRangeSliderType = MultipleSelectionClass :++ '[ 'S.Orientation ]
+  WidgetFields 'SelectType = SelectionClass :++ '[ 'S.Rows ]
+  WidgetFields 'SelectionSliderType = SelectionNonemptyClass :++ '[ 'S.Orientation, 'S.ReadOut, 'S.ContinuousUpdate ]
+  WidgetFields 'SelectionRangeSliderType = MultipleSelectionClass :++ '[ 'S.Orientation, 'S.ReadOut, 'S.ContinuousUpdate ]
   WidgetFields 'ToggleButtonsType =
                   SelectionClass :++ ['S.Tooltips, 'S.Icons, 'S.ButtonStyle]
-  WidgetFields 'SelectMultipleType = MultipleSelectionClass
+  WidgetFields 'SelectMultipleType = MultipleSelectionClass ++ '[ S.Rows ]
   WidgetFields 'IntTextType = IntClass :++ [ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepInt ]
   WidgetFields 'BoundedIntTextType = BoundedIntClass :++ [ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepInt ]
   WidgetFields 'IntSliderType =
@@ -447,6 +448,9 @@ instance ToPairs (Attr 'S.BoolValue) where
   toPairs x = ["value" .= toJSON x]
 
 instance ToPairs (Attr 'S.Index) where
+  toPairs x = ["index" .= toJSON x]
+
+instance ToPairs (Attr 'S.OptionalIndex) where
   toPairs x = ["index" .= toJSON x]
 
 instance ToPairs (Attr 'S.Options) where
@@ -657,23 +661,31 @@ defaultBoolWidget viewName modelName = defaultDescriptionWidget viewName modelNa
 
 -- | A record representing a widget of the _Selection class from IPython
 defaultSelectionWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr SelectionClass
-defaultSelectionWidget viewName modelName = defaultDOMWidget viewName modelName <+> selectionAttrs
+defaultSelectionWidget viewName modelName = defaultDescriptionWidget viewName modelName <+> selectionAttrs
+  where
+    selectionAttrs = (Options =:: OptionLabels [])
+                     :& (OptionalIndex =:: Nothing)
+                     :& (Disabled =:: False)
+                     :& (SelectionHandler =:: return ())
+                     :& RNil
+
+-- | A record representing a widget of the _SelectionNonempty class from IPython
+defaultSelectionNonemptyWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr SelectionNonemptyClass
+defaultSelectionNonemptyWidget viewName modelName = defaultDescriptionWidget viewName modelName <+> selectionAttrs
   where
     selectionAttrs = (Options =:: OptionLabels [])
                      :& (Index =:: 0)
                      :& (Disabled =:: False)
-                     :& (Description =:: "")
                      :& (SelectionHandler =:: return ())
                      :& RNil
 
 -- | A record representing a widget of the _MultipleSelection class from IPython
 defaultMultipleSelectionWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr MultipleSelectionClass
-defaultMultipleSelectionWidget viewName modelName = defaultDOMWidget viewName modelName <+> mulSelAttrs
+defaultMultipleSelectionWidget viewName modelName = defaultDescriptionWidget viewName modelName <+> mulSelAttrs
   where
     mulSelAttrs = (Options =:: OptionLabels [])
                   :& (Indices =:: [])
                   :& (Disabled =:: False)
-                  :& (Description =:: "")
                   :& (SelectionHandler =:: return ())
                   :& RNil
 
