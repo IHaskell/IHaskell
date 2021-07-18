@@ -128,7 +128,7 @@ type CoreWidgetClass = ['S.ViewModule, 'S.ViewModuleVersion, 'S.ModelModule, 'S.
 
 type DOMWidgetClass = ['S.ModelName, 'S.ViewName, 'S.DOMClasses, 'S.Tabbable, 'S.Tooltip, 'S.DisplayHandler] -- TODO: Add layout
 
-type DescriptionWidgetClass = CoreWidgetClass ++ DOMWidgetClass :++ '[ 'S.Description ]
+type DescriptionWidgetClass = CoreWidgetClass :++ DOMWidgetClass :++ '[ 'S.Description ]
 
 type StringClass = DescriptionWidgetClass :++ ['S.StringValue, 'S.Placeholder]
 
@@ -323,7 +323,7 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'SelectionRangeSliderType = MultipleSelectionClass :++ '[ 'S.Orientation, 'S.ReadOut, 'S.ContinuousUpdate ]
   WidgetFields 'ToggleButtonsType =
                   SelectionClass :++ ['S.Tooltips, 'S.Icons, 'S.ButtonStyle]
-  WidgetFields 'SelectMultipleType = MultipleSelectionClass ++ '[ S.Rows ]
+  WidgetFields 'SelectMultipleType = MultipleSelectionClass :++ '[ 'S.Rows ]
   WidgetFields 'IntTextType = IntClass :++ [ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepInt ]
   WidgetFields 'BoundedIntTextType = BoundedIntClass :++ [ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepInt ]
   WidgetFields 'IntSliderType =
@@ -587,6 +587,10 @@ instance ToPairs (Attr 'S.Rows) where
 (=::) :: (SingI f, Typeable (FieldType f)) => Sing f -> FieldType f -> Attr f
 s =:: x = Attr { _value = Real x, _verify = return, _field = reflect s }
 
+-- | Store the value for a field, with a custom verification
+(=:.) :: (SingI f, Typeable (FieldType f)) => Sing f -> (FieldType f, FieldType f -> IO (FieldType f) ) -> Attr f
+s =:. (x,v) = Attr { _value = Real x, _verify = v, _field = reflect s }
+
 -- | If the number is in the range, return it. Otherwise raise the appropriate (over/under)flow
 -- exception.
 rangeCheck :: (Num a, Ord a) => (a, a) -> a -> IO a
@@ -595,6 +599,12 @@ rangeCheck (l, u) x
   | l > x = Ex.throw Ex.Underflow
   | u < x = Ex.throw Ex.Overflow
   | otherwise = error "The impossible happened in IHaskell.Display.Widgets.Types.rangeCheck"
+
+rangeSliderVerification :: [Integer] -> IO [Integer]
+rangeSliderVerification xs@[a,b]
+  | a <= b    = return xs
+  | otherwise = Ex.throw $ Ex.AssertionFailed "The first index should be smaller than the second"
+rangeSliderVerification _ = Ex.throw $ Ex.AssertionFailed "There should be two indices"
 
 -- | Store a numeric value, with verification mechanism for its range.
 ranged :: (SingI f, Num (FieldType f), Ord (FieldType f), Typeable (FieldType f))

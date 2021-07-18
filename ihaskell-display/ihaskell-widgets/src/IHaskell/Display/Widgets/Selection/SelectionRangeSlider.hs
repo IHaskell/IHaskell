@@ -41,7 +41,7 @@ mkSelectionRangeSlider = do
                                   :& (ReadOut =:: True)
                                   :& (ContinuousUpdate =:: True)
                                   :& RNil
-      widgetState = WidgetState $ rput (Indices =:: [0,0]) $ selectionAttrs <+> selectionRangeSliderAttrs
+      widgetState = WidgetState $ rput (Indices =:. ([0,0], rangeSliderVerification)) $ selectionAttrs <+> selectionRangeSliderAttrs
 
   stateIO <- newIORef widgetState
 
