@@ -5,7 +5,7 @@
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module IHaskell.Display.Widgets.Image
+module IHaskell.Display.Widgets.Media.Image
   ( -- * The Image Widget
     ImageWidget
     -- * Constructor
@@ -36,13 +36,12 @@ mkImageWidget = do
   -- Default properties, with a random uuid
   wid <- U.random
 
-  let dom = defaultDOMWidget "ImageView" "ImageModel"
-      img = (ImageFormat =:: PNG)
-            :& (Width =:+ 0)
-            :& (Height =:+ 0)
-            :& (B64Value =:: mempty)
-            :& RNil
-      widgetState = WidgetState (dom <+> img)
+  let mediaAttrs = defaultMediaWidget "ImageView" "ImageModel"
+      imageAttrs = (ImageFormat =:: PNG)
+              :& (Width =:+ 0)
+              :& (Height =:+ 0)
+              :& RNil
+      widgetState = WidgetState (mediaAttrs <+> imageAttrs)
 
   stateIO <- newIORef widgetState
 
@@ -56,3 +55,4 @@ mkImageWidget = do
 
 instance IHaskellWidget ImageWidget where
   getCommUUID = uuid
+  getBufferPaths _ = [["value"]]

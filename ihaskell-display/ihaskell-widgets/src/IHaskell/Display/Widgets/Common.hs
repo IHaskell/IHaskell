@@ -44,7 +44,7 @@ pattern Placeholder = S.SPlaceholder
 pattern Tooltip = S.STooltip
 pattern Icon = S.SIcon
 pattern ButtonStyle = S.SButtonStyle
-pattern B64Value = S.SB64Value
+pattern BSValue = S.SBSValue
 pattern ImageFormat = S.SImageFormat
 pattern BoolValue = S.SBoolValue
 pattern Options = S.SOptions
@@ -90,6 +90,11 @@ pattern Selector = S.SSelector
 pattern ContinuousUpdate = S.SContinuousUpdate
 pattern Tabbable = S.STabbable
 pattern Rows = S.SRows
+pattern AudioFormat = S.SAudioFormat
+pattern VideoFormat = S.SVideoFormat
+pattern AutoPlay = S.SAutoPlay
+pattern Loop = S.SLoop
+pattern Controls = S.SControls
 
 -- | Close a widget's comm
 closeWidget :: IHaskellWidget w => w -> IO ()
@@ -195,18 +200,50 @@ instance ToJSON BarStyleValue where
   toJSON DangerBar = "danger"
   toJSON DefaultBar = ""
 
+-- | Audio formats for AudioWidget
+data AudioFormatValue = MP3
+                      | OGG
+                      | WAV
+                      | AURL
+  deriving (Eq, Typeable)
+
+instance Show AudioFormatValue where
+  show MP3 = "mp3"
+  show OGG = "ogg"
+  show WAV = "wav"
+  show AURL = "url"
+
+instance ToJSON AudioFormatValue where
+  toJSON = toJSON . pack . show
+
 -- | Image formats for ImageWidget
 data ImageFormatValue = PNG
                       | SVG
                       | JPG
+                      | IURL
   deriving (Eq, Typeable)
 
 instance Show ImageFormatValue where
   show PNG = "png"
   show SVG = "svg"
   show JPG = "jpg"
+  show IURL = "url"
 
 instance ToJSON ImageFormatValue where
+  toJSON = toJSON . pack . show
+
+-- | Video formats for VideoWidget
+data VideoFormatValue = MP4
+                      | WEBM
+                      | VURL
+  deriving (Eq, Typeable)
+
+instance Show VideoFormatValue where
+  show MP4 = "mp4"
+  show WEBM = "webm"
+  show VURL = "url"
+
+instance ToJSON VideoFormatValue where
   toJSON = toJSON . pack . show
 
 -- | Options for selection widgets.

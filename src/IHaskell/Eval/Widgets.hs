@@ -20,6 +20,7 @@ import           Control.Monad (foldM)
 import           Data.Aeson
 import           Data.Aeson.Types (emptyArray)
 import           Data.ByteString.Lazy (toStrict)
+import           Data.ByteString.Base64 as B64 (decodeLenient)
 import qualified Data.Map as Map
 import           Data.Text.Encoding (encodeUtf8)
 import           Data.HashMap.Strict as HM (lookup,insert,delete)
@@ -204,7 +205,7 @@ handleMessage send replyHeader state msg = do
         f :: (Value, [ByteString], [BufferPath]) -> BufferPath -> (Value, [ByteString], [BufferPath])
         f r@(v,bs,bps) bp =
           case nestedLookupRemove bp v of
-            (newv, Just (String b)) -> (newv, encodeUtf8 b : bs, bp:bps)
+            (newv, Just (String b)) -> (newv, B64.decodeLenient (encodeUtf8 b) : bs, bp:bps)
             _ -> r
 
 -- Override toJSON for PublishDisplayData for sending Display messages through [method .= custom]

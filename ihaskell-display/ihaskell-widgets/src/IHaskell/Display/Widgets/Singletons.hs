@@ -50,7 +50,7 @@ singletons
              | Tooltip
              | Icon
              | ButtonStyle
-             | B64Value
+             | BSValue
              | ImageFormat
              | BoolValue
              | Options
@@ -96,5 +96,10 @@ singletons
              | ContinuousUpdate
              | Tabbable
              | Rows
+             | AudioFormat
+             | VideoFormat
+             | AutoPlay
+             | Loop
+             | Controls
              deriving (Eq, Ord, Show)
   |]

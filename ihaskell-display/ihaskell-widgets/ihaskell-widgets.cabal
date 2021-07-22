@@ -78,7 +78,9 @@ library
                        IHaskell.Display.Widgets.Float.BoundedFloat.FloatSlider
                        IHaskell.Display.Widgets.Float.BoundedFloat.FloatLogSlider
                        IHaskell.Display.Widgets.Float.BoundedFloatRange.FloatRangeSlider
-                       IHaskell.Display.Widgets.Image
+                       IHaskell.Display.Widgets.Media.Audio
+                       IHaskell.Display.Widgets.Media.Image
+                       IHaskell.Display.Widgets.Media.Video
                        IHaskell.Display.Widgets.Output
                        IHaskell.Display.Widgets.Selection.Dropdown
                        IHaskell.Display.Widgets.Selection.RadioButtons
@@ -102,6 +104,7 @@ library
 
   build-depends:       aeson >=0.7
                      , base >=4.9 && <5
+                     , bytestring
                      , containers >= 0.5
                      , ipython-kernel >= 0.6.1.2
                      , text >= 0.11

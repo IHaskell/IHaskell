@@ -75,6 +75,7 @@ import           Text.Printf (printf)
 
 import           Data.Aeson hiding (pairs)
 import           Data.Aeson.Types (Pair)
+import           Data.ByteString (ByteString)
 import           Data.Int (Int16)
 #if MIN_VERSION_vinyl(0,9,0)
 import           Data.Vinyl (Rec(..), Dict(..))
@@ -106,7 +107,7 @@ import           Data.Text.Lazy.Encoding
 import           GHC.IO.Exception
 
 import           IHaskell.Eval.Widgets (widgetSendUpdate, widgetSendView)
-import           IHaskell.Display (Base64, IHaskellWidget(..), IHaskellDisplay(..), Display(..), widgetdisplay)
+import           IHaskell.Display (Base64, IHaskellWidget(..), IHaskellDisplay(..), Display(..), widgetdisplay, base64)
 import           IHaskell.IPython.Message.UUID
 
 import           IHaskell.Display.Widgets.Singletons (Field, SField)
@@ -162,6 +163,8 @@ type BoxClass = DOMWidgetClass :++ ['S.Children, 'S.OverflowX, 'S.OverflowY, 'S.
 
 type SelectionContainerClass = BoxClass :++ ['S.Titles, 'S.SelectedIndex, 'S.ChangeHandler]
 
+type MediaClass = CoreWidgetClass :++ DOMWidgetClass :++ '[ 'S.BSValue ]
+
 -- Types associated with Fields.
 
 type family FieldType (f :: Field) :: * where
@@ -184,7 +187,7 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.Tooltip = Maybe Text
         FieldType 'S.Icon = Text
         FieldType 'S.ButtonStyle = ButtonStyleValue
-        FieldType 'S.B64Value = Base64
+        FieldType 'S.BSValue = ByteString
         FieldType 'S.ImageFormat = ImageFormatValue
         FieldType 'S.BoolValue = Bool
         FieldType 'S.Options = SelectionOptions
@@ -230,6 +233,11 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.ContinuousUpdate = Bool
         FieldType 'S.Tabbable = Maybe Bool
         FieldType 'S.Rows = Maybe Integer
+        FieldType 'S.AudioFormat = AudioFormatValue
+        FieldType 'S.VideoFormat = VideoFormatValue
+        FieldType 'S.AutoPlay = Bool
+        FieldType 'S.Loop = Bool
+        FieldType 'S.Controls = Bool
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
 data ChildWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => ChildWidget (IPythonWidget w)
@@ -258,7 +266,9 @@ instance CustomBounded Double where
 
 -- Different types of widgets. Every widget in IPython has a corresponding WidgetType
 data WidgetType = ButtonType
+                | AudioType
                 | ImageType
+                | VideoType
                 | OutputType
                 | HTMLType
                 | HTMLMathType
@@ -296,8 +306,14 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'ButtonType =
                   DescriptionWidgetClass :++
                     ['S.Disabled, 'S.Icon, 'S.ButtonStyle ,'S.ClickHandler]
+
+  WidgetFields 'AudioType =
+                  MediaClass :++ ['S.AudioFormat, 'S.AutoPlay, 'S.Loop, 'S.Controls]
   WidgetFields 'ImageType =
-                  DOMWidgetClass :++ ['S.ImageFormat, 'S.Width, 'S.Height, 'S.B64Value]
+                  MediaClass :++ ['S.ImageFormat, 'S.Width, 'S.Height]
+  WidgetFields 'VideoType =
+                  MediaClass :++ ['S.VideoFormat, 'S.Width, 'S.Height, 'S.AutoPlay, 'S.Loop, 'S.Controls]
+
   WidgetFields 'OutputType = DOMWidgetClass
   WidgetFields 'HTMLType = StringClass
   WidgetFields 'HTMLMathType = StringClass
@@ -438,10 +454,19 @@ instance ToPairs (Attr 'S.Icon) where
 instance ToPairs (Attr 'S.ButtonStyle) where
   toPairs x = ["button_style" .= toJSON x]
 
-instance ToPairs (Attr 'S.B64Value) where
-  toPairs x = ["_b64value" .= toJSON x]
+instance ToJSON ByteString where
+  toJSON = toJSON . base64
+
+instance ToPairs (Attr 'S.BSValue) where
+  toPairs x = ["value" .= toJSON x]
 
 instance ToPairs (Attr 'S.ImageFormat) where
+  toPairs x = ["format" .= toJSON x]
+
+instance ToPairs (Attr 'S.AudioFormat) where
+  toPairs x = ["format" .= toJSON x]
+
+instance ToPairs (Attr 'S.VideoFormat) where
   toPairs x = ["format" .= toJSON x]
 
 instance ToPairs (Attr 'S.BoolValue) where
@@ -581,6 +606,15 @@ instance ToPairs (Attr 'S.Tabbable) where
 
 instance ToPairs (Attr 'S.Rows) where
   toPairs x = ["rows" .= toJSON x]
+
+instance ToPairs (Attr 'S.AutoPlay) where
+  toPairs x = ["autoplay" .= toJSON x]
+
+instance ToPairs (Attr 'S.Loop) where
+  toPairs x = ["loop" .= toJSON x]
+
+instance ToPairs (Attr 'S.Controls) where
+  toPairs x = ["controls" .= toJSON x]
 
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.
@@ -792,6 +826,13 @@ defaultSelectionContainerWidget viewName modelName = defaultBoxWidget viewName m
                :& (SelectedIndex =:: 0)
                :& (ChangeHandler =:: return ())
                :& RNil
+
+-- | A record representing a widget of the _Media class from IPython
+defaultMediaWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr MediaClass
+defaultMediaWidget viewName modelName = defaultCoreWidget <+> defaultDOMWidget viewName modelName <+> mediaAttrs
+  where
+    mediaAttrs = (BSValue =:: "")
+                 :& RNil
 
 newtype WidgetState w = WidgetState { _getState :: Rec Attr (WidgetFields w) }
 
