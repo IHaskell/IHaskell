@@ -14,6 +14,7 @@ module IHaskell.Types (
     setVersion,
     Username,
     Metadata,
+    BufferPath,
     replyType,
     ExecutionState(..),
     StreamType(..),
@@ -61,6 +62,11 @@ import           IHaskell.IPython.Kernel
 class IHaskellDisplay a where
   display :: a -> IO Display
 
+type BufferPath = [Text]
+
+emptyBPs :: [BufferPath]
+emptyBPs = []
+
 -- | Display as an interactive widget.
 class IHaskellDisplay a => IHaskellWidget a where
   -- | Target name for this widget. The actual input parameter should be ignored. By default evaluate
@@ -71,6 +77,10 @@ class IHaskellDisplay a => IHaskellWidget a where
   -- | Target module for this widget. Evaluates to an empty string by default.
   targetModule :: a -> String
   targetModule _ = ""
+
+  -- | Buffer paths for this widget. Evaluates to an empty array by default.
+  getBufferPaths :: a -> [BufferPath]
+  getBufferPaths _ = emptyBPs
 
   -- | Get the uuid for comm associated with this widget. The widget is responsible for storing the
   -- UUID during initialization.
@@ -127,6 +137,7 @@ instance IHaskellDisplay Widget where
 instance IHaskellWidget Widget where
   targetName (Widget widget) = targetName widget
   targetModule (Widget widget) = targetModule widget
+  getBufferPaths (Widget widget) = getBufferPaths widget
   getCommUUID (Widget widget) = getCommUUID widget
   open (Widget widget) = open widget
   comm (Widget widget) = comm widget
@@ -243,13 +254,13 @@ data WidgetMsg = Open Widget Value
   -- ^ A 'clear_output' message, sent as a [method .= custom] comm_msg
   deriving (Show, Typeable)
 
-data WidgetMethod = UpdateState Value
+data WidgetMethod = UpdateState Value [BufferPath]
                   | CustomContent Value
                   | DisplayWidget
 
 instance ToJSON WidgetMethod where
   toJSON DisplayWidget = object ["method" .= ("display" :: Text)]
-  toJSON (UpdateState v) = object ["method" .= ("update" :: Text), "state" .= v]
+  toJSON (UpdateState v bp) = object ["method" .= ("update" :: Text), "state" .= v, "buffer_paths" .= bp]
   toJSON (CustomContent v) = object ["method" .= ("custom" :: Text), "content" .= v]
 
 -- | Output of evaluation.

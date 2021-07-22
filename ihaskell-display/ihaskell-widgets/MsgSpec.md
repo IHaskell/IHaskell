@@ -38,6 +38,20 @@ You can see more info on the model state of widgets [here](https://github.com/ju
 This state is also used with fragments of the overall state to sync changes between the frontend and
 the kernel.
 
+### Buffer paths
+To display some widgets, we need to use the `buffer_paths`. It's only an array with arrays of keys on how to get to the fields that are to considered a
+byte stream. For example, in an image widget, `buffer_paths` would be the array `[ ["value"] ]`, which means that `state.value` is a buffer path. The buffers are specified in the header, so the n-th buffer corresponds to the n-th buffer path.
+
+```json
+"data": {
+  "state": {
+    "value": ...,
+    ...
+  },
+  "buffer_paths": ["value"]
+}
+```
+
 ## Displaying widgets
 
 The creation of a widget does not display it. To display a widget, the kernel sends a display

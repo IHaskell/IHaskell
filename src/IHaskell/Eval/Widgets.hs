@@ -19,7 +19,12 @@ import           Control.Concurrent.STM.TChan
 import           Control.Monad (foldM)
 import           Data.Aeson
 import           Data.Aeson.Types (emptyArray)
+import           Data.ByteString.Lazy (toStrict)
 import qualified Data.Map as Map
+import           Data.Text.Encoding (encodeUtf8)
+import           Data.HashMap.Strict as HM (lookup,insert,delete)
+import           Data.Functor ((<&>))
+import           Data.Foldable (foldl)
 import           System.IO.Unsafe (unsafePerformIO)
 
 import           IHaskell.Display
@@ -100,10 +105,12 @@ handleMessage send replyHeader state msg = do
           newComms = Map.insert uuid widget oldComms
           newState = state { openComms = newComms }
 
-          content = object [ "state" .= value, "buffer_paths" .= emptyArray ]
+          (newvalue,buffers,bp) = processBPs value $ getBufferPaths widget
+          applyBuffers x = x {mhBuffers = buffers}
+          content = object [ "state" .= newvalue, "buffer_paths" .= bp ]
 
           communicate val = do
-            head <- dupHeader replyHeader CommDataMessage
+            head <- dupHeader replyHeader CommDataMessage <&> applyBuffers
             send $ CommData head uuid val
 
       -- If the widget is present, don't open it again.
@@ -111,7 +118,7 @@ handleMessage send replyHeader state msg = do
         then return state
         else do
           -- Send the comm open, with the initial state
-          hdr <- dupHeader replyHeader CommOpenMessage
+          hdr <- dupHeader replyHeader CommOpenMessage <&> applyBuffers
           let hdrV = setVersion hdr "2.0.0" -- Widget Messaging Protocol Version
           send $ CommOpen hdrV target_name target_module uuid content
 
@@ -138,7 +145,9 @@ handleMessage send replyHeader state msg = do
 
     View widget -> sendMessage widget (toJSON DisplayWidget)
 
-    Update widget value -> sendMessage widget (toJSON $ UpdateState value)
+    Update widget value -> do
+      let (newvalue,buffers,bp) = processBPs value $ getBufferPaths widget
+      sendMessageHdr widget (toJSON $ UpdateState newvalue bp) (\h->h {mhBuffers=buffers})
 
     Custom widget value -> sendMessage widget (toJSON $ CustomContent value)
 
@@ -156,19 +165,47 @@ handleMessage send replyHeader state msg = do
 
   where
     oldComms = openComms state
-    sendMessage widget value = do
+    sendMessage widget value = sendMessageHdr widget value id
+    sendMessageHdr widget value hdrf = do
       let uuid = getCommUUID widget
           present = isJust $ Map.lookup uuid oldComms
 
       -- If the widget is present, we send an update message on its comm.
       when present $ do
-        hdr <- dupHeader replyHeader CommDataMessage
+        hdr <- dupHeader replyHeader CommDataMessage <&> hdrf
         send $ CommData hdr uuid value
       return state
 
     unwrap :: Display -> [DisplayData]
     unwrap (ManyDisplay ds) = concatMap unwrap ds
     unwrap (Display ddatas) = ddatas
+
+    -- Removes the values that are buffers and puts them in the third value of the tuple
+    -- The returned bufferpaths are the bufferpaths used
+    processBPs :: Value -> [BufferPath] -> (Value, [ByteString], [BufferPath])
+    -- Searching if the BufferPath key is in the Object is O(log n) or O(1) depending on implementation
+    -- For this reason we fold on the bufferpaths
+    processBPs val = foldl f (val,[],[])
+      where
+        nestedLookupRemove :: BufferPath -> Value -> (Value, Maybe Value)
+        nestedLookupRemove [] v = (v,Just v)
+        nestedLookupRemove [b] v =
+          case v of
+            Object o -> (Object $ HM.delete b o, HM.lookup b o)
+            _ -> (v, Nothing)
+        nestedLookupRemove (b:bp) v =
+          case v of
+            Object o -> maybe (v,Nothing) (upd . nestedLookupRemove bp) (HM.lookup b o)
+            _ -> (v,Nothing)
+            where upd :: (Value, Maybe Value) -> (Value, Maybe Value)
+                  upd (Object v', Just (Object u)) = (Object $ HM.insert b (Object u) v', Just $ Object u)
+                  upd r = r
+
+        f :: (Value, [ByteString], [BufferPath]) -> BufferPath -> (Value, [ByteString], [BufferPath])
+        f r@(v,bs,bps) bp =
+          case nestedLookupRemove bp v of
+            (newv, Just (String b)) -> (newv, encodeUtf8 b : bs, bp:bps)
+            _ -> r
 
 -- Override toJSON for PublishDisplayData for sending Display messages through [method .= custom]
 data WidgetDisplay = WidgetDisplay MessageHeader [DisplayData]
