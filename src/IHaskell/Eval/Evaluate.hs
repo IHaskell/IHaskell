@@ -698,6 +698,8 @@ evalCommand _ (Directive LoadFile names) state = wrapExecution state $ do
                 doLoadModule filename modName
   return (ManyDisplay displays)
 
+evalCommand _ (Directive Reload _) state = wrapExecution state doReload
+
 evalCommand publish (Directive ShellCmd cmd) state = wrapExecution state $
   -- Assume the first character of 'cmd' is '!'.
   case words $ drop 1 cmd of
@@ -1150,6 +1152,67 @@ doLoadModule name modName = do
       initializeItVariable
 
       return $ displayError $ "Failed to load module " ++ modName ++ ": " ++ show exception
+
+doReload :: Ghc Display
+doReload = do
+  -- Remember which modules we've loaded before.
+  importedModules <- getContext
+
+  flip gcatch (unload importedModules) $ do
+    -- Compile loaded modules.
+    flags <- getSessionDynFlags
+    errRef <- liftIO $ newIORef []
+    _ <- setSessionDynFlags $ flip gopt_set Opt_BuildDynamicToo
+      flags
+        { hscTarget = objTarget flags
+#if MIN_VERSION_ghc(9,0,0)
+        , log_action = \_dflags _warn _sev _srcspan msg -> modifyIORef' errRef (showSDoc flags msg :)
+#else
+        , log_action = \_dflags _sev _srcspan _ppr _style msg -> modifyIORef' errRef (showSDoc flags msg :)
+#endif
+        }
+
+    -- Store the old targets in case of failure.
+    oldTargets <- getTargets
+    result <- load LoadAllTargets
+
+    -- Reset the context, since loading things screws it up.
+    initializeItVariable
+
+    -- Reset targets if we failed.
+    case result of
+      Failed      -> setTargets oldTargets
+      Succeeded{} -> return ()
+
+    -- Add imports
+    setContext importedModules
+
+    -- Switch back to interpreted mode.
+    _ <- setSessionDynFlags flags
+
+    case result of
+      Succeeded -> return mempty
+      Failed -> do
+        errorStrs <- unlines <$> reverse <$> liftIO (readIORef errRef)
+        return $ displayError $ "Failed to reload.\n" ++ errorStrs
+
+  where
+    unload :: [InteractiveImport] -> SomeException -> Ghc Display
+    unload imported exception = do
+      print $ show exception
+      -- Explicitly clear targets
+      setTargets []
+      _ <- load LoadAllTargets
+
+      -- Switch to interpreted mode!
+      flags <- getSessionDynFlags
+      _ <- setSessionDynFlags flags { hscTarget = HscInterpreted }
+
+      -- Return to old context, make sure we have `it`.
+      setContext imported
+      initializeItVariable
+
+      return $ displayError $ "Failed to reload."
 
 objTarget :: DynFlags -> HscTarget
 #if MIN_VERSION_ghc(8,10,0)
