@@ -71,6 +71,7 @@ library
                        IHaskell.Display.Widgets.Int.BoundedInt.BoundedIntText
                        IHaskell.Display.Widgets.Int.BoundedInt.IntProgress
                        IHaskell.Display.Widgets.Int.BoundedInt.IntSlider
+                       IHaskell.Display.Widgets.Int.BoundedInt.Play
                        IHaskell.Display.Widgets.Int.BoundedIntRange.IntRangeSlider
                        IHaskell.Display.Widgets.Float.FloatText
                        IHaskell.Display.Widgets.Float.BoundedFloat.BoundedFloatText

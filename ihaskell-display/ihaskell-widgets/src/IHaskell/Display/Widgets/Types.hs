@@ -242,6 +242,10 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.Controls = Bool
         FieldType 'S.Options = [Text]
         FieldType 'S.EnsureOption = Bool
+        FieldType 'S.Playing = Bool
+        FieldType 'S.Repeat = Bool
+        FieldType 'S.Interval = Integer
+        FieldType 'S.ShowRepeat = Bool
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
 data ChildWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => ChildWidget (IPythonWidget w)
@@ -294,6 +298,7 @@ data WidgetType = ButtonType
                 | IntTextType
                 | BoundedIntTextType
                 | IntSliderType
+                | PlayType
                 | IntProgressType
                 | IntRangeSliderType
                 | FloatTextType
@@ -351,6 +356,9 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'IntSliderType =
                   BoundedIntClass :++
                     [ 'S.StepInt, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled ]
+  WidgetFields 'PlayType =
+                  BoundedIntClass :++
+                    [ 'S.Playing, 'S.Repeat, 'S.Interval, 'S.StepInt, 'S.Disabled, 'S.ShowRepeat ]
   WidgetFields 'IntProgressType =
                   BoundedIntClass :++ ['S.Orientation, 'S.BarStyle]
   WidgetFields 'IntRangeSliderType =
@@ -621,6 +629,18 @@ instance ToPairs (Attr 'S.Options) where
 
 instance ToPairs (Attr 'S.EnsureOption) where
   toPairs x = ["ensure_option" .= toJSON x]
+
+instance ToPairs (Attr 'S.Playing) where
+  toPairs x = ["playing" .= toJSON x]
+
+instance ToPairs (Attr 'S.Repeat) where
+  toPairs x = ["repeat" .= toJSON x]
+
+instance ToPairs (Attr 'S.Interval) where
+  toPairs x = ["interval" .= toJSON x]
+
+instance ToPairs (Attr 'S.ShowRepeat) where
+  toPairs x = ["show_repeat" .= toJSON x]
 
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.

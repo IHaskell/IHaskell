@@ -97,6 +97,10 @@ pattern Loop = S.SLoop
 pattern Controls = S.SControls
 pattern Options = S.SOptions
 pattern EnsureOption = S.SEnsureOption
+pattern Playing = S.SPlaying
+pattern Repeat = S.SRepeat
+pattern Interval = S.SInterval
+pattern ShowRepeat = S.SShowRepeat
 
 -- | Close a widget's comm
 closeWidget :: IHaskellWidget w => w -> IO ()

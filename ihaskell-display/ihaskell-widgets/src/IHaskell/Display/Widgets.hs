@@ -14,6 +14,7 @@ import           IHaskell.Display.Widgets.Int.IntText as X
 import           IHaskell.Display.Widgets.Int.BoundedInt.BoundedIntText as X
 import           IHaskell.Display.Widgets.Int.BoundedInt.IntProgress as X
 import           IHaskell.Display.Widgets.Int.BoundedInt.IntSlider as X
+import           IHaskell.Display.Widgets.Int.BoundedInt.Play as X
 import           IHaskell.Display.Widgets.Int.BoundedIntRange.IntRangeSlider as X
 
 import           IHaskell.Display.Widgets.Float.FloatText as X

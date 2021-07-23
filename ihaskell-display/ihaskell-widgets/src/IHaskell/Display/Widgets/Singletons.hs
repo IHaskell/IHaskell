@@ -103,5 +103,9 @@ singletons
              | Controls
              | Options
              | EnsureOption
+             | Playing
+             | Repeat
+             | Interval
+             | ShowRepeat
              deriving (Eq, Ord, Show)
   |]
