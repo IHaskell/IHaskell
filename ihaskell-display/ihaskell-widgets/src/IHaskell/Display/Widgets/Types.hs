@@ -133,13 +133,15 @@ type DescriptionWidgetClass = CoreWidgetClass :++ DOMWidgetClass :++ '[ 'S.Descr
 
 type StringClass = DescriptionWidgetClass :++ ['S.StringValue, 'S.Placeholder]
 
+type TextClass = StringClass :++ [ 'S.Disabled, 'S.ContinuousUpdate, 'S.SubmitHandler, 'S.ChangeHandler]
+
 type BoolClass = DescriptionWidgetClass :++ ['S.BoolValue, 'S.Disabled, 'S.ChangeHandler]
 
-type SelectionClass = DescriptionWidgetClass :++ ['S.Options, 'S.OptionalIndex, 'S.Disabled, 'S.SelectionHandler]
+type SelectionClass = DescriptionWidgetClass :++ ['S.OptionsLabels, 'S.OptionalIndex, 'S.Disabled, 'S.SelectionHandler]
 
-type SelectionNonemptyClass = DescriptionWidgetClass :++ ['S.Options, 'S.Index, 'S.Disabled, 'S.SelectionHandler]
+type SelectionNonemptyClass = DescriptionWidgetClass :++ ['S.OptionsLabels, 'S.Index, 'S.Disabled, 'S.SelectionHandler]
 
-type MultipleSelectionClass = DescriptionWidgetClass :++ ['S.Options, 'S.Indices, 'S.Disabled, 'S.SelectionHandler]
+type MultipleSelectionClass = DescriptionWidgetClass :++ ['S.OptionsLabels, 'S.Indices, 'S.Disabled, 'S.SelectionHandler]
 
 type IntClass = DescriptionWidgetClass :++ [ 'S.IntValue, 'S.ChangeHandler ]
 
@@ -190,7 +192,7 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.BSValue = ByteString
         FieldType 'S.ImageFormat = ImageFormatValue
         FieldType 'S.BoolValue = Bool
-        FieldType 'S.Options = SelectionOptions
+        FieldType 'S.OptionsLabels = [Text]
         FieldType 'S.Index = Integer
         FieldType 'S.OptionalIndex = Maybe Integer
         FieldType 'S.SelectionHandler = IO ()
@@ -238,6 +240,8 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.AutoPlay = Bool
         FieldType 'S.Loop = Bool
         FieldType 'S.Controls = Bool
+        FieldType 'S.Options = [Text]
+        FieldType 'S.EnsureOption = Bool
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
 data ChildWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => ChildWidget (IPythonWidget w)
@@ -270,9 +274,11 @@ data WidgetType = ButtonType
                 | ImageType
                 | VideoType
                 | OutputType
+                | ComboboxType
                 | HTMLType
                 | HTMLMathType
                 | LabelType
+                | PasswordType
                 | TextType
                 | TextAreaType
                 | CheckBoxType
@@ -317,10 +323,10 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'OutputType = DOMWidgetClass
   WidgetFields 'HTMLType = StringClass
   WidgetFields 'HTMLMathType = StringClass
+  WidgetFields 'ComboboxType = TextClass :++ [ 'S.Options, 'S.EnsureOption ]
   WidgetFields 'LabelType = StringClass
-  WidgetFields 'TextType =
-                  StringClass :++
-                    [ 'S.Disabled, 'S.ContinuousUpdate, 'S.SubmitHandler, 'S.ChangeHandler]
+  WidgetFields 'PasswordType = TextClass
+  WidgetFields 'TextType = TextClass
 
   -- Type level lists with a single element need both the list and the
   -- constructor ticked, and a space between the open square bracket and
@@ -478,14 +484,8 @@ instance ToPairs (Attr 'S.Index) where
 instance ToPairs (Attr 'S.OptionalIndex) where
   toPairs x = ["index" .= toJSON x]
 
-instance ToPairs (Attr 'S.Options) where
-  toPairs x =
-    case _value x of
-      Dummy _                -> labels ("" :: Text)
-      Real (OptionLabels xs) -> labels xs
-      Real (OptionDict xps)  -> labels $ map fst xps
-    where
-      labels xs = ["_options_labels" .= xs]
+instance ToPairs (Attr 'S.OptionsLabels) where
+  toPairs x = ["_options_labels" .= toJSON x]
 
 instance ToPairs (Attr 'S.SelectionHandler) where
   toPairs _ = [] -- Not sent to the frontend
@@ -616,6 +616,12 @@ instance ToPairs (Attr 'S.Loop) where
 instance ToPairs (Attr 'S.Controls) where
   toPairs x = ["controls" .= toJSON x]
 
+instance ToPairs (Attr 'S.Options) where
+  toPairs x = ["options" .= toJSON x]
+
+instance ToPairs (Attr 'S.EnsureOption) where
+  toPairs x = ["ensure_option" .= toJSON x]
+
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.
 (=::) :: (SingI f, Typeable (FieldType f)) => Sing f -> FieldType f -> Attr f
@@ -694,6 +700,16 @@ defaultStringWidget viewName modelName = defaultDescriptionWidget viewName model
                :& (Placeholder =:: "")
                :& RNil
 
+-- | A record representing a widget of the Text class from IPython
+defaultTextWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr TextClass
+defaultTextWidget viewName modelName = defaultStringWidget viewName modelName <+> txtAttrs
+  where
+    txtAttrs = (Disabled =:: False)
+               :& (ContinuousUpdate =:: True)
+               :& (SubmitHandler =:: return ())
+               :& (ChangeHandler =:: return ())
+               :& RNil
+
 -- | A record representing a widget of the _Bool class from IPython
 defaultBoolWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr BoolClass
 defaultBoolWidget viewName modelName = defaultDescriptionWidget viewName modelName <+> boolAttrs
@@ -707,7 +723,7 @@ defaultBoolWidget viewName modelName = defaultDescriptionWidget viewName modelNa
 defaultSelectionWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr SelectionClass
 defaultSelectionWidget viewName modelName = defaultDescriptionWidget viewName modelName <+> selectionAttrs
   where
-    selectionAttrs = (Options =:: OptionLabels [])
+    selectionAttrs = (OptionsLabels =:: [])
                      :& (OptionalIndex =:: Nothing)
                      :& (Disabled =:: False)
                      :& (SelectionHandler =:: return ())
@@ -717,7 +733,7 @@ defaultSelectionWidget viewName modelName = defaultDescriptionWidget viewName mo
 defaultSelectionNonemptyWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr SelectionNonemptyClass
 defaultSelectionNonemptyWidget viewName modelName = defaultDescriptionWidget viewName modelName <+> selectionAttrs
   where
-    selectionAttrs = (Options =:: OptionLabels [])
+    selectionAttrs = (OptionsLabels =:: [])
                      :& (Index =:: 0)
                      :& (Disabled =:: False)
                      :& (SelectionHandler =:: return ())
@@ -727,7 +743,7 @@ defaultSelectionNonemptyWidget viewName modelName = defaultDescriptionWidget vie
 defaultMultipleSelectionWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr MultipleSelectionClass
 defaultMultipleSelectionWidget viewName modelName = defaultDescriptionWidget viewName modelName <+> mulSelAttrs
   where
-    mulSelAttrs = (Options =:: OptionLabels [])
+    mulSelAttrs = (OptionsLabels =:: [])
                   :& (Indices =:: [])
                   :& (Disabled =:: False)
                   :& (SelectionHandler =:: return ())

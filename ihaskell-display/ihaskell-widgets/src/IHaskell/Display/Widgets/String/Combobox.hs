@@ -5,11 +5,11 @@
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module IHaskell.Display.Widgets.String.Text
-  ( -- * The Text Widget
-    TextWidget
+module IHaskell.Display.Widgets.String.Combobox
+  ( -- * The Combobox Widget
+    ComboboxWidget
     -- * Constructor
-  , mkTextWidget
+  , mkComboboxWidget
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -27,15 +27,19 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | A 'TextWidget' represents a Text widget from IPython.html.widgets.
-type TextWidget = IPythonWidget 'TextType
+-- | A 'ComboboxWidget' represents a Combobox widget from IPython.html.widgets.
+type ComboboxWidget = IPythonWidget 'ComboboxType
 
--- | Create a new Text widget
-mkTextWidget :: IO TextWidget
-mkTextWidget = do
+-- | Create a new Combobox widget
+mkComboboxWidget :: IO ComboboxWidget
+mkComboboxWidget = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let widgetState = WidgetState $ defaultTextWidget "TextView" "TextModel"
+  let txtWidget = defaultTextWidget "ComboboxView" "ComboboxModel"
+      boxWidget = (Options =:: [])
+                  :& (EnsureOption =:: False)
+                  :& RNil
+      widgetState = WidgetState $ txtWidget <+> boxWidget
 
   stateIO <- newIORef widgetState
 
@@ -47,7 +51,7 @@ mkTextWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellWidget TextWidget where
+instance IHaskellWidget ComboboxWidget where
   getCommUUID = uuid
   -- Two possibilities: 1. content -> event -> "submit" 2. sync_data -> value -> <new_value>
   comm tw val _ = do

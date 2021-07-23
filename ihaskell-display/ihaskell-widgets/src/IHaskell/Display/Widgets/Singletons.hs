@@ -53,7 +53,7 @@ singletons
              | BSValue
              | ImageFormat
              | BoolValue
-             | Options
+             | OptionsLabels
              | Index
              | OptionalIndex
              | SelectionHandler
@@ -101,5 +101,7 @@ singletons
              | AutoPlay
              | Loop
              | Controls
+             | Options
+             | EnsureOption
              deriving (Eq, Ord, Show)
   |]

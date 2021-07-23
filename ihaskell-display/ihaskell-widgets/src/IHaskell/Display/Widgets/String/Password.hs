@@ -5,11 +5,11 @@
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module IHaskell.Display.Widgets.String.Text
-  ( -- * The Text Widget
-    TextWidget
+module IHaskell.Display.Widgets.String.Password
+  ( -- * The Password Widget
+    PasswordWidget
     -- * Constructor
-  , mkTextWidget
+  , mkPasswordWidget
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -27,15 +27,15 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | A 'TextWidget' represents a Text widget from IPython.html.widgets.
-type TextWidget = IPythonWidget 'TextType
+-- | A 'PasswordWidget' represents a Password widget from IPython.html.widgets.
+type PasswordWidget = IPythonWidget 'PasswordType
 
--- | Create a new Text widget
-mkTextWidget :: IO TextWidget
-mkTextWidget = do
+-- | Create a new Password widget
+mkPasswordWidget :: IO PasswordWidget
+mkPasswordWidget = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let widgetState = WidgetState $ defaultTextWidget "TextView" "TextModel"
+  let widgetState = WidgetState $ defaultTextWidget "PasswordView" "PasswordModel"
 
   stateIO <- newIORef widgetState
 
@@ -47,9 +47,8 @@ mkTextWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellWidget TextWidget where
+instance IHaskellWidget PasswordWidget where
   getCommUUID = uuid
-  -- Two possibilities: 1. content -> event -> "submit" 2. sync_data -> value -> <new_value>
   comm tw val _ = do
     case nestedObjectLookup val ["state", "value"] of
       Just (String value) -> setField' tw StringValue value >> triggerChange tw

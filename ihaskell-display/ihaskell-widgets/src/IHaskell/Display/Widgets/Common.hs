@@ -47,7 +47,7 @@ pattern ButtonStyle = S.SButtonStyle
 pattern BSValue = S.SBSValue
 pattern ImageFormat = S.SImageFormat
 pattern BoolValue = S.SBoolValue
-pattern Options = S.SOptions
+pattern OptionsLabels = S.SOptionsLabels
 pattern OptionalIndex = S.SOptionalIndex
 pattern Index = S.SIndex
 pattern SelectionHandler = S.SSelectionHandler
@@ -95,6 +95,8 @@ pattern VideoFormat = S.SVideoFormat
 pattern AutoPlay = S.SAutoPlay
 pattern Loop = S.SLoop
 pattern Controls = S.SControls
+pattern Options = S.SOptions
+pattern EnsureOption = S.SEnsureOption
 
 -- | Close a widget's comm
 closeWidget :: IHaskellWidget w => w -> IO ()
@@ -245,10 +247,6 @@ instance Show VideoFormatValue where
 
 instance ToJSON VideoFormatValue where
   toJSON = toJSON . pack . show
-
--- | Options for selection widgets.
-data SelectionOptions = OptionLabels [Text]
-                      | OptionDict [(Text, Text)]
 
 -- | Orientation values.
 data OrientationValue = HorizontalOrientation
