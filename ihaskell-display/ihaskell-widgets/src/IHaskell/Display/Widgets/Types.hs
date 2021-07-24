@@ -63,7 +63,7 @@
 -- specification.
 module IHaskell.Display.Widgets.Types where
 
-import           Control.Monad (unless, join, when, void)
+import           Control.Monad (unless, join, when, void,mzero)
 import           Control.Applicative ((<$>))
 import qualified Control.Exception as Ex
 import           Data.Typeable (Typeable, TypeRep, typeOf)
@@ -247,6 +247,7 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.Interval = Integer
         FieldType 'S.ShowRepeat = Bool
         FieldType 'S.Concise = Bool
+        FieldType 'S.DateValue = Date
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
 data ChildWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => ChildWidget (IPythonWidget w)
@@ -276,6 +277,7 @@ instance CustomBounded Double where
 -- Different types of widgets. Every widget in IPython has a corresponding WidgetType
 data WidgetType = ButtonType
                 | ColorPickerType
+                | DatePickerType
                 | AudioType
                 | ImageType
                 | VideoType
@@ -319,10 +321,12 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'ButtonType =
                   DescriptionWidgetClass :++
                     ['S.Disabled, 'S.Icon, 'S.ButtonStyle ,'S.ClickHandler]
-
   WidgetFields 'ColorPickerType =
                   DescriptionWidgetClass :++
                     ['S.StringValue, 'S.Concise, 'S.Disabled]
+  WidgetFields 'DatePickerType =
+                  DescriptionWidgetClass :++
+                    ['S.DateValue, 'S.Disabled]
 
   WidgetFields 'AudioType =
                   MediaClass :++ ['S.AudioFormat, 'S.AutoPlay, 'S.Loop, 'S.Controls]
@@ -650,6 +654,9 @@ instance ToPairs (Attr 'S.ShowRepeat) where
 
 instance ToPairs (Attr 'S.Concise) where
   toPairs x = ["concise" .= toJSON x]
+
+instance ToPairs (Attr 'S.DateValue) where
+  toPairs x = ["value" .= toJSON x]
 
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.
@@ -980,9 +987,38 @@ instance IHaskellWidget (IPythonWidget w) => IHaskellDisplay (IPythonWidget w) w
   display b = do
     widgetSendView b -- Keeping compatibility with classic notebook
     return $ Display [ widgetdisplay $ unpack $ decodeUtf8 $ encode $ object [
-      "model_id" .= getCommUUID b, 
+      "model_id" .= getCommUUID b,
       "version_major" .= version_major,
       "version_minor" .= version_minor] ]
     where
       version_major = 2 :: Int
       version_minor = 0 :: Int
+
+-- | The date class from IPython
+data Date
+  -- | No date specified. used by default
+  = NullDate
+  -- | Date year month day
+  | Date Integer Integer Integer deriving (Eq,Ord)
+
+defaultDate :: Date
+defaultDate = NullDate
+
+instance Show Date where
+  show NullDate = "NullDate"
+  show (Date y m d) = printf "%04d-%02d-%02d" y m d
+
+instance ToJSON Date where
+  toJSON NullDate = object []
+  toJSON (Date y m d) = object [ "year" .= toJSON y
+                               , "month" .= toJSON (m-1) -- In the frontend months go from 0 to 11
+                               , "date" .= toJSON d
+                               ]
+
+instance FromJSON Date where
+  parseJSON (Object v) = Date
+    <$> v .: "year"
+    <*> ((+1) <$> v .: "month")
+    <*> v .: "date"
+  parseJSON Null = pure NullDate
+  parseJSON _ = mzero

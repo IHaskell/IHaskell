@@ -108,5 +108,6 @@ singletons
              | Interval
              | ShowRepeat
              | Concise
+             | DateValue
              deriving (Eq, Ord, Show)
   |]

@@ -102,6 +102,7 @@ pattern Repeat = S.SRepeat
 pattern Interval = S.SInterval
 pattern ShowRepeat = S.SShowRepeat
 pattern Concise = S.SConcise
+pattern DateValue = S.SDateValue
 
 -- | Close a widget's comm
 closeWidget :: IHaskellWidget w => w -> IO ()

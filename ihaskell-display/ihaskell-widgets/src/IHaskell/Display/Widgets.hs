@@ -2,6 +2,7 @@ module IHaskell.Display.Widgets (module X) where
 
 import           IHaskell.Display.Widgets.Button as X
 import           IHaskell.Display.Widgets.ColorPicker as X
+import           IHaskell.Display.Widgets.DatePicker as X
 
 import           IHaskell.Display.Widgets.Box.Box as X
 import           IHaskell.Display.Widgets.Box.SelectionContainer.Accordion as X
@@ -50,4 +51,4 @@ import           IHaskell.Display.Widgets.String.TextArea as X
 import           IHaskell.Display.Widgets.Common as X
 import           IHaskell.Display.Widgets.Types as X (setField, getField, properties, triggerDisplay,
                                                       triggerChange, triggerClick, triggerSelection,
-                                                      triggerSubmit, ChildWidget(..))
+                                                      triggerSubmit, ChildWidget(..), Date(..))
