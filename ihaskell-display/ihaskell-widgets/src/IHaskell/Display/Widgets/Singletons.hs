@@ -107,5 +107,6 @@ singletons
              | Repeat
              | Interval
              | ShowRepeat
+             | Concise
              deriving (Eq, Ord, Show)
   |]

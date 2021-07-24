@@ -101,6 +101,7 @@ pattern Playing = S.SPlaying
 pattern Repeat = S.SRepeat
 pattern Interval = S.SInterval
 pattern ShowRepeat = S.SShowRepeat
+pattern Concise = S.SConcise
 
 -- | Close a widget's comm
 closeWidget :: IHaskellWidget w => w -> IO ()

@@ -246,6 +246,7 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.Repeat = Bool
         FieldType 'S.Interval = Integer
         FieldType 'S.ShowRepeat = Bool
+        FieldType 'S.Concise = Bool
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
 data ChildWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => ChildWidget (IPythonWidget w)
@@ -274,6 +275,7 @@ instance CustomBounded Double where
 
 -- Different types of widgets. Every widget in IPython has a corresponding WidgetType
 data WidgetType = ButtonType
+                | ColorPickerType
                 | AudioType
                 | ImageType
                 | VideoType
@@ -317,6 +319,10 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'ButtonType =
                   DescriptionWidgetClass :++
                     ['S.Disabled, 'S.Icon, 'S.ButtonStyle ,'S.ClickHandler]
+
+  WidgetFields 'ColorPickerType =
+                  DescriptionWidgetClass :++
+                    ['S.StringValue, 'S.Concise, 'S.Disabled]
 
   WidgetFields 'AudioType =
                   MediaClass :++ ['S.AudioFormat, 'S.AutoPlay, 'S.Loop, 'S.Controls]
@@ -641,6 +647,9 @@ instance ToPairs (Attr 'S.Interval) where
 
 instance ToPairs (Attr 'S.ShowRepeat) where
   toPairs x = ["show_repeat" .= toJSON x]
+
+instance ToPairs (Attr 'S.Concise) where
+  toPairs x = ["concise" .= toJSON x]
 
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.
