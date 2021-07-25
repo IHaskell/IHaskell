@@ -227,7 +227,7 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.Pack = LocationValue
         FieldType 'S.Align = LocationValue
         FieldType 'S.Titles = [Text]
-        FieldType 'S.SelectedIndex = Integer
+        FieldType 'S.SelectedIndex = Maybe Integer
         FieldType 'S.ReadOutMsg = Text
         FieldType 'S.Indent = Bool
         FieldType 'S.Child = Maybe ChildWidget
@@ -327,6 +327,7 @@ data WidgetType = ButtonType
                 | VBoxType
                 | AccordionType
                 | TabType
+                | StackedType
                 | ControllerButtonType
                 | ControllerAxisType
                 | ControllerType
@@ -409,6 +410,7 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'VBoxType = BoxClass
   WidgetFields 'AccordionType = SelectionContainerClass
   WidgetFields 'TabType = SelectionContainerClass
+  WidgetFields 'StackedType = SelectionContainerClass
   WidgetFields 'ControllerType =
     CoreWidgetClass :++ DOMWidgetClass :++
       ['S.Index, 'S.Name, 'S.Mapping, 'S.Connected, 'S.Timestamp, 'S.Buttons, 'S.Axes, 'S.ChangeHandler ]
@@ -924,7 +926,7 @@ defaultSelectionContainerWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelNa
 defaultSelectionContainerWidget viewName modelName = defaultBoxWidget viewName modelName <+> selAttrs
   where
     selAttrs = (Titles =:: [])
-               :& (SelectedIndex =:: 0)
+               :& (SelectedIndex =:: Nothing)
                :& (ChangeHandler =:: return ())
                :& RNil
 

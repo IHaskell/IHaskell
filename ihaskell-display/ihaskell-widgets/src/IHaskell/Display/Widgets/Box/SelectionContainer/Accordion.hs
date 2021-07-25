@@ -51,8 +51,11 @@ mkAccordion = do
 instance IHaskellWidget Accordion where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "selected_index"] of
+    case nestedObjectLookup val ["state", "selected_index"] of
       Just (Number num) -> do
-        void $ setField' widget SelectedIndex (Sci.coefficient num)
+        void $ setField' widget SelectedIndex $ Just (Sci.coefficient num)
+        triggerChange widget
+      Just Null -> do
+        void $ setField' widget SelectedIndex Nothing
         triggerChange widget
       _ -> pure ()

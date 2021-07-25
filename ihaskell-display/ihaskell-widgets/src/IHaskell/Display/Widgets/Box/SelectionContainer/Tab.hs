@@ -15,6 +15,8 @@ module IHaskell.Display.Widgets.Box.SelectionContainer.Tab
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
+import           Control.Monad (void)
+
 import           Data.Aeson
 import           Data.IORef (newIORef)
 import qualified Data.Scientific as Sci
@@ -50,8 +52,11 @@ mkTabWidget = do
 instance IHaskellWidget TabWidget where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "selected_index"] of
+    case nestedObjectLookup val ["state", "selected_index"] of
       Just (Number num) -> do
-        _ <- setField' widget SelectedIndex (Sci.coefficient num)
+        void $ setField' widget SelectedIndex $ Just (Sci.coefficient num)
+        triggerChange widget
+      Just Null -> do
+        void $ setField' widget SelectedIndex Nothing
         triggerChange widget
       _ -> pure ()
