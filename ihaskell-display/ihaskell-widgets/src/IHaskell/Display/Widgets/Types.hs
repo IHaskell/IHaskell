@@ -248,12 +248,22 @@ type family FieldType (f :: Field) :: * where
         FieldType 'S.ShowRepeat = Bool
         FieldType 'S.Concise = Bool
         FieldType 'S.DateValue = Date
+        FieldType 'S.Pressed = Bool
+        FieldType 'S.Name = Text
+        FieldType 'S.Mapping = Text
+        FieldType 'S.Connected = Bool
+        FieldType 'S.Timestamp = Double
+        FieldType 'S.Buttons = [IPythonWidget 'ControllerButtonType]
+        FieldType 'S.Axes = [IPythonWidget 'ControllerAxisType]
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
 data ChildWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => ChildWidget (IPythonWidget w)
 
+instance ToJSON (IPythonWidget w) where
+  toJSON x = toJSON . pack $ "IPY_MODEL_" ++ uuidToString (uuid x)
+
 instance ToJSON ChildWidget where
-  toJSON (ChildWidget x) = toJSON . pack $ "IPY_MODEL_" ++ uuidToString (uuid x)
+  toJSON (ChildWidget x) = toJSON x
 
 -- Will use a custom class rather than a newtype wrapper with an orphan instance. The main issue is
 -- the need of a Bounded instance for Float / Double.
@@ -314,6 +324,9 @@ data WidgetType = ButtonType
                 | BoxType
                 | AccordionType
                 | TabType
+                | ControllerButtonType
+                | ControllerAxisType
+                | ControllerType
 
 -- Fields associated with a widget
 
@@ -390,6 +403,11 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
   WidgetFields 'BoxType = BoxClass
   WidgetFields 'AccordionType = SelectionContainerClass
   WidgetFields 'TabType = SelectionContainerClass
+  WidgetFields 'ControllerType =
+    CoreWidgetClass :++ DOMWidgetClass :++
+      ['S.Index, 'S.Name, 'S.Mapping, 'S.Connected, 'S.Timestamp, 'S.Buttons, 'S.Axes, 'S.ChangeHandler ]
+  WidgetFields 'ControllerAxisType = CoreWidgetClass :++ DOMWidgetClass :++ '[ 'S.FloatValue, 'S.ChangeHandler ]
+  WidgetFields 'ControllerButtonType = CoreWidgetClass :++ DOMWidgetClass :++ [ 'S.FloatValue, 'S.Pressed, 'S.ChangeHandler ]
 
 -- Wrapper around a field's value. A dummy value is sent as an empty string to the frontend.
 data AttrVal a = Dummy a
@@ -405,6 +423,7 @@ data Attr (f :: Field) where
        => { _value :: AttrVal (FieldType f)
           , _verify :: FieldType f -> IO (FieldType f)
           , _field :: Field
+          , _ro :: Bool
           } -> Attr f
 
 getFieldType :: Attr f -> TypeRep
@@ -658,14 +677,39 @@ instance ToPairs (Attr 'S.Concise) where
 instance ToPairs (Attr 'S.DateValue) where
   toPairs x = ["value" .= toJSON x]
 
+instance ToPairs (Attr 'S.Pressed) where
+  toPairs x = ["pressed" .= toJSON x]
+
+instance ToPairs (Attr 'S.Name) where
+  toPairs x = ["name" .= toJSON x]
+
+instance ToPairs (Attr 'S.Mapping) where
+  toPairs x = ["mapping" .= toJSON x]
+
+instance ToPairs (Attr 'S.Connected) where
+  toPairs x = ["connected" .= toJSON x]
+
+instance ToPairs (Attr 'S.Timestamp) where
+  toPairs x = ["timestamp" .= toJSON x]
+
+instance ToPairs (Attr 'S.Buttons) where
+  toPairs x = ["buttons" .= toJSON x]
+
+instance ToPairs (Attr 'S.Axes) where
+  toPairs x = ["axes" .= toJSON x]
+
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.
 (=::) :: (SingI f, Typeable (FieldType f)) => Sing f -> FieldType f -> Attr f
-s =:: x = Attr { _value = Real x, _verify = return, _field = reflect s }
+s =:: x = Attr { _value = Real x, _verify = return, _field = reflect s, _ro = False }
 
 -- | Store the value for a field, with a custom verification
 (=:.) :: (SingI f, Typeable (FieldType f)) => Sing f -> (FieldType f, FieldType f -> IO (FieldType f) ) -> Attr f
-s =:. (x,v) = Attr { _value = Real x, _verify = v, _field = reflect s }
+s =:. (x,v) = Attr { _value = Real x, _verify = v, _field = reflect s, _ro = False }
+
+-- | Store the value for a field, making it read only from the frontend
+(=:!) :: (SingI f, Typeable (FieldType f)) => Sing f -> FieldType f -> Attr f
+s =:! x = Attr { _value = Real x, _verify = return, _field = reflect s, _ro = True}
 
 -- | If the number is in the range, return it. Otherwise raise the appropriate (over/under)flow
 -- exception.
@@ -685,7 +729,7 @@ rangeSliderVerification _ = Ex.throw $ Ex.AssertionFailed "There should be two i
 -- | Store a numeric value, with verification mechanism for its range.
 ranged :: (SingI f, Num (FieldType f), Ord (FieldType f), Typeable (FieldType f))
        => Sing f -> (FieldType f, FieldType f) -> AttrVal (FieldType f) -> Attr f
-ranged s range x = Attr x (rangeCheck range) (reflect s)
+ranged s range x = Attr x (rangeCheck range) (reflect s) False
 
 -- | Store a numeric value, with the invariant that it stays non-negative. The value set is set as a
 -- dummy value if it's equal to zero.
@@ -698,6 +742,7 @@ s =:+ val = Attr
                  val)
               (rangeCheck (0, upperBound))
               (reflect s)
+              False
 
 -- | Get a field from a singleton Adapted from: http://stackoverflow.com/a/28033250/2388535
 reflect :: forall (f :: Field). (SingI f) => Sing f -> Field
@@ -903,15 +948,17 @@ data IPythonWidget (w :: WidgetType) =
          , state :: IORef (WidgetState w)
          }
 
--- | Change the value for a field, and notify the frontend about it.
+-- | Change the value for a field, and notify the frontend about it. Doesn't work if the field is read only.
 setField :: (f ∈ WidgetFields w, IHaskellWidget (IPythonWidget w), ToPairs (Attr f))
          => IPythonWidget w -> SField f -> FieldType f -> IO ()
 setField widget sfield fval = do
+  attr <- getAttr widget sfield
+  when (_ro attr) $ error ("The field " ++ show sfield ++ " is read only")
   !newattr <- setField' widget sfield fval
   let pairs = toPairs newattr
   unless (null pairs) $ widgetSendUpdate widget (object pairs)
 
--- | Change the value of a field, without notifying the frontend. For internal use.
+-- | Change the value of a field, without notifying the frontend and without checking if is read only. For internal use.
 setField' :: (f ∈ WidgetFields w, IHaskellWidget (IPythonWidget w))
           => IPythonWidget w -> SField f -> FieldType f -> IO (Attr f)
 setField' widget sfield val = do

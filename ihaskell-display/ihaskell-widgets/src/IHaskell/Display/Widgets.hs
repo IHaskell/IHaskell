@@ -12,6 +12,10 @@ import           IHaskell.Display.Widgets.Bool.CheckBox as X
 import           IHaskell.Display.Widgets.Bool.ToggleButton as X
 import           IHaskell.Display.Widgets.Bool.Valid as X
 
+import           IHaskell.Display.Widgets.Controller.Controller as X
+import           IHaskell.Display.Widgets.Controller.ControllerAxis as X
+import           IHaskell.Display.Widgets.Controller.ControllerButton as X
+
 import           IHaskell.Display.Widgets.Int.IntText as X
 import           IHaskell.Display.Widgets.Int.BoundedInt.BoundedIntText as X
 import           IHaskell.Display.Widgets.Int.BoundedInt.IntProgress as X

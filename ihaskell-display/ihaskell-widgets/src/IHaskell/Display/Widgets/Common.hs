@@ -103,6 +103,13 @@ pattern Interval = S.SInterval
 pattern ShowRepeat = S.SShowRepeat
 pattern Concise = S.SConcise
 pattern DateValue = S.SDateValue
+pattern Pressed = S.SPressed
+pattern Name = S.SName
+pattern Mapping = S.SMapping
+pattern Connected = S.SConnected
+pattern Timestamp = S.STimestamp
+pattern Buttons = S.SButtons
+pattern Axes = S.SAxes
 
 -- | Close a widget's comm
 closeWidget :: IHaskellWidget w => w -> IO ()

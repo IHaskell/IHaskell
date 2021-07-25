@@ -109,5 +109,12 @@ singletons
              | ShowRepeat
              | Concise
              | DateValue
+             | Pressed
+             | Name
+             | Mapping
+             | Connected
+             | Timestamp
+             | Buttons
+             | Axes
              deriving (Eq, Ord, Show)
   |]
