@@ -64,6 +64,9 @@ library
                        IHaskell.Display.Widgets.ColorPicker
                        IHaskell.Display.Widgets.DatePicker
                        IHaskell.Display.Widgets.Box.Box
+                       IHaskell.Display.Widgets.Box.GridBox
+                       IHaskell.Display.Widgets.Box.HBox
+                       IHaskell.Display.Widgets.Box.VBox
                        IHaskell.Display.Widgets.Box.SelectionContainer.Accordion
                        IHaskell.Display.Widgets.Box.SelectionContainer.Tab
                        IHaskell.Display.Widgets.Bool.CheckBox

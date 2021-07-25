@@ -161,7 +161,7 @@ type FloatRangeClass = FloatClass :++ '[ 'S.FloatPairValue ]
 
 type BoundedFloatRangeClass = FloatRangeClass :++ ['S.StepFloat, 'S.MinFloat, 'S.MaxFloat]
 
-type BoxClass = DOMWidgetClass :++ ['S.Children, 'S.OverflowX, 'S.OverflowY, 'S.BoxStyle]
+type BoxClass = CoreWidgetClass :++ DOMWidgetClass :++ ['S.Children, 'S.BoxStyle]
 
 type SelectionContainerClass = BoxClass :++ ['S.Titles, 'S.SelectedIndex, 'S.ChangeHandler]
 
@@ -322,6 +322,9 @@ data WidgetType = ButtonType
                 | FloatProgressType
                 | FloatRangeSliderType
                 | BoxType
+                | GridBoxType
+                | HBoxType
+                | VBoxType
                 | AccordionType
                 | TabType
                 | ControllerButtonType
@@ -401,6 +404,9 @@ type family WidgetFields (w :: WidgetType) :: [Field] where
                   BoundedFloatRangeClass :++
                     ['S.StepFloat, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled ]
   WidgetFields 'BoxType = BoxClass
+  WidgetFields 'GridBoxType = BoxClass
+  WidgetFields 'HBoxType = BoxClass
+  WidgetFields 'VBoxType = BoxClass
   WidgetFields 'AccordionType = SelectionContainerClass
   WidgetFields 'TabType = SelectionContainerClass
   WidgetFields 'ControllerType =
@@ -907,11 +913,9 @@ defaultBoundedFloatRangeWidget viewName modelName = defaultFloatRangeWidget view
 
 -- | A record representing a widget of the _Box class from IPython
 defaultBoxWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr BoxClass
-defaultBoxWidget viewName modelName = defaultDOMWidget viewName modelName <+> intAttrs
+defaultBoxWidget viewName modelName = defaultCoreWidget <+> defaultDOMWidget viewName modelName <+> intAttrs
   where
     intAttrs = (Children =:: [])
-               :& (OverflowX =:: DefaultOverflow)
-               :& (OverflowY =:: DefaultOverflow)
                :& (BoxStyle =:: DefaultBox)
                :& RNil
 

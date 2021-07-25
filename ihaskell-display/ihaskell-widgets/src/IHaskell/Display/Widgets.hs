@@ -5,6 +5,9 @@ import           IHaskell.Display.Widgets.ColorPicker as X
 import           IHaskell.Display.Widgets.DatePicker as X
 
 import           IHaskell.Display.Widgets.Box.Box as X
+import           IHaskell.Display.Widgets.Box.GridBox as X
+import           IHaskell.Display.Widgets.Box.HBox as X
+import           IHaskell.Display.Widgets.Box.VBox as X
 import           IHaskell.Display.Widgets.Box.SelectionContainer.Accordion as X
 import           IHaskell.Display.Widgets.Box.SelectionContainer.Tab as X
 
