@@ -33,6 +33,7 @@ pattern ModelModuleVersion = S.SModelModuleVersion
 pattern ModelName = S.SModelName
 pattern DisplayHandler = S.SDisplayHandler
 pattern DOMClasses = S.SDOMClasses
+pattern Layout = S.SLayout
 pattern Width = S.SWidth
 pattern Height = S.SHeight
 pattern Description = S.SDescription
@@ -75,10 +76,7 @@ pattern ReadOutFormat = S.SReadOutFormat
 pattern BarStyle = S.SBarStyle
 pattern ChangeHandler = S.SChangeHandler
 pattern Children = S.SChildren
-pattern OverflowX = S.SOverflowX
-pattern OverflowY = S.SOverflowY
 pattern BoxStyle = S.SBoxStyle
-pattern Flex = S.SFlex
 pattern Pack = S.SPack
 pattern Align = S.SAlign
 pattern Titles = S.STitles
@@ -120,36 +118,6 @@ newtype PixCount = PixCount Integer
 
 instance ToJSON PixCount where
   toJSON (PixCount x) = toJSON . pack $ show x ++ "px"
-
--- | Pre-defined border styles
-data BorderStyleValue = NoBorder
-                      | HiddenBorder
-                      | DottedBorder
-                      | DashedBorder
-                      | SolidBorder
-                      | DoubleBorder
-                      | GrooveBorder
-                      | RidgeBorder
-                      | InsetBorder
-                      | OutsetBorder
-                      | InitialBorder
-                      | InheritBorder
-                      | DefaultBorder
-
-instance ToJSON BorderStyleValue where
-  toJSON NoBorder = "none"
-  toJSON HiddenBorder = "hidden"
-  toJSON DottedBorder = "dotted"
-  toJSON DashedBorder = "dashed"
-  toJSON SolidBorder = "solid"
-  toJSON DoubleBorder = "double"
-  toJSON GrooveBorder = "groove"
-  toJSON RidgeBorder = "ridge"
-  toJSON InsetBorder = "inset"
-  toJSON OutsetBorder = "outset"
-  toJSON InitialBorder = "initial"
-  toJSON InheritBorder = "inherit"
-  toJSON DefaultBorder = ""
 
 -- | Font style values
 data FontStyleValue = NormalFont
@@ -268,23 +236,6 @@ data OrientationValue = HorizontalOrientation
 instance ToJSON OrientationValue where
   toJSON HorizontalOrientation = "horizontal"
   toJSON VerticalOrientation = "vertical"
-
-data OverflowValue = VisibleOverflow
-                   | HiddenOverflow
-                   | ScrollOverflow
-                   | AutoOverflow
-                   | InitialOverflow
-                   | InheritOverflow
-                   | DefaultOverflow
-
-instance ToJSON OverflowValue where
-  toJSON VisibleOverflow = "visible"
-  toJSON HiddenOverflow = "hidden"
-  toJSON ScrollOverflow = "scroll"
-  toJSON AutoOverflow = "auto"
-  toJSON InitialOverflow = "initial"
-  toJSON InheritOverflow = "inherit"
-  toJSON DefaultOverflow = ""
 
 data BoxStyleValue = SuccessBox
                    | InfoBox

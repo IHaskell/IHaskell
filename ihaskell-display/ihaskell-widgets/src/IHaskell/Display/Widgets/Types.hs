@@ -127,7 +127,7 @@ type (a :++ b) = a ++ b
 -- Classes from IPython's widget hierarchy. Defined as such to reduce code duplication.
 type CoreWidgetClass = ['S.ViewModule, 'S.ViewModuleVersion, 'S.ModelModule, 'S.ModelModuleVersion ]
 
-type DOMWidgetClass = ['S.ModelName, 'S.ViewName, 'S.DOMClasses, 'S.Tabbable, 'S.Tooltip, 'S.DisplayHandler] -- TODO: Add layout
+type DOMWidgetClass = ['S.ModelName, 'S.ViewName, 'S.DOMClasses, 'S.Tabbable, 'S.Tooltip, 'S.Layout, 'S.DisplayHandler]
 
 type DescriptionWidgetClass = CoreWidgetClass :++ DOMWidgetClass :++ '[ 'S.Description ]
 
@@ -168,93 +168,91 @@ type SelectionContainerClass = BoxClass :++ ['S.Titles, 'S.SelectedIndex, 'S.Cha
 type MediaClass = CoreWidgetClass :++ DOMWidgetClass :++ '[ 'S.BSValue ]
 
 -- Types associated with Fields.
+type family FieldType (f :: Field) :: *
 
-type family FieldType (f :: Field) :: * where
-        FieldType 'S.ViewModule = Text
-        FieldType 'S.ViewModuleVersion = Text
-        FieldType 'S.ViewName = Text
-        FieldType 'S.ModelModule = Text
-        FieldType 'S.ModelModuleVersion = Text
-        FieldType 'S.ModelName = Text
-        FieldType 'S.DisplayHandler = IO ()
-        FieldType 'S.DOMClasses = [Text]
-        FieldType 'S.Width = PixCount
-        FieldType 'S.Height = PixCount
-        FieldType 'S.Description = Text
-        FieldType 'S.ClickHandler = IO ()
-        FieldType 'S.SubmitHandler = IO ()
-        FieldType 'S.Disabled = Bool
-        FieldType 'S.StringValue = Text
-        FieldType 'S.Placeholder = Text
-        FieldType 'S.Tooltip = Maybe Text
-        FieldType 'S.Icon = Text
-        FieldType 'S.ButtonStyle = ButtonStyleValue
-        FieldType 'S.BSValue = ByteString
-        FieldType 'S.ImageFormat = ImageFormatValue
-        FieldType 'S.BoolValue = Bool
-        FieldType 'S.OptionsLabels = [Text]
-        FieldType 'S.Index = Integer
-        FieldType 'S.OptionalIndex = Maybe Integer
-        FieldType 'S.SelectionHandler = IO ()
-        FieldType 'S.Tooltips = [Text]
-        FieldType 'S.Icons = [Text]
-        FieldType 'S.Indices = [Integer]
-        FieldType 'S.IntValue = Integer
-        FieldType 'S.StepInt = Maybe Integer
-        FieldType 'S.MinInt = Integer
-        FieldType 'S.MaxInt = Integer
-        FieldType 'S.LowerInt = Integer
-        FieldType 'S.UpperInt = Integer
-        FieldType 'S.IntPairValue = (Integer, Integer)
-        FieldType 'S.Orientation = OrientationValue
-        FieldType 'S.BaseFloat = Double
-        FieldType 'S.ReadOut = Bool
-        FieldType 'S.ReadOutFormat = Text
-        FieldType 'S.BarStyle = BarStyleValue
-        FieldType 'S.FloatValue = Double
-        FieldType 'S.StepFloat = Maybe Double
-        FieldType 'S.MinFloat = Double
-        FieldType 'S.MaxFloat = Double
-        FieldType 'S.LowerFloat = Double
-        FieldType 'S.UpperFloat = Double
-        FieldType 'S.FloatPairValue = (Double, Double)
-        FieldType 'S.ChangeHandler = IO ()
-        FieldType 'S.Children = [ChildWidget]
-        FieldType 'S.OverflowX = OverflowValue
-        FieldType 'S.OverflowY = OverflowValue
-        FieldType 'S.BoxStyle = BoxStyleValue
-        FieldType 'S.Flex = Int
-        FieldType 'S.Pack = LocationValue
-        FieldType 'S.Align = LocationValue
-        FieldType 'S.Titles = [Text]
-        FieldType 'S.SelectedIndex = Maybe Integer
-        FieldType 'S.ReadOutMsg = Text
-        FieldType 'S.Indent = Bool
-        FieldType 'S.Child = Maybe ChildWidget
-        FieldType 'S.Selector = Text
-        FieldType 'S.ContinuousUpdate = Bool
-        FieldType 'S.Tabbable = Maybe Bool
-        FieldType 'S.Rows = Maybe Integer
-        FieldType 'S.AudioFormat = AudioFormatValue
-        FieldType 'S.VideoFormat = VideoFormatValue
-        FieldType 'S.AutoPlay = Bool
-        FieldType 'S.Loop = Bool
-        FieldType 'S.Controls = Bool
-        FieldType 'S.Options = [Text]
-        FieldType 'S.EnsureOption = Bool
-        FieldType 'S.Playing = Bool
-        FieldType 'S.Repeat = Bool
-        FieldType 'S.Interval = Integer
-        FieldType 'S.ShowRepeat = Bool
-        FieldType 'S.Concise = Bool
-        FieldType 'S.DateValue = Date
-        FieldType 'S.Pressed = Bool
-        FieldType 'S.Name = Text
-        FieldType 'S.Mapping = Text
-        FieldType 'S.Connected = Bool
-        FieldType 'S.Timestamp = Double
-        FieldType 'S.Buttons = [IPythonWidget 'ControllerButtonType]
-        FieldType 'S.Axes = [IPythonWidget 'ControllerAxisType]
+type instance FieldType 'S.ViewModule = Text
+type instance FieldType 'S.ViewModuleVersion = Text
+type instance FieldType 'S.ViewName = Text
+type instance FieldType 'S.ModelModule = Text
+type instance FieldType 'S.ModelModuleVersion = Text
+type instance FieldType 'S.ModelName = Text
+type instance FieldType 'S.Layout = Maybe (IPythonWidget 'LayoutType)
+type instance FieldType 'S.DisplayHandler = IO ()
+type instance FieldType 'S.DOMClasses = [Text]
+type instance FieldType 'S.Width = PixCount
+type instance FieldType 'S.Height = PixCount
+type instance FieldType 'S.Description = Text
+type instance FieldType 'S.ClickHandler = IO ()
+type instance FieldType 'S.SubmitHandler = IO ()
+type instance FieldType 'S.Disabled = Bool
+type instance FieldType 'S.StringValue = Text
+type instance FieldType 'S.Placeholder = Text
+type instance FieldType 'S.Tooltip = Maybe Text
+type instance FieldType 'S.Icon = Text
+type instance FieldType 'S.ButtonStyle = ButtonStyleValue
+type instance FieldType 'S.BSValue = ByteString
+type instance FieldType 'S.ImageFormat = ImageFormatValue
+type instance FieldType 'S.BoolValue = Bool
+type instance FieldType 'S.OptionsLabels = [Text]
+type instance FieldType 'S.Index = Integer
+type instance FieldType 'S.OptionalIndex = Maybe Integer
+type instance FieldType 'S.SelectionHandler = IO ()
+type instance FieldType 'S.Tooltips = [Text]
+type instance FieldType 'S.Icons = [Text]
+type instance FieldType 'S.Indices = [Integer]
+type instance FieldType 'S.IntValue = Integer
+type instance FieldType 'S.StepInt = Maybe Integer
+type instance FieldType 'S.MinInt = Integer
+type instance FieldType 'S.MaxInt = Integer
+type instance FieldType 'S.LowerInt = Integer
+type instance FieldType 'S.UpperInt = Integer
+type instance FieldType 'S.IntPairValue = (Integer, Integer)
+type instance FieldType 'S.Orientation = OrientationValue
+type instance FieldType 'S.BaseFloat = Double
+type instance FieldType 'S.ReadOut = Bool
+type instance FieldType 'S.ReadOutFormat = Text
+type instance FieldType 'S.BarStyle = BarStyleValue
+type instance FieldType 'S.FloatValue = Double
+type instance FieldType 'S.StepFloat = Maybe Double
+type instance FieldType 'S.MinFloat = Double
+type instance FieldType 'S.MaxFloat = Double
+type instance FieldType 'S.LowerFloat = Double
+type instance FieldType 'S.UpperFloat = Double
+type instance FieldType 'S.FloatPairValue = (Double, Double)
+type instance FieldType 'S.ChangeHandler = IO ()
+type instance FieldType 'S.Children = [ChildWidget]
+type instance FieldType 'S.BoxStyle = BoxStyleValue
+type instance FieldType 'S.Pack = LocationValue
+type instance FieldType 'S.Align = LocationValue
+type instance FieldType 'S.Titles = [Text]
+type instance FieldType 'S.SelectedIndex = Maybe Integer
+type instance FieldType 'S.ReadOutMsg = Text
+type instance FieldType 'S.Indent = Bool
+type instance FieldType 'S.Child = Maybe ChildWidget
+type instance FieldType 'S.Selector = Text
+type instance FieldType 'S.ContinuousUpdate = Bool
+type instance FieldType 'S.Tabbable = Maybe Bool
+type instance FieldType 'S.Rows = Maybe Integer
+type instance FieldType 'S.AudioFormat = AudioFormatValue
+type instance FieldType 'S.VideoFormat = VideoFormatValue
+type instance FieldType 'S.AutoPlay = Bool
+type instance FieldType 'S.Loop = Bool
+type instance FieldType 'S.Controls = Bool
+type instance FieldType 'S.Options = [Text]
+type instance FieldType 'S.EnsureOption = Bool
+type instance FieldType 'S.Playing = Bool
+type instance FieldType 'S.Repeat = Bool
+type instance FieldType 'S.Interval = Integer
+type instance FieldType 'S.ShowRepeat = Bool
+type instance FieldType 'S.Concise = Bool
+type instance FieldType 'S.DateValue = Date
+type instance FieldType 'S.Pressed = Bool
+type instance FieldType 'S.Name = Text
+type instance FieldType 'S.Mapping = Text
+type instance FieldType 'S.Connected = Bool
+type instance FieldType 'S.Timestamp = Double
+type instance FieldType 'S.Buttons = [IPythonWidget 'ControllerButtonType]
+type instance FieldType 'S.Axes = [IPythonWidget 'ControllerAxisType]
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
 data ChildWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => ChildWidget (IPythonWidget w)
@@ -331,91 +329,92 @@ data WidgetType = ButtonType
                 | ControllerButtonType
                 | ControllerAxisType
                 | ControllerType
+                | LayoutType
 
 -- Fields associated with a widget
 
-type family WidgetFields (w :: WidgetType) :: [Field] where
-  WidgetFields 'ButtonType =
-                  DescriptionWidgetClass :++
-                    ['S.Disabled, 'S.Icon, 'S.ButtonStyle ,'S.ClickHandler]
-  WidgetFields 'ColorPickerType =
-                  DescriptionWidgetClass :++
-                    ['S.StringValue, 'S.Concise, 'S.Disabled]
-  WidgetFields 'DatePickerType =
-                  DescriptionWidgetClass :++
-                    ['S.DateValue, 'S.Disabled]
+type family WidgetFields (w :: WidgetType) :: [Field]
+type instance WidgetFields 'ButtonType =
+                DescriptionWidgetClass :++
+                  ['S.Disabled, 'S.Icon, 'S.ButtonStyle ,'S.ClickHandler]
+type instance WidgetFields 'ColorPickerType =
+                DescriptionWidgetClass :++
+                  ['S.StringValue, 'S.Concise, 'S.Disabled]
+type instance WidgetFields 'DatePickerType =
+                DescriptionWidgetClass :++
+                  ['S.DateValue, 'S.Disabled]
 
-  WidgetFields 'AudioType =
-                  MediaClass :++ ['S.AudioFormat, 'S.AutoPlay, 'S.Loop, 'S.Controls]
-  WidgetFields 'ImageType =
-                  MediaClass :++ ['S.ImageFormat, 'S.Width, 'S.Height]
-  WidgetFields 'VideoType =
-                  MediaClass :++ ['S.VideoFormat, 'S.Width, 'S.Height, 'S.AutoPlay, 'S.Loop, 'S.Controls]
+type instance WidgetFields 'AudioType =
+                MediaClass :++ ['S.AudioFormat, 'S.AutoPlay, 'S.Loop, 'S.Controls]
+type instance WidgetFields 'ImageType =
+                MediaClass :++ ['S.ImageFormat, 'S.Width, 'S.Height]
+type instance WidgetFields 'VideoType =
+                MediaClass :++ ['S.VideoFormat, 'S.Width, 'S.Height, 'S.AutoPlay, 'S.Loop, 'S.Controls]
 
-  WidgetFields 'OutputType = DOMWidgetClass
-  WidgetFields 'HTMLType = StringClass
-  WidgetFields 'HTMLMathType = StringClass
-  WidgetFields 'ComboboxType = TextClass :++ [ 'S.Options, 'S.EnsureOption ]
-  WidgetFields 'LabelType = StringClass
-  WidgetFields 'PasswordType = TextClass
-  WidgetFields 'TextType = TextClass
+type instance WidgetFields 'OutputType = DOMWidgetClass
+type instance WidgetFields 'HTMLType = StringClass
+type instance WidgetFields 'HTMLMathType = StringClass
+type instance WidgetFields 'ComboboxType = TextClass :++ [ 'S.Options, 'S.EnsureOption ]
+type instance WidgetFields 'LabelType = StringClass
+type instance WidgetFields 'PasswordType = TextClass
+type instance WidgetFields 'TextType = TextClass
 
-  -- Type level lists with a single element need both the list and the
-  -- constructor ticked, and a space between the open square bracket and
-  -- the first constructor. See https://ghc.haskell.org/trac/ghc/ticket/15601
-  WidgetFields 'TextAreaType =
-                  StringClass :++
-                    [ 'S.Rows, 'S.Disabled, 'S.ContinuousUpdate, 'S.ChangeHandler]
+-- Type level lists with a single element need both the list and the
+-- constructor ticked, and a space between the open square bracket and
+-- the first constructor. See https://ghc.haskell.org/trac/ghc/ticket/15601
+type instance WidgetFields 'TextAreaType =
+                StringClass :++
+                  [ 'S.Rows, 'S.Disabled, 'S.ContinuousUpdate, 'S.ChangeHandler]
 
-  WidgetFields 'CheckBoxType = BoolClass :++ '[ 'S.Indent ]
-  WidgetFields 'ToggleButtonType = BoolClass :++ ['S.Icon, 'S.ButtonStyle]
-  WidgetFields 'ValidType = BoolClass :++ '[ 'S.ReadOutMsg ]
-  WidgetFields 'DropdownType = SelectionClass
-  WidgetFields 'RadioButtonsType = SelectionClass
-  WidgetFields 'SelectType = SelectionClass :++ '[ 'S.Rows ]
-  WidgetFields 'SelectionSliderType = SelectionNonemptyClass :++ '[ 'S.Orientation, 'S.ReadOut, 'S.ContinuousUpdate ]
-  WidgetFields 'SelectionRangeSliderType = MultipleSelectionClass :++ '[ 'S.Orientation, 'S.ReadOut, 'S.ContinuousUpdate ]
-  WidgetFields 'ToggleButtonsType =
-                  SelectionClass :++ ['S.Tooltips, 'S.Icons, 'S.ButtonStyle]
-  WidgetFields 'SelectMultipleType = MultipleSelectionClass :++ '[ 'S.Rows ]
-  WidgetFields 'IntTextType = IntClass :++ [ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepInt ]
-  WidgetFields 'BoundedIntTextType = BoundedIntClass :++ [ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepInt ]
-  WidgetFields 'IntSliderType =
-                  BoundedIntClass :++
-                    [ 'S.StepInt, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled ]
-  WidgetFields 'PlayType =
-                  BoundedIntClass :++
-                    [ 'S.Playing, 'S.Repeat, 'S.Interval, 'S.StepInt, 'S.Disabled, 'S.ShowRepeat ]
-  WidgetFields 'IntProgressType =
-                  BoundedIntClass :++ ['S.Orientation, 'S.BarStyle]
-  WidgetFields 'IntRangeSliderType =
-                  BoundedIntRangeClass :++
-                    ['S.StepInt, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled ]
-  WidgetFields 'FloatTextType = FloatClass :++ '[ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepFloat ]
-  WidgetFields 'BoundedFloatTextType = BoundedFloatClass :++ '[ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepFloat ]
-  WidgetFields 'FloatSliderType =
-                  BoundedFloatClass :++
-                    ['S.StepFloat, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled ]
-  WidgetFields 'FloatLogSliderType =
-                  BoundedLogFloatClass :++
-                    ['S.StepFloat, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled, 'S.BaseFloat]
-  WidgetFields 'FloatProgressType =
-                  BoundedFloatClass :++ ['S.Orientation, 'S.BarStyle]
-  WidgetFields 'FloatRangeSliderType =
-                  BoundedFloatRangeClass :++
-                    ['S.StepFloat, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled ]
-  WidgetFields 'BoxType = BoxClass
-  WidgetFields 'GridBoxType = BoxClass
-  WidgetFields 'HBoxType = BoxClass
-  WidgetFields 'VBoxType = BoxClass
-  WidgetFields 'AccordionType = SelectionContainerClass
-  WidgetFields 'TabType = SelectionContainerClass
-  WidgetFields 'StackedType = SelectionContainerClass
-  WidgetFields 'ControllerType =
-    CoreWidgetClass :++ DOMWidgetClass :++
-      ['S.Index, 'S.Name, 'S.Mapping, 'S.Connected, 'S.Timestamp, 'S.Buttons, 'S.Axes, 'S.ChangeHandler ]
-  WidgetFields 'ControllerAxisType = CoreWidgetClass :++ DOMWidgetClass :++ '[ 'S.FloatValue, 'S.ChangeHandler ]
-  WidgetFields 'ControllerButtonType = CoreWidgetClass :++ DOMWidgetClass :++ [ 'S.FloatValue, 'S.Pressed, 'S.ChangeHandler ]
+type instance WidgetFields 'CheckBoxType = BoolClass :++ '[ 'S.Indent ]
+type instance WidgetFields 'ToggleButtonType = BoolClass :++ ['S.Icon, 'S.ButtonStyle]
+type instance WidgetFields 'ValidType = BoolClass :++ '[ 'S.ReadOutMsg ]
+type instance WidgetFields 'DropdownType = SelectionClass
+type instance WidgetFields 'RadioButtonsType = SelectionClass
+type instance WidgetFields 'SelectType = SelectionClass :++ '[ 'S.Rows ]
+type instance WidgetFields 'SelectionSliderType = SelectionNonemptyClass :++ '[ 'S.Orientation, 'S.ReadOut, 'S.ContinuousUpdate ]
+type instance WidgetFields 'SelectionRangeSliderType = MultipleSelectionClass :++ '[ 'S.Orientation, 'S.ReadOut, 'S.ContinuousUpdate ]
+type instance WidgetFields 'ToggleButtonsType =
+                SelectionClass :++ ['S.Tooltips, 'S.Icons, 'S.ButtonStyle]
+type instance WidgetFields 'SelectMultipleType = MultipleSelectionClass :++ '[ 'S.Rows ]
+type instance WidgetFields 'IntTextType = IntClass :++ [ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepInt ]
+type instance WidgetFields 'BoundedIntTextType = BoundedIntClass :++ [ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepInt ]
+type instance WidgetFields 'IntSliderType =
+                BoundedIntClass :++
+                  [ 'S.StepInt, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled ]
+type instance WidgetFields 'PlayType =
+                BoundedIntClass :++
+                  [ 'S.Playing, 'S.Repeat, 'S.Interval, 'S.StepInt, 'S.Disabled, 'S.ShowRepeat ]
+type instance WidgetFields 'IntProgressType =
+                BoundedIntClass :++ ['S.Orientation, 'S.BarStyle]
+type instance WidgetFields 'IntRangeSliderType =
+                BoundedIntRangeClass :++
+                  ['S.StepInt, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled ]
+type instance WidgetFields 'FloatTextType = FloatClass :++ '[ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepFloat ]
+type instance WidgetFields 'BoundedFloatTextType = BoundedFloatClass :++ '[ 'S.Disabled, 'S.ContinuousUpdate, 'S.StepFloat ]
+type instance WidgetFields 'FloatSliderType =
+                BoundedFloatClass :++
+                  ['S.StepFloat, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled ]
+type instance WidgetFields 'FloatLogSliderType =
+                BoundedLogFloatClass :++
+                  ['S.StepFloat, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled, 'S.BaseFloat]
+type instance WidgetFields 'FloatProgressType =
+                BoundedFloatClass :++ ['S.Orientation, 'S.BarStyle]
+type instance WidgetFields 'FloatRangeSliderType =
+                BoundedFloatRangeClass :++
+                  ['S.StepFloat, 'S.Orientation, 'S.ReadOut, 'S.ReadOutFormat, 'S.ContinuousUpdate, 'S.Disabled ]
+type instance WidgetFields 'BoxType = BoxClass
+type instance WidgetFields 'GridBoxType = BoxClass
+type instance WidgetFields 'HBoxType = BoxClass
+type instance WidgetFields 'VBoxType = BoxClass
+type instance WidgetFields 'AccordionType = SelectionContainerClass
+type instance WidgetFields 'TabType = SelectionContainerClass
+type instance WidgetFields 'StackedType = SelectionContainerClass
+type instance WidgetFields 'ControllerType =
+  CoreWidgetClass :++ DOMWidgetClass :++
+    ['S.Index, 'S.Name, 'S.Mapping, 'S.Connected, 'S.Timestamp, 'S.Buttons, 'S.Axes, 'S.ChangeHandler ]
+type instance WidgetFields 'ControllerAxisType = CoreWidgetClass :++ DOMWidgetClass :++ '[ 'S.FloatValue, 'S.ChangeHandler ]
+type instance WidgetFields 'ControllerButtonType = CoreWidgetClass :++ DOMWidgetClass :++ [ 'S.FloatValue, 'S.Pressed, 'S.ChangeHandler ]
 
 -- Wrapper around a field's value. A dummy value is sent as an empty string to the frontend.
 data AttrVal a = Dummy a
@@ -607,17 +606,8 @@ instance ToPairs (Attr 'S.ChangeHandler) where
 instance ToPairs (Attr 'S.Children) where
   toPairs x = ["children" .= toJSON x]
 
-instance ToPairs (Attr 'S.OverflowX) where
-  toPairs x = ["overflow_x" .= toJSON x]
-
-instance ToPairs (Attr 'S.OverflowY) where
-  toPairs x = ["overflow_y" .= toJSON x]
-
 instance ToPairs (Attr 'S.BoxStyle) where
   toPairs x = ["box_style" .= toJSON x]
-
-instance ToPairs (Attr 'S.Flex) where
-  toPairs x = ["flex" .= toJSON x]
 
 instance ToPairs (Attr 'S.Pack) where
   toPairs x = ["pack" .= toJSON x]
@@ -706,6 +696,9 @@ instance ToPairs (Attr 'S.Buttons) where
 instance ToPairs (Attr 'S.Axes) where
   toPairs x = ["axes" .= toJSON x]
 
+instance ToPairs (Attr 'S.Layout) where
+  toPairs x = ["layout" .= toJSON x]
+
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.
 (=::) :: (SingI f, Typeable (FieldType f)) => Sing f -> FieldType f -> Attr f
@@ -758,19 +751,20 @@ reflect = fromSing
 
 -- | A record representing a Widget class from IPython from the controls modules
 defaultCoreWidget :: Rec Attr CoreWidgetClass
-defaultCoreWidget = (ViewModule =:: "@jupyter-widgets/controls")
-                    :& (ViewModuleVersion =:: "1.4.0")
-                    :& (ModelModule =:: "@jupyter-widgets/controls")
-                    :& (ModelModuleVersion =:: "1.4.0")
+defaultCoreWidget = (ViewModule =:! "@jupyter-widgets/controls")
+                    :& (ViewModuleVersion =:! "1.4.0")
+                    :& (ModelModule =:! "@jupyter-widgets/controls")
+                    :& (ModelModuleVersion =:! "1.4.0")
                     :& RNil
 
 -- | A record representing an object of the DOMWidget class from IPython
 defaultDOMWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> Rec Attr DOMWidgetClass
-defaultDOMWidget viewName modelName = (ModelName =:: modelName)
-                                      :& (ViewName =:: viewName)
+defaultDOMWidget viewName modelName = (ModelName =:! modelName)
+                                      :& (ViewName =:! viewName)
                                       :& (DOMClasses =:: [])
                                       :& (Tabbable =:: Nothing)
                                       :& (Tooltip =:: Nothing)
+                                      :& (Layout =:: Nothing)
                                       :& (DisplayHandler =:: return ())
                                       :& RNil
 

@@ -58,6 +58,7 @@ library
   -- Modules exported by the library.
   exposed-modules:     IHaskell.Display.Widgets
                        IHaskell.Display.Widgets.Interactive
+                       IHaskell.Display.Widgets.Layout
 
   -- Modules included in this library but not exported.
   other-modules:       IHaskell.Display.Widgets.Button
@@ -105,6 +106,10 @@ library
                        IHaskell.Display.Widgets.String.Password
                        IHaskell.Display.Widgets.String.Text
                        IHaskell.Display.Widgets.String.TextArea
+
+                       IHaskell.Display.Widgets.Layout.Common
+                       IHaskell.Display.Widgets.Layout.LayoutWidget
+                       IHaskell.Display.Widgets.Layout.Types
 
                        IHaskell.Display.Widgets.Types
                        IHaskell.Display.Widgets.Common

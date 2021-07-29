@@ -18,6 +18,8 @@
 
 module IHaskell.Display.Widgets.Singletons where
 
+import           Data.Kind
+
 #if MIN_VERSION_singletons(3,0,0)
 import           Data.Singletons.Base.TH
 #elif MIN_VERSION_singletons(2,4,0)
@@ -39,6 +41,7 @@ singletons
              | ModelName
              | DisplayHandler
              | DOMClasses
+             | Layout
              | Width
              | Height
              | Description
@@ -81,10 +84,7 @@ singletons
              | BarStyle
              | ChangeHandler
              | Children
-             | OverflowX
-             | OverflowY
              | BoxStyle
-             | Flex
              | Pack
              | Align
              | Titles
@@ -116,5 +116,44 @@ singletons
              | Timestamp
              | Buttons
              | Axes
+             -- Now the ones for layout
+             -- Every layout property comes with an L before the name to avoid conflict
+             -- The patterns from Layout.Common remove that leading L
+             | LAlignContent
+             | LAlignItems
+             | LAlignSelf
+             | LBorder
+             | LBottom
+             | LDisplay
+             | LFlex
+             | LFlexFlow
+             | LGridArea
+             | LGridAutoColumns
+             | LGridAutoFlow
+             | LGridAutoRows
+             | LGridColumn
+             | LGridGap
+             | LGridRow
+             | LGridTemplateAreas
+             | LGridTemplateColumns
+             | LGridTemplateRows
+             | LHeight
+             | LJustifyContent
+             | LJustifyItems
+             | LLeft
+             | LMargin
+             | LMaxHeight
+             | LMaxWidth
+             | LMinHeight
+             | LMinWidth
+             | LOrder
+             | LOverflow
+             | LOverflowX
+             | LOverflowY
+             | LPadding
+             | LRight
+             | LTop
+             | LVisibility
+             | LWidth
              deriving (Eq, Ord, Show)
   |]
