@@ -41,7 +41,7 @@ mkSelect = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let selectionAttrs = defaultSelectionWidget "SelectView" "SelectModel" layout dstyle
+  let selectionAttrs = defaultSelectionWidget "SelectView" "SelectModel" layout $ StyleWidget dstyle
       selectAttrs = (Rows =:: Just 5)
                     :& RNil
       widgetState = WidgetState $ selectionAttrs <+> selectAttrs

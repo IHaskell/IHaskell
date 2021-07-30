@@ -5,11 +5,11 @@
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
-module IHaskell.Display.Widgets.Style.DescriptionStyle
-  ( -- * Description style
-    DescriptionStyle
-    -- * Create a new description style
-  , mkDescriptionStyle
+module IHaskell.Display.Widgets.Style.ProgressStyle
+  ( -- * Progress style
+    ProgressStyle
+    -- * Create a new progress style
+  , mkProgressStyle
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -26,16 +26,18 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | A 'DescriptionStyle' represents a Button Style from IPython.html.widgets.
-type DescriptionStyle = IPythonWidget 'DescriptionStyleType
+-- | A 'ProgressStyle' represents a Button Style from IPython.html.widgets.
+type ProgressStyle = IPythonWidget 'ProgressStyleType
 
 -- | Create a new button style
-mkDescriptionStyle :: IO DescriptionStyle
-mkDescriptionStyle = do
+mkProgressStyle :: IO ProgressStyle
+mkProgressStyle = do
   wid <- U.random
 
-  let stl = defaultDescriptionStyleWidget "DescriptionStyleModel"
-      btnStlState = WidgetState stl
+  let stl = defaultDescriptionStyleWidget "ProgressStyleModel"
+      but = (BarColor =:: Nothing)
+            :& RNil
+      btnStlState = WidgetState (stl <+> but)
 
   stateIO <- newIORef btnStlState
 
@@ -47,5 +49,5 @@ mkDescriptionStyle = do
   -- Return the style widget
   return style
 
-instance IHaskellWidget DescriptionStyle where
+instance IHaskellWidget ProgressStyle where
   getCommUUID = uuid

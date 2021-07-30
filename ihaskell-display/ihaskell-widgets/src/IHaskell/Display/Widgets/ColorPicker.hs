@@ -39,7 +39,7 @@ mkColorPicker = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let ddw = defaultDescriptionWidget "ColorPickerView" "ColorPickerModel" layout dstyle
+  let ddw = defaultDescriptionWidget "ColorPickerView" "ColorPickerModel" layout $ StyleWidget dstyle
       color = (StringValue =:: "black")
               :& (Concise =:: False)
               :& (Disabled =:: False)

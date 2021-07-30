@@ -41,7 +41,7 @@ mkBoundedIntText = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let boundedIntAttrs = defaultBoundedIntWidget "IntTextView" "BoundedIntTextModel" layout dstyle
+  let boundedIntAttrs = defaultBoundedIntWidget "IntTextView" "BoundedIntTextModel" layout $ StyleWidget dstyle
       textAttrs = (Disabled =:: False)
                   :& (ContinuousUpdate =:: False)
                   :& (StepInt =:: Just 1)

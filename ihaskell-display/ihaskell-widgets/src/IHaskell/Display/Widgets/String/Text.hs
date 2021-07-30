@@ -40,7 +40,7 @@ mkTextWidget = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let widgetState = WidgetState $ defaultTextWidget "TextView" "TextModel" layout dstyle
+  let widgetState = WidgetState $ defaultTextWidget "TextView" "TextModel" layout $ StyleWidget dstyle
 
   stateIO <- newIORef widgetState
 

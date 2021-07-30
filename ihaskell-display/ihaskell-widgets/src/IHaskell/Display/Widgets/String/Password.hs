@@ -40,7 +40,7 @@ mkPasswordWidget = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let widgetState = WidgetState $ defaultTextWidget "PasswordView" "PasswordModel" layout dstyle
+  let widgetState = WidgetState $ defaultTextWidget "PasswordView" "PasswordModel" layout $ StyleWidget dstyle
 
   stateIO <- newIORef widgetState
 

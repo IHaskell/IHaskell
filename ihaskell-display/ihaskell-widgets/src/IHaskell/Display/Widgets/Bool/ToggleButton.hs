@@ -40,7 +40,7 @@ mkToggleButton = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let boolState = defaultBoolWidget "ToggleButtonView" "ToggleButtonModel" layout dstyle
+  let boolState = defaultBoolWidget "ToggleButtonView" "ToggleButtonModel" layout $ StyleWidget dstyle
       toggleState = (Icon =:: "")
                     :& (ButtonStyle =:: DefaultButton)
                     :& RNil

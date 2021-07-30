@@ -39,7 +39,7 @@ mkIntProgress = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let boundedIntAttrs = defaultBoundedIntWidget "ProgressView" "IntProgressModel" layout dstyle
+  let boundedIntAttrs = defaultBoundedIntWidget "ProgressView" "IntProgressModel" layout $ StyleWidget dstyle
       progressAttrs = (Orientation =:: HorizontalOrientation)
                       :& (BarStyle =:: DefaultBar)
                       :& RNil

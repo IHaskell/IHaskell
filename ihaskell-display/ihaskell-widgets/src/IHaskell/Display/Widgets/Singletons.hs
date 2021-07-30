@@ -119,12 +119,10 @@ singletons
              | ButtonColor
              | FontWeight
              | DescriptionWidth
-             -- Singletons for child style widgets
-             | StyleButton
-             | StyleDescription
-             | StyleProgress
-             | StyleSlider
-             | StyleToggleButton
+             | BarColor
+             | HandleColor
+             | ButtonWidth
+             | Style
              -- Now the ones for layout
              -- Every layout property comes with an L before the name to avoid conflict
              -- The patterns from Layout.Common remove that leading L

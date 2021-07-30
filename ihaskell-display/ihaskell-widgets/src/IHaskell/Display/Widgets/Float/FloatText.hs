@@ -41,7 +41,7 @@ mkFloatText = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let floatAttrs = defaultFloatWidget "FloatTextView" "FloatTextModel" layout dstyle
+  let floatAttrs = defaultFloatWidget "FloatTextView" "FloatTextModel" layout $ StyleWidget dstyle
       textAttrs = (Disabled =:: False)
                   :& (ContinuousUpdate =:: False)
                   :& (StepFloat =:: Nothing)

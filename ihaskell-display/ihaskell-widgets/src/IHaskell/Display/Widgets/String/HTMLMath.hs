@@ -37,7 +37,7 @@ mkHTMLMathWidget = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let widgetState = WidgetState $ defaultStringWidget "HTMLMathView" "HTMLMathModel" layout dstyle
+  let widgetState = WidgetState $ defaultStringWidget "HTMLMathView" "HTMLMathModel" layout $ StyleWidget dstyle
 
   stateIO <- newIORef widgetState
 

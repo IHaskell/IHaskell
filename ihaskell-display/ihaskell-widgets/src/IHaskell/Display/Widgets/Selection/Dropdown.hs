@@ -41,7 +41,7 @@ mkDropdown = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let widgetState = WidgetState $ defaultSelectionWidget "DropdownView" "DropdownModel" layout dstyle
+  let widgetState = WidgetState $ defaultSelectionWidget "DropdownView" "DropdownModel" layout $ StyleWidget dstyle
 
   stateIO <- newIORef widgetState
 

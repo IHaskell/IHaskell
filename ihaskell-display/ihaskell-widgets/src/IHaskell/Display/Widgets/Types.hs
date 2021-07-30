@@ -131,7 +131,7 @@ type DOMWidgetClass = ['S.ModelName, 'S.ViewName, 'S.DOMClasses, 'S.Tabbable, 'S
 
 type StyleWidgetClass = ['S.ModelName, 'S.ViewName] :++ CoreWidgetClass
 
-type DescriptionWidgetClass = CoreWidgetClass :++ DOMWidgetClass :++ ['S.Description,'S.StyleDescription]
+type DescriptionWidgetClass = CoreWidgetClass :++ DOMWidgetClass :++ ['S.Description,'S.Style]
 
 type StringClass = DescriptionWidgetClass :++ ['S.StringValue, 'S.Placeholder]
 
@@ -168,6 +168,8 @@ type BoxClass = CoreWidgetClass :++ DOMWidgetClass :++ ['S.Children, 'S.BoxStyle
 type SelectionContainerClass = BoxClass :++ ['S.Titles, 'S.SelectedIndex, 'S.ChangeHandler]
 
 type MediaClass = CoreWidgetClass :++ DOMWidgetClass :++ '[ 'S.BSValue ]
+
+type DescriptionStyleClass = StyleWidgetClass :++ '[ 'S.DescriptionWidth ]
 
 -- Types associated with Fields.
 type family FieldType (f :: Field) :: *
@@ -258,20 +260,23 @@ type instance FieldType 'S.Axes = [IPythonWidget 'ControllerAxisType]
 type instance FieldType 'S.ButtonColor = Maybe String
 type instance FieldType 'S.FontWeight = FontWeightValue
 type instance FieldType 'S.DescriptionWidth = String
-type instance FieldType 'S.StyleButton = IPythonWidget 'ButtonStyleType
-type instance FieldType 'S.StyleDescription = IPythonWidget 'DescriptionStyleType
-type instance FieldType 'S.StyleProgress = IPythonWidget 'ProgressStyleType
-type instance FieldType 'S.StyleSlider = IPythonWidget 'SliderStyleType
-type instance FieldType 'S.StyleToggleButton = IPythonWidget 'ToggleButtonsStyleType
+type instance FieldType 'S.BarColor = Maybe String
+type instance FieldType 'S.HandleColor = Maybe String
+type instance FieldType 'S.ButtonWidth = String
+type instance FieldType 'S.Style = StyleWidget
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
 data ChildWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => ChildWidget (IPythonWidget w)
+data StyleWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => StyleWidget (IPythonWidget w)
 
 instance ToJSON (IPythonWidget w) where
   toJSON x = toJSON . pack $ "IPY_MODEL_" ++ uuidToString (uuid x)
 
 instance ToJSON ChildWidget where
   toJSON (ChildWidget x) = toJSON x
+
+instance ToJSON StyleWidget where
+  toJSON (StyleWidget x) = toJSON x
 
 -- Will use a custom class rather than a newtype wrapper with an orphan instance. The main issue is
 -- the need of a Bounded instance for Float / Double.
@@ -351,7 +356,7 @@ data WidgetType = ButtonType
 type family WidgetFields (w :: WidgetType) :: [Field]
 type instance WidgetFields 'ButtonType =
                 DescriptionWidgetClass :++
-                  ['S.Disabled, 'S.Icon, 'S.ButtonStyle ,'S.StyleButton,'S.ClickHandler]
+                  ['S.Disabled, 'S.Icon, 'S.ButtonStyle,'S.ClickHandler]
 type instance WidgetFields 'ColorPickerType =
                 DescriptionWidgetClass :++
                   ['S.StringValue, 'S.Concise, 'S.Disabled]
@@ -432,7 +437,10 @@ type instance WidgetFields 'ControllerAxisType = CoreWidgetClass :++ DOMWidgetCl
 type instance WidgetFields 'ControllerButtonType = CoreWidgetClass :++ DOMWidgetClass :++ [ 'S.FloatValue, 'S.Pressed, 'S.ChangeHandler ]
 
 type instance WidgetFields 'ButtonStyleType = StyleWidgetClass :++ ['S.ButtonColor, 'S.FontWeight]
-type instance WidgetFields 'DescriptionStyleType = StyleWidgetClass :++ '[ 'S.DescriptionWidth ]
+type instance WidgetFields 'DescriptionStyleType = DescriptionStyleClass
+type instance WidgetFields 'ProgressStyleType = DescriptionStyleClass :++ '[ 'S.BarColor ]
+type instance WidgetFields 'SliderStyleType = DescriptionStyleClass :++ '[ 'S.HandleColor ]
+type instance WidgetFields 'ToggleButtonsStyleType = DescriptionStyleClass :++ ['S.ButtonWidth,'S.FontWeight]
 
 -- Wrapper around a field's value. A dummy value is sent as an empty string to the frontend.
 data AttrVal a = Dummy a
@@ -726,22 +734,17 @@ instance ToPairs (Attr 'S.FontWeight) where
 instance ToPairs (Attr 'S.DescriptionWidth) where
   toPairs x = ["description_width" .= toJSON x]
 
--- Style widgets. Same serialization, different type
-instance ToPairs (Attr 'S.StyleButton) where
-  toPairs x = ["style" .= toJSON x]
+instance ToPairs (Attr 'S.BarColor) where
+  toPairs x = ["bar_color" .= toJSON x]
 
-instance ToPairs (Attr 'S.StyleDescription) where
-  toPairs x = ["style" .= toJSON x]
+instance ToPairs (Attr 'S.HandleColor) where
+  toPairs x = ["handle_color" .= toJSON x]
 
-instance ToPairs (Attr 'S.StyleProgress) where
-  toPairs x = ["style" .= toJSON x]
+instance ToPairs (Attr 'S.ButtonWidth) where
+  toPairs x = ["button_width" .= toJSON x]
 
-instance ToPairs (Attr 'S.StyleSlider) where
+instance ToPairs (Attr 'S.Style) where
   toPairs x = ["style" .= toJSON x]
-
-instance ToPairs (Attr 'S.StyleToggleButton) where
-  toPairs x = ["style" .= toJSON x]
-
 
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.
@@ -816,19 +819,19 @@ defaultDOMWidget viewName modelName layout = (ModelName =:! modelName)
 defaultDescriptionWidget :: FieldType 'S.ViewName
                          -> FieldType 'S.ModelName
                          -> IPythonWidget 'LayoutType
-                         -> IPythonWidget 'DescriptionStyleType
+                         -> StyleWidget
                          -> Rec Attr DescriptionWidgetClass
 defaultDescriptionWidget v m l d = defaultCoreWidget <+> defaultDOMWidget v m l <+> descriptionAttrs
   where
     descriptionAttrs = (Description =:: "")
-                       :& (StyleDescription =:: d)
+                       :& (Style =:: d)
                        :& RNil
 
 -- | A record representing a widget of the _String class from IPython
 defaultStringWidget :: FieldType 'S.ViewName
                     -> FieldType 'S.ModelName
                     -> IPythonWidget 'LayoutType
-                    -> IPythonWidget 'DescriptionStyleType
+                    -> StyleWidget
                     -> Rec Attr StringClass
 defaultStringWidget viewName modelName l d = defaultDescriptionWidget viewName modelName l d <+> strAttrs
   where
@@ -840,7 +843,7 @@ defaultStringWidget viewName modelName l d = defaultDescriptionWidget viewName m
 defaultTextWidget :: FieldType 'S.ViewName
                   -> FieldType 'S.ModelName
                   -> IPythonWidget 'LayoutType
-                  -> IPythonWidget 'DescriptionStyleType
+                  -> StyleWidget
                   -> Rec Attr TextClass
 defaultTextWidget viewName modelName l d = defaultStringWidget viewName modelName l d <+> txtAttrs
   where
@@ -854,7 +857,7 @@ defaultTextWidget viewName modelName l d = defaultStringWidget viewName modelNam
 defaultBoolWidget :: FieldType 'S.ViewName
                   -> FieldType 'S.ModelName
                   -> IPythonWidget 'LayoutType
-                  -> IPythonWidget 'DescriptionStyleType
+                  -> StyleWidget
                   -> Rec Attr BoolClass
 defaultBoolWidget viewName modelName l d = defaultDescriptionWidget viewName modelName l d <+> boolAttrs
   where
@@ -867,7 +870,7 @@ defaultBoolWidget viewName modelName l d = defaultDescriptionWidget viewName mod
 defaultSelectionWidget :: FieldType 'S.ViewName
                        -> FieldType 'S.ModelName
                        -> IPythonWidget 'LayoutType
-                       -> IPythonWidget 'DescriptionStyleType
+                       -> StyleWidget
                        -> Rec Attr SelectionClass
 defaultSelectionWidget viewName modelName l d = defaultDescriptionWidget viewName modelName l d <+> selectionAttrs
   where
@@ -881,7 +884,7 @@ defaultSelectionWidget viewName modelName l d = defaultDescriptionWidget viewNam
 defaultSelectionNonemptyWidget :: FieldType 'S.ViewName
                                -> FieldType 'S.ModelName
                                -> IPythonWidget 'LayoutType
-                               -> IPythonWidget 'DescriptionStyleType
+                               -> StyleWidget
                                -> Rec Attr SelectionNonemptyClass
 defaultSelectionNonemptyWidget viewName modelName l d = defaultDescriptionWidget viewName modelName l d <+> selectionAttrs
   where
@@ -895,7 +898,7 @@ defaultSelectionNonemptyWidget viewName modelName l d = defaultDescriptionWidget
 defaultMultipleSelectionWidget :: FieldType 'S.ViewName
                                -> FieldType 'S.ModelName
                                -> IPythonWidget 'LayoutType
-                               -> IPythonWidget 'DescriptionStyleType
+                               -> StyleWidget
                                -> Rec Attr MultipleSelectionClass
 defaultMultipleSelectionWidget viewName modelName l d = defaultDescriptionWidget viewName modelName l d <+> mulSelAttrs
   where
@@ -909,7 +912,7 @@ defaultMultipleSelectionWidget viewName modelName l d = defaultDescriptionWidget
 defaultIntWidget :: FieldType 'S.ViewName
                  -> FieldType 'S.ModelName
                  -> IPythonWidget 'LayoutType
-                 -> IPythonWidget 'DescriptionStyleType
+                 -> StyleWidget
                  -> Rec Attr IntClass
 defaultIntWidget viewName modelName l d = defaultDescriptionWidget viewName modelName l d <+> intAttrs
   where
@@ -921,7 +924,7 @@ defaultIntWidget viewName modelName l d = defaultDescriptionWidget viewName mode
 defaultBoundedIntWidget :: FieldType 'S.ViewName
                         -> FieldType 'S.ModelName
                         -> IPythonWidget 'LayoutType
-                        -> IPythonWidget 'DescriptionStyleType
+                        -> StyleWidget
                         -> Rec Attr BoundedIntClass
 defaultBoundedIntWidget viewName modelName l d = defaultIntWidget viewName modelName l d <+> boundedIntAttrs
   where
@@ -933,7 +936,7 @@ defaultBoundedIntWidget viewName modelName l d = defaultIntWidget viewName model
 defaultIntRangeWidget :: FieldType 'S.ViewName
                       -> FieldType 'S.ModelName
                       -> IPythonWidget 'LayoutType
-                      -> IPythonWidget 'DescriptionStyleType
+                      -> StyleWidget
                       -> Rec Attr IntRangeClass
 defaultIntRangeWidget viewName modelName l d = defaultIntWidget viewName modelName l d <+> rangeAttrs
   where
@@ -946,7 +949,7 @@ defaultIntRangeWidget viewName modelName l d = defaultIntWidget viewName modelNa
 defaultBoundedIntRangeWidget :: FieldType 'S.ViewName
                              -> FieldType 'S.ModelName
                              -> IPythonWidget 'LayoutType
-                             -> IPythonWidget 'DescriptionStyleType
+                             -> StyleWidget
                              -> Rec Attr BoundedIntRangeClass
 defaultBoundedIntRangeWidget viewName modelName l d = defaultIntRangeWidget viewName modelName l d <+> boundedIntRangeAttrs
   where
@@ -958,7 +961,7 @@ defaultBoundedIntRangeWidget viewName modelName l d = defaultIntRangeWidget view
 defaultFloatWidget :: FieldType 'S.ViewName
                    -> FieldType 'S.ModelName
                    -> IPythonWidget 'LayoutType
-                   -> IPythonWidget 'DescriptionStyleType
+                   -> StyleWidget
                    -> Rec Attr FloatClass
 defaultFloatWidget viewName modelName l d = defaultDescriptionWidget viewName modelName l d <+> floatAttrs
   where
@@ -970,7 +973,7 @@ defaultFloatWidget viewName modelName l d = defaultDescriptionWidget viewName mo
 defaultBoundedFloatWidget :: FieldType 'S.ViewName
                           -> FieldType 'S.ModelName
                           -> IPythonWidget 'LayoutType
-                          -> IPythonWidget 'DescriptionStyleType
+                          -> StyleWidget
                           -> Rec Attr BoundedFloatClass
 defaultBoundedFloatWidget viewName modelName l d = defaultFloatWidget viewName modelName l d <+> boundedFloatAttrs
   where
@@ -982,7 +985,7 @@ defaultBoundedFloatWidget viewName modelName l d = defaultFloatWidget viewName m
 defaultBoundedLogFloatWidget :: FieldType 'S.ViewName
                              -> FieldType 'S.ModelName
                              -> IPythonWidget 'LayoutType
-                             -> IPythonWidget 'DescriptionStyleType
+                             -> StyleWidget
                              -> Rec Attr BoundedLogFloatClass
 defaultBoundedLogFloatWidget viewName modelName l d = floatAttrs <+> boundedLogFloatAttrs
   where
@@ -996,7 +999,7 @@ defaultBoundedLogFloatWidget viewName modelName l d = floatAttrs <+> boundedLogF
 defaultFloatRangeWidget :: FieldType 'S.ViewName
                         -> FieldType 'S.ModelName
                         -> IPythonWidget 'LayoutType
-                        -> IPythonWidget 'DescriptionStyleType
+                        -> StyleWidget
                         -> Rec Attr FloatRangeClass
 defaultFloatRangeWidget viewName modelName l d = defaultFloatWidget viewName modelName l d <+> rangeAttrs
   where
@@ -1007,7 +1010,7 @@ defaultFloatRangeWidget viewName modelName l d = defaultFloatWidget viewName mod
 defaultBoundedFloatRangeWidget :: FieldType 'S.ViewName
                                -> FieldType 'S.ModelName
                                -> IPythonWidget 'LayoutType
-                               -> IPythonWidget 'DescriptionStyleType
+                               -> StyleWidget
                                -> Rec Attr BoundedFloatRangeClass
 defaultBoundedFloatRangeWidget viewName modelName l d = defaultFloatRangeWidget viewName modelName l d <+> boundedFloatRangeAttrs
   where
@@ -1049,6 +1052,13 @@ defaultStyleWidget modelName = (ModelName =:! modelName)
                               :& (ModelModule =:! "@jupyter-widgets/controls")
                               :& (ModelModuleVersion =:! "1.4.0")
                               :& RNil
+
+-- | A record representing a widget of the DescriptionStyle class from IPython
+defaultDescriptionStyleWidget :: FieldType 'S.ModelName -> Rec Attr DescriptionStyleClass
+defaultDescriptionStyleWidget modelName = defaultStyleWidget modelName <+> dstyle
+  where
+    dstyle = (DescriptionWidth =:: "")
+            :& RNil
 
 newtype WidgetState w = WidgetState { _getState :: Rec Attr (WidgetFields w) }
 

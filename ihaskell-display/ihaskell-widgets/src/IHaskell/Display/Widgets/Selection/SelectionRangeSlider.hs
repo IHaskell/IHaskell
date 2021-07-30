@@ -41,7 +41,7 @@ mkSelectionRangeSlider = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let selectionAttrs = defaultMultipleSelectionWidget "SelectionRangeSliderView" "SelectionRangeSliderModel" layout dstyle
+  let selectionAttrs = defaultMultipleSelectionWidget "SelectionRangeSliderView" "SelectionRangeSliderModel" layout $ StyleWidget dstyle
       selectionRangeSliderAttrs = (Orientation =:: HorizontalOrientation)
                                   :& (ReadOut =:: True)
                                   :& (ContinuousUpdate =:: True)

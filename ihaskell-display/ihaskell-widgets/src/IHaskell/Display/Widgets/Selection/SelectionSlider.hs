@@ -40,7 +40,7 @@ mkSelectionSlider = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let selectionAttrs = defaultSelectionNonemptyWidget "SelectionSliderView" "SelectionSliderModel" layout dstyle
+  let selectionAttrs = defaultSelectionNonemptyWidget "SelectionSliderView" "SelectionSliderModel" layout $ StyleWidget dstyle
       selectionSliderAttrs = (Orientation =:: HorizontalOrientation)
                              :& (ReadOut =:: True)
                              :& (ContinuousUpdate =:: True)

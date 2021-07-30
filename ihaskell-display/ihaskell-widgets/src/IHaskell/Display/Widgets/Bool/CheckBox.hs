@@ -40,7 +40,7 @@ mkCheckBox = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let boolAttrs = defaultBoolWidget "CheckboxView" "CheckboxModel" layout dstyle
+  let boolAttrs = defaultBoolWidget "CheckboxView" "CheckboxModel" layout $ StyleWidget dstyle
       checkBoxAttrs = (Indent =:: True)
                       :& RNil
       widgetState = WidgetState $ boolAttrs <+> checkBoxAttrs

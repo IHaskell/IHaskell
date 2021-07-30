@@ -40,7 +40,7 @@ mkRadioButtons = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let widgetState = WidgetState $ defaultSelectionWidget "RadioButtonsView" "RadioButtonsModel" layout dstyle
+  let widgetState = WidgetState $ defaultSelectionWidget "RadioButtonsView" "RadioButtonsModel" layout $ StyleWidget dstyle
 
   stateIO <- newIORef widgetState
 

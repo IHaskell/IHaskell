@@ -38,14 +38,12 @@ mkButton = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
-  dstyle <- mkDescriptionStyle
   btnstyle <- mkButtonStyle
 
-  let ddw = defaultDescriptionWidget "ButtonView" "ButtonModel" layout dstyle
+  let ddw = defaultDescriptionWidget "ButtonView" "ButtonModel" layout $ StyleWidget btnstyle
       but = (Disabled =:: False)
             :& (Icon =:: "")
             :& (ButtonStyle =:: DefaultButton)
-            :& (StyleButton =:: btnstyle)
             :& (ClickHandler =:: return ())
             :& RNil
       buttonState = WidgetState (ddw <+> but)

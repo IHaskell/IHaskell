@@ -39,7 +39,7 @@ mkTextArea = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let strAttrs = defaultStringWidget "TextareaView" "TextareaModel" layout dstyle
+  let strAttrs = defaultStringWidget "TextareaView" "TextareaModel" layout $ StyleWidget dstyle
       wgtAttrs = (Rows =:: Nothing)
                  :& (Disabled =:: False)
                  :& (ContinuousUpdate =:: True)

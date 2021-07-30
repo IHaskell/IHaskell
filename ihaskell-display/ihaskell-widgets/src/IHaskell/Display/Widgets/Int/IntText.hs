@@ -41,7 +41,7 @@ mkIntText = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let intAttrs = defaultIntWidget "IntTextView" "IntTextModel" layout dstyle
+  let intAttrs = defaultIntWidget "IntTextView" "IntTextModel" layout $ StyleWidget dstyle
       textAttrs = (Disabled =:: False)
                   :& (ContinuousUpdate =:: False)
                   :& (StepInt =:: Just 1)

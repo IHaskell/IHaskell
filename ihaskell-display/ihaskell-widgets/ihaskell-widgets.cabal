@@ -108,6 +108,9 @@ library
                        IHaskell.Display.Widgets.String.TextArea
                        IHaskell.Display.Widgets.Style.ButtonStyle
                        IHaskell.Display.Widgets.Style.DescriptionStyle
+                       IHaskell.Display.Widgets.Style.ProgressStyle
+                       IHaskell.Display.Widgets.Style.SliderStyle
+                       IHaskell.Display.Widgets.Style.ToggleButtonsStyle
 
                        IHaskell.Display.Widgets.Layout.Common
                        IHaskell.Display.Widgets.Layout.LayoutWidget

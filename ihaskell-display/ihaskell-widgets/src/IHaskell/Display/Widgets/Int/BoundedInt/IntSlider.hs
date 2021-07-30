@@ -41,7 +41,7 @@ mkIntSlider = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let boundedIntAttrs = defaultBoundedIntWidget "IntSliderView" "IntSliderModel" layout dstyle
+  let boundedIntAttrs = defaultBoundedIntWidget "IntSliderView" "IntSliderModel" layout $ StyleWidget dstyle
       sliderAttrs = (StepInt =:: Just 1)
                     :& (Orientation =:: HorizontalOrientation)
                     :& (ReadOut =:: True)

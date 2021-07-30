@@ -111,13 +111,10 @@ pattern Axes = S.SAxes
 pattern ButtonColor = S.SButtonColor
 pattern FontWeight = S.SFontWeight
 pattern DescriptionWidth = S.SDescriptionWidth
-
-pattern StyleButton = S.SStyleButton
-pattern StyleDescription = S.SStyleDescription
-pattern StyleProgress = S.SStyleProgress
-pattern StyleSlider = S.SStyleSlider
-pattern StyleToggleButton = S.SStyleToggleButton
-
+pattern BarColor = S.SBarColor
+pattern HandleColor = S.SHandleColor
+pattern ButtonWidth = S.SButtonWidth
+pattern Style = S.SStyle
 -- | Close a widget's comm
 closeWidget :: IHaskellWidget w => w -> IO ()
 closeWidget w = widgetSendClose w emptyObject

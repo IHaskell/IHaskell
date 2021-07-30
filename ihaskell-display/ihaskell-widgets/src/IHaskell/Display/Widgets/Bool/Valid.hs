@@ -39,7 +39,7 @@ mkValidWidget = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let boolState = defaultBoolWidget "ValidView" "ValidModel" layout dstyle
+  let boolState = defaultBoolWidget "ValidView" "ValidModel" layout $ StyleWidget dstyle
       validState = (ReadOutMsg =:: "") :& RNil
       widgetState = WidgetState $ boolState <+> validState
 

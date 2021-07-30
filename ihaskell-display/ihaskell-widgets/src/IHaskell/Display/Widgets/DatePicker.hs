@@ -41,7 +41,7 @@ mkDatePicker = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let ddw = defaultDescriptionWidget "DatePickerView" "DatePickerModel" layout dstyle
+  let ddw = defaultDescriptionWidget "DatePickerView" "DatePickerModel" layout $ StyleWidget dstyle
       date = (DateValue =:: defaultDate)
               :& (Disabled =:: False)
               :& RNil

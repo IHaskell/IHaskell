@@ -5,11 +5,11 @@
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
-module IHaskell.Display.Widgets.Style.DescriptionStyle
-  ( -- * Description style
-    DescriptionStyle
-    -- * Create a new description style
-  , mkDescriptionStyle
+module IHaskell.Display.Widgets.Style.SliderStyle
+  ( -- * Slider style
+    SliderStyle
+    -- * Create a new slider style
+  , mkSliderStyle
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -26,16 +26,18 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
--- | A 'DescriptionStyle' represents a Button Style from IPython.html.widgets.
-type DescriptionStyle = IPythonWidget 'DescriptionStyleType
+-- | A 'SliderStyle' represents a Button Style from IPython.html.widgets.
+type SliderStyle = IPythonWidget 'SliderStyleType
 
 -- | Create a new button style
-mkDescriptionStyle :: IO DescriptionStyle
-mkDescriptionStyle = do
+mkSliderStyle :: IO SliderStyle
+mkSliderStyle = do
   wid <- U.random
 
-  let stl = defaultDescriptionStyleWidget "DescriptionStyleModel"
-      btnStlState = WidgetState stl
+  let stl = defaultDescriptionStyleWidget "SliderStyleModel"
+      but = (HandleColor =:: Nothing)
+            :& RNil
+      btnStlState = WidgetState (stl <+> but)
 
   stateIO <- newIORef btnStlState
 
@@ -47,5 +49,5 @@ mkDescriptionStyle = do
   -- Return the style widget
   return style
 
-instance IHaskellWidget DescriptionStyle where
+instance IHaskellWidget SliderStyle where
   getCommUUID = uuid

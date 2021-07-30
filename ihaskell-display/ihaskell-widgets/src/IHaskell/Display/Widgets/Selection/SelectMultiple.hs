@@ -42,7 +42,7 @@ mkSelectMultiple = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let multipleSelectionAttrs = defaultMultipleSelectionWidget "SelectMultipleView" "SelectMultipleModel" layout dstyle
+  let multipleSelectionAttrs = defaultMultipleSelectionWidget "SelectMultipleView" "SelectMultipleModel" layout $ StyleWidget dstyle
       selectMultipleAttrs = (Rows =:: Just 5)
                             :& RNil
       widgetState = WidgetState $ multipleSelectionAttrs <+> selectMultipleAttrs

@@ -41,7 +41,7 @@ mkPlay = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let boundedIntAttrs = defaultBoundedIntWidget "PlayView" "PlayModel" layout dstyle
+  let boundedIntAttrs = defaultBoundedIntWidget "PlayView" "PlayModel" layout $ StyleWidget dstyle
       playAttrs = (Playing =:: True)
                   :& (Repeat =:: True)
                   :& (Interval =:: 100)

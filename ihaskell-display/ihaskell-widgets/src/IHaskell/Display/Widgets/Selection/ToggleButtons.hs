@@ -41,7 +41,7 @@ mkToggleButtons = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let selectionAttrs = defaultSelectionWidget "ToggleButtonsView" "ToggleButtonsModel" layout dstyle
+  let selectionAttrs = defaultSelectionWidget "ToggleButtonsView" "ToggleButtonsModel" layout $ StyleWidget dstyle
       toggleButtonsAttrs = (Tooltips =:: [])
                            :& (Icons =:: [])
                            :& (ButtonStyle =:: DefaultButton)

@@ -41,7 +41,7 @@ mkBoundedFloatText = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let boundedFloatAttrs = defaultBoundedFloatWidget "FloatTextView" "BoundedFloatTextModel" layout dstyle
+  let boundedFloatAttrs = defaultBoundedFloatWidget "FloatTextView" "BoundedFloatTextModel" layout $ StyleWidget dstyle
       textAttrs = (Disabled =:: False)
                   :& (ContinuousUpdate =:: False)
                   :& (StepFloat =:: Nothing)

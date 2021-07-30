@@ -42,7 +42,7 @@ mkFloatRangeSlider = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let boundedFloatAttrs = defaultBoundedFloatRangeWidget "FloatRangeSliderView" "FloatRangeSliderModel" layout dstyle
+  let boundedFloatAttrs = defaultBoundedFloatRangeWidget "FloatRangeSliderView" "FloatRangeSliderModel" layout $ StyleWidget dstyle
       sliderAttrs = (StepFloat =:: Just 0.1)
                     :& (Orientation =:: HorizontalOrientation)
                     :& (ReadOut =:: True)

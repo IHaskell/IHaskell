@@ -21,6 +21,8 @@ jupyter nbconvert *.ipynb --to notebook --inplace --clear-output
 - [ ] Make the `output` widget work
 - [ ] Processing of widget messages concurrently
 - [ ] Make the layout widget values more 'Haskelian': Instead of checking if the string is valid at runtime, make some types so it's checked at compile-time
+- [ ] Create a serializable color data type instead of using `Maybe String`
+- [ ] Overload setField so it can be used with `Maybes` without having to put `Just` every time
 - [ ] Add some "utils" work:
     - [ ] Create media widget from file
     - [ ] Get the selected label from a selection value

@@ -37,7 +37,7 @@ mkLabelWidget = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let widgetState = WidgetState $ defaultStringWidget "LabelView" "LabelModel" layout dstyle
+  let widgetState = WidgetState $ defaultStringWidget "LabelView" "LabelModel" layout $ StyleWidget dstyle
 
   stateIO <- newIORef widgetState
 

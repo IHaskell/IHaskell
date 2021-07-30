@@ -41,7 +41,7 @@ mkFloatLogSlider = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let boundedLogFloatAttrs = defaultBoundedLogFloatWidget "FloatLogSliderView" "FloatLogSliderModel" layout dstyle
+  let boundedLogFloatAttrs = defaultBoundedLogFloatWidget "FloatLogSliderView" "FloatLogSliderModel" layout $ StyleWidget dstyle
       sliderAttrs = (StepFloat =:: Just 0.1)
                     :& (Orientation =:: HorizontalOrientation)
                     :& (ReadOut =:: True)

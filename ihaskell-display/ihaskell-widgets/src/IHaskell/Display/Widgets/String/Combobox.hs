@@ -40,7 +40,7 @@ mkComboboxWidget = do
   layout <- mkLayout
   dstyle <- mkDescriptionStyle
 
-  let txtWidget = defaultTextWidget "ComboboxView" "ComboboxModel" layout dstyle
+  let txtWidget = defaultTextWidget "ComboboxView" "ComboboxModel" layout $ StyleWidget dstyle
       boxWidget = (Options =:: [])
                   :& (EnsureOption =:: False)
                   :& RNil

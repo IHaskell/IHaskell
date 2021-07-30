@@ -57,6 +57,9 @@ import           IHaskell.Display.Widgets.String.TextArea as X
 
 import           IHaskell.Display.Widgets.Style.ButtonStyle as X
 import           IHaskell.Display.Widgets.Style.DescriptionStyle as X
+import           IHaskell.Display.Widgets.Style.ProgressStyle as X
+import           IHaskell.Display.Widgets.Style.SliderStyle as X
+import           IHaskell.Display.Widgets.Style.ToggleButtonsStyle as X
 
 import           IHaskell.Display.Widgets.Common as X
 import           IHaskell.Display.Widgets.Types as X (setField, getField, properties, triggerDisplay,
