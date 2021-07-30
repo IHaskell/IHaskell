@@ -26,6 +26,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'Accordion' represents a Accordion widget from IPython.html.widgets.
 type Accordion = IPythonWidget 'AccordionType
@@ -35,8 +36,9 @@ mkAccordion :: IO Accordion
 mkAccordion = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let widgetState = WidgetState $ defaultSelectionContainerWidget "AccordionView" "AccordionModel"
+  let widgetState = WidgetState $ defaultSelectionContainerWidget "AccordionView" "AccordionModel" layout
 
   stateIO <- newIORef widgetState
 

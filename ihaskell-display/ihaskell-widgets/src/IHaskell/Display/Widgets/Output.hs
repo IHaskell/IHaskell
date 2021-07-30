@@ -28,6 +28,7 @@ import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | An 'OutputWidget' represents a Output widget from IPython.html.widgets.
 type OutputWidget = IPythonWidget 'OutputType
@@ -37,8 +38,9 @@ mkOutputWidget :: IO OutputWidget
 mkOutputWidget = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let widgetState = WidgetState $ defaultDOMWidget "OutputView" "OutputModel"
+  let widgetState = WidgetState $ defaultDOMWidget "OutputView" "OutputModel" layout
 
   stateIO <- newIORef widgetState
 

@@ -23,6 +23,7 @@ import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'GridBox' represents a GridBox widget from IPython.html.widgets.
 type GridBox = IPythonWidget 'GridBoxType
@@ -32,8 +33,9 @@ mkGridBox :: IO GridBox
 mkGridBox = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let widgetState = WidgetState $ defaultBoxWidget "GridBoxView" "GridBoxModel"
+  let widgetState = WidgetState $ defaultBoxWidget "GridBoxView" "GridBoxModel" layout
 
   stateIO <- newIORef widgetState
 

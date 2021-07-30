@@ -26,6 +26,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'CheckBox' represents a Checkbox widget from IPython.html.widgets.
 type CheckBox = IPythonWidget 'CheckBoxType
@@ -35,8 +36,9 @@ mkCheckBox :: IO CheckBox
 mkCheckBox = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let boolAttrs = defaultBoolWidget "CheckboxView" "CheckboxModel"
+  let boolAttrs = defaultBoolWidget "CheckboxView" "CheckboxModel" layout
       checkBoxAttrs = (Indent =:: True)
                       :& RNil
       widgetState = WidgetState $ boolAttrs <+> checkBoxAttrs

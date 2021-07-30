@@ -26,6 +26,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'RadioButtons' represents a RadioButtons widget from IPython.html.widgets.
 type RadioButtons = IPythonWidget 'RadioButtonsType
@@ -35,7 +36,9 @@ mkRadioButtons :: IO RadioButtons
 mkRadioButtons = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let widgetState = WidgetState $ defaultSelectionWidget "RadioButtonsView" "RadioButtonsModel"
+  layout <- mkLayout
+
+  let widgetState = WidgetState $ defaultSelectionWidget "RadioButtonsView" "RadioButtonsModel" layout
 
   stateIO <- newIORef widgetState
 

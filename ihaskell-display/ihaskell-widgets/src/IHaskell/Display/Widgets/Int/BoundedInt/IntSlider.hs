@@ -27,6 +27,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display (IHaskellWidget(..))
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | 'IntSlider' represents an IntSlider widget from IPython.html.widgets.
 type IntSlider = IPythonWidget 'IntSliderType
@@ -36,8 +37,9 @@ mkIntSlider :: IO IntSlider
 mkIntSlider = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let boundedIntAttrs = defaultBoundedIntWidget "IntSliderView" "IntSliderModel"
+  let boundedIntAttrs = defaultBoundedIntWidget "IntSliderView" "IntSliderModel" layout
       sliderAttrs = (StepInt =:: Just 1)
                     :& (Orientation =:: HorizontalOrientation)
                     :& (ReadOut =:: True)

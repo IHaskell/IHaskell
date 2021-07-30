@@ -27,6 +27,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'ToggleButtons' represents a ToggleButtons widget from IPython.html.widgets.
 type ToggleButtons = IPythonWidget 'ToggleButtonsType
@@ -36,7 +37,9 @@ mkToggleButtons :: IO ToggleButtons
 mkToggleButtons = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let selectionAttrs = defaultSelectionWidget "ToggleButtonsView" "ToggleButtonsModel"
+  layout <- mkLayout
+
+  let selectionAttrs = defaultSelectionWidget "ToggleButtonsView" "ToggleButtonsModel" layout
       toggleButtonsAttrs = (Tooltips =:: [])
                            :& (Icons =:: [])
                            :& (ButtonStyle =:: DefaultButton)

@@ -108,6 +108,14 @@ pattern Connected = S.SConnected
 pattern Timestamp = S.STimestamp
 pattern Buttons = S.SButtons
 pattern Axes = S.SAxes
+pattern ButtonColor = S.SButtonColor
+pattern FontWeight = S.SFontWeight
+
+pattern StyleButton = S.SStyleButton
+pattern StyleDescription = S.SStyleDescription
+pattern StyleProgress = S.SStyleProgress
+pattern StyleSlider = S.SStyleSlider
+pattern StyleToggleButton = S.SStyleToggleButton
 
 -- | Close a widget's comm
 closeWidget :: IHaskellWidget w => w -> IO ()

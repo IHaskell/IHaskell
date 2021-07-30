@@ -26,6 +26,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'PasswordWidget' represents a Password widget from IPython.html.widgets.
 type PasswordWidget = IPythonWidget 'PasswordType
@@ -35,7 +36,9 @@ mkPasswordWidget :: IO PasswordWidget
 mkPasswordWidget = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let widgetState = WidgetState $ defaultTextWidget "PasswordView" "PasswordModel"
+  layout <- mkLayout
+
+  let widgetState = WidgetState $ defaultTextWidget "PasswordView" "PasswordModel" layout
 
   stateIO <- newIORef widgetState
 

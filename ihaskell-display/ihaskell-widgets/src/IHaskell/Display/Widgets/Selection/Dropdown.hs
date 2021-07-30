@@ -27,6 +27,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'Dropdown' represents a Dropdown widget from IPython.html.widgets.
 type Dropdown = IPythonWidget 'DropdownType
@@ -36,7 +37,9 @@ mkDropdown :: IO Dropdown
 mkDropdown = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let widgetState = WidgetState $ defaultSelectionWidget "DropdownView" "DropdownModel"
+  layout <- mkLayout
+
+  let widgetState = WidgetState $ defaultSelectionWidget "DropdownView" "DropdownModel" layout
 
   stateIO <- newIORef widgetState
 

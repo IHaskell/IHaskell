@@ -23,6 +23,7 @@ import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'HTMLMathWidget' represents a HTML Math widget from IPython.html.widgets.
 type HTMLMathWidget = IPythonWidget 'HTMLMathType
@@ -32,7 +33,9 @@ mkHTMLMathWidget :: IO HTMLMathWidget
 mkHTMLMathWidget = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let widgetState = WidgetState $ defaultStringWidget "HTMLMathView" "HTMLMathModel"
+  layout <- mkLayout
+
+  let widgetState = WidgetState $ defaultStringWidget "HTMLMathView" "HTMLMathModel" layout
 
   stateIO <- newIORef widgetState
 

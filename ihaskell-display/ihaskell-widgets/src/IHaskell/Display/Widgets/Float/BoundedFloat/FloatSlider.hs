@@ -27,6 +27,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | 'FloatSlider' represents an FloatSlider widget from IPython.html.widgets.
 type FloatSlider = IPythonWidget 'FloatSliderType
@@ -36,8 +37,9 @@ mkFloatSlider :: IO FloatSlider
 mkFloatSlider = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let boundedFloatAttrs = defaultBoundedFloatWidget "FloatSliderView" "FloatSliderModel"
+  let boundedFloatAttrs = defaultBoundedFloatWidget "FloatSliderView" "FloatSliderModel" layout
       sliderAttrs = (StepFloat =:: Just 0.1)
                     :& (Orientation =:: HorizontalOrientation)
                     :& (ReadOut =:: True)

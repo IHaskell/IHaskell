@@ -26,6 +26,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | An 'AudioWidget' represents a Audio widget from IPython.html.widgets.
 type AudioWidget = IPythonWidget 'AudioType
@@ -35,8 +36,9 @@ mkAudioWidget :: IO AudioWidget
 mkAudioWidget = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let mediaAttrs = defaultMediaWidget "AudioView" "AudioModel"
+  let mediaAttrs = defaultMediaWidget "AudioView" "AudioModel" layout
       audioAttrs = (AudioFormat =:: MP3)
               :& (AutoPlay =:: True)
               :& (Loop =:: True)

@@ -26,6 +26,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | An 'VideoWidget' represents a video widget from IPython.html.widgets.
 type VideoWidget = IPythonWidget 'VideoType
@@ -35,8 +36,9 @@ mkVideoWidget :: IO VideoWidget
 mkVideoWidget = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let mediaAttrs = defaultMediaWidget "VideoView" "VideoModel"
+  let mediaAttrs = defaultMediaWidget "VideoView" "VideoModel" layout
       videoAttrs = (VideoFormat =:: MP4)
               :& (Width =:+ 0)
               :& (Height =:+ 0)

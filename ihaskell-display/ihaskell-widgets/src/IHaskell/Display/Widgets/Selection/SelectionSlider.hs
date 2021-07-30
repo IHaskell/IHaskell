@@ -27,6 +27,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'SelectionSlider' represents a SelectionSlider widget from IPyhon.widgets
 type SelectionSlider = IPythonWidget 'SelectionSliderType
@@ -35,7 +36,9 @@ type SelectionSlider = IPythonWidget 'SelectionSliderType
 mkSelectionSlider :: IO SelectionSlider
 mkSelectionSlider = do
   wid <- U.random
-  let selectionAttrs = defaultSelectionNonemptyWidget "SelectionSliderView" "SelectionSliderModel"
+  layout <- mkLayout
+
+  let selectionAttrs = defaultSelectionNonemptyWidget "SelectionSliderView" "SelectionSliderModel" layout
       selectionSliderAttrs = (Orientation =:: HorizontalOrientation)
                              :& (ReadOut =:: True)
                              :& (ContinuousUpdate =:: True)

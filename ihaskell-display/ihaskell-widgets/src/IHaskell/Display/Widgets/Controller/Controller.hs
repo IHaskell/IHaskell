@@ -33,6 +33,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Singletons (Field, SField)
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | 'Controller' represents an Controller widget from IPython.html.widgets.
 type Controller = IPythonWidget 'ControllerType
@@ -42,8 +43,9 @@ mkController :: IO Controller
 mkController = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let domAttrs = defaultCoreWidget <+> defaultDOMWidget "ControllerView" "ControllerModel"
+  let domAttrs = defaultCoreWidget <+> defaultDOMWidget "ControllerView" "ControllerModel" layout
       ctrlAttrs = (Index =:+ 0)
                   :& (Name =:! "")
                   :& (Mapping =:! "")

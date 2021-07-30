@@ -27,6 +27,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | 'BoundedFloatText' represents an BoundedFloatText widget from IPython.html.widgets.
 type BoundedFloatText = IPythonWidget 'BoundedFloatTextType
@@ -36,8 +37,9 @@ mkBoundedFloatText :: IO BoundedFloatText
 mkBoundedFloatText = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let boundedFloatAttrs = defaultBoundedFloatWidget "FloatTextView" "BoundedFloatTextModel"
+  let boundedFloatAttrs = defaultBoundedFloatWidget "FloatTextView" "BoundedFloatTextModel" layout
       textAttrs = (Disabled =:: False)
                   :& (ContinuousUpdate =:: False)
                   :& (StepFloat =:: Nothing)

@@ -23,6 +23,7 @@ import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'HBox' represents a HBox widget from IPython.html.widgets.
 type HBox = IPythonWidget 'HBoxType
@@ -32,8 +33,9 @@ mkHBox :: IO HBox
 mkHBox = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let widgetState = WidgetState $ defaultBoxWidget "HBoxView" "HBoxModel"
+  let widgetState = WidgetState $ defaultBoxWidget "HBoxView" "HBoxModel" layout
 
   stateIO <- newIORef widgetState
 

@@ -23,6 +23,7 @@ import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'Box' represents a Box widget from IPython.html.widgets.
 type Box = IPythonWidget 'BoxType
@@ -32,8 +33,9 @@ mkBox :: IO Box
 mkBox = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let widgetState = WidgetState $ defaultBoxWidget "BoxView" "BoxModel"
+  let widgetState = WidgetState $ defaultBoxWidget "BoxView" "BoxModel" layout
 
   stateIO <- newIORef widgetState
 

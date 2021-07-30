@@ -25,6 +25,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'TextArea' represents a Textarea widget from IPython.html.widgets.
 type TextArea = IPythonWidget 'TextAreaType
@@ -34,7 +35,9 @@ mkTextArea :: IO TextArea
 mkTextArea = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let strAttrs = defaultStringWidget "TextareaView" "TextareaModel"
+  layout <- mkLayout
+
+  let strAttrs = defaultStringWidget "TextareaView" "TextareaModel" layout
       wgtAttrs = (Rows =:: Nothing)
                  :& (Disabled =:: False)
                  :& (ContinuousUpdate =:: True)

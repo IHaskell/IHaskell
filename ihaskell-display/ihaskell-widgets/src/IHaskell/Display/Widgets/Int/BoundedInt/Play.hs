@@ -27,6 +27,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display (IHaskellWidget(..))
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | 'Play' represents an Play widget from IPython.html.widgets.
 type Play = IPythonWidget 'PlayType
@@ -36,8 +37,9 @@ mkPlay :: IO Play
 mkPlay = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let boundedIntAttrs = defaultBoundedIntWidget "PlayView" "PlayModel"
+  let boundedIntAttrs = defaultBoundedIntWidget "PlayView" "PlayModel" layout
       playAttrs = (Playing =:: True)
                   :& (Repeat =:: True)
                   :& (Interval =:: 100)

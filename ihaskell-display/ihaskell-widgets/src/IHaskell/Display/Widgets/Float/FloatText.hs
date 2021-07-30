@@ -27,6 +27,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | 'FloatText' represents an FloatText widget from IPython.html.widgets.
 type FloatText = IPythonWidget 'FloatTextType
@@ -36,8 +37,9 @@ mkFloatText :: IO FloatText
 mkFloatText = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let floatAttrs = defaultFloatWidget "FloatTextView" "FloatTextModel"
+  let floatAttrs = defaultFloatWidget "FloatTextView" "FloatTextModel" layout
       textAttrs = (Disabled =:: False)
                   :& (ContinuousUpdate =:: False)
                   :& (StepFloat =:: Nothing)

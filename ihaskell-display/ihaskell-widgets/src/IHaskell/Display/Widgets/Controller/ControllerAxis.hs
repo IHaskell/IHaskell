@@ -27,6 +27,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | 'ControllerAxis' represents an ControllerAxis widget from IPython.html.widgets.
 type ControllerAxis = IPythonWidget 'ControllerAxisType
@@ -36,8 +37,9 @@ mkControllerAxis :: IO ControllerAxis
 mkControllerAxis = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let domAttrs = defaultCoreWidget <+> defaultDOMWidget "ControllerAxisView" "ControllerAxisModel"
+  let domAttrs = defaultCoreWidget <+> defaultDOMWidget "ControllerAxisView" "ControllerAxisModel" layout
       axisAttrs = (FloatValue =:! 0.0)
                   :& (ChangeHandler =:: pure ())
                   :& RNil
