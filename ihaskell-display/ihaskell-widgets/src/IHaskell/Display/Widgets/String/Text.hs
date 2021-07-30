@@ -27,6 +27,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'TextWidget' represents a Text widget from IPython.html.widgets.
 type TextWidget = IPythonWidget 'TextType
@@ -37,8 +38,9 @@ mkTextWidget = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let widgetState = WidgetState $ defaultTextWidget "TextView" "TextModel" layout
+  let widgetState = WidgetState $ defaultTextWidget "TextView" "TextModel" layout dstyle
 
   stateIO <- newIORef widgetState
 

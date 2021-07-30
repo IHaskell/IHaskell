@@ -118,6 +118,7 @@ singletons
              | Axes
              | ButtonColor
              | FontWeight
+             | DescriptionWidth
              -- Singletons for child style widgets
              | StyleButton
              | StyleDescription

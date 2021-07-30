@@ -28,6 +28,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'IntText' represents an IntText widget from IPython.html.widgets.
 type IntText = IPythonWidget 'IntTextType
@@ -38,8 +39,9 @@ mkIntText = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let intAttrs = defaultIntWidget "IntTextView" "IntTextModel" layout
+  let intAttrs = defaultIntWidget "IntTextView" "IntTextModel" layout dstyle
       textAttrs = (Disabled =:: False)
                   :& (ContinuousUpdate =:: False)
                   :& (StepInt =:: Just 1)

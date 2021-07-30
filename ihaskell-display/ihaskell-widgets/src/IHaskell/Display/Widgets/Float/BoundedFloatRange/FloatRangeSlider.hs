@@ -29,6 +29,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'FloatRangeSlider' represents an FloatRangeSlider widget from IPython.html.widgets.
 type FloatRangeSlider = IPythonWidget 'FloatRangeSliderType
@@ -39,8 +40,9 @@ mkFloatRangeSlider = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let boundedFloatAttrs = defaultBoundedFloatRangeWidget "FloatRangeSliderView" "FloatRangeSliderModel" layout
+  let boundedFloatAttrs = defaultBoundedFloatRangeWidget "FloatRangeSliderView" "FloatRangeSliderModel" layout dstyle
       sliderAttrs = (StepFloat =:: Just 0.1)
                     :& (Orientation =:: HorizontalOrientation)
                     :& (ReadOut =:: True)

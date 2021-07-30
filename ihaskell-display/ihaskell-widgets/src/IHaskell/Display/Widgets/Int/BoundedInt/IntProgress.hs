@@ -26,6 +26,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'IntProgress' represents an IntProgress widget from IPython.html.widgets.
 type IntProgress = IPythonWidget 'IntProgressType
@@ -36,8 +37,9 @@ mkIntProgress = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let boundedIntAttrs = defaultBoundedIntWidget "ProgressView" "IntProgressModel" layout
+  let boundedIntAttrs = defaultBoundedIntWidget "ProgressView" "IntProgressModel" layout dstyle
       progressAttrs = (Orientation =:: HorizontalOrientation)
                       :& (BarStyle =:: DefaultBar)
                       :& RNil

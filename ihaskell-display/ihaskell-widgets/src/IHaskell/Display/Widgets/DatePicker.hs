@@ -28,6 +28,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'DatePicker' represents a DatePicker from IPython.html.widgets.
 type DatePicker = IPythonWidget 'DatePickerType
@@ -38,8 +39,9 @@ mkDatePicker = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let ddw = defaultDescriptionWidget "DatePickerView" "DatePickerModel" layout
+  let ddw = defaultDescriptionWidget "DatePickerView" "DatePickerModel" layout dstyle
       date = (DateValue =:: defaultDate)
               :& (Disabled =:: False)
               :& RNil

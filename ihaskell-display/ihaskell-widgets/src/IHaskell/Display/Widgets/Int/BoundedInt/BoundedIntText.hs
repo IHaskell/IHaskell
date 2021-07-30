@@ -28,6 +28,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'BoundedIntText' represents an BoundedIntText widget from IPython.html.widgets.
 type BoundedIntText = IPythonWidget 'BoundedIntTextType
@@ -38,8 +39,9 @@ mkBoundedIntText = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let boundedIntAttrs = defaultBoundedIntWidget "IntTextView" "BoundedIntTextModel" layout
+  let boundedIntAttrs = defaultBoundedIntWidget "IntTextView" "BoundedIntTextModel" layout dstyle
       textAttrs = (Disabled =:: False)
                   :& (ContinuousUpdate =:: False)
                   :& (StepInt =:: Just 1)

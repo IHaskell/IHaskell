@@ -26,6 +26,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'ColorPicker' represents a ColorPicker from IPython.html.widgets.
 type ColorPicker = IPythonWidget 'ColorPickerType
@@ -36,8 +37,9 @@ mkColorPicker = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let ddw = defaultDescriptionWidget "ColorPickerView" "ColorPickerModel" layout
+  let ddw = defaultDescriptionWidget "ColorPickerView" "ColorPickerModel" layout dstyle
       color = (StringValue =:: "black")
               :& (Concise =:: False)
               :& (Disabled =:: False)

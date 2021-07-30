@@ -27,6 +27,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'ToggleButton' represents a ToggleButton widget from IPython.html.widgets.
 type ToggleButton = IPythonWidget 'ToggleButtonType
@@ -37,8 +38,9 @@ mkToggleButton = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let boolState = defaultBoolWidget "ToggleButtonView" "ToggleButtonModel" layout
+  let boolState = defaultBoolWidget "ToggleButtonView" "ToggleButtonModel" layout dstyle
       toggleState = (Icon =:: "")
                     :& (ButtonStyle =:: DefaultButton)
                     :& RNil

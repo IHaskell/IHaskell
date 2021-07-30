@@ -29,6 +29,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'SelectionRangeSlider' represents a SelectionSlider widget from IPyhon.widgets
 type SelectionRangeSlider = IPythonWidget 'SelectionRangeSliderType
@@ -38,8 +39,9 @@ mkSelectionRangeSlider :: IO SelectionRangeSlider
 mkSelectionRangeSlider = do
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let selectionAttrs = defaultMultipleSelectionWidget "SelectionRangeSliderView" "SelectionRangeSliderModel" layout
+  let selectionAttrs = defaultMultipleSelectionWidget "SelectionRangeSliderView" "SelectionRangeSliderModel" layout dstyle
       selectionRangeSliderAttrs = (Orientation =:: HorizontalOrientation)
                                   :& (ReadOut =:: True)
                                   :& (ContinuousUpdate =:: True)

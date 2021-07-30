@@ -29,6 +29,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'SelectMultiple' represents a SelectMultiple widget from IPython.html.widgets.
 type SelectMultiple = IPythonWidget 'SelectMultipleType
@@ -39,8 +40,9 @@ mkSelectMultiple = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let multipleSelectionAttrs = defaultMultipleSelectionWidget "SelectMultipleView" "SelectMultipleModel" layout
+  let multipleSelectionAttrs = defaultMultipleSelectionWidget "SelectMultipleView" "SelectMultipleModel" layout dstyle
       selectMultipleAttrs = (Rows =:: Just 5)
                             :& RNil
       widgetState = WidgetState $ multipleSelectionAttrs <+> selectMultipleAttrs

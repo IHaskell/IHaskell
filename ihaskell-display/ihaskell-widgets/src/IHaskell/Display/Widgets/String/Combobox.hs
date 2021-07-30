@@ -27,6 +27,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'ComboboxWidget' represents a Combobox widget from IPython.html.widgets.
 type ComboboxWidget = IPythonWidget 'ComboboxType
@@ -37,8 +38,9 @@ mkComboboxWidget = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let txtWidget = defaultTextWidget "ComboboxView" "ComboboxModel" layout
+  let txtWidget = defaultTextWidget "ComboboxView" "ComboboxModel" layout dstyle
       boxWidget = (Options =:: [])
                   :& (EnsureOption =:: False)
                   :& RNil

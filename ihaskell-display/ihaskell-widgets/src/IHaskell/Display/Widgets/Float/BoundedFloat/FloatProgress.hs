@@ -26,6 +26,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'FloatProgress' represents an FloatProgress widget from IPython.html.widgets.
 type FloatProgress = IPythonWidget 'FloatProgressType
@@ -36,8 +37,9 @@ mkFloatProgress = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let boundedFloatAttrs = defaultBoundedFloatWidget "ProgressView" "FloatProgressModel" layout
+  let boundedFloatAttrs = defaultBoundedFloatWidget "ProgressView" "FloatProgressModel" layout dstyle
       progressAttrs = (Orientation =:: HorizontalOrientation)
                       :& (BarStyle =:: DefaultBar)
                       :& RNil

@@ -28,6 +28,7 @@ import           IHaskell.Display (IHaskellWidget(..))
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'Play' represents an Play widget from IPython.html.widgets.
 type Play = IPythonWidget 'PlayType
@@ -38,8 +39,9 @@ mkPlay = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let boundedIntAttrs = defaultBoundedIntWidget "PlayView" "PlayModel" layout
+  let boundedIntAttrs = defaultBoundedIntWidget "PlayView" "PlayModel" layout dstyle
       playAttrs = (Playing =:: True)
                   :& (Repeat =:: True)
                   :& (Interval =:: 100)

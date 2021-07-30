@@ -24,6 +24,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'LabelWidget' represents a Label widget from IPython.html.widgets.
 type LabelWidget = IPythonWidget 'LabelType
@@ -34,8 +35,9 @@ mkLabelWidget = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let widgetState = WidgetState $ defaultStringWidget "LabelView" "LabelModel" layout
+  let widgetState = WidgetState $ defaultStringWidget "LabelView" "LabelModel" layout dstyle
 
   stateIO <- newIORef widgetState
 

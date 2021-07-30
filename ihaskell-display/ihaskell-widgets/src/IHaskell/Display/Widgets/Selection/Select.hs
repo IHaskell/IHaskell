@@ -28,6 +28,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'Select' represents a Select widget from IPython.html.widgets.
 type Select = IPythonWidget 'SelectType
@@ -38,8 +39,9 @@ mkSelect = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let selectionAttrs = defaultSelectionWidget "SelectView" "SelectModel" layout
+  let selectionAttrs = defaultSelectionWidget "SelectView" "SelectModel" layout dstyle
       selectAttrs = (Rows =:: Just 5)
                     :& RNil
       widgetState = WidgetState $ selectionAttrs <+> selectAttrs

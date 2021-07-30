@@ -26,6 +26,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'ValidWidget' represents a Valid widget from IPython.html.widgets.
 type ValidWidget = IPythonWidget 'ValidType
@@ -36,8 +37,9 @@ mkValidWidget = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let boolState = defaultBoolWidget "ValidView" "ValidModel" layout
+  let boolState = defaultBoolWidget "ValidView" "ValidModel" layout dstyle
       validState = (ReadOutMsg =:: "") :& RNil
       widgetState = WidgetState $ boolState <+> validState
 

@@ -110,6 +110,7 @@ pattern Buttons = S.SButtons
 pattern Axes = S.SAxes
 pattern ButtonColor = S.SButtonColor
 pattern FontWeight = S.SFontWeight
+pattern DescriptionWidth = S.SDescriptionWidth
 
 pattern StyleButton = S.SStyleButton
 pattern StyleDescription = S.SStyleDescription

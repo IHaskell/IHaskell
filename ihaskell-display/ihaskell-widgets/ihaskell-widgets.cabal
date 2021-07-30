@@ -106,6 +106,8 @@ library
                        IHaskell.Display.Widgets.String.Password
                        IHaskell.Display.Widgets.String.Text
                        IHaskell.Display.Widgets.String.TextArea
+                       IHaskell.Display.Widgets.Style.ButtonStyle
+                       IHaskell.Display.Widgets.Style.DescriptionStyle
 
                        IHaskell.Display.Widgets.Layout.Common
                        IHaskell.Display.Widgets.Layout.LayoutWidget
