@@ -16,6 +16,7 @@
 {-# LANGUAGE AutoDeriveTypeable #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 -- | This module houses all the type-trickery needed to make widgets happen.
 --
@@ -110,7 +111,7 @@ import           IHaskell.Eval.Widgets (widgetSendUpdate, widgetSendView)
 import           IHaskell.Display (Base64, IHaskellWidget(..), IHaskellDisplay(..), Display(..), widgetdisplay, base64)
 import           IHaskell.IPython.Message.UUID
 
-import           IHaskell.Display.Widgets.Singletons (Field, SField)
+import           IHaskell.Display.Widgets.Singletons (Field, SField, toKey, HasKey)
 import qualified IHaskell.Display.Widgets.Singletons as S
 import           IHaskell.Display.Widgets.Common
 
@@ -170,6 +171,8 @@ type SelectionContainerClass = BoxClass :++ ['S.Titles, 'S.SelectedIndex, 'S.Cha
 type MediaClass = CoreWidgetClass :++ DOMWidgetClass :++ '[ 'S.BSValue ]
 
 type DescriptionStyleClass = StyleWidgetClass :++ '[ 'S.DescriptionWidth ]
+
+type LinkClass = CoreWidgetClass :++ ['S.ModelName, 'S.Target, 'S.Source]
 
 -- Types associated with Fields.
 type family FieldType (f :: Field) :: *
@@ -263,6 +266,8 @@ type instance FieldType 'S.DescriptionWidth = String
 type instance FieldType 'S.BarColor = Maybe String
 type instance FieldType 'S.HandleColor = Maybe String
 type instance FieldType 'S.ButtonWidth = String
+type instance FieldType 'S.Target = WidgetFieldPair
+type instance FieldType 'S.Source = WidgetFieldPair
 type instance FieldType 'S.Style = StyleWidget
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
@@ -296,6 +301,13 @@ instance CustomBounded Integer where
 instance CustomBounded Double where
   lowerBound = - fromIntegral (maxBound :: Int16)
   upperBound = fromIntegral (maxBound :: Int16)
+
+-- | This type only fits if the field is among the widget's fields, and it has a key
+data WidgetFieldPair = forall w f. (f ∈ WidgetFields w, HasKey f ~ 'True, RecAll Attr (WidgetFields w) ToPairs) => WidgetFieldPair (IPythonWidget w) (SField f) | EmptyWT
+
+instance ToJSON WidgetFieldPair where
+  toJSON EmptyWT = Null
+  toJSON (WidgetFieldPair w f) = toJSON [toJSON w, toJSON $ pack $ toKey $ fromSing f]
 
 -- Different types of widgets. Every widget in IPython has a corresponding WidgetType
 data WidgetType = ButtonType
@@ -344,6 +356,8 @@ data WidgetType = ButtonType
                 | ControllerButtonType
                 | ControllerAxisType
                 | ControllerType
+                | LinkType
+                | DirectionalLinkType
                 | LayoutType
                 | ButtonStyleType
                 | DescriptionStyleType
@@ -435,6 +449,8 @@ type instance WidgetFields 'ControllerType =
     ['S.Index, 'S.Name, 'S.Mapping, 'S.Connected, 'S.Timestamp, 'S.Buttons, 'S.Axes, 'S.ChangeHandler ]
 type instance WidgetFields 'ControllerAxisType = CoreWidgetClass :++ DOMWidgetClass :++ '[ 'S.FloatValue, 'S.ChangeHandler ]
 type instance WidgetFields 'ControllerButtonType = CoreWidgetClass :++ DOMWidgetClass :++ [ 'S.FloatValue, 'S.Pressed, 'S.ChangeHandler ]
+type instance WidgetFields 'LinkType = LinkClass
+type instance WidgetFields 'DirectionalLinkType = LinkClass
 
 type instance WidgetFields 'ButtonStyleType = StyleWidgetClass :++ ['S.ButtonColor, 'S.FontWeight]
 type instance WidgetFields 'DescriptionStyleType = DescriptionStyleClass
@@ -472,279 +488,23 @@ instance ToJSON (FieldType f) => ToJSON (Attr f) where
 class ToPairs a where
   toPairs :: a -> [Pair]
 
--- Attributes that aren't synced with the frontend give [] on toPairs
-instance ToPairs (Attr 'S.ViewModule) where
-  toPairs x = ["_view_module" .= toJSON x]
+-- From https://stackoverflow.com/questions/68648670/duplicate-instance-declaration-using-haskell-singletons
+-- TODO: Check if it can be done with something from Singletons
+instance ToPairs' (HasKey f) f => ToPairs (Attr f) where
+  toPairs = toPairs'
 
-instance ToPairs (Attr 'S.ViewModuleVersion) where
-  toPairs x = ["_view_module_version" .= toJSON x]
+class hk ~ HasKey a => ToPairs' hk a where
+  toPairs' :: Attr a -> [Pair]
 
-instance ToPairs (Attr 'S.ViewName) where
-  toPairs x = ["_view_name" .= toJSON x]
+instance HasKey f ~ 'False => ToPairs' 'False f where
+  toPairs' _ = []
 
-instance ToPairs (Attr 'S.ModelModule) where
-  toPairs x = ["_model_module" .= toJSON x]
+instance (ToJSON (FieldType f), HasKey f ~ 'True) => ToPairs' 'True f where
+  toPairs' x = [ pack (toKey $ _field x) .= toJSON x ]
 
-instance ToPairs (Attr 'S.ModelModuleVersion) where
-  toPairs x = ["_model_module_version" .= toJSON x]
-
-instance ToPairs (Attr 'S.ModelName) where
-  toPairs x = ["_model_name" .= toJSON x]
-
-instance ToPairs (Attr 'S.DisplayHandler) where
-  toPairs _ = [] -- Not sent to the frontend
-
-instance ToPairs (Attr 'S.DOMClasses) where
-  toPairs x = ["_dom_classes" .= toJSON x]
-
-instance ToPairs (Attr 'S.Width) where
-  toPairs x = ["width" .= toJSON x]
-
-instance ToPairs (Attr 'S.Height) where
-  toPairs x = ["height" .= toJSON x]
-
-instance ToPairs (Attr 'S.Description) where
-  toPairs x = ["description" .= toJSON x]
-
-instance ToPairs (Attr 'S.ClickHandler) where
-  toPairs _ = [] -- Not sent to the frontend
-
-instance ToPairs (Attr 'S.SubmitHandler) where
-  toPairs _ = [] -- Not sent to the frontend
-
-instance ToPairs (Attr 'S.Disabled) where
-  toPairs x = ["disabled" .= toJSON x]
-
-instance ToPairs (Attr 'S.StringValue) where
-  toPairs x = ["value" .= toJSON x]
-
-instance ToPairs (Attr 'S.Placeholder) where
-  toPairs x = ["placeholder" .= toJSON x]
-
-instance ToPairs (Attr 'S.Tooltip) where
-  toPairs x = ["tooltip" .= toJSON x]
-
-instance ToPairs (Attr 'S.Icon) where
-  toPairs x = ["icon" .= toJSON x]
-
-instance ToPairs (Attr 'S.ButtonStyle) where
-  toPairs x = ["button_style" .= toJSON x]
 
 instance ToJSON ByteString where
   toJSON = toJSON . base64
-
-instance ToPairs (Attr 'S.BSValue) where
-  toPairs x = ["value" .= toJSON x]
-
-instance ToPairs (Attr 'S.ImageFormat) where
-  toPairs x = ["format" .= toJSON x]
-
-instance ToPairs (Attr 'S.AudioFormat) where
-  toPairs x = ["format" .= toJSON x]
-
-instance ToPairs (Attr 'S.VideoFormat) where
-  toPairs x = ["format" .= toJSON x]
-
-instance ToPairs (Attr 'S.BoolValue) where
-  toPairs x = ["value" .= toJSON x]
-
-instance ToPairs (Attr 'S.Index) where
-  toPairs x = ["index" .= toJSON x]
-
-instance ToPairs (Attr 'S.OptionalIndex) where
-  toPairs x = ["index" .= toJSON x]
-
-instance ToPairs (Attr 'S.OptionsLabels) where
-  toPairs x = ["_options_labels" .= toJSON x]
-
-instance ToPairs (Attr 'S.SelectionHandler) where
-  toPairs _ = [] -- Not sent to the frontend
-
-instance ToPairs (Attr 'S.Tooltips) where
-  toPairs x = ["tooltips" .= toJSON x]
-
-instance ToPairs (Attr 'S.Icons) where
-  toPairs x = ["icons" .= toJSON x]
-
-instance ToPairs (Attr 'S.Indices) where
-  toPairs x = ["index" .= toJSON x]
-
-instance ToPairs (Attr 'S.IntValue) where
-  toPairs x = ["value" .= toJSON x]
-
-instance ToPairs (Attr 'S.StepInt) where
-  toPairs x = ["step" .= toJSON x]
-
-instance ToPairs (Attr 'S.MinInt) where
-  toPairs x = ["min" .= toJSON x]
-
-instance ToPairs (Attr 'S.MaxInt) where
-  toPairs x = ["max" .= toJSON x]
-
-instance ToPairs (Attr 'S.IntPairValue) where
-  toPairs x = ["value" .= toJSON x]
-
-instance ToPairs (Attr 'S.LowerInt) where
-  toPairs x = ["min" .= toJSON x]
-
-instance ToPairs (Attr 'S.UpperInt) where
-  toPairs x = ["max" .= toJSON x]
-
-instance ToPairs (Attr 'S.FloatValue) where
-  toPairs x = ["value" .= toJSON x]
-
-instance ToPairs (Attr 'S.StepFloat) where
-  toPairs x = ["step" .= toJSON x]
-
-instance ToPairs (Attr 'S.MinFloat) where
-  toPairs x = ["min" .= toJSON x]
-
-instance ToPairs (Attr 'S.MaxFloat) where
-  toPairs x = ["max" .= toJSON x]
-
-instance ToPairs (Attr 'S.FloatPairValue) where
-  toPairs x = ["value" .= toJSON x]
-
-instance ToPairs (Attr 'S.LowerFloat) where
-  toPairs x = ["min" .= toJSON x]
-
-instance ToPairs (Attr 'S.UpperFloat) where
-  toPairs x = ["max" .= toJSON x]
-
-instance ToPairs (Attr 'S.Orientation) where
-  toPairs x = ["orientation" .= toJSON x]
-
-instance ToPairs (Attr 'S.BaseFloat) where
-  toPairs x = ["base" .= toJSON x]
-
-instance ToPairs (Attr 'S.ReadOut) where
-  toPairs x = ["readout" .= toJSON x]
-
-instance ToPairs (Attr 'S.ReadOutFormat) where
-  toPairs x = ["readout_format" .= toJSON x]
-
-instance ToPairs (Attr 'S.BarStyle) where
-  toPairs x = ["bar_style" .= toJSON x]
-
-instance ToPairs (Attr 'S.ChangeHandler) where
-  toPairs _ = [] -- Not sent to the frontend
-
-instance ToPairs (Attr 'S.Children) where
-  toPairs x = ["children" .= toJSON x]
-
-instance ToPairs (Attr 'S.BoxStyle) where
-  toPairs x = ["box_style" .= toJSON x]
-
-instance ToPairs (Attr 'S.Pack) where
-  toPairs x = ["pack" .= toJSON x]
-
-instance ToPairs (Attr 'S.Align) where
-  toPairs x = ["align" .= toJSON x]
-
-instance ToPairs (Attr 'S.Titles) where
-  toPairs x = ["_titles" .= toJSON x]
-
-instance ToPairs (Attr 'S.SelectedIndex) where
-  toPairs x = ["selected_index" .= toJSON x]
-
-instance ToPairs (Attr 'S.ReadOutMsg) where
-  toPairs x = ["readout" .= toJSON x]
-
-instance ToPairs (Attr 'S.Indent) where
-  toPairs x = ["indent" .= toJSON x]
-
-instance ToPairs (Attr 'S.Child) where
-  toPairs x = ["child" .= toJSON x]
-
-instance ToPairs (Attr 'S.Selector) where
-  toPairs x = ["selector" .= toJSON x]
-
-instance ToPairs (Attr 'S.ContinuousUpdate) where
-  toPairs x = ["continuous_update" .= toJSON x]
-
-instance ToPairs (Attr 'S.Tabbable) where
-  toPairs x = ["tabbable" .= toJSON x]
-
-instance ToPairs (Attr 'S.Rows) where
-  toPairs x = ["rows" .= toJSON x]
-
-instance ToPairs (Attr 'S.AutoPlay) where
-  toPairs x = ["autoplay" .= toJSON x]
-
-instance ToPairs (Attr 'S.Loop) where
-  toPairs x = ["loop" .= toJSON x]
-
-instance ToPairs (Attr 'S.Controls) where
-  toPairs x = ["controls" .= toJSON x]
-
-instance ToPairs (Attr 'S.Options) where
-  toPairs x = ["options" .= toJSON x]
-
-instance ToPairs (Attr 'S.EnsureOption) where
-  toPairs x = ["ensure_option" .= toJSON x]
-
-instance ToPairs (Attr 'S.Playing) where
-  toPairs x = ["playing" .= toJSON x]
-
-instance ToPairs (Attr 'S.Repeat) where
-  toPairs x = ["repeat" .= toJSON x]
-
-instance ToPairs (Attr 'S.Interval) where
-  toPairs x = ["interval" .= toJSON x]
-
-instance ToPairs (Attr 'S.ShowRepeat) where
-  toPairs x = ["show_repeat" .= toJSON x]
-
-instance ToPairs (Attr 'S.Concise) where
-  toPairs x = ["concise" .= toJSON x]
-
-instance ToPairs (Attr 'S.DateValue) where
-  toPairs x = ["value" .= toJSON x]
-
-instance ToPairs (Attr 'S.Pressed) where
-  toPairs x = ["pressed" .= toJSON x]
-
-instance ToPairs (Attr 'S.Name) where
-  toPairs x = ["name" .= toJSON x]
-
-instance ToPairs (Attr 'S.Mapping) where
-  toPairs x = ["mapping" .= toJSON x]
-
-instance ToPairs (Attr 'S.Connected) where
-  toPairs x = ["connected" .= toJSON x]
-
-instance ToPairs (Attr 'S.Timestamp) where
-  toPairs x = ["timestamp" .= toJSON x]
-
-instance ToPairs (Attr 'S.Buttons) where
-  toPairs x = ["buttons" .= toJSON x]
-
-instance ToPairs (Attr 'S.Axes) where
-  toPairs x = ["axes" .= toJSON x]
-
-instance ToPairs (Attr 'S.Layout) where
-  toPairs x = ["layout" .= toJSON x]
-
-instance ToPairs (Attr 'S.ButtonColor) where
-  toPairs x = ["button_color" .= toJSON x]
-
-instance ToPairs (Attr 'S.FontWeight) where
-  toPairs x = ["font_weight" .= toJSON x]
-
-instance ToPairs (Attr 'S.DescriptionWidth) where
-  toPairs x = ["description_width" .= toJSON x]
-
-instance ToPairs (Attr 'S.BarColor) where
-  toPairs x = ["bar_color" .= toJSON x]
-
-instance ToPairs (Attr 'S.HandleColor) where
-  toPairs x = ["handle_color" .= toJSON x]
-
-instance ToPairs (Attr 'S.ButtonWidth) where
-  toPairs x = ["button_width" .= toJSON x]
-
-instance ToPairs (Attr 'S.Style) where
-  toPairs x = ["style" .= toJSON x]
 
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.
@@ -1042,6 +802,14 @@ defaultMediaWidget viewName modelName layout = defaultCoreWidget <+> defaultDOMW
   where
     mediaAttrs = (BSValue =:: "")
                  :& RNil
+
+defaultLinkWidget :: FieldType 'S.ModelName -> Rec Attr LinkClass
+defaultLinkWidget modelName = defaultCoreWidget <+> linkAttrs
+  where
+    linkAttrs = (ModelName =:! modelName)
+                :& (Target =:: EmptyWT)
+                :& (Source =:: EmptyWT)
+                :& RNil
 
 -- | A record representing a widget of the Style class from IPython
 defaultStyleWidget :: FieldType 'S.ModelName -> Rec Attr StyleWidgetClass

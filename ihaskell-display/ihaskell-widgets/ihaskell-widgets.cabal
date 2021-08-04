@@ -82,6 +82,8 @@ library
                        IHaskell.Display.Widgets.Int.BoundedInt.IntSlider
                        IHaskell.Display.Widgets.Int.BoundedInt.Play
                        IHaskell.Display.Widgets.Int.BoundedIntRange.IntRangeSlider
+                       IHaskell.Display.Widgets.Link.Link
+                       IHaskell.Display.Widgets.Link.DirectionalLink
                        IHaskell.Display.Widgets.Float.FloatText
                        IHaskell.Display.Widgets.Float.BoundedFloat.BoundedFloatText
                        IHaskell.Display.Widgets.Float.BoundedFloat.FloatProgress
@@ -138,7 +140,10 @@ library
 
 					 -- The singletons package version is locked to the compiler
 					 -- so let cabal choose the right one.
-                     , singletons < 3.0.0
+                     , singletons >= 2.6
+
+  if impl (ghc >= 9.0)
+    build-depends:     singletons-base -any
 
   -- Directories containing source files.
   hs-source-dirs:      src

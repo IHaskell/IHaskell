@@ -26,6 +26,9 @@ import           IHaskell.Display.Widgets.Int.BoundedInt.IntSlider as X
 import           IHaskell.Display.Widgets.Int.BoundedInt.Play as X
 import           IHaskell.Display.Widgets.Int.BoundedIntRange.IntRangeSlider as X
 
+import           IHaskell.Display.Widgets.Link.Link as X
+import           IHaskell.Display.Widgets.Link.DirectionalLink as X
+
 import           IHaskell.Display.Widgets.Float.FloatText as X
 import           IHaskell.Display.Widgets.Float.BoundedFloat.BoundedFloatText as X
 import           IHaskell.Display.Widgets.Float.BoundedFloat.FloatProgress as X
@@ -64,4 +67,5 @@ import           IHaskell.Display.Widgets.Style.ToggleButtonsStyle as X
 import           IHaskell.Display.Widgets.Common as X
 import           IHaskell.Display.Widgets.Types as X (setField, getField, properties, triggerDisplay,
                                                       triggerChange, triggerClick, triggerSelection,
-                                                      triggerSubmit, ChildWidget(..), Date(..))
+                                                      triggerSubmit, ChildWidget(..), StyleWidget(..),
+                                                      WidgetFieldPair(..), Date(..))
