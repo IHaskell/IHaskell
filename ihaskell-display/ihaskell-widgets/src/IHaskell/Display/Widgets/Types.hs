@@ -69,6 +69,7 @@ import           Control.Applicative ((<$>))
 import qualified Control.Exception as Ex
 import           Data.Typeable (Typeable, TypeRep, typeOf)
 import           Data.IORef (IORef, readIORef, modifyIORef)
+import           Data.String
 import           Data.Text (Text, pack)
 import           System.IO.Error
 import           System.Posix.IO
@@ -197,7 +198,7 @@ type instance FieldType 'S.Placeholder = Text
 type instance FieldType 'S.Tooltip = Maybe Text
 type instance FieldType 'S.Icon = Text
 type instance FieldType 'S.ButtonStyle = ButtonStyleValue
-type instance FieldType 'S.BSValue = ByteString
+type instance FieldType 'S.BSValue = JSONByteString
 type instance FieldType 'S.ImageFormat = ImageFormatValue
 type instance FieldType 'S.BoolValue = Bool
 type instance FieldType 'S.OptionsLabels = [Text]
@@ -502,9 +503,14 @@ instance HasKey f ~ 'False => ToPairs' 'False f where
 instance (ToJSON (FieldType f), HasKey f ~ 'True) => ToPairs' 'True f where
   toPairs' x = [ pack (toKey $ _field x) .= toJSON x ]
 
+newtype JSONByteString = JSONByteString ByteString
+  deriving (Eq,Ord)
 
-instance ToJSON ByteString where
-  toJSON = toJSON . base64
+instance ToJSON JSONByteString where
+  toJSON (JSONByteString x) = toJSON $ base64 x
+
+instance IsString JSONByteString where
+  fromString = JSONByteString . fromString
 
 -- | Store the value for a field, as an object parametrized by the Field. No verification is done
 -- for these values.
@@ -850,7 +856,7 @@ setField :: (f ∈ WidgetFields w, IHaskellWidget (IPythonWidget w), ToPairs (At
          => IPythonWidget w -> SField f -> FieldType f -> IO ()
 setField widget sfield fval = do
   attr <- getAttr widget sfield
-  when (_ro attr) $ error ("The field " ++ show sfield ++ " is read only")
+  when (_ro attr) $ error ("The field " ++ show (fromSing sfield) ++ " is read only")
   !newattr <- setField' widget sfield fval
   let pairs = toPairs newattr
   unless (null pairs) $ widgetSendUpdate widget (object pairs)
