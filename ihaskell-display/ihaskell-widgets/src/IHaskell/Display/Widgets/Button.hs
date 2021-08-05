@@ -27,7 +27,6 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Style.ButtonStyle
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
-import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'Button' represents a Button from IPython.html.widgets.
 type Button = IPythonWidget 'ButtonType

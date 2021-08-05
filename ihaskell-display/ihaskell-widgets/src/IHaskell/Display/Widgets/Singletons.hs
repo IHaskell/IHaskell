@@ -16,9 +16,9 @@
 {-# LANGUAGE StandaloneKindSignatures #-}
 #endif
 
-module IHaskell.Display.Widgets.Singletons where
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 
-import           Data.Kind
+module IHaskell.Display.Widgets.Singletons where
 
 #if MIN_VERSION_singletons(3,0,0)
 import           Data.Singletons.Base.TH

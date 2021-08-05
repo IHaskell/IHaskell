@@ -1,4 +1,4 @@
-{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
+{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules, CPP #-}
 module IHaskell.Eval.Widgets (
     widgetSendOpen,
     widgetSendView,
@@ -18,13 +18,11 @@ import           Control.Concurrent.STM (atomically)
 import           Control.Concurrent.STM.TChan
 import           Control.Monad (foldM)
 import           Data.Aeson
-import           Data.Aeson.Types (emptyArray)
-import           Data.ByteString.Lazy (toStrict)
 import           Data.ByteString.Base64 as B64 (decodeLenient)
 import qualified Data.Map as Map
 import           Data.Text.Encoding (encodeUtf8)
 import           Data.HashMap.Strict as HM (lookup,insert,delete)
-import           Data.Functor ((<&>))
+
 import           Data.Foldable (foldl)
 import           System.IO.Unsafe (unsafePerformIO)
 
@@ -32,6 +30,14 @@ import           IHaskell.Display
 import           IHaskell.Eval.Util (unfoldM)
 import           IHaskell.IPython.Types (showMessageType)
 import           IHaskell.Types
+
+#if MIN_VERSION_base(4,11,0)
+import           Data.Functor ((<&>))
+#else
+(<&>) :: Functor f => f a -> (a -> b) -> f b
+a <&> f = fmap f a
+infixl 1 <&>
+#endif
 
 -- All comm_open messages go here
 widgetMessages :: TChan WidgetMsg

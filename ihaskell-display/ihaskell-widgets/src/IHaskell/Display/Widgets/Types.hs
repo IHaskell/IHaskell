@@ -108,7 +108,7 @@ import           Data.Text.Lazy.Encoding
 import           GHC.IO.Exception
 
 import           IHaskell.Eval.Widgets (widgetSendUpdate, widgetSendView)
-import           IHaskell.Display (Base64, IHaskellWidget(..), IHaskellDisplay(..), Display(..), widgetdisplay, base64)
+import           IHaskell.Display (IHaskellWidget(..), IHaskellDisplay(..), Display(..), widgetdisplay, base64)
 import           IHaskell.IPython.Message.UUID
 
 import           IHaskell.Display.Widgets.Singletons (Field, SField, toKey, HasKey)
@@ -966,3 +966,12 @@ instance FromJSON Date where
     <*> v .: "date"
   parseJSON Null = pure NullDate
   parseJSON _ = mzero
+
+-- | Allows you to unlink a jslink
+unlink :: ('S.Source ∈ WidgetFields w, 'S.Target ∈ WidgetFields w, IHaskellWidget (IPythonWidget w))
+       => IPythonWidget w
+       -> IO (IPythonWidget w)
+unlink w = do
+  _ <- setField' w Source EmptyWT
+  _ <- setField' w Target EmptyWT
+  return w

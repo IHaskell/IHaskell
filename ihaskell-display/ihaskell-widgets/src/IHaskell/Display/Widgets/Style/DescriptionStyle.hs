@@ -17,14 +17,12 @@ import           Prelude
 
 import           Data.Aeson
 import           Data.IORef (newIORef)
-import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
-import           IHaskell.Display.Widgets.Common
 
 -- | A 'DescriptionStyle' represents a Button Style from IPython.html.widgets.
 type DescriptionStyle = IPythonWidget 'DescriptionStyleType

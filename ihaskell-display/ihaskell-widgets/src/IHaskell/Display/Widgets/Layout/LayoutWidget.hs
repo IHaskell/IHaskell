@@ -15,11 +15,8 @@ module IHaskell.Display.Widgets.Layout.LayoutWidget
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (void)
-
 import           Data.Aeson
 import           Data.IORef (newIORef)
-import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -27,7 +24,6 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Layout.Types
-import           IHaskell.Display.Widgets.Layout.Common
 
 -- | A 'Layout' represents a Layout from IPython.html.widgets.
 type Layout = IPythonWidget 'LayoutType

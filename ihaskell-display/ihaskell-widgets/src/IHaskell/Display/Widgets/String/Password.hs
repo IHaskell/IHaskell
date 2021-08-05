@@ -18,7 +18,6 @@ import           Prelude
 import           Control.Monad (when)
 import           Data.Aeson
 import           Data.IORef (newIORef)
-import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets

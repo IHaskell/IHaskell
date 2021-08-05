@@ -24,31 +24,9 @@ import           Prelude hiding (Right,Left)
 import           Control.Monad (unless)
 import qualified Control.Exception as Ex
 
-import           Data.Aeson hiding (pairs)
 import           Data.List (intercalate)
-import           Data.Typeable (Typeable, TypeRep, typeOf)
 
-#if MIN_VERSION_vinyl(0,9,0)
-import           Data.Vinyl (Rec(..), Dict(..))
-import           Data.Vinyl.Recursive ((<+>), recordToList, reifyConstraint, rmap)
-#else
-import           Data.Vinyl (Rec(..), (<+>), recordToList, reifyConstraint, rmap, Dict(..))
-#endif
-import           Data.Vinyl.Lens (rget, rput, type (∈))
-
-#if MIN_VERSION_singletons(3,0,0)
-import           Data.List.Singletons
-#elif MIN_VERSION_singletons(2,4,0)
-import           Data.Singletons.Prelude.List
-#else
-import           Data.Singletons.Prelude ((:++))
-#endif
-
-#if MIN_VERSION_singletons(3,0,0)
-import           Data.Singletons.Base.TH
-#else
-import           Data.Singletons.TH
-#endif
+import           Data.Vinyl (Rec(..))
 
 import qualified IHaskell.Display.Widgets.Singletons as S
 import           IHaskell.Display.Widgets.Types

@@ -17,7 +17,6 @@ import           Prelude
 
 import           Data.Aeson
 import           Data.IORef (newIORef)
-import           Data.Monoid (mempty)
 import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
@@ -40,9 +39,9 @@ mkImageWidget = do
 
   let mediaAttrs = defaultMediaWidget "ImageView" "ImageModel" layout
       imageAttrs = (ImageFormat =:: PNG)
-              :& (Width =:+ 0)
-              :& (Height =:+ 0)
-              :& RNil
+                   :& (Width =:+ 0)
+                   :& (Height =:+ 0)
+                   :& RNil
       widgetState = WidgetState (mediaAttrs <+> imageAttrs)
 
   stateIO <- newIORef widgetState

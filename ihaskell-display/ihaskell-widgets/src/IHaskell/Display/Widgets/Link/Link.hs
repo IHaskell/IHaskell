@@ -10,6 +10,8 @@ module IHaskell.Display.Widgets.Link.Link
     Link
     -- * Constructor
   , mkLink
+    -- * Easier constructor
+  , jslink
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -17,8 +19,6 @@ import           Prelude
 
 import           Data.Aeson
 import           Data.IORef (newIORef)
-import           Data.Monoid (mempty)
-import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -26,7 +26,6 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
-import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | An 'Link' represents a Link widget from IPython.html.widgets.
 type Link = IPythonWidget 'LinkType
@@ -48,6 +47,14 @@ mkLink = do
 
   -- Return the link widget
   return widget
+
+-- | An easier constructor that links two widgets
+jslink :: WidgetFieldPair -> WidgetFieldPair -> IO Link
+jslink wfp1 wfp2 = do
+  link <- mkLink
+  _ <- setField link Source wfp1
+  _ <- setField link Target wfp2
+  return link
 
 instance IHaskellWidget Link where
   getCommUUID = uuid

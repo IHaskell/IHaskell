@@ -13,15 +13,6 @@
 
 module IHaskell.Display.Widgets.Layout.Common where
 
-import           Data.Aeson
-import           Data.Aeson.Types (emptyObject)
-import           Data.HashMap.Strict as HM
-import           Data.Text (pack, Text)
-import           Data.Typeable (Typeable)
-
-import           IHaskell.Display (IHaskellWidget)
-import           IHaskell.Eval.Widgets (widgetSendClose)
-
 import qualified IHaskell.Display.Widgets.Singletons as S
 
 pattern AlignContent = S.SLAlignContent

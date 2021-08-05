@@ -15,10 +15,8 @@ module IHaskell.Display.Widgets.Controller.ControllerButton
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (void)
 import           Data.Aeson
 import           Data.IORef (newIORef)
-import qualified Data.Scientific as Sci
 import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display

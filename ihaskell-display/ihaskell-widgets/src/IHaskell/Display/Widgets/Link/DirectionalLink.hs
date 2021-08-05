@@ -10,6 +10,8 @@ module IHaskell.Display.Widgets.Link.DirectionalLink
     DirectionalLink
     -- * Constructor
   , mkDirectionalLink
+    -- * Another constructor
+  , jsdlink
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -17,8 +19,6 @@ import           Prelude
 
 import           Data.Aeson
 import           Data.IORef (newIORef)
-import           Data.Monoid (mempty)
-import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -26,7 +26,6 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
-import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | An 'DirectionalLink' represents a DirectionalLink widget from IPython.html.widgets.
 type DirectionalLink = IPythonWidget 'DirectionalLinkType
@@ -48,6 +47,14 @@ mkDirectionalLink = do
 
   -- Return the DirectionalLink widget
   return widget
+
+-- | An easier constructor that links two widgets
+jsdlink :: WidgetFieldPair -> WidgetFieldPair -> IO DirectionalLink
+jsdlink wfp1 wfp2 = do
+  dlink <- mkDirectionalLink
+  _ <- setField dlink Source wfp1
+  _ <- setField dlink Target wfp2
+  return dlink
 
 instance IHaskellWidget DirectionalLink where
   getCommUUID = uuid

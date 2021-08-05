@@ -17,7 +17,6 @@ import           Prelude
 
 import           Data.Aeson
 import           Data.IORef (newIORef)
-import           Data.Monoid (mempty)
 import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display

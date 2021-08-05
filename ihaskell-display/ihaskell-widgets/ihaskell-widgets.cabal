@@ -140,7 +140,7 @@ library
 
 					 -- The singletons package version is locked to the compiler
 					 -- so let cabal choose the right one.
-                     , singletons >= 2.6
+                     , singletons -any
 
   if impl (ghc >= 9.0)
     build-depends:     singletons-base -any

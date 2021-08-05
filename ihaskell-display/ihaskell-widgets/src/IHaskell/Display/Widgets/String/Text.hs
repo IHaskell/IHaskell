@@ -18,7 +18,6 @@ import           Prelude
 import           Control.Monad (when)
 import           Data.Aeson
 import           Data.IORef (newIORef)
-import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -54,7 +53,7 @@ mkTextWidget = do
 
 instance IHaskellWidget TextWidget where
   getCommUUID = uuid
-  -- Two possibilities: 1. content -> event -> "submit" 2. sync_data -> value -> <new_value>
+  -- Two possibilities: 1. content -> event -> "submit" 2. state -> value -> <new_value>
   comm tw val _ = do
     case nestedObjectLookup val ["state", "value"] of
       Just (String value) -> setField' tw StringValue value >> triggerChange tw

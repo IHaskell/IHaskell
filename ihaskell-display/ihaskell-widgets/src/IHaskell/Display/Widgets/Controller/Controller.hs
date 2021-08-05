@@ -20,17 +20,13 @@ import           Control.Monad (void)
 
 import           Data.Aeson
 import           Data.Aeson.Types (parse)
-import           Data.Text (Text)
 import           Data.IORef (newIORef)
-import           Data.Maybe (fromJust,isJust)
-import qualified Data.Scientific as Sci
 import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
-import           IHaskell.Display.Widgets.Singletons (Field, SField)
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
