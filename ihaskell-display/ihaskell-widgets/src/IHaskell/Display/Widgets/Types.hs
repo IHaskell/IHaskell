@@ -269,6 +269,8 @@ type instance FieldType 'S.HandleColor = Maybe String
 type instance FieldType 'S.ButtonWidth = String
 type instance FieldType 'S.Target = WidgetFieldPair
 type instance FieldType 'S.Source = WidgetFieldPair
+type instance FieldType 'S.MsgID = Text
+type instance FieldType 'S.Outputs = [OutputMsg]
 type instance FieldType 'S.Style = StyleWidget
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
@@ -386,7 +388,7 @@ type instance WidgetFields 'ImageType =
 type instance WidgetFields 'VideoType =
                 MediaClass :++ ['S.VideoFormat, 'S.Width, 'S.Height, 'S.AutoPlay, 'S.Loop, 'S.Controls]
 
-type instance WidgetFields 'OutputType = DOMWidgetClass
+type instance WidgetFields 'OutputType = DOMWidgetClass :++ ['S.ViewModule,'S.ModelModule,'S.ViewModuleVersion,'S.ModelModuleVersion,'S.MsgID,'S.Outputs]
 type instance WidgetFields 'HTMLType = StringClass
 type instance WidgetFields 'HTMLMathType = StringClass
 type instance WidgetFields 'ComboboxType = TextClass :++ [ 'S.Options, 'S.EnsureOption ]
@@ -981,3 +983,23 @@ unlink w = do
   _ <- setField' w Source EmptyWT
   _ <- setField' w Target EmptyWT
   return w
+
+data StreamName = STR_STDERR
+                | STR_STDOUT
+                deriving (Eq, Show)
+
+instance ToJSON StreamName where
+  toJSON STR_STDERR = "stderr"
+  toJSON STR_STDOUT = "stdout"
+
+data OutputMsg = OutputStream
+               { name :: StreamName
+               , text :: Text
+               }
+               deriving (Eq, Show)
+
+instance ToJSON OutputMsg where
+  toJSON (OutputStream n t) = object [ "output_type" .= str "stream"
+                                     , "name" .= toJSON n
+                                     , "text" .= toJSON t
+                                     ]

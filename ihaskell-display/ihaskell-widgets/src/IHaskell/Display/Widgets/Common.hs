@@ -116,6 +116,8 @@ pattern HandleColor = S.SHandleColor
 pattern ButtonWidth = S.SButtonWidth
 pattern Target = S.STarget
 pattern Source = S.SSource
+pattern MsgID = S.SMsgID
+pattern Outputs = S.SOutputs
 pattern Style = S.SStyle
 -- | Close a widget's comm
 closeWidget :: IHaskellWidget w => w -> IO ()

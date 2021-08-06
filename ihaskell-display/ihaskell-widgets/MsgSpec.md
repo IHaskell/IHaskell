@@ -20,7 +20,7 @@ the widget.
 
 Any *numeric* property initialized with the empty string is provided the default value by the
 frontend. Some numbers need to be sent as actual numbers (when non-null), whereas the ones representing
-lengths in CSS units need to be sent as strings.
+lengths in CSS units need to be sent as strings specifying the size unit (px,em,cm,etc.).
 
 The initial state must *at least* have the following fields in the `data.state` value of the message:
 
@@ -40,7 +40,7 @@ the kernel.
 
 ### Buffer paths
 To display some widgets, we need to use the `buffer_paths`. It's only an array with arrays of keys on how to get to the fields that are to considered a
-byte stream. For example, in an image widget, `buffer_paths` would be the array `[ ["value"] ]`, which means that `state.value` is a buffer path. The buffers are specified in the header, so the n-th buffer corresponds to the n-th buffer path.
+byte stream. For example, in an image widget, `buffer_paths` would be the array `[ ["value"] ]`, which means that `state.value` is a buffer path. The buffers are sent in the header of the message, just before the data, so the n-th buffer corresponds to the n-th buffer path in the array.
 
 ```json
 "data": {
@@ -71,6 +71,18 @@ content = {
       "version_major": 2,
       "version_minor": 0,
     }
+}
+```
+
+## Clear output messages
+A simple message that indicates that the output of the header message id's should be cleaned.
+
+- `wait=true` indicates that it should clean the output in the next append, while `wait=false` cleans the output inmediately.
+
+```json
+method = "clear_output",
+content = {
+  "wait": bool
 }
 ```
 

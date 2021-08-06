@@ -127,6 +127,8 @@ singletons
              | ButtonWidth
              | Target
              | Source
+             | MsgID
+             | Outputs
              | Style
              -- Now the ones for layout
              -- Every layout property comes with an L before the name to avoid conflict
@@ -265,6 +267,8 @@ promote
     toKey ButtonWidth = "button_width"
     toKey Target = "target"
     toKey Source = "source"
+    toKey MsgID = "msg_id"
+    toKey Outputs = "outputs"
     toKey Style = "style"
     toKey LAlignContent = "align_content"
     toKey LAlignItems = "align_items"

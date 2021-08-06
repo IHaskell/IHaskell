@@ -90,9 +90,9 @@ widgetSendValue widget = queue . JSONValue (Widget widget)
 widgetPublishDisplay :: (IHaskellWidget a, IHaskellDisplay b) => a -> b -> IO ()
 widgetPublishDisplay widget disp = display disp >>= queue . DispMsg (Widget widget)
 
--- | Send a `clear_output` message as a [method .= custom] message
-widgetClearOutput :: IHaskellWidget a => a -> Bool -> IO ()
-widgetClearOutput widget w = queue $ ClrOutput (Widget widget) w
+-- | Send a `clear_output` message
+widgetClearOutput :: Bool -> IO ()
+widgetClearOutput w = queue $ ClrOutput w
 
 -- | Handle a single widget message. Takes necessary actions according to the message type, such as
 -- opening comms, storing and updating widget representation in the kernel state etc.
@@ -165,10 +165,10 @@ handleMessage send replyHeader state msg = do
       let dmsg = WidgetDisplay dispHeader $ unwrap disp
       sendMessage widget (toJSON $ CustomContent $ toJSON dmsg)
 
-    ClrOutput widget w -> do
+    ClrOutput w -> do
       hdr <- dupHeader replyHeader ClearOutputMessage
-      let cmsg = WidgetClear hdr w
-      sendMessage widget (toJSON $ CustomContent $ toJSON cmsg)
+      send $ ClearOutput hdr w
+      return state
 
   where
     oldComms = openComms state
@@ -221,14 +221,6 @@ instance ToJSON WidgetDisplay where
   toJSON (WidgetDisplay replyHeader ddata) =
     let pbval = toJSON $ PublishDisplayData replyHeader ddata Nothing
     in toJSON $ IPythonMessage replyHeader pbval DisplayDataMessage
-
--- Override toJSON for ClearOutput
-data WidgetClear = WidgetClear MessageHeader Bool
-
-instance ToJSON WidgetClear where
-  toJSON (WidgetClear replyHeader w) =
-    let clrVal = toJSON $ ClearOutput replyHeader w
-    in toJSON $ IPythonMessage replyHeader clrVal ClearOutputMessage
 
 data IPythonMessage = IPythonMessage MessageHeader Value MessageType
 

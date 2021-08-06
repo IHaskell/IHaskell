@@ -221,8 +221,8 @@ showMessageType StatusMessage = "status"
 showMessageType StreamMessage = "stream"
 showMessageType DisplayDataMessage = "display_data"
 showMessageType UpdateDisplayDataMessage = "update_display_data"
-showMessageType OutputMessage = "pyout"
-showMessageType InputMessage = "pyin"
+showMessageType OutputMessage = "execute_result"
+showMessageType InputMessage = "execute_input"
 showMessageType IsCompleteRequestMessage = "is_complete_request"
 showMessageType IsCompleteReplyMessage = "is_complete_reply"
 showMessageType CompleteRequestMessage = "complete_request"
@@ -580,7 +580,7 @@ instance ToJSON Message where
   toJSON PublishStatus { executionState = executionState } =
     object ["execution_state" .= executionState]
   toJSON PublishStream { streamType = streamType, streamContent = content } =
-    -- Since 5.0 "data" key was renamed to "text"
+    -- Since 5.0 "data" key was renamed to "text""
     object ["text" .= content, "name" .= streamType, "output_type" .= string "stream"]
   toJSON r@PublishDisplayData { displayData = datas }
     = object

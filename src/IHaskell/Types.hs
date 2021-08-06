@@ -250,8 +250,8 @@ data WidgetMsg = Open Widget Value
                 DispMsg Widget Display
                |
                -- ^ A 'display_data' message, sent as a [method .= custom] comm_msg
-                ClrOutput Widget Bool
-  -- ^ A 'clear_output' message, sent as a [method .= custom] comm_msg
+                ClrOutput Bool
+  -- ^ A 'clear_output' message, sent as a clear_output message
   deriving (Show, Typeable)
 
 data WidgetMethod = UpdateState Value [BufferPath]
