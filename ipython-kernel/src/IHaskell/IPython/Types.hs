@@ -35,6 +35,7 @@ module IHaskell.IPython.Types (
     DisplayData(..),
     MimeType(..),
     extractPlain,
+    displayDataToJson,
     ) where
 
 import           Control.Applicative ((<$>), (<*>))

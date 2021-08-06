@@ -110,6 +110,7 @@ import           GHC.IO.Exception
 
 import           IHaskell.Eval.Widgets (widgetSendUpdate, widgetSendView)
 import           IHaskell.Display (IHaskellWidget(..), IHaskellDisplay(..), Display(..), widgetdisplay, base64)
+import           IHaskell.IPython.Types (StreamType(..))
 import           IHaskell.IPython.Message.UUID
 
 import           IHaskell.Display.Widgets.Singletons (Field, SField, toKey, HasKey)
@@ -984,22 +985,14 @@ unlink w = do
   _ <- setField' w Target EmptyWT
   return w
 
-data StreamName = STR_STDERR
-                | STR_STDOUT
-                deriving (Eq, Show)
-
-instance ToJSON StreamName where
-  toJSON STR_STDERR = "stderr"
-  toJSON STR_STDOUT = "stdout"
-
-data OutputMsg = OutputStream
-               { name :: StreamName
-               , text :: Text
-               }
-               deriving (Eq, Show)
+data OutputMsg = OutputStream StreamType Text | OutputData Display deriving (Show)
 
 instance ToJSON OutputMsg where
   toJSON (OutputStream n t) = object [ "output_type" .= str "stream"
                                      , "name" .= toJSON n
                                      , "text" .= toJSON t
+                                     ]
+  toJSON (OutputData d)     = object [ "output_type" .= str "display_data"
+                                     , "data" .= toJSON d
+                                     , "metadata" .= object []
                                      ]

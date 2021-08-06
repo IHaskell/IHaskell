@@ -29,6 +29,7 @@ import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
+import           IHaskell.IPython.Types (StreamType(..))
 import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
@@ -65,17 +66,17 @@ mkOutputWidget = do
   -- Return the image widget
   return widget
 
-appendStd :: StreamName -> OutputWidget -> Text -> IO ()
+appendStd :: StreamType -> OutputWidget -> Text -> IO ()
 appendStd n out t = do
   getField out Outputs >>= setField out Outputs . updateOutputs
   where updateOutputs :: [OutputMsg] -> [OutputMsg]
         updateOutputs = (++[OutputStream n t])
 
 appendStdout :: OutputWidget -> Text -> IO ()
-appendStdout = appendStd STR_STDOUT
+appendStdout = appendStd Stdout
 
 appendStderr :: OutputWidget -> Text -> IO ()
-appendStderr = appendStd STR_STDERR
+appendStderr = appendStd Stderr
 
 -- | Clears the output widget
 clearOutput' :: OutputWidget -> IO ()
@@ -85,7 +86,11 @@ clearOutput' w = do
   return ()
 
 appendDisplay :: IHaskellDisplay a => OutputWidget -> a -> IO ()
-appendDisplay a d = error "To be implemented"
+appendDisplay o d = do
+  outputs <- getField o Outputs
+  disp <- display d
+  _ <- setField o Outputs $ outputs ++ [OutputData disp]
+  return ()
 
 -- | Clear the output widget immediately
 clearOutput :: OutputWidget -> IO ()
@@ -103,4 +108,3 @@ replaceOutput widget d = do
 
 instance IHaskellWidget OutputWidget where
   getCommUUID = uuid
-  comm widget val _ = print val

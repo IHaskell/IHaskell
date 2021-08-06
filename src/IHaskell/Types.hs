@@ -155,6 +155,10 @@ data Display = Display [DisplayData]
              | ManyDisplay [Display]
   deriving (Show, Typeable, Generic)
 
+instance ToJSON Display where
+  toJSON (Display d) = object (map displayDataToJson d)
+  toJSON (ManyDisplay d) = toJSON d
+
 instance Serialize Display
 
 instance Semigroup Display where

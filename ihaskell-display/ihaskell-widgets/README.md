@@ -18,7 +18,7 @@ jupyter nbconvert *.ipynb --to notebook --inplace --clear-output
 ## Things to do
 - [ ] Automatic validation of the JSON implementation of widgets against the MsgSpec schema
 - [ ] Create integration tests for the widgets
-- [ ] Make the `output` widget work with anything displayable
+- [ ] Make the output widget capture output (problem: you have to get the message id of where the output is displayed)
 - [ ] Make the layout widget values more 'Haskelian': Instead of checking if the string is valid at runtime, make some types so it's checked at compile-time
 - [ ] Create a serializable color data type instead of using `Maybe String`
 - [ ] Overload setField so it can be used with `Maybes` or other wrapper types without having to put `Just` every time.
