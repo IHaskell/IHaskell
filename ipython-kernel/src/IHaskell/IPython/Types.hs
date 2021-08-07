@@ -789,7 +789,7 @@ data MimeType = PlainText
               | MimeVega
               | MimeVegalite
               | MimeVdom
-              | MimeCustom Text
+              | MimeCustom Text Bool
   deriving (Eq, Typeable, Generic)
 
 -- Extract the plain text from a list of displays.
@@ -817,7 +817,7 @@ instance Show MimeType where
   show MimeVega = "application/vnd.vega.v5+json"
   show MimeVegalite = "application/vnd.vegalite.v4+json"
   show MimeVdom = "application/vdom.v1+json"
-  show (MimeCustom custom) = Text.unpack custom
+  show (MimeCustom custom _) = Text.unpack custom
 
 instance Read MimeType where
   readsPrec _ "text/plain" = [(PlainText, "")]
@@ -834,18 +834,25 @@ instance Read MimeType where
   readsPrec _ "application/vnd.vega.v5+json" = [(MimeVega, "")]
   readsPrec _ "application/vnd.vegalite.v4+json" = [(MimeVegalite, "")]
   readsPrec _ "application/vdom.v1+json" = [(MimeVdom, "")]
-  readsPrec _ t = [(MimeCustom (Text.pack t), "")]
+  readsPrec _ t = [(MimeCustom (Text.pack t) False, "")]
 
 -- | Convert a MIME type and value into a JSON dictionary pair.
 displayDataToJson :: DisplayData -> (Text, Value)
 displayDataToJson (DisplayData MimeJson dataStr) =
-    pack (show MimeJson) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
+    pack (show MimeJson) .= textToJson dataStr
+displayDataToJson (DisplayData (MimeCustom mimeType flag) dataStr) =
+    mimeType .= if flag
+                then textToJson dataStr
+                else String dataStr
 displayDataToJson (DisplayData MimeVegalite dataStr) =
-    pack (show MimeVegalite) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
+    pack (show MimeVegalite) .= textToJson dataStr
 displayDataToJson (DisplayData MimeVega dataStr) =
-    pack (show MimeVega) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
+    pack (show MimeVega) .= textToJson dataStr
 displayDataToJson (DisplayData mimeType dataStr) =
   pack (show mimeType) .= String dataStr
+
+textToJson :: Text -> Value
+textToJson dataStr = fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
 
 string :: String -> String
 string = id
