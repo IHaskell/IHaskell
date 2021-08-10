@@ -1,7 +1,5 @@
 name: "Docker"
 on:
-  workflow_dispatch:
-
   push:
     branches:
       - master
@@ -25,7 +23,7 @@ jobs:
     - uses: actions/checkout@01aecccf739ca6ff86c0539fbc67a7a5007bbc81
     - uses: elgohr/Publish-Docker-Github-Action@f7aca2fea76a5218f3c76cd5933c3ba1d8008774
       with:
-        name: daviddavo/ihaskell
+        name: gibiansky/ihaskell
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
         snapshot: true
