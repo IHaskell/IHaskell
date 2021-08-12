@@ -51,3 +51,35 @@ First you have to check if the attribute is only for one widget, or is from a co
 
 ## FAQ
 When using widgets in ihaskell, you'll encounter a lot of compilation errors. If you are not very familiar with Haskell, they can be a bit hard to decipher, this is a mini guide that will (hopefully) appear when you paste the error in Google.
+
+### setField: No instance for...
+You probably got this error when trying to use setField like this:
+
+```
+<interactive>:1:1: error:
+    • No instance for (Data.Vinyl.Lens.RecElem
+                         Data.Vinyl.Core.Rec
+                         'ihaskell-widgets-0.3.0.0:IHaskell.Display.Widgets.Singletons.Index
+                         'ihaskell-widgets-0.3.0.0:IHaskell.Display.Widgets.Singletons.Index
+                         '[]
+                         '[]
+                         (Data.Vinyl.TypeLevel.RIndex 'ihaskell-widgets-0.3.0.0:IHaskell.Display.Widgets.Singletons.Index '[]))
+        arising from a use of ‘setField’
+    • In the expression: setField select Index 0
+      In an equation for ‘it’: it = setField select Index 0
+```
+
+What this error means is that there is no field called `Index` for this particular widget. You can display on screen all
+the fields available for a widget using `properties widget`.
+
+### setField: Couldn't match expected type SField f with actual type
+
+If you get an error like this, you probably forgot to put the field name in the second argument of `setField`.
+```
+<interactive>:1:25: error:
+    • Couldn't match expected type ‘ihaskell-widgets-0.3.0.0:IHaskell.Display.Widgets.Singletons.SField f’ with actual type ‘[a0]’
+    • In the second argument of ‘setField’, namely ‘["Apples", "Oranges", "Pears"]’
+      In the expression: setField selectMultiple ["Apples", "Oranges", "Pears"]
+      In an equation for ‘it’: it = setField selectMultiple ["Apples", "Oranges", "Pears"]
+    • Relevant bindings include it :: ihaskell-widgets-0.3.0.0:IHaskell.Display.Widgets.Types.FieldType f -> IO () (bound at <interactive>:1:1)
+```
