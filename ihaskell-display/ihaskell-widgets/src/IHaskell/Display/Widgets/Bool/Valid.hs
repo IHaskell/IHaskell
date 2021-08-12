@@ -9,7 +9,7 @@ module IHaskell.Display.Widgets.Bool.Valid
   ( -- * The Valid Widget
     ValidWidget
     -- * Constructor
-  , mkValidWidget
+  , mkValid
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -32,8 +32,8 @@ import           IHaskell.Display.Widgets.Style.DescriptionStyle
 type ValidWidget = IPythonWidget 'ValidType
 
 -- | Create a new output widget
-mkValidWidget :: IO ValidWidget
-mkValidWidget = do
+mkValid :: IO ValidWidget
+mkValid = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout

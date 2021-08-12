@@ -9,7 +9,7 @@ module IHaskell.Display.Widgets.String.Password
   ( -- * The Password Widget
     PasswordWidget
     -- * Constructor
-  , mkPasswordWidget
+  , mkPassword
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -32,8 +32,8 @@ import           IHaskell.Display.Widgets.Style.DescriptionStyle
 type PasswordWidget = IPythonWidget 'PasswordType
 
 -- | Create a new Password widget
-mkPasswordWidget :: IO PasswordWidget
-mkPasswordWidget = do
+mkPassword :: IO PasswordWidget
+mkPassword = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout

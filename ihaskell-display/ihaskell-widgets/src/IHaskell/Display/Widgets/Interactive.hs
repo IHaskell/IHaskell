@@ -148,7 +148,7 @@ liftToWidgets func rc initvals = do
       initializers = rmap extractInitializer rc
 
   bx <- mkBox
-  out <- mkOutputWidget
+  out <- mkOutput
 
   -- Create a list of widgets
   widgets <- rtraverse createWidget constructors
@@ -214,7 +214,7 @@ instance FromWidget Text where
   type SuitableField Text = 'S.StringValue
   data Argument Text = TextVal Text
   initializer w (TextVal txt) = setField w StringValue txt
-  wrapped = WrappedWidget mkTextWidget SubmitHandler StringValue
+  wrapped = WrappedWidget mkText SubmitHandler StringValue
 
 instance FromWidget Integer where
   type SuitableWidget Integer = 'IntSliderType

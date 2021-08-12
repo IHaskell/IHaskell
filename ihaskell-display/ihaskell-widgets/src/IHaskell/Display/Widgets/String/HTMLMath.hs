@@ -9,7 +9,7 @@ module IHaskell.Display.Widgets.String.HTMLMath
   ( -- * The HTMLMath Widget
     HTMLMathWidget
     -- * Constructor
-  , mkHTMLMathWidget
+  , mkHTMLMath
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -30,8 +30,8 @@ import           IHaskell.Display.Widgets.Style.DescriptionStyle
 type HTMLMathWidget = IPythonWidget 'HTMLMathType
 
 -- | Create a new HTML widget
-mkHTMLMathWidget :: IO HTMLMathWidget
-mkHTMLMathWidget = do
+mkHTMLMath :: IO HTMLMathWidget
+mkHTMLMath = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout

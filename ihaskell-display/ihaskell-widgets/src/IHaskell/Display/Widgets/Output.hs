@@ -9,7 +9,7 @@ module IHaskell.Display.Widgets.Output
   ( -- * The Output Widget
     OutputWidget
     -- * Constructor
-  , mkOutputWidget
+  , mkOutput
     -- * Using the output widget
   , appendStdout
   , appendStderr
@@ -40,8 +40,8 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 type OutputWidget = IPythonWidget 'OutputType
 
 -- | Create a new output widget
-mkOutputWidget :: IO OutputWidget
-mkOutputWidget = do
+mkOutput :: IO OutputWidget
+mkOutput = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout

@@ -9,7 +9,7 @@ module IHaskell.Display.Widgets.String.Combobox
   ( -- * The Combobox Widget
     ComboboxWidget
     -- * Constructor
-  , mkComboboxWidget
+  , mkCombobox
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -33,8 +33,8 @@ import           IHaskell.Display.Widgets.Style.DescriptionStyle
 type ComboboxWidget = IPythonWidget 'ComboboxType
 
 -- | Create a new Combobox widget
-mkComboboxWidget :: IO ComboboxWidget
-mkComboboxWidget = do
+mkCombobox :: IO ComboboxWidget
+mkCombobox = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout

@@ -9,7 +9,7 @@ module IHaskell.Display.Widgets.Media.Video
   ( -- * The Video Widget
     VideoWidget
     -- * Constructor
-  , mkVideoWidget
+  , mkVideo
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -31,8 +31,8 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 type VideoWidget = IPythonWidget 'VideoType
 
 -- | Create a new video widget
-mkVideoWidget :: IO VideoWidget
-mkVideoWidget = do
+mkVideo :: IO VideoWidget
+mkVideo = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout

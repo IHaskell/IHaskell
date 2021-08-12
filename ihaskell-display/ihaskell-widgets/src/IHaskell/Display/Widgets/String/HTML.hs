@@ -9,7 +9,7 @@ module IHaskell.Display.Widgets.String.HTML
   ( -- * The HTML Widget
     HTMLWidget
     -- * Constructor
-  , mkHTMLWidget
+  , mkHTML
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -30,8 +30,8 @@ import           IHaskell.Display.Widgets.Style.DescriptionStyle
 type HTMLWidget = IPythonWidget 'HTMLType
 
 -- | Create a new HTML widget
-mkHTMLWidget :: IO HTMLWidget
-mkHTMLWidget = do
+mkHTML :: IO HTMLWidget
+mkHTML = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout

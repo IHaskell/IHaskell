@@ -9,7 +9,7 @@ module IHaskell.Display.Widgets.Media.Image
   ( -- * The Image Widget
     ImageWidget
     -- * Constructor
-  , mkImageWidget
+  , mkImage
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -31,8 +31,8 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 type ImageWidget = IPythonWidget 'ImageType
 
 -- | Create a new image widget
-mkImageWidget :: IO ImageWidget
-mkImageWidget = do
+mkImage :: IO ImageWidget
+mkImage = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout

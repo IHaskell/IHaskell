@@ -9,7 +9,7 @@ module IHaskell.Display.Widgets.Media.Audio
   ( -- * The Audio Widget
     AudioWidget
     -- * Constructor
-  , mkAudioWidget
+  , mkAudio
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -31,8 +31,8 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 type AudioWidget = IPythonWidget 'AudioType
 
 -- | Create a new audio widget
-mkAudioWidget :: IO AudioWidget
-mkAudioWidget = do
+mkAudio :: IO AudioWidget
+mkAudio = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout

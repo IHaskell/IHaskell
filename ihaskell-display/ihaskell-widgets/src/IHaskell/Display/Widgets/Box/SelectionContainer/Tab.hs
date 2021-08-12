@@ -9,7 +9,7 @@ module IHaskell.Display.Widgets.Box.SelectionContainer.Tab
   ( -- * The Tab widget
     TabWidget
     -- * Constructor
-  , mkTabWidget
+  , mkTab
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -33,8 +33,8 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 type TabWidget = IPythonWidget 'TabType
 
 -- | Create a new box
-mkTabWidget :: IO TabWidget
-mkTabWidget = do
+mkTab :: IO TabWidget
+mkTab = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout

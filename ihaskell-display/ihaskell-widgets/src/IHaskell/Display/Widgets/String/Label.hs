@@ -9,7 +9,7 @@ module IHaskell.Display.Widgets.String.Label
   ( -- * The Label Widget
     LabelWidget
     -- * Constructor
-  , mkLabelWidget
+  , mkLabel
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -30,8 +30,8 @@ import           IHaskell.Display.Widgets.Style.DescriptionStyle
 type LabelWidget = IPythonWidget 'LabelType
 
 -- | Create a new Label widget
-mkLabelWidget :: IO LabelWidget
-mkLabelWidget = do
+mkLabel :: IO LabelWidget
+mkLabel = do
   -- Default properties, with a random uuid
   wid <- U.random
   layout <- mkLayout
