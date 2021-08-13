@@ -88,16 +88,11 @@ singletons
              | ChangeHandler
              | Children
              | BoxStyle
-             | Pack
-             | Align
              | Titles
              | SelectedIndex
              | ReadOutMsg
              | Indent
-             | Child
-             | Selector
              | ContinuousUpdate
-             | Tabbable
              | Rows
              | AudioFormat
              | VideoFormat
@@ -229,16 +224,11 @@ promote
     toKey ChangeHandler = "" -- Not sent to the frontend
     toKey Children = "children"
     toKey BoxStyle = "box_style"
-    toKey Pack = "pack"
-    toKey Align = "align"
     toKey Titles = "_titles"
     toKey SelectedIndex = "selected_index"
     toKey ReadOutMsg = "readout"
     toKey Indent = "indent"
-    toKey Child = "child"
-    toKey Selector = "selector"
     toKey ContinuousUpdate = "continuous_update"
-    toKey Tabbable = "tabbable"
     toKey Rows = "rows"
     toKey AutoPlay = "autoplay"
     toKey Loop = "loop"

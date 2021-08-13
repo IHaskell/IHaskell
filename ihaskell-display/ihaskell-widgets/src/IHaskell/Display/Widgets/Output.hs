@@ -66,15 +66,18 @@ mkOutput = do
   -- Return the image widget
   return widget
 
+-- | Appends the Text to the given Stream
 appendStd :: StreamType -> OutputWidget -> Text -> IO ()
 appendStd n out t = do
   getField out Outputs >>= setField out Outputs . updateOutputs
   where updateOutputs :: [OutputMsg] -> [OutputMsg]
         updateOutputs = (++[OutputStream n t])
 
+-- | Appends text to the stdout of an output widget
 appendStdout :: OutputWidget -> Text -> IO ()
 appendStdout = appendStd Stdout
 
+-- | Appends text to the stderr of an output widget
 appendStderr :: OutputWidget -> Text -> IO ()
 appendStderr = appendStd Stderr
 
@@ -85,6 +88,7 @@ clearOutput' w = do
   _ <- setField w MsgID ""
   return ()
 
+-- | Appends anything displayable to an output widget
 appendDisplay :: IHaskellDisplay a => OutputWidget -> a -> IO ()
 appendDisplay o d = do
   outputs <- getField o Outputs

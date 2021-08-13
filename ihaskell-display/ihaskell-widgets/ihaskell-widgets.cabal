@@ -28,15 +28,17 @@ license:             MIT
 license-file:        LICENSE
 
 -- The package author(s).
-author:              Sumit Sahrawat
+author:              David Davó
+                     Sumit Sahrawat
 
 -- An email address to which users can send suggestions, bug reports, and
 -- patches.
-maintainer:          Sumit Sahrawat <sumit.sahrawat.apm13@iitbhu.ac.in>,
+maintainer:          David Davó <david@ddavo.me>
+                     Sumit Sahrawat <sumit.sahrawat.apm13@iitbhu.ac.in>,
                      Andrew Gibiansky <andrew.gibiansky@gmail.com>
 
 -- A copyright notice.
--- copyright:
+copyright:           Copyright (c) 2021 David Davó
 
 -- category:
 

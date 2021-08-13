@@ -1,3 +1,12 @@
+{-|
+Module      : ihaskell-widgets
+Description : Jupyter Widgets implementation for the IHaskell kernel
+Copyright   : (c) Sumit Shrawat, 2015
+                  David Davó, 2021
+License     : MIT
+Maintainer  : david@ddavo.me
+Stability   : experimental
+-}
 module IHaskell.Display.Widgets (module X) where
 
 import           IHaskell.Display.Widgets.Button as X

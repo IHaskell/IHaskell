@@ -295,11 +295,13 @@ dupHeader hdr messageType = do
   uuid <- liftIO random
   return hdr { mhMessageId = uuid, mhMsgType = messageType }
 
--- | Modyfies a header and appends the version of the Widget Messaging Protocol as metadata
+-- | Modifies a header and appends the version of the Widget Messaging Protocol as metadata
 setVersion :: MessageHeader  -- ^ The header to modify
            -> String         -- ^ The version to set
            -> MessageHeader  -- ^ The modified header
-setVersion hdr v = hdr { mhMetadata = Metadata (HashMap.fromList [("version", String $ pack v)]) } 
+-- We use the 'fromList' function from "Data.HashMap.Strict" instead of the 'object' function from
+-- "Data.Aeson" because 'object' returns a 'Value', but metadata needs an 'Object'.
+setVersion hdr v = hdr { mhMetadata = Metadata (HashMap.fromList [("version", String $ pack v)]) }
 
 -- | Whether or not an error occurred.
 data ErrorOccurred = Success

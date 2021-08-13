@@ -130,7 +130,7 @@ type (a :++ b) = a ++ b
 -- Classes from IPython's widget hierarchy. Defined as such to reduce code duplication.
 type CoreWidgetClass = ['S.ViewModule, 'S.ViewModuleVersion, 'S.ModelModule, 'S.ModelModuleVersion ]
 
-type DOMWidgetClass = ['S.ModelName, 'S.ViewName, 'S.DOMClasses, 'S.Tabbable, 'S.Tooltip, 'S.Layout, 'S.DisplayHandler]
+type DOMWidgetClass = ['S.ModelName, 'S.ViewName, 'S.DOMClasses, 'S.Tooltip, 'S.Layout, 'S.DisplayHandler]
 
 type StyleWidgetClass = ['S.ModelName, 'S.ViewName] :++ CoreWidgetClass
 
@@ -231,16 +231,11 @@ type instance FieldType 'S.FloatPairValue = (Double, Double)
 type instance FieldType 'S.ChangeHandler = IO ()
 type instance FieldType 'S.Children = [ChildWidget]
 type instance FieldType 'S.BoxStyle = BoxStyleValue
-type instance FieldType 'S.Pack = LocationValue
-type instance FieldType 'S.Align = LocationValue
 type instance FieldType 'S.Titles = [Text]
 type instance FieldType 'S.SelectedIndex = Maybe Integer
 type instance FieldType 'S.ReadOutMsg = Text
 type instance FieldType 'S.Indent = Bool
-type instance FieldType 'S.Child = Maybe ChildWidget
-type instance FieldType 'S.Selector = Text
 type instance FieldType 'S.ContinuousUpdate = Bool
-type instance FieldType 'S.Tabbable = Maybe Bool
 type instance FieldType 'S.Rows = Maybe Integer
 type instance FieldType 'S.AudioFormat = AudioFormatValue
 type instance FieldType 'S.VideoFormat = VideoFormatValue
@@ -276,6 +271,8 @@ type instance FieldType 'S.Style = StyleWidget
 
 -- | Can be used to put different widgets in a list. Useful for dealing with children widgets.
 data ChildWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => ChildWidget (IPythonWidget w)
+
+-- | Can be used to put different styles in a same FieldType.
 data StyleWidget = forall w. RecAll Attr (WidgetFields w) ToPairs => StyleWidget (IPythonWidget w)
 
 instance ToJSON (IPythonWidget w) where
@@ -578,7 +575,6 @@ defaultDOMWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> IPythonWi
 defaultDOMWidget viewName modelName layout = (ModelName =:! modelName)
                                       :& (ViewName =:! viewName)
                                       :& (DOMClasses =:: [])
-                                      :& (Tabbable =:: Nothing)
                                       :& (Tooltip =:: Nothing)
                                       :& (Layout =:: layout)
                                       :& (DisplayHandler =:: return ())
@@ -890,6 +886,7 @@ getField widget sfield = unwrap . _value <$> getAttr widget sfield
 str :: String -> String
 str = id
 
+-- | Displays on stdout the properties (and its types) of a given widget
 properties :: IPythonWidget w -> IO ()
 properties widget = do
   st <- readIORef $ state widget
@@ -914,22 +911,27 @@ noStdin action =
     void action
     void $ dupTo oldStdin stdInput
 
--- Trigger events
+-- | Common function for the different trigger events
 triggerEvent :: (FieldType f ~ IO (), f ∈ WidgetFields w) => SField f -> IPythonWidget w -> IO ()
 triggerEvent sfield w = noStdin . join $ getField w sfield
 
+-- | Called when the value of an attribute is changed on the front-end
 triggerChange :: ('S.ChangeHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
 triggerChange = triggerEvent ChangeHandler
 
+-- | Called when the button is clicked
 triggerClick :: ('S.ClickHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
 triggerClick = triggerEvent ClickHandler
 
+-- | Called when a selection is made in a selection widget
 triggerSelection :: ('S.SelectionHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
 triggerSelection = triggerEvent SelectionHandler
 
+-- | Called when the text is submited in a text widget (or combobox/password)
 triggerSubmit :: ('S.SubmitHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
 triggerSubmit = triggerEvent SubmitHandler
 
+-- | Called when the widget is displayed on the notebook
 triggerDisplay :: ('S.DisplayHandler ∈ WidgetFields w) => IPythonWidget w -> IO ()
 triggerDisplay = triggerEvent DisplayHandler
 
