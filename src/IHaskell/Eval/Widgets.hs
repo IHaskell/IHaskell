@@ -31,14 +31,6 @@ import           IHaskell.Eval.Util (unfoldM)
 import           IHaskell.IPython.Types (showMessageType)
 import           IHaskell.Types
 
-#if MIN_VERSION_base(4,11,0)
-import           Data.Functor ((<&>))
-#else
-(<&>) :: Functor f => f a -> (a -> b) -> f b
-a <&> f = fmap f a
-infixl 1 <&>
-#endif
-
 -- All comm_open messages go here
 widgetMessages :: TChan WidgetMsg
 {-# NOINLINE widgetMessages #-}
@@ -117,7 +109,7 @@ handleMessage send replyHeader state msg = do
           content = object [ "state" .= newvalue, "buffer_paths" .= bp ]
 
           communicate val = do
-            head <- dupHeader replyHeader CommDataMessage <&> applyBuffers
+            head <- applyBuffers <$> dupHeader replyHeader CommDataMessage
             send $ CommData head uuid val
 
       -- If the widget is present, don't open it again.
@@ -125,7 +117,7 @@ handleMessage send replyHeader state msg = do
         then return state
         else do
           -- Send the comm open, with the initial state
-          hdr <- dupHeader replyHeader CommOpenMessage <&> applyBuffers
+          hdr <- applyBuffers <$> dupHeader replyHeader CommOpenMessage
           let hdrV = setVersion hdr "2.0.0" -- Widget Messaging Protocol Version
           send $ CommOpen hdrV target_name target_module uuid content
 
@@ -179,7 +171,7 @@ handleMessage send replyHeader state msg = do
 
       -- If the widget is present, we send an update message on its comm.
       when present $ do
-        hdr <- dupHeader replyHeader CommDataMessage <&> hdrf
+        hdr <- hdrf <$> dupHeader replyHeader CommDataMessage
         send $ CommData hdr uuid value
       return state
 
