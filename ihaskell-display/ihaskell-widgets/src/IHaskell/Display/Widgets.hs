@@ -77,4 +77,4 @@ import           IHaskell.Display.Widgets.Common as X
 import           IHaskell.Display.Widgets.Types as X (setField, getField, properties, triggerDisplay,
                                                       triggerChange, triggerClick, triggerSelection,
                                                       triggerSubmit, ChildWidget(..), StyleWidget(..),
-                                                      WidgetFieldPair(..), Date(..), unlink)
+                                                      WidgetFieldPair(..), Date(..), unlink, JSONByteString(..))
