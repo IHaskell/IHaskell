@@ -1,5 +1,8 @@
 # ChangeLog for `ihaskell-widgets`
 
+## `v0.3.1.0`
++ Added ChangeHandlers to ColorPicker and DatePicker
+
 ## `v0.3.0.0`
 > Revamped to be compatible with Widget Messaging Protocol, version 2
 
