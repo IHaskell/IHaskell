@@ -374,10 +374,10 @@ type instance WidgetFields 'ButtonType =
                   ['S.Disabled, 'S.Icon, 'S.ButtonStyle,'S.ClickHandler]
 type instance WidgetFields 'ColorPickerType =
                 DescriptionWidgetClass :++
-                  ['S.StringValue, 'S.Concise, 'S.Disabled]
+                  ['S.StringValue, 'S.Concise, 'S.Disabled, 'S.ChangeHandler]
 type instance WidgetFields 'DatePickerType =
                 DescriptionWidgetClass :++
-                  ['S.DateValue, 'S.Disabled]
+                  ['S.DateValue, 'S.Disabled, 'S.ChangeHandler]
 
 type instance WidgetFields 'AudioType =
                 MediaClass :++ ['S.AudioFormat, 'S.AutoPlay, 'S.Loop, 'S.Controls]

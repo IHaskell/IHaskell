@@ -43,6 +43,7 @@ mkColorPicker = do
       color = (StringValue =:: "black")
               :& (Concise =:: False)
               :& (Disabled =:: False)
+              :& (ChangeHandler =:: return ())
               :& RNil
       colorPickerState = WidgetState (ddw <+> color)
 
@@ -58,3 +59,9 @@ mkColorPicker = do
 
 instance IHaskellWidget ColorPicker where
   getCommUUID = uuid
+  comm widget val _ =
+    case nestedObjectLookup val ["state", "value"] of
+      Just o -> case fromJSON o of
+        Success (String color) -> setField' widget StringValue color >> triggerChange widget
+        _ -> pure ()
+      _ -> pure ()

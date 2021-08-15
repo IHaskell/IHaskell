@@ -15,8 +15,6 @@ module IHaskell.Display.Widgets.DatePicker
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (void)
-
 import           Data.Aeson
 import           Data.IORef (newIORef)
 import           Data.Vinyl (Rec(..), (<+>))
@@ -44,6 +42,7 @@ mkDatePicker = do
   let ddw = defaultDescriptionWidget "DatePickerView" "DatePickerModel" layout $ StyleWidget dstyle
       date = (DateValue =:: defaultDate)
               :& (Disabled =:: False)
+              :& (ChangeHandler =:: return ())
               :& RNil
       datePickerState = WidgetState (ddw <+> date)
 
@@ -62,6 +61,6 @@ instance IHaskellWidget DatePicker where
   comm widget val _ =
     case nestedObjectLookup val ["state", "value"] of
       Just o -> case fromJSON o of
-        Success date -> void $ setField' widget DateValue date
+        Success date -> setField' widget DateValue date >> triggerChange widget
         _ -> pure ()
       _ -> pure ()
