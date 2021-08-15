@@ -19,6 +19,7 @@ import           Control.Monad (void)
 import           Data.Aeson
 import           Data.IORef (newIORef)
 import qualified Data.Scientific as Sci
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -26,6 +27,8 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'BoundedIntText' represents an BoundedIntText widget from IPython.html.widgets.
 type BoundedIntText = IPythonWidget 'BoundedIntTextType
@@ -35,8 +38,15 @@ mkBoundedIntText :: IO BoundedIntText
 mkBoundedIntText = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let widgetState = WidgetState $ defaultBoundedIntWidget "IntTextView" "IntTextModel"
+  let boundedIntAttrs = defaultBoundedIntWidget "IntTextView" "BoundedIntTextModel" layout $ StyleWidget dstyle
+      textAttrs = (Disabled =:: False)
+                  :& (ContinuousUpdate =:: False)
+                  :& (StepInt =:: Just 1)
+                  :& RNil
+      widgetState = WidgetState $ boundedIntAttrs <+> textAttrs
 
   stateIO <- newIORef widgetState
 
@@ -48,15 +58,10 @@ mkBoundedIntText = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay BoundedIntText where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget BoundedIntText where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "value"] of
+    case nestedObjectLookup val ["state", "value"] of
       Just (Number value) -> do
         void $ setField' widget IntValue (Sci.coefficient value)
         triggerChange widget

@@ -28,6 +28,8 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'IntRangeSlider' represents an IntRangeSlider widget from IPython.html.widgets.
 type IntRangeSlider = IPythonWidget 'IntRangeSliderType
@@ -37,12 +39,16 @@ mkIntRangeSlider :: IO IntRangeSlider
 mkIntRangeSlider = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let boundedIntAttrs = defaultBoundedIntRangeWidget "IntSliderView" "IntSliderModel"
-      sliderAttrs = (Orientation =:: HorizontalOrientation)
-                    :& (ShowRange =:: True)
+  let boundedIntAttrs = defaultBoundedIntRangeWidget "IntRangeSliderView" "IntRangeSliderModel" layout $ StyleWidget dstyle
+      sliderAttrs = (StepInt =:: Just 1)
+                    :& (Orientation =:: HorizontalOrientation)
                     :& (ReadOut =:: True)
-                    :& (SliderColor =:: "")
+                    :& (ReadOutFormat =:: "d")
+                    :& (ContinuousUpdate =:: True)
+                    :& (Disabled =:: False)
                     :& RNil
       widgetState = WidgetState $ boundedIntAttrs <+> sliderAttrs
 
@@ -56,15 +62,10 @@ mkIntRangeSlider = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay IntRangeSlider where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget IntRangeSlider where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "value"] of
+    case nestedObjectLookup val ["state", "value"] of
       Just (Array values) ->
         case map (\(Number x) -> Sci.coefficient x) $ V.toList values of
           [x, y] -> do

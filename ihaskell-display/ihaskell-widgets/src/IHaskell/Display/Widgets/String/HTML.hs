@@ -9,7 +9,7 @@ module IHaskell.Display.Widgets.String.HTML
   ( -- * The HTML Widget
     HTMLWidget
     -- * Constructor
-  , mkHTMLWidget
+  , mkHTML
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -23,16 +23,21 @@ import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'HTMLWidget' represents a HTML widget from IPython.html.widgets.
 type HTMLWidget = IPythonWidget 'HTMLType
 
 -- | Create a new HTML widget
-mkHTMLWidget :: IO HTMLWidget
-mkHTMLWidget = do
+mkHTML :: IO HTMLWidget
+mkHTML = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let widgetState = WidgetState $ defaultStringWidget "HTMLView" "HTMLModel"
+  layout <- mkLayout
+  dstyle <- mkDescriptionStyle
+
+  let widgetState = WidgetState $ defaultStringWidget "HTMLView" "HTMLModel" layout $ StyleWidget dstyle
 
   stateIO <- newIORef widgetState
 
@@ -43,11 +48,6 @@ mkHTMLWidget = do
 
   -- Return the widget
   return widget
-
-instance IHaskellDisplay HTMLWidget where
-  display b = do
-    widgetSendView b
-    return $ Display []
 
 instance IHaskellWidget HTMLWidget where
   getCommUUID = uuid

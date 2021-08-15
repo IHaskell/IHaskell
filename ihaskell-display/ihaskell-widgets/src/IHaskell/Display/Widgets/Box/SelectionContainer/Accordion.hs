@@ -26,6 +26,7 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'Accordion' represents a Accordion widget from IPython.html.widgets.
 type Accordion = IPythonWidget 'AccordionType
@@ -35,8 +36,9 @@ mkAccordion :: IO Accordion
 mkAccordion = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let widgetState = WidgetState $ defaultSelectionContainerWidget "AccordionView" "AccordionModel"
+  let widgetState = WidgetState $ defaultSelectionContainerWidget "AccordionView" "AccordionModel" layout
 
   stateIO <- newIORef widgetState
 
@@ -48,16 +50,14 @@ mkAccordion = do
   -- Return the widget
   return box
 
-instance IHaskellDisplay Accordion where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget Accordion where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "selected_index"] of
+    case nestedObjectLookup val ["state", "selected_index"] of
       Just (Number num) -> do
-        void $ setField' widget SelectedIndex (Sci.coefficient num)
+        void $ setField' widget SelectedIndex $ Just (Sci.coefficient num)
+        triggerChange widget
+      Just Null -> do
+        void $ setField' widget SelectedIndex Nothing
         triggerChange widget
       _ -> pure ()

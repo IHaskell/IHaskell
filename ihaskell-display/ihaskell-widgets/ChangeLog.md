@@ -1,5 +1,8 @@
 # ChangeLog for `ihaskell-widgets`
 
+## `v0.3.0.0`
+> Revamped to be compatible with Widget Messaging Protocol, version 2
+
 ## `v0.2.2.1`
 
 + The `properties` function now prints types associated with widget fields.

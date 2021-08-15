@@ -1,6 +1,8 @@
-# IPython widget messaging specification
+# IPython widget messaging specification version 2
 
-> Largely based on: https://github.com/ipython/ipython/wiki/IPEP-23:-Backbone.js-Widgets
+The model implemented is the Model State v8, for ipywidgets 7.4., @jupyter-widgets/base 1.1., and @jupyter-widgets/controls 1.4.*.
+
+> Largely based on: https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/messages.md
 
 > The messaging specification as detailed is riddled with assumptions the IHaskell widget
 > implementation makes. It works for us, so it should work for everyone.
@@ -14,37 +16,73 @@ the widget.
 
 > The comm should be opened with a `target_name` of `"ipython.widget"`.
 
+> The comm_open message's metadata gives the version of the widget messaging protocol, i.e., `{'version': '2.0.0'}`
+
 Any *numeric* property initialized with the empty string is provided the default value by the
 frontend. Some numbers need to be sent as actual numbers (when non-null), whereas the ones representing
-lengths in CSS units need to be sent as strings.
+lengths in CSS units need to be sent as strings specifying the size unit (px,em,cm,etc.).
 
-The initial state must *at least* have the following fields:
+The initial state must *at least* have the following fields in the `data.state` value of the message:
 
-  - `msg_throttle` (default 3): To prevent the kernel from flooding with messages, the messages from
-    the widget to the kernel are throttled. If `msg_throttle` messages were sent, and all are still
-    processing, the widget will not send anymore state messages.
+  - `_model_module`
+  - `_model_module_version`
+  - `_model_name`
+  - `_view_module`
+  - `_view_module_version`
+  - `_view_name`
 
-  - `_view_name` (depends on the widget): The frontend uses a generic model to represent
-    widgets. This field determines how a set of widget properties gets rendered into a
-    widget. Has the form `IPython.<widgetname>`, e.g `IPython.Button`.
+You can see more info on the model state of widgets [here](https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/jupyterwidgetmodels.v8.md), or as a json definition [here](https://github.com/jupyter-widgets/ipywidgets/blob/79312fb164e058c3a2fddd9f3ef35493515ed64b/packages/schema/jupyterwidgetmodels.latest.json)
 
-  - `_css` (default value = empty list): A list of 3-tuples, (selector, key, value).
-
-  - `visible` (default = True): Whether the widget is visible or not.
-
-  - Rest of the properties as required initially.
+> Warning!: By default there are two widgets modules: `@jupyter-widgets/controls` and `@jupyter-widgets/base`.
 
 This state is also used with fragments of the overall state to sync changes between the frontend and
 the kernel.
 
+### Buffer paths
+To display some widgets, we need to use the `buffer_paths`. It's only an array with arrays of keys on how to get to the fields that are to considered a
+byte stream. For example, in an image widget, `buffer_paths` would be the array `[ ["value"] ]`, which means that `state.value` is a buffer path. The buffers are sent in the header of the message, just before the data, so the n-th buffer corresponds to the n-th buffer path in the array.
+
+```json
+"data": {
+  "state": {
+    "value": ...,
+    ...
+  },
+  "buffer_paths": ["value"]
+}
+```
+
 ## Displaying widgets
 
 The creation of a widget does not display it. To display a widget, the kernel sends a display
-message to the frontend on the widget's comm.
+message to the frontend on the widget's iopub, with a custom mimetype instead of text/plain. Since 5.0, all custom json metadata should be encoded as a json object, instead of as a serialized string.
+
+The `version_major` and `version_minor` fields are the version number of the schema of this specific message
+(currently in sync with the WMP version). However, only the `model_id` field is required to display the widget.
+
+[Source](https://github.com/jupyter-widgets/ipywidgets/issues/3220)
 
 ```json
-{
-    "method": "display"
+method = "display_data",
+content = {
+    "data": {
+      "application/vnd.jupyter.widget-view+json": {
+      "model_id": "u-u-i-d",
+      "version_major": 2,
+      "version_minor": 0,
+    }
+}
+```
+
+## Clear output messages
+A simple message that indicates that the output of the header message id's should be cleaned.
+
+- `wait=true` indicates that it should clean the output in the next append, while `wait=false` cleans the output inmediately.
+
+```json
+method = "clear_output",
+content = {
+  "wait": bool
 }
 ```
 

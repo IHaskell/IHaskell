@@ -9,7 +9,7 @@ module IHaskell.Display.Widgets.Bool.Valid
   ( -- * The Valid Widget
     ValidWidget
     -- * Constructor
-  , mkValidWidget
+  , mkValid
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -25,17 +25,21 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'ValidWidget' represents a Valid widget from IPython.html.widgets.
 type ValidWidget = IPythonWidget 'ValidType
 
 -- | Create a new output widget
-mkValidWidget :: IO ValidWidget
-mkValidWidget = do
+mkValid :: IO ValidWidget
+mkValid = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let boolState = defaultBoolWidget "ValidView" "ValidModel"
+  let boolState = defaultBoolWidget "ValidView" "ValidModel" layout $ StyleWidget dstyle
       validState = (ReadOutMsg =:: "") :& RNil
       widgetState = WidgetState $ boolState <+> validState
 
@@ -48,11 +52,6 @@ mkValidWidget = do
 
   -- Return the image widget
   return widget
-
-instance IHaskellDisplay ValidWidget where
-  display b = do
-    widgetSendView b
-    return $ Display []
 
 instance IHaskellWidget ValidWidget where
   getCommUUID = uuid

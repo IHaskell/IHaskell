@@ -35,6 +35,7 @@ module IHaskell.IPython.Types (
     DisplayData(..),
     MimeType(..),
     extractPlain,
+    displayDataToJson,
     ) where
 
 import           Control.Applicative ((<$>), (<*>))
@@ -221,8 +222,8 @@ showMessageType StatusMessage = "status"
 showMessageType StreamMessage = "stream"
 showMessageType DisplayDataMessage = "display_data"
 showMessageType UpdateDisplayDataMessage = "update_display_data"
-showMessageType OutputMessage = "pyout"
-showMessageType InputMessage = "pyin"
+showMessageType OutputMessage = "execute_result"
+showMessageType InputMessage = "execute_input"
 showMessageType IsCompleteRequestMessage = "is_complete_request"
 showMessageType IsCompleteReplyMessage = "is_complete_reply"
 showMessageType CompleteRequestMessage = "complete_request"
@@ -580,7 +581,8 @@ instance ToJSON Message where
   toJSON PublishStatus { executionState = executionState } =
     object ["execution_state" .= executionState]
   toJSON PublishStream { streamType = streamType, streamContent = content } =
-    object ["data" .= content, "name" .= streamType]
+    -- Since 5.0 "data" key was renamed to "text""
+    object ["text" .= content, "name" .= streamType, "output_type" .= string "stream"]
   toJSON r@PublishDisplayData { displayData = datas }
     = object
     $ case transient r of
@@ -789,6 +791,7 @@ data MimeType = PlainText
               | MimeVega
               | MimeVegalite
               | MimeVdom
+              | MimeWidget
               | MimeCustom Text
   deriving (Eq, Typeable, Generic)
 
@@ -817,6 +820,7 @@ instance Show MimeType where
   show MimeVega = "application/vnd.vega.v5+json"
   show MimeVegalite = "application/vnd.vegalite.v4+json"
   show MimeVdom = "application/vdom.v1+json"
+  show MimeWidget = "application/vnd.jupyter.widget-view+json"
   show (MimeCustom custom) = Text.unpack custom
 
 instance Read MimeType where
@@ -834,6 +838,7 @@ instance Read MimeType where
   readsPrec _ "application/vnd.vega.v5+json" = [(MimeVega, "")]
   readsPrec _ "application/vnd.vegalite.v4+json" = [(MimeVegalite, "")]
   readsPrec _ "application/vdom.v1+json" = [(MimeVdom, "")]
+  readsPrec _ "application/vnd.jupyter.widget-view+json" = [(MimeWidget, "")]
   readsPrec _ t = [(MimeCustom (Text.pack t), "")]
 
 -- | Convert a MIME type and value into a JSON dictionary pair.
@@ -844,6 +849,8 @@ displayDataToJson (DisplayData MimeVegalite dataStr) =
     pack (show MimeVegalite) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
 displayDataToJson (DisplayData MimeVega dataStr) =
     pack (show MimeVega) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
+displayDataToJson (DisplayData MimeWidget dataStr) =
+    pack (show MimeWidget) .= fromMaybe (object []) (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
 displayDataToJson (DisplayData mimeType dataStr) =
   pack (show mimeType) .= String dataStr
 

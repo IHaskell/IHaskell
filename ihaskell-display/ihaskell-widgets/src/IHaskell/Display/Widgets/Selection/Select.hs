@@ -18,6 +18,8 @@ import           Prelude
 import           Control.Monad (void)
 import           Data.Aeson
 import           Data.IORef (newIORef)
+import qualified Data.Scientific as Sci
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -25,6 +27,8 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'Select' represents a Select widget from IPython.html.widgets.
 type Select = IPythonWidget 'SelectType
@@ -34,7 +38,13 @@ mkSelect :: IO Select
 mkSelect = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let widgetState = WidgetState $ defaultSelectionWidget "SelectView" "SelectModel"
+  layout <- mkLayout
+  dstyle <- mkDescriptionStyle
+
+  let selectionAttrs = defaultSelectionWidget "SelectView" "SelectModel" layout $ StyleWidget dstyle
+      selectAttrs = (Rows =:: Just 5)
+                    :& RNil
+      widgetState = WidgetState $ selectionAttrs <+> selectAttrs
 
   stateIO <- newIORef widgetState
 
@@ -46,26 +56,11 @@ mkSelect = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay Select where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget Select where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "selected_label"] of
-      Just (String label) -> do
-        opts <- getField widget Options
-        case opts of
-          OptionLabels _ -> do
-            void $ setField' widget SelectedLabel label
-            void $ setField' widget SelectedValue label
-          OptionDict ps ->
-            case lookup label ps of
-              Nothing -> pure ()
-              Just value -> do
-                void $ setField' widget SelectedLabel label
-                void $ setField' widget SelectedValue value
+    case nestedObjectLookup val ["state", "index"] of
+      Just (Number index) -> do
+        void $ setField' widget OptionalIndex (Just $ Sci.coefficient index)
         triggerSelection widget
       _ -> pure ()

@@ -25,6 +25,8 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'TextArea' represents a Textarea widget from IPython.html.widgets.
 type TextArea = IPythonWidget 'TextAreaType
@@ -34,8 +36,15 @@ mkTextArea :: IO TextArea
 mkTextArea = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let strAttrs = defaultStringWidget "TextareaView" "TextareaModel"
-      wgtAttrs = (ChangeHandler =:: return ()) :& RNil
+  layout <- mkLayout
+  dstyle <- mkDescriptionStyle
+
+  let strAttrs = defaultStringWidget "TextareaView" "TextareaModel" layout $ StyleWidget dstyle
+      wgtAttrs = (Rows =:: Nothing)
+                 :& (Disabled =:: False)
+                 :& (ContinuousUpdate =:: True)
+                 :& (ChangeHandler =:: return ())
+                 :& RNil
       widgetState = WidgetState $ strAttrs <+> wgtAttrs
 
   stateIO <- newIORef widgetState
@@ -48,15 +57,10 @@ mkTextArea = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay TextArea where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget TextArea where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "value"] of
+    case nestedObjectLookup val ["state", "value"] of
       Just (String value) -> do
         void $ setField' widget StringValue value
         triggerChange widget

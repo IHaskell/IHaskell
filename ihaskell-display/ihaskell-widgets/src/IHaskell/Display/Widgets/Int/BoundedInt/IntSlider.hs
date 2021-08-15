@@ -21,12 +21,14 @@ import           Data.IORef (newIORef)
 import qualified Data.Scientific as Sci
 import           Data.Vinyl (Rec(..), (<+>))
 
-import           IHaskell.Display
 import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
+import           IHaskell.Display (IHaskellWidget(..))
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'IntSlider' represents an IntSlider widget from IPython.html.widgets.
 type IntSlider = IPythonWidget 'IntSliderType
@@ -36,12 +38,16 @@ mkIntSlider :: IO IntSlider
 mkIntSlider = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let boundedIntAttrs = defaultBoundedIntWidget "IntSliderView" "IntSliderModel"
-      sliderAttrs = (Orientation =:: HorizontalOrientation)
-                    :& (ShowRange =:: False)
+  let boundedIntAttrs = defaultBoundedIntWidget "IntSliderView" "IntSliderModel" layout $ StyleWidget dstyle
+      sliderAttrs = (StepInt =:: Just 1)
+                    :& (Orientation =:: HorizontalOrientation)
                     :& (ReadOut =:: True)
-                    :& (SliderColor =:: "")
+                    :& (ReadOutFormat =:: "d")
+                    :& (ContinuousUpdate =:: True)
+                    :& (Disabled =:: False)
                     :& RNil
       widgetState = WidgetState $ boundedIntAttrs <+> sliderAttrs
 
@@ -55,15 +61,10 @@ mkIntSlider = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay IntSlider where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget IntSlider where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "value"] of
+    case nestedObjectLookup val ["state", "value"] of
       Just (Number value) -> do
         void $ setField' widget IntValue (Sci.coefficient value)
         triggerChange widget

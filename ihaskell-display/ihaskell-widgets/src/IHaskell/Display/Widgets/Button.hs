@@ -25,6 +25,8 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Style.ButtonStyle
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'Button' represents a Button from IPython.html.widgets.
 type Button = IPythonWidget 'ButtonType
@@ -34,16 +36,16 @@ mkButton :: IO Button
 mkButton = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
+  btnstyle <- mkButtonStyle
 
-  let dom = defaultDOMWidget "ButtonView" "ButtonModel"
-      but = (Description =:: "")
-            :& (Tooltip =:: "")
-            :& (Disabled =:: False)
+  let ddw = defaultDescriptionWidget "ButtonView" "ButtonModel" layout $ StyleWidget btnstyle
+      but = (Disabled =:: False)
             :& (Icon =:: "")
             :& (ButtonStyle =:: DefaultButton)
             :& (ClickHandler =:: return ())
             :& RNil
-      buttonState = WidgetState (dom <+> but)
+      buttonState = WidgetState (ddw <+> but)
 
   stateIO <- newIORef buttonState
 
@@ -54,11 +56,6 @@ mkButton = do
 
   -- Return the button widget
   return button
-
-instance IHaskellDisplay Button where
-  display b = do
-    widgetSendView b
-    return $ Display []
 
 instance IHaskellWidget Button where
   getCommUUID = uuid

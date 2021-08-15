@@ -148,7 +148,7 @@ liftToWidgets func rc initvals = do
       initializers = rmap extractInitializer rc
 
   bx <- mkBox
-  out <- mkOutputWidget
+  out <- mkOutput
 
   -- Create a list of widgets
   widgets <- rtraverse createWidget constructors
@@ -163,7 +163,7 @@ liftToWidgets func rc initvals = do
   -- Set initial values for all widgets
   setInitialValues initializers widgets initvals
   -- applyValueSetters valueSetters widgets $ getList defvals
-  setField out Width 500
+  -- setField out Width 500
   -- TODO This can't be set right now since we switched FlexBox to a regular
   --      Box. This is a styling/layout parameter now but these haven't been implemented yet.
   -- setField bx Orientation VerticalOrientation
@@ -214,7 +214,7 @@ instance FromWidget Text where
   type SuitableField Text = 'S.StringValue
   data Argument Text = TextVal Text
   initializer w (TextVal txt) = setField w StringValue txt
-  wrapped = WrappedWidget mkTextWidget SubmitHandler StringValue
+  wrapped = WrappedWidget mkText SubmitHandler StringValue
 
 instance FromWidget Integer where
   type SuitableWidget Integer = 'IntSliderType

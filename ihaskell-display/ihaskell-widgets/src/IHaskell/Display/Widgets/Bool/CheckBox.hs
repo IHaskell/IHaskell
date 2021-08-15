@@ -18,6 +18,7 @@ import           Prelude
 import           Control.Monad (void)
 import           Data.Aeson
 import           Data.IORef (newIORef)
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -25,6 +26,8 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'CheckBox' represents a Checkbox widget from IPython.html.widgets.
 type CheckBox = IPythonWidget 'CheckBoxType
@@ -34,8 +37,13 @@ mkCheckBox :: IO CheckBox
 mkCheckBox = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let widgetState = WidgetState $ defaultBoolWidget "CheckboxView" "CheckboxModel"
+  let boolAttrs = defaultBoolWidget "CheckboxView" "CheckboxModel" layout $ StyleWidget dstyle
+      checkBoxAttrs = (Indent =:: True)
+                      :& RNil
+      widgetState = WidgetState $ boolAttrs <+> checkBoxAttrs
 
   stateIO <- newIORef widgetState
 
@@ -47,15 +55,10 @@ mkCheckBox = do
   -- Return the image widget
   return widget
 
-instance IHaskellDisplay CheckBox where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget CheckBox where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "value"] of
+    case nestedObjectLookup val ["state", "value"] of
       Just (Bool value) -> do
         void $ setField' widget BoolValue value
         triggerChange widget

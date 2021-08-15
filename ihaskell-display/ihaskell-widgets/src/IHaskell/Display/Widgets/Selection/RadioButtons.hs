@@ -18,6 +18,7 @@ import           Prelude
 import           Control.Monad (void)
 import           Data.Aeson
 import           Data.IORef (newIORef)
+import qualified Data.Scientific as Sci
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -25,6 +26,8 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'RadioButtons' represents a RadioButtons widget from IPython.html.widgets.
 type RadioButtons = IPythonWidget 'RadioButtonsType
@@ -34,7 +37,10 @@ mkRadioButtons :: IO RadioButtons
 mkRadioButtons = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let widgetState = WidgetState $ defaultSelectionWidget "RadioButtonsView" "RadioButtonsModel"
+  layout <- mkLayout
+  dstyle <- mkDescriptionStyle
+
+  let widgetState = WidgetState $ defaultSelectionWidget "RadioButtonsView" "RadioButtonsModel" layout $ StyleWidget dstyle
 
   stateIO <- newIORef widgetState
 
@@ -46,26 +52,11 @@ mkRadioButtons = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay RadioButtons where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget RadioButtons where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "selected_label"] of
-      Just (String label) -> do
-        opts <- getField widget Options
-        case opts of
-          OptionLabels _ -> do
-            void $ setField' widget SelectedLabel label
-            void $ setField' widget SelectedValue label
-          OptionDict ps ->
-            case lookup label ps of
-              Nothing -> pure ()
-              Just value -> do
-                void $ setField' widget SelectedLabel label
-                void $ setField' widget SelectedValue value
+    case nestedObjectLookup val ["state", "index"] of
+      Just (Number index) -> do
+        void $ setField' widget OptionalIndex (Just $ Sci.coefficient index)
         triggerSelection widget
       _ -> pure ()

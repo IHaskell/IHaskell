@@ -28,6 +28,8 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'FloatRangeSlider' represents an FloatRangeSlider widget from IPython.html.widgets.
 type FloatRangeSlider = IPythonWidget 'FloatRangeSliderType
@@ -37,12 +39,16 @@ mkFloatRangeSlider :: IO FloatRangeSlider
 mkFloatRangeSlider = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
+  dstyle <- mkDescriptionStyle
 
-  let boundedFloatAttrs = defaultBoundedFloatRangeWidget "FloatSliderView" "FloatSliderModel"
-      sliderAttrs = (Orientation =:: HorizontalOrientation)
-                    :& (ShowRange =:: True)
+  let boundedFloatAttrs = defaultBoundedFloatRangeWidget "FloatRangeSliderView" "FloatRangeSliderModel" layout $ StyleWidget dstyle
+      sliderAttrs = (StepFloat =:: Just 0.1)
+                    :& (Orientation =:: HorizontalOrientation)
                     :& (ReadOut =:: True)
-                    :& (SliderColor =:: "")
+                    :& (ReadOutFormat =:: ".2f")
+                    :& (ContinuousUpdate =:: True)
+                    :& (Disabled =:: False)
                     :& RNil
       widgetState = WidgetState $ boundedFloatAttrs <+> sliderAttrs
 
@@ -56,15 +62,10 @@ mkFloatRangeSlider = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay FloatRangeSlider where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget FloatRangeSlider where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "value"] of
+    case nestedObjectLookup val ["state", "value"] of
       Just (Array values) ->
         case map (\(Number x) -> Sci.toRealFloat x) $ V.toList values of
           [x, y] -> do

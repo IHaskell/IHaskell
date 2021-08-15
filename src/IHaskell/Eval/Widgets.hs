@@ -1,4 +1,4 @@
-{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
+{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules, CPP #-}
 module IHaskell.Eval.Widgets (
     widgetSendOpen,
     widgetSendView,
@@ -18,7 +18,12 @@ import           Control.Concurrent.STM (atomically)
 import           Control.Concurrent.STM.TChan
 import           Control.Monad (foldM)
 import           Data.Aeson
+import           Data.ByteString.Base64 as B64 (decodeLenient)
 import qualified Data.Map as Map
+import           Data.Text.Encoding (encodeUtf8)
+import           Data.HashMap.Strict as HM (lookup,insert,delete)
+
+import           Data.Foldable (foldl)
 import           System.IO.Unsafe (unsafePerformIO)
 
 import           IHaskell.Display
@@ -77,9 +82,9 @@ widgetSendValue widget = queue . JSONValue (Widget widget)
 widgetPublishDisplay :: (IHaskellWidget a, IHaskellDisplay b) => a -> b -> IO ()
 widgetPublishDisplay widget disp = display disp >>= queue . DispMsg (Widget widget)
 
--- | Send a `clear_output` message as a [method .= custom] message
-widgetClearOutput :: IHaskellWidget a => a -> Bool -> IO ()
-widgetClearOutput widget w = queue $ ClrOutput (Widget widget) w
+-- | Send a `clear_output` message
+widgetClearOutput :: Bool -> IO ()
+widgetClearOutput w = queue $ ClrOutput w
 
 -- | Handle a single widget message. Takes necessary actions according to the message type, such as
 -- opening comms, storing and updating widget representation in the kernel state etc.
@@ -99,8 +104,12 @@ handleMessage send replyHeader state msg = do
           newComms = Map.insert uuid widget oldComms
           newState = state { openComms = newComms }
 
+          (newvalue,buffers,bp) = processBPs value $ getBufferPaths widget
+          applyBuffers x = x {mhBuffers = buffers}
+          content = object [ "state" .= newvalue, "buffer_paths" .= bp ]
+
           communicate val = do
-            head <- dupHeader replyHeader CommDataMessage
+            head <- applyBuffers <$> dupHeader replyHeader CommDataMessage
             send $ CommData head uuid val
 
       -- If the widget is present, don't open it again.
@@ -108,8 +117,9 @@ handleMessage send replyHeader state msg = do
         then return state
         else do
           -- Send the comm open, with the initial state
-          hdr <- dupHeader replyHeader CommOpenMessage
-          send $ CommOpen hdr target_name target_module uuid value
+          hdr <- applyBuffers <$> dupHeader replyHeader CommOpenMessage
+          let hdrV = setVersion hdr "2.0.0" -- Widget Messaging Protocol Version
+          send $ CommOpen hdrV target_name target_module uuid content
 
           -- Send anything else the widget requires.
           open widget communicate
@@ -134,7 +144,9 @@ handleMessage send replyHeader state msg = do
 
     View widget -> sendMessage widget (toJSON DisplayWidget)
 
-    Update widget value -> sendMessage widget (toJSON $ UpdateState value)
+    Update widget value -> do
+      let (newvalue,buffers,bp) = processBPs value $ getBufferPaths widget
+      sendMessageHdr widget (toJSON $ UpdateState newvalue bp) (\h->h {mhBuffers=buffers})
 
     Custom widget value -> sendMessage widget (toJSON $ CustomContent value)
 
@@ -145,26 +157,54 @@ handleMessage send replyHeader state msg = do
       let dmsg = WidgetDisplay dispHeader $ unwrap disp
       sendMessage widget (toJSON $ CustomContent $ toJSON dmsg)
 
-    ClrOutput widget w -> do
+    ClrOutput w -> do
       hdr <- dupHeader replyHeader ClearOutputMessage
-      let cmsg = WidgetClear hdr w
-      sendMessage widget (toJSON $ CustomContent $ toJSON cmsg)
+      send $ ClearOutput hdr w
+      return state
 
   where
     oldComms = openComms state
-    sendMessage widget value = do
+    sendMessage widget value = sendMessageHdr widget value id
+    sendMessageHdr widget value hdrf = do
       let uuid = getCommUUID widget
           present = isJust $ Map.lookup uuid oldComms
 
       -- If the widget is present, we send an update message on its comm.
       when present $ do
-        hdr <- dupHeader replyHeader CommDataMessage
+        hdr <- hdrf <$> dupHeader replyHeader CommDataMessage
         send $ CommData hdr uuid value
       return state
 
     unwrap :: Display -> [DisplayData]
     unwrap (ManyDisplay ds) = concatMap unwrap ds
     unwrap (Display ddatas) = ddatas
+
+    -- Removes the values that are buffers and puts them in the third value of the tuple
+    -- The returned bufferpaths are the bufferpaths used
+    processBPs :: Value -> [BufferPath] -> (Value, [ByteString], [BufferPath])
+    -- Searching if the BufferPath key is in the Object is O(log n) or O(1) depending on implementation
+    -- For this reason we fold on the bufferpaths
+    processBPs val = foldl f (val,[],[])
+      where
+        nestedLookupRemove :: BufferPath -> Value -> (Value, Maybe Value)
+        nestedLookupRemove [] v = (v,Just v)
+        nestedLookupRemove [b] v =
+          case v of
+            Object o -> (Object $ HM.delete b o, HM.lookup b o)
+            _ -> (v, Nothing)
+        nestedLookupRemove (b:bp) v =
+          case v of
+            Object o -> maybe (v,Nothing) (upd . nestedLookupRemove bp) (HM.lookup b o)
+            _ -> (v,Nothing)
+            where upd :: (Value, Maybe Value) -> (Value, Maybe Value)
+                  upd (Object v', Just (Object u)) = (Object $ HM.insert b (Object u) v', Just $ Object u)
+                  upd r = r
+
+        f :: (Value, [ByteString], [BufferPath]) -> BufferPath -> (Value, [ByteString], [BufferPath])
+        f r@(v,bs,bps) bp =
+          case nestedLookupRemove bp v of
+            (newv, Just (String b)) -> (newv, B64.decodeLenient (encodeUtf8 b) : bs, bp:bps)
+            _ -> r
 
 -- Override toJSON for PublishDisplayData for sending Display messages through [method .= custom]
 data WidgetDisplay = WidgetDisplay MessageHeader [DisplayData]
@@ -174,14 +214,6 @@ instance ToJSON WidgetDisplay where
     let pbval = toJSON $ PublishDisplayData replyHeader ddata Nothing
     in toJSON $ IPythonMessage replyHeader pbval DisplayDataMessage
 
--- Override toJSON for ClearOutput
-data WidgetClear = WidgetClear MessageHeader Bool
-
-instance ToJSON WidgetClear where
-  toJSON (WidgetClear replyHeader w) =
-    let clrVal = toJSON $ ClearOutput replyHeader w
-    in toJSON $ IPythonMessage replyHeader clrVal ClearOutputMessage
-
 data IPythonMessage = IPythonMessage MessageHeader Value MessageType
 
 instance ToJSON IPythonMessage where
@@ -189,7 +221,7 @@ instance ToJSON IPythonMessage where
     object
       [ "header" .= replyHeader
       , "parent_header" .= str ""
-      , "metadata" .= str "{}"
+      , "metadata" .= object []
       , "content" .= val
       , "msg_type" .= (toJSON . showMessageType $ mtype)
       ]

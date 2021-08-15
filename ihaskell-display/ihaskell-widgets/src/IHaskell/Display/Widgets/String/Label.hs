@@ -9,7 +9,7 @@ module IHaskell.Display.Widgets.String.Label
   ( -- * The Label Widget
     LabelWidget
     -- * Constructor
-  , mkLabelWidget
+  , mkLabel
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -23,16 +23,21 @@ import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'LabelWidget' represents a Label widget from IPython.html.widgets.
 type LabelWidget = IPythonWidget 'LabelType
 
 -- | Create a new Label widget
-mkLabelWidget :: IO LabelWidget
-mkLabelWidget = do
+mkLabel :: IO LabelWidget
+mkLabel = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let widgetState = WidgetState $ defaultStringWidget "LabelView" "LabelModel"
+  layout <- mkLayout
+  dstyle <- mkDescriptionStyle
+
+  let widgetState = WidgetState $ defaultStringWidget "LabelView" "LabelModel" layout $ StyleWidget dstyle
 
   stateIO <- newIORef widgetState
 
@@ -43,11 +48,6 @@ mkLabelWidget = do
 
   -- Return the widget
   return widget
-
-instance IHaskellDisplay LabelWidget where
-  display b = do
-    widgetSendView b
-    return $ Display []
 
 instance IHaskellWidget LabelWidget where
   getCommUUID = uuid

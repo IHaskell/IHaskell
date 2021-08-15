@@ -9,7 +9,7 @@ module IHaskell.Display.Widgets.String.Text
   ( -- * The Text Widget
     TextWidget
     -- * Constructor
-  , mkTextWidget
+  , mkText
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
@@ -18,7 +18,6 @@ import           Prelude
 import           Control.Monad (when)
 import           Data.Aeson
 import           Data.IORef (newIORef)
-import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -26,18 +25,21 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'TextWidget' represents a Text widget from IPython.html.widgets.
 type TextWidget = IPythonWidget 'TextType
 
 -- | Create a new Text widget
-mkTextWidget :: IO TextWidget
-mkTextWidget = do
+mkText :: IO TextWidget
+mkText = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let strWidget = defaultStringWidget "TextView" "TextModel"
-      txtWidget = (SubmitHandler =:: return ()) :& (ChangeHandler =:: return ()) :& RNil
-      widgetState = WidgetState $ strWidget <+> txtWidget
+  layout <- mkLayout
+  dstyle <- mkDescriptionStyle
+
+  let widgetState = WidgetState $ defaultTextWidget "TextView" "TextModel" layout $ StyleWidget dstyle
 
   stateIO <- newIORef widgetState
 
@@ -49,16 +51,11 @@ mkTextWidget = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay TextWidget where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget TextWidget where
   getCommUUID = uuid
-  -- Two possibilities: 1. content -> event -> "submit" 2. sync_data -> value -> <new_value>
+  -- Two possibilities: 1. content -> event -> "submit" 2. state -> value -> <new_value>
   comm tw val _ = do
-    case nestedObjectLookup val ["sync_data", "value"] of
+    case nestedObjectLookup val ["state", "value"] of
       Just (String value) -> setField' tw StringValue value >> triggerChange tw
       _                 -> pure ()
     case nestedObjectLookup val ["content", "event"] of

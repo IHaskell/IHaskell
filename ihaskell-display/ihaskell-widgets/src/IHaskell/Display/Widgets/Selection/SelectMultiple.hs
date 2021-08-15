@@ -18,7 +18,9 @@ import           Prelude
 import           Control.Monad (void)
 import           Data.Aeson
 import           Data.IORef (newIORef)
+import qualified Data.Scientific as Sci
 import qualified Data.Vector as V
+import           Data.Vinyl (Rec(..), (<+>))
 
 import           IHaskell.Display
 import           IHaskell.Eval.Widgets
@@ -26,6 +28,8 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
+import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'SelectMultiple' represents a SelectMultiple widget from IPython.html.widgets.
 type SelectMultiple = IPythonWidget 'SelectMultipleType
@@ -35,7 +39,13 @@ mkSelectMultiple :: IO SelectMultiple
 mkSelectMultiple = do
   -- Default properties, with a random uuid
   wid <- U.random
-  let widgetState = WidgetState $ defaultMultipleSelectionWidget "SelectMultipleView" "SelectMultipleModel"
+  layout <- mkLayout
+  dstyle <- mkDescriptionStyle
+
+  let multipleSelectionAttrs = defaultMultipleSelectionWidget "SelectMultipleView" "SelectMultipleModel" layout $ StyleWidget dstyle
+      selectMultipleAttrs = (Rows =:: Just 5)
+                            :& RNil
+      widgetState = WidgetState $ multipleSelectionAttrs <+> selectMultipleAttrs
 
   stateIO <- newIORef widgetState
 
@@ -47,27 +57,12 @@ mkSelectMultiple = do
   -- Return the widget
   return widget
 
-instance IHaskellDisplay SelectMultiple where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget SelectMultiple where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "selected_labels"] of
-      Just (Array labels) -> do
-        let labelList = map (\(String x) -> x) $ V.toList labels
-        opts <- getField widget Options
-        case opts of
-          OptionLabels _ -> do
-            void $ setField' widget SelectedLabels labelList
-            void $ setField' widget SelectedValues labelList
-          OptionDict ps ->
-            case mapM (`lookup` ps) labelList of
-              Nothing -> pure ()
-              Just valueList -> do
-                void $ setField' widget SelectedLabels labelList
-                void $ setField' widget SelectedValues valueList
+    case nestedObjectLookup val ["state", "index"] of
+      Just (Array indices) -> do
+        let indicesList = map (\(Number x) -> Sci.coefficient x) $ V.toList indices
+        void $ setField' widget Indices indicesList
         triggerSelection widget
       _ -> pure ()

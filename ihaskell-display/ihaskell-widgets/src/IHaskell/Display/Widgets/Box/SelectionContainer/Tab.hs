@@ -9,11 +9,13 @@ module IHaskell.Display.Widgets.Box.SelectionContainer.Tab
   ( -- * The Tab widget
     TabWidget
     -- * Constructor
-  , mkTabWidget
+  , mkTab
   ) where
 
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
+
+import           Control.Monad (void)
 
 import           Data.Aeson
 import           Data.IORef (newIORef)
@@ -25,17 +27,19 @@ import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'TabWidget' represents a Tab widget from IPython.html.widgets.
 type TabWidget = IPythonWidget 'TabType
 
 -- | Create a new box
-mkTabWidget :: IO TabWidget
-mkTabWidget = do
+mkTab :: IO TabWidget
+mkTab = do
   -- Default properties, with a random uuid
   wid <- U.random
+  layout <- mkLayout
 
-  let widgetState = WidgetState $ defaultSelectionContainerWidget "TabView" "TabModel"
+  let widgetState = WidgetState $ defaultSelectionContainerWidget "TabView" "TabModel" layout
 
   stateIO <- newIORef widgetState
 
@@ -47,16 +51,14 @@ mkTabWidget = do
   -- Return the widget
   return box
 
-instance IHaskellDisplay TabWidget where
-  display b = do
-    widgetSendView b
-    return $ Display []
-
 instance IHaskellWidget TabWidget where
   getCommUUID = uuid
   comm widget val _ =
-    case nestedObjectLookup val ["sync_data", "selected_index"] of
+    case nestedObjectLookup val ["state", "selected_index"] of
       Just (Number num) -> do
-        _ <- setField' widget SelectedIndex (Sci.coefficient num)
+        void $ setField' widget SelectedIndex $ Just (Sci.coefficient num)
+        triggerChange widget
+      Just Null -> do
+        void $ setField' widget SelectedIndex Nothing
         triggerChange widget
       _ -> pure ()

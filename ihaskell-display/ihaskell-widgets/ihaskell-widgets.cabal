@@ -10,7 +10,7 @@ name:                ihaskell-widgets
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.2.3.3
+version:             0.3.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            IPython standard widgets for IHaskell.
@@ -28,15 +28,17 @@ license:             MIT
 license-file:        LICENSE
 
 -- The package author(s).
-author:              Sumit Sahrawat
+author:              David Davó
+                     Sumit Sahrawat
 
 -- An email address to which users can send suggestions, bug reports, and
 -- patches.
-maintainer:          Sumit Sahrawat <sumit.sahrawat.apm13@iitbhu.ac.in>,
+maintainer:          David Davó <david@ddavo.me>
+                     Sumit Sahrawat <sumit.sahrawat.apm13@iitbhu.ac.in>,
                      Andrew Gibiansky <andrew.gibiansky@gmail.com>
 
 -- A copyright notice.
--- copyright:
+copyright:           Copyright (c) 2021 David Davó
 
 -- category:
 
@@ -58,36 +60,65 @@ library
   -- Modules exported by the library.
   exposed-modules:     IHaskell.Display.Widgets
                        IHaskell.Display.Widgets.Interactive
+                       IHaskell.Display.Widgets.Layout
 
   -- Modules included in this library but not exported.
   other-modules:       IHaskell.Display.Widgets.Button
+                       IHaskell.Display.Widgets.ColorPicker
+                       IHaskell.Display.Widgets.DatePicker
                        IHaskell.Display.Widgets.Box.Box
+                       IHaskell.Display.Widgets.Box.GridBox
+                       IHaskell.Display.Widgets.Box.HBox
+                       IHaskell.Display.Widgets.Box.VBox
                        IHaskell.Display.Widgets.Box.SelectionContainer.Accordion
                        IHaskell.Display.Widgets.Box.SelectionContainer.Tab
                        IHaskell.Display.Widgets.Bool.CheckBox
                        IHaskell.Display.Widgets.Bool.ToggleButton
                        IHaskell.Display.Widgets.Bool.Valid
+                       IHaskell.Display.Widgets.Controller.Controller
+                       IHaskell.Display.Widgets.Controller.ControllerAxis
+                       IHaskell.Display.Widgets.Controller.ControllerButton
                        IHaskell.Display.Widgets.Int.IntText
                        IHaskell.Display.Widgets.Int.BoundedInt.BoundedIntText
                        IHaskell.Display.Widgets.Int.BoundedInt.IntProgress
                        IHaskell.Display.Widgets.Int.BoundedInt.IntSlider
+                       IHaskell.Display.Widgets.Int.BoundedInt.Play
                        IHaskell.Display.Widgets.Int.BoundedIntRange.IntRangeSlider
+                       IHaskell.Display.Widgets.Link.Link
+                       IHaskell.Display.Widgets.Link.DirectionalLink
                        IHaskell.Display.Widgets.Float.FloatText
                        IHaskell.Display.Widgets.Float.BoundedFloat.BoundedFloatText
                        IHaskell.Display.Widgets.Float.BoundedFloat.FloatProgress
                        IHaskell.Display.Widgets.Float.BoundedFloat.FloatSlider
+                       IHaskell.Display.Widgets.Float.BoundedFloat.FloatLogSlider
                        IHaskell.Display.Widgets.Float.BoundedFloatRange.FloatRangeSlider
-                       IHaskell.Display.Widgets.Image
+                       IHaskell.Display.Widgets.Media.Audio
+                       IHaskell.Display.Widgets.Media.Image
+                       IHaskell.Display.Widgets.Media.Video
                        IHaskell.Display.Widgets.Output
                        IHaskell.Display.Widgets.Selection.Dropdown
                        IHaskell.Display.Widgets.Selection.RadioButtons
                        IHaskell.Display.Widgets.Selection.Select
+                       IHaskell.Display.Widgets.Selection.SelectionSlider
+                       IHaskell.Display.Widgets.Selection.SelectionRangeSlider
                        IHaskell.Display.Widgets.Selection.ToggleButtons
                        IHaskell.Display.Widgets.Selection.SelectMultiple
+                       IHaskell.Display.Widgets.String.Combobox
                        IHaskell.Display.Widgets.String.HTML
+                       IHaskell.Display.Widgets.String.HTMLMath
                        IHaskell.Display.Widgets.String.Label
+                       IHaskell.Display.Widgets.String.Password
                        IHaskell.Display.Widgets.String.Text
                        IHaskell.Display.Widgets.String.TextArea
+                       IHaskell.Display.Widgets.Style.ButtonStyle
+                       IHaskell.Display.Widgets.Style.DescriptionStyle
+                       IHaskell.Display.Widgets.Style.ProgressStyle
+                       IHaskell.Display.Widgets.Style.SliderStyle
+                       IHaskell.Display.Widgets.Style.ToggleButtonsStyle
+
+                       IHaskell.Display.Widgets.Layout.Common
+                       IHaskell.Display.Widgets.Layout.LayoutWidget
+                       IHaskell.Display.Widgets.Layout.Types
 
                        IHaskell.Display.Widgets.Types
                        IHaskell.Display.Widgets.Common
@@ -98,6 +129,7 @@ library
 
   build-depends:       aeson >=0.7
                      , base >=4.9 && <5
+                     , bytestring
                      , containers >= 0.5
                      , ipython-kernel >= 0.6.1.2
                      , text >= 0.11
