@@ -107,8 +107,8 @@ clearOutput_ widget = widgetClearOutput True >> clearOutput' widget
 -- | Replace the currently displayed output for output widget
 replaceOutput :: IHaskellDisplay a => OutputWidget -> a -> IO ()
 replaceOutput widget d = do
-    clearOutput_ widget
-    appendDisplay widget d
+    disp <- display d
+    setField widget Outputs [OutputData disp]
 
 instance IHaskellWidget OutputWidget where
   getCommUUID = uuid
