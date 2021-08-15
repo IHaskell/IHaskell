@@ -15,8 +15,6 @@ module IHaskell.Display.Widgets.DatePicker
 -- To keep `cabal repl` happy when running from the ihaskell repo
 import           Prelude
 
-import           Control.Monad (void)
-
 import           Data.Aeson
 import           Data.IORef (newIORef)
 import           Data.Vinyl (Rec(..), (<+>))
