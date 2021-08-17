@@ -1,7 +1,7 @@
 FROM ubuntu:18.04
 
 ARG STACK_VERSION=2.5.1
-ARG RESOLVER=lts-16.23
+ARG RESOLVER=lts-17.4
 
 # Install all necessary Ubuntu packages
 RUN apt-get update && apt-get install -y python3-pip libgmp-dev libmagic-dev libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev libblas-dev liblapack-dev gcc g++ wget && \
