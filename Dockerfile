@@ -84,8 +84,7 @@ ENV hlint_datadir ${HLINT_DATA_DIR}
 
 # Set current user + directory
 USER ${NB_UID}
-ENV HOME /home/${NB_USER}
-WORKDIR ${HOME}
+WORKDIR /home/${NB_USER}/src
 
 # Set up global project
 COPY --from=builder --chown=${NB_UID} /build/resolver.txt /tmp/

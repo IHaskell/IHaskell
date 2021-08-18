@@ -137,7 +137,7 @@ In order to mount your own local files into the Docker container
 use following command:
 
 ```sh
-docker run --rm -p 8888:8888 -v "$PWD":/home/jovyan gibiansky/ihaskell
+docker run --rm -p 8888:8888 -v "$PWD":/home/jovyan/src gibiansky/ihaskell
 ```
 
 Be aware that the directory you're mounting must contain
