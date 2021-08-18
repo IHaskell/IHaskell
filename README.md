@@ -154,6 +154,7 @@ It's recommended to use the same LTS version as the IHaskell image is using itse
 This guarantees that stack doesn't have to first perform 
 a lengthy installation of GHC before running your notebook.
 
+You can also use the following script to run IHaskell in Docker: https://gist.github.com/brandonchinn178/928d6137bfd17961b9584a8f96c18827
 
 ## Stack and Docker
 
