@@ -1,4 +1,4 @@
-resolver: lts-17.4
+resolver: lts-18.5
 allow-newer: true
 
 flags: {}
@@ -24,8 +24,8 @@ extra-deps:
 - diagrams-1.4
 - diagrams-cairo-1.4.1.1
 - diagrams-contrib-1.4.4
-- diagrams-core-1.4.2
-- diagrams-lib-1.4.3
+- diagrams-core-1.5.0
+- diagrams-lib-1.4.4
 - diagrams-svg-1.4.3
 - cairo-0.13.8.1
 - pango-0.13.8.1
@@ -37,7 +37,7 @@ extra-deps:
 - statestack-0.3
 - vinyl-0.13.0
 - dual-tree-0.2.2.1
-- monoid-extras-0.5.1
+- monoid-extras-0.6
 - svg-builder-0.1.1
 - force-layout-0.4.0.6
 
