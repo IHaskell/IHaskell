@@ -1,5 +1,8 @@
 # should match the GHC version of the stack.yaml resolver
-FROM haskell:8.10.4 AS ihaskell_base
+# checked in CI
+ARG GHC_VERSION=8.10.4
+
+FROM haskell:${GHC_VERSION} AS ihaskell_base
 
 # Install Ubuntu packages needed for IHaskell runtime
 RUN apt-get update && \
