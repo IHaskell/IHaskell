@@ -43,6 +43,7 @@ data KernelSpecOptions =
          , kernelSpecConfFile :: IO (Maybe String) -- ^ Filename of profile JSON file.
          , kernelSpecInstallPrefix :: Maybe String
          , kernelSpecUseStack :: Bool              -- ^ Whether to use @stack@ environments.
+         , kernelSpecEnvFile :: Maybe FilePath
          }
 
 defaultKernelSpecOptions :: KernelSpecOptions
@@ -55,6 +56,7 @@ defaultKernelSpecOptions = KernelSpecOptions
   , kernelSpecConfFile = defaultConfFile
   , kernelSpecInstallPrefix = Nothing
   , kernelSpecUseStack = False
+  , kernelSpecEnvFile = Nothing
   }
 
 -- | The IPython kernel name.

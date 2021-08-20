@@ -98,6 +98,8 @@ parseKernelArgs = foldl' addFlag defaultKernelSpecOptions
       kernelSpecOpts { kernelSpecInstallPrefix = Just prefix }
     addFlag kernelSpecOpts KernelspecUseStack =
       kernelSpecOpts { kernelSpecUseStack = True }
+    addFlag kernelSpecOpts (KernelspecEnvFile fp) =
+      kernelSpecOpts { kernelSpecEnvFile = Just fp }
     addFlag _kernelSpecOpts flag = error $ "Unknown flag" ++ show flag
 
 -- | Run the IHaskell language kernel.
@@ -127,13 +129,12 @@ runKernel kOpts profileSrc = do
 
     -- If we're in a stack directory, use `stack` to set the environment
     -- We can't do this with base <= 4.6 because setEnv doesn't exist.
-    when stack $ do
-      stackEnv <- lines <$> readProcess "stack" ["exec", "env"] ""
-      forM_ stackEnv $ \line ->
-        let (var, val) = break (== '=') line
-        in case tailMay val of
-            Nothing -> return ()
-            Just val' -> setEnv var val'
+    when stack $
+      readProcess "stack" ["exec", "env"] "" >>= parseAndSetEnv
+
+  case kernelSpecEnvFile kOpts of
+    Nothing -> return ()
+    Just envFile -> readFile envFile >>= parseAndSetEnv
 
   -- Serve on all sockets and ports defined in the profile.
   interface <- serveProfile profile debug
@@ -209,6 +210,12 @@ runKernel kOpts profileSrc = do
         Nothing
 
     isCommMessage req = mhMsgType (header req) `elem` [CommDataMessage, CommCloseMessage]
+
+    parseAndSetEnv envLines =
+      forM_ (lines envLines) $ \line -> do
+        case break (== '=') line of
+          (_, []) -> return ()
+          (key, _:val) -> setEnv key val
 
 -- Initial kernel state.
 initialKernelState :: IO (MVar KernelState)

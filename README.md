@@ -123,7 +123,7 @@ in the top directory.
 
 ```bash
 docker build -t ihaskell:latest .
-docker run --rm -it -p8888:8888 ihaskell:latest
+docker run --rm -p 8888:8888 ihaskell:latest
 ```
 
 Or use the continuously updated Docker image 
@@ -137,7 +137,7 @@ In order to mount your own local files into the Docker container
 use following command:
 
 ```sh
-docker run --rm -p 8888:8888 -v "$PWD":/home/jovyan/work gibiansky/ihaskell
+docker run --rm -p 8888:8888 -v "$PWD":/home/jovyan/src gibiansky/ihaskell
 ```
 
 Be aware that the directory you're mounting must contain
@@ -154,6 +154,7 @@ It's recommended to use the same LTS version as the IHaskell image is using itse
 This guarantees that stack doesn't have to first perform 
 a lengthy installation of GHC before running your notebook.
 
+You can also use the following script to run IHaskell in Docker: https://gist.github.com/brandonchinn178/928d6137bfd17961b9584a8f96c18827
 
 ## Stack and Docker
 
