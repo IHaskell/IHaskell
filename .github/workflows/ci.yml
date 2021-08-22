@@ -82,13 +82,20 @@ jobs:
           stack install gtk2hs-buildtools
           stack build hmatrix
           stack build --dependencies-only
-      - name: Run tests
+      - name: Run Haskell tests
         run: |
           set -e
           stack build ipython-kernel --flag ipython-kernel:examples
-          stack test --no-terminal
+          stack test ihaskell --no-terminal
+      - name: Run integration test
+        # The test is flaky on GHC 8.0 so we don't run it. As long as the tests
+        # above pass, it's unlikely that we'll introduce a bug that we will
+        # only catch through the integration test on this version and not other
+        # versions.
+        if: ${{ matrix.versions.stack-yaml != 'stack-8.0.yaml' }}
+        run: |
+          set -e
           stack build --no-terminal
-
           # Ensure that IHaskell notebook remains unchanged.
           # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
           stack install
