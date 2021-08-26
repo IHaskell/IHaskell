@@ -47,7 +47,7 @@ COPY src src
 COPY html html
 COPY main main
 COPY LICENSE LICENSE
-RUN stack install --local-bin-path ./bin/
+RUN stack install ihaskell --local-bin-path ./bin/
 
 # Save resolver used to build IHaskell
 RUN sed -n 's/resolver: \(.*\)/\1/p' stack.yaml | tee resolver.txt
