@@ -83,8 +83,9 @@ COPY --from=builder --chown=${NB_UID} /data/hlint.yaml ${HLINT_DATA_DIR}/
 ENV hlint_datadir ${HLINT_DATA_DIR}
 
 # Set current user + directory
-USER ${NB_UID}
 WORKDIR /home/${NB_USER}/src
+RUN chown -R ${NB_UID} /home/${NB_USER}/src
+USER ${NB_UID}
 
 # Set up global project
 COPY --from=builder --chown=${NB_UID} /build/resolver.txt /tmp/
