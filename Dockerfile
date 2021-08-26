@@ -6,13 +6,7 @@ FROM haskell:${GHC_VERSION} AS ihaskell_base
 
 # Install Ubuntu packages needed for IHaskell runtime
 RUN apt-get update && \
-    apt-get install -y \
-            libblas3 \
-            libcairo2 \
-            liblapack3 \
-            libmagic1 \
-            libpango-1.0-0 \
-            libzmq5 \
+    apt-get install -y libzmq5 \
         && \
     rm -rf /var/lib/apt/lists/*
 
@@ -20,13 +14,7 @@ FROM ihaskell_base AS builder
 
 # Install Ubuntu packages needed for IHaskell build
 RUN apt-get update && \
-    apt-get install -y \
-            libblas-dev \
-            libcairo2-dev \
-            liblapack-dev \
-            libmagic-dev \
-            libpango1.0-dev \
-            libzmq3-dev \
+    apt-get install -y libzmq3-dev \
         && \
     rm -rf /var/lib/apt/lists/*
 
@@ -90,6 +78,7 @@ USER ${NB_UID}
 # Set up global project
 COPY --from=builder --chown=${NB_UID} /build/resolver.txt /tmp/
 RUN stack setup --resolver=$(cat /tmp/resolver.txt) --system-ghc
+RUN stack config set system-ghc --global true
 
 # Set up env file
 RUN stack exec env --system-ghc > ${IHASKELL_DATA_DIR}/env
