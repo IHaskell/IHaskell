@@ -39,7 +39,7 @@ COPY ipython-kernel ipython-kernel
 COPY ghc-parser ghc-parser
 COPY ihaskell-display ihaskell-display
 RUN stack setup
-RUN stack build --only-snapshot
+RUN stack build ihaskell --only-snapshot
 
 # Build IHaskell itself.
 # Don't just `COPY .` so that changes in e.g. README.md don't trigger rebuild.
