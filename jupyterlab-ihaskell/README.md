@@ -30,3 +30,13 @@ npm run build
 jupyter lab build
 ```
 
+## Prebuilt extension
+
+This is currently built with
+
+```bash
+$ nix-shell -p 'python3.withPackages(p: [ p.jupyterlab ])' nodejs
+[nix-shell] $ npm install
+[nix-shell] $ npm run build
+[nix-shell] $ jupyter labextension build
+```
