@@ -39,9 +39,11 @@
   },
   "devDependencies": {
     "rimraf": "^3.0.0",
-    "typescript": "~3.7.3"
+    "typescript": "~3.7.3",
+    "@jupyterlab/builder": "^3.0.8"
   },
   "jupyterlab": {
-    "extension": true
+    "extension": true,
+    "outputDir": "labextension"
   }
 }
