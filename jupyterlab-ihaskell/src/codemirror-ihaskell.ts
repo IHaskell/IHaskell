@@ -3,10 +3,6 @@
 
 import { ICodeMirror, Mode } from '@jupyterlab/codemirror';
 
-import 'codemirror/lib/codemirror';
-import 'codemirror/mode/haskell/haskell';
-import 'codemirror/mode/r/r';
-
 export function defineIHaskellMode({ CodeMirror }: ICodeMirror) {
   Mode.ensure("haskell");
   Mode.ensure("r");
