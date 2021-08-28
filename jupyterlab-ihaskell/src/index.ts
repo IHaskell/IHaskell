@@ -16,7 +16,6 @@ const extension: JupyterFrontEndPlugin<void> = {
   activate: (app: JupyterFrontEnd, codeMirror: ICodeMirror) =>
   {
     defineIHaskellMode(codeMirror);
-    console.log('ihaskell codemirror activated');
   }
 };
 
