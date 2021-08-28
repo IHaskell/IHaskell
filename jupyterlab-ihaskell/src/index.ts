@@ -2,9 +2,9 @@ import {
   JupyterFrontEnd, JupyterFrontEndPlugin
 } from '@jupyterlab/application';
 
-import './codemirror-ihaskell';
+import { ICodeMirror } from '@jupyterlab/codemirror';
 
-import '../style/index.css';
+import { defineIHaskellMode } from './codemirror-ihaskell';
 
 /**
  * Initialization data for the extension1 extension.
@@ -12,17 +12,12 @@ import '../style/index.css';
 const extension: JupyterFrontEndPlugin<void> = {
   id: 'ihaskell',
   autoStart: true,
-  requires: [],
-  activate: (app: JupyterFrontEnd) =>
+  requires: [ICodeMirror],
+  activate: (app: JupyterFrontEnd, codeMirror: ICodeMirror) =>
   {
-    app.serviceManager.ready
-      .then(() => {defineIHaskell()});
+    defineIHaskellMode(codeMirror);
+    console.log('ihaskell codemirror activated');
   }
 };
-
-function defineIHaskell() {
-  console.log('ihaskell codemirror activated');
-}
-
 
 export default extension;
