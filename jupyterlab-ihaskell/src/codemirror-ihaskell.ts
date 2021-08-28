@@ -1,6 +1,3 @@
-// @ts-nocheck
-// The types for CodeMirror don't accept a RegExp for 'open' and 'close'
-
 import { ICodeMirror, Mode } from '@jupyterlab/codemirror';
 
 export function defineIHaskellMode({ CodeMirror }: ICodeMirror) {
@@ -11,13 +8,17 @@ export function defineIHaskellMode({ CodeMirror }: ICodeMirror) {
     return CodeMirror.multiplexingMode(
       hmode,
       {
+        // @ts-ignore
         open: /:(?=!)/, // Matches : followed by !, but doesn't consume !
+        // @ts-ignore
         close: /^(?!!)/, // Matches start of line not followed by !, doesn't consume character
         mode: CodeMirror.getMode(config, "text/plain"),
         delimStyle: "delimit"
       },
       {
+        // @ts-ignore
         open: /\[r\||\[rprint\||\[rgraph\|/,
+        // @ts-ignore
         close: /\|\]/,
         mode: CodeMirror.getMode(config, "text/x-rsrc"),
         delimStyle: "delimit"
