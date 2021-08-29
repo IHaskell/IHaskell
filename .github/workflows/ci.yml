@@ -50,7 +50,7 @@ jobs:
         uses: actions/cache@v2.1.6
         with:
           path: ~/.stack
-          key: ${{ runner.os }}-${{ matrix.versions.stack-yaml }}-stack-global
+          key: ${{ runner.os }}-${{ hashFiles('~/.stack/**/*.conf') }}-stack-global
       - name: Update system dependencies
         run: |
           sudo apt update
