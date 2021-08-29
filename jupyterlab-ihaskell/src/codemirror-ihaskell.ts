@@ -1,8 +1,8 @@
 import { ICodeMirror, Mode } from '@jupyterlab/codemirror';
 
-export function defineIHaskellMode({ CodeMirror }: ICodeMirror) {
-  Mode.ensure("haskell");
-  Mode.ensure("r");
+export async function defineIHaskellMode({ CodeMirror }: ICodeMirror) {
+  await Mode.ensure("haskell");
+  await Mode.ensure("r");
   CodeMirror.defineMode("ihaskell", (config) => {
     let hmode = CodeMirror.getMode(config, "haskell");
     return CodeMirror.multiplexingMode(
