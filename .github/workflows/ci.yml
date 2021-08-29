@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Cache .stack
-        uses: actions/cache@v1
+        uses: actions/cache@v2.1.6
         with:
           path: ~/.stack
           key: ${{ runner.os }}-${{ matrix.versions.stack-yaml }}-stack-global
