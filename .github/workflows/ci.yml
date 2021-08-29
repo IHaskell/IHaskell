@@ -49,7 +49,7 @@ jobs:
       - name: Cache .stack
         uses: actions/cache@v2.1.6
         with:
-          path: ~/.stack
+          path: ~/.stack/snapshots
           key: ${{ runner.os }}-${{ matrix.versions.stack-yaml }}-stack-global
       - name: Update system dependencies
         run: |
