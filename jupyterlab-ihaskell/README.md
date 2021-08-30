@@ -1,4 +1,4 @@
-# ihaskell_labextension
+# jupyterlab-ihaskell
 
 Haskell Syntax Highlighting in Jupyterlab
 
