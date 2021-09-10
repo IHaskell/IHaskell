@@ -56,6 +56,7 @@ ihaskell (Args ConvertLhs args) = showingHelp ConvertLhs args $ convert args
 ihaskell (Args InstallKernelSpec args) = showingHelp InstallKernelSpec args $ do
   let kernelSpecOpts = parseKernelArgs args
   replaceIPythonKernelspec kernelSpecOpts
+  installLabextension
 ihaskell (Args (Kernel (Just filename)) args) = do
   let kernelSpecOpts = parseKernelArgs args
   runKernel kernelSpecOpts filename

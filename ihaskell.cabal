@@ -45,6 +45,9 @@ cabal-version:       1.16
 data-files:
     html/kernel.js
     html/logo-64x64.svg
+    jupyterlab-ihaskell/labextension/package.json
+    jupyterlab-ihaskell/labextension/static/*.js
+    jupyterlab-ihaskell/labextension/static/*.json
 
 library
   hs-source-dirs:      src

@@ -19,7 +19,7 @@ let
   ihaskellSourceFilter = src: name: type: let
     relPath = lib.removePrefix (toString src + "/") (toString name);
   in cleanSource name type && ( any (lib.flip lib.hasPrefix relPath) [
-    "src" "main" "html" "Setup.hs" "ihaskell.cabal" "LICENSE"
+    "src" "main" "html" "jupyterlab-ihaskell" "Setup.hs" "ihaskell.cabal" "LICENSE"
   ]);
   ihaskell-src         = filterSource (ihaskellSourceFilter ./.) ./.;
   ipython-kernel-src   = filterSource cleanSource ./ipython-kernel;
