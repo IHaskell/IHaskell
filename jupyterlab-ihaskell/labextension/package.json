@@ -34,8 +34,7 @@
     "@jupyterlab/apputils": ">=3.0.0",
     "@jupyterlab/docregistry": ">=3.0.0",
     "@jupyterlab/notebook": ">=3.0.0",
-    "@jupyterlab/services": ">=6.0.0",
-    "@lumino/disposable": "^1.7.2"
+    "@jupyterlab/services": ">=6.0.0"
   },
   "devDependencies": {
     "rimraf": "^3.0.0",
@@ -46,8 +45,9 @@
   "jupyterlab": {
     "extension": true,
     "outputDir": "labextension",
+    "webpackConfig": "./webpack.config.js",
     "_build": {
-      "load": "static/remoteEntry.9c17ba2cf8c8da4e9ea7.js",
+      "load": "static/remoteEntry-ddc4c9d791a676e50bb9.js",
       "extension": "./extension"
     }
   }

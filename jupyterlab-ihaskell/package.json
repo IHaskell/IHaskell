@@ -44,6 +44,7 @@
   },
   "jupyterlab": {
     "extension": true,
-    "outputDir": "labextension"
+    "outputDir": "labextension",
+    "webpackConfig": "./webpack.config.js"
   }
 }
