@@ -8,7 +8,6 @@ const outputPath = path.join(packagePath, data.jupyterlab['outputDir']);
 class FixupEntryPoint {
   apply(compiler) {
     compiler.hooks.done.tap('FixupEntryPoint', (stats) => {
-
       const data = fs.readJSONSync(path.join(outputPath, "package.json"));
       const remoteEntry = data.jupyterlab._build.load;
       const remoteEntryRe = /static\/remoteEntry\.(.*)\.js/;
