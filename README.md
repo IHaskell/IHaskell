@@ -42,13 +42,6 @@ stack install --fast
 ihaskell install --stack
 ```
 
-If you want to use jupyterlab, you need to install the jupyterlab ihaskell
-extension to get syntax highlighting with:
-
-```bash
-jupyter labextension install jupyterlab-ihaskell
-```
-
 Run Jupyter.
 
 ```bash
@@ -203,13 +196,10 @@ Direct IHaskell to register itself as a Jupyter kernel.
 stack --docker exec ihaskell -- install --stack
 ```
 
-Optionally, install JupyterLab and the IHaskell JupyterLab extension for
-syntax highlighting. See the
-[`jupyterlab-ihaskell/README.md`](jupyterlab-ihaskell/README.md).
+Optionally, install JupyterLab.
 
 ```bash
 stack --docker exec pip3 -- install jupyterlab
-stack --docker exec bash -- -c 'cd jupyterlab-ihaskell;npm install;npm run build;jupyter labextension link .'
 ```
 
 Run the Jupyter notebook, with security disabled for testing, listening on all interfaces.

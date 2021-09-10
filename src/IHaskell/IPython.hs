@@ -11,6 +11,7 @@ module IHaskell.IPython (
     kernelName,
     KernelSpecOptions(..),
     defaultKernelSpecOptions,
+    installLabextension,
     ) where
 
 import           IHaskellPrelude
@@ -171,6 +172,30 @@ installKernelspec repl opts = void $ do
         cmd = concat [["kernelspec", "install"], installPrefixFlag, [SH.toTextIgnore kernelDir], replaceFlag]
 
     SH.silently $ SH.run ipython cmd
+
+installLabextension :: IO ()
+installLabextension = SH.shelly $ do
+  -- Find the prebuilt extension directory
+  ihaskellDataDir <- liftIO $ Paths.getDataDir
+  let labextensionDataDir = ihaskellDataDir
+        SH.</> ("jupyterlab-ihaskell" :: SH.FilePath)
+        SH.</> ("labextension" :: SH.FilePath)
+
+  -- Find the $(jupyter --data-dir)/labextensions/jupyterlab-ihaskell directory
+  jupyter <- locateIPython
+  jupyterDataDir <- SH.silently $ SH.fromText . T.strip <$> SH.run jupyter ["--data-dir"]
+  let jupyterlabIHaskellDir = jupyterDataDir
+        SH.</> ("labextensions" :: SH.FilePath)
+        SH.</> ("jupyterlab-ihaskell" :: SH.FilePath)
+
+  -- Remove the extension directory with extreme prejudice if it already exists
+  SH.rm_rf jupyterlabIHaskellDir
+  -- Create an empty 'jupyterlab-ihaskell' directory to install our extension in
+  SH.mkdir_p jupyterlabIHaskellDir
+  -- Copy the prebuilt extension files over
+  extensionContents <- SH.ls labextensionDataDir
+  forM_ extensionContents $ \entry ->
+    SH.cp_r entry jupyterlabIHaskellDir
 
 -- | Replace "~" with $HOME if $HOME is defined. Otherwise, do nothing.
 subHome :: String -> IO String
