@@ -675,6 +675,161 @@ instance ToJSON Message where
 
   toJSON body = error $ "Do not know how to convert to JSON for message " ++ show body
 
+  toEncoding rep@KernelInfoReply{} =
+    pairs $ mconcat
+      [ "protocol_version" .= protocolVersion rep
+      , "banner" .= banner rep
+      , "implementation" .= implementation rep
+      , "implementation_version" .= implementationVersion rep
+      , "language_info" .= languageInfo rep
+      , "status" .= show (status rep)
+      ]
+
+  toEncoding CommInfoReply
+    { header = header
+    , commInfo = commInfo
+    } =
+    pairs $ mconcat
+      [ "comms" .= Map.map (\comm -> object ["target_name" .= comm]) commInfo
+      , "status" .= string "ok"
+      ]
+
+  toEncoding ExecuteRequest
+    { getCode = code
+    , getSilent = silent
+    , getStoreHistory = storeHistory
+    , getAllowStdin = allowStdin
+    , getUserExpressions = userExpressions
+    } =
+    pairs $ mconcat
+      [ "code" .= code
+      , "silent" .= silent
+      , "store_history" .= storeHistory
+      , "allow_stdin" .= allowStdin
+      , "user_expressions" .= userExpressions
+      ]
+
+  toEncoding ExecuteReply { status = status, executionCounter = counter, pagerOutput = pager } =
+    pairs $ mconcat
+      [ "status" .= show status
+      , "execution_count" .= counter
+      , "payload" .=
+        if null pager
+          then []
+          else mkPayload pager
+      , "user_expressions" .= emptyMap
+      ]
+    where
+      mkPayload o = [ object
+                        [ "source" .= string "page"
+                        , "start" .= Number 0
+                        , "data" .= object (map displayDataToJson o)
+                        ]
+                    ]
+  toEncoding ExecuteError { header = header, traceback = traceback, ename = ename, evalue = evalue } =
+    pairs $ mconcat
+      [ "header" .= show header
+      , "traceback" .= map toJSON traceback
+      , "ename" .= ename
+      , "evalue" .= evalue
+      ]
+  toEncoding PublishStatus { executionState = executionState } =
+    pairs $ mconcat ["execution_state" .= executionState]
+  toEncoding PublishStream { streamType = streamType, streamContent = content } =
+    -- Since 5.0 "data" key was renamed to "text""
+    pairs $ mconcat ["text" .= content, "name" .= streamType, "output_type" .= string "stream"]
+  toEncoding r@PublishDisplayData { displayData = datas }
+    = pairs $ mconcat
+    $ case transient r of
+        Just t  -> (("transient" .= toJSON (transient r)) :)
+        Nothing -> id
+    $ ["metadata" .= object []
+      , "data" .= object (map displayDataToJson datas)
+      ]
+  toEncoding r@PublishUpdateDisplayData { displayData = datas }
+    = pairs $ mconcat
+    $ case transient r of
+        Just t  -> (("transient" .= toJSON (transient r)) :)
+        Nothing -> id
+    $ ["metadata" .= object []
+      , "data" .= object (map displayDataToJson datas)
+      ]
+  toEncoding PublishOutput { executionCount = execCount, reprText = reprText } =
+    pairs $ mconcat
+      [ "data" .= object ["text/plain" .= reprText]
+      , "execution_count" .= execCount
+      , "metadata" .= object []
+      ]
+  toEncoding PublishInput { executionCount = execCount, inCode = code } =
+    pairs $ mconcat ["execution_count" .= execCount, "code" .= code]
+  toEncoding (CompleteReply _ matches start end metadata status) =
+    pairs $ mconcat
+      [ "matches" .= matches
+      , "cursor_start" .= start
+      , "cursor_end" .= end
+      , "metadata" .= metadata
+      , "status" .= if status
+                      then string "ok"
+                      else "error"
+      ]
+  toEncoding i@InspectReply{} =
+    pairs $ mconcat
+      [ "status" .= if inspectStatus i
+                      then string "ok"
+                      else "error"
+      , "data" .= object (map displayDataToJson . inspectData $ i)
+      , "metadata" .= object []
+      , "found" .= inspectStatus i
+      ]
+
+  toEncoding ShutdownReply { restartPending = restart } =
+    pairs $ mconcat ["restart" .= restart
+                    , "status" .= string "ok"
+                    ]
+
+  toEncoding ClearOutput { wait = wait } =
+    pairs $ mconcat ["wait" .= wait]
+
+  toEncoding RequestInput { inputPrompt = prompt } =
+    pairs $ mconcat ["prompt" .= prompt]
+
+  toEncoding req@CommOpen{} =
+    pairs $ mconcat
+      [ "comm_id" .= commUuid req
+      , "target_name" .= commTargetName req
+      , "target_module" .= commTargetModule req
+      , "data" .= commData req
+      ]
+
+  toEncoding req@CommData{} =
+    pairs $ mconcat ["comm_id" .= commUuid req, "data" .= commData req]
+
+  toEncoding req@CommClose{} =
+    pairs $ mconcat ["comm_id" .= commUuid req, "data" .= commData req]
+
+  toEncoding req@HistoryReply{} =
+    pairs $ mconcat ["history" .= map tuplify (historyReply req)
+                    , "status" .= string "ok"
+                    ]
+    where
+      tuplify (HistoryReplyElement sess linum res) = (sess, linum, case res of
+                                                                     Left inp         -> toJSON inp
+                                                                     Right (inp, out) -> toJSON out)
+
+  toEncoding req@IsCompleteReply{} =
+    pairs $ mconcat replyPairs
+    where
+      replyPairs =
+        case reviewResult req of
+          CodeComplete       -> status "complete"
+          CodeIncomplete ind -> status "incomplete" ++ indent ind
+          CodeInvalid        -> status "invalid"
+          CodeUnknown        -> status "unknown"
+      status x = ["status" .= pack x]
+      indent x = ["indent" .= pack x]
+
+  toEncoding body = error $ "Do not know how to convert to JSON for message " ++ show body
+
 
 
 
