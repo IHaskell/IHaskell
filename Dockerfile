@@ -34,6 +34,7 @@ RUN stack build ihaskell --only-snapshot
 COPY src src
 COPY html html
 COPY main main
+COPY jupyterlab-ihaskell jupyterlab-ihaskell
 COPY LICENSE LICENSE
 RUN stack install ihaskell --local-bin-path ./bin/
 
