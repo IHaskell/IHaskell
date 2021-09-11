@@ -54,15 +54,13 @@ let
   ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
   jupyterlab = nixpkgs.python3.withPackages (ps: [ ps.jupyterlab ] ++ pythonPackages ps);
 
-  ihaskellWrapperSh = nixpkgs.writeScriptBin "ihaskell-wrapper" ''
-    #! ${nixpkgs.stdenv.shell}
+  ihaskellWrapperSh = nixpkgs.writeShellScriptBin "ihaskell-wrapper" ''
     export GHC_PACKAGE_PATH="$(echo ${ihaskellEnv}/lib/*/package.conf.d| ${nixpkgs.coreutils}/bin/tr ' ' ':'):$GHC_PACKAGE_PATH"
     export PATH="${nixpkgs.lib.makeBinPath ([ ihaskellEnv jupyterlab ] ++ systemPackages nixpkgs)}''${PATH:+:}$PATH"
     exec ${ihaskellEnv}/bin/ihaskell "$@"
   '';
 
-  ihaskellJupyterCmdSh = cmd: extraArgs: nixpkgs.writeScriptBin "ihaskell-${cmd}" ''
-    #! ${nixpkgs.stdenv.shell}
+  ihaskellJupyterCmdSh = cmd: extraArgs: nixpkgs.writeShellScriptBin "ihaskell-${cmd}" ''
     export GHC_PACKAGE_PATH="$(echo ${ihaskellEnv}/lib/*/package.conf.d| ${nixpkgs.coreutils}/bin/tr ' ' ':'):$GHC_PACKAGE_PATH"
     export PATH="${nixpkgs.lib.makeBinPath ([ ihaskellEnv jupyterlab ] ++ systemPackages nixpkgs)}''${PATH:+:}$PATH"
     ${ihaskellEnv}/bin/ihaskell install \
@@ -76,18 +74,12 @@ let
 in
 nixpkgs.buildEnv {
   name = "ihaskell-with-packages";
-  buildInputs = [ nixpkgs.makeWrapper ];
   paths = [ ihaskellEnv jupyterlab ];
   postBuild = ''
     ln -s ${ihaskellJupyterCmdSh "lab" appDir}/bin/ihaskell-lab $out/bin/
     ln -s ${ihaskellJupyterCmdSh "notebook" ""}/bin/ihaskell-notebook $out/bin/
     ln -s ${ihaskellJupyterCmdSh "nbconvert" ""}/bin/ihaskell-nbconvert $out/bin/
     ln -s ${ihaskellJupyterCmdSh "console" "--kernel=haskell"}/bin/ihaskell-console $out/bin/
-    for prg in $out/bin"/"*;do
-      if [[ -f $prg && -x $prg ]]; then
-        wrapProgram $prg --set PYTHONPATH "$(echo ${jupyterlab}/lib/*/site-packages)"
-      fi
-    done
   '';
 
   passthru = {
