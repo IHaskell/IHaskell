@@ -34,7 +34,6 @@ jobs:
     strategy:
       matrix:
         versions:
-          - compiler: 'ghc884'
           - compiler: 'ghc8104'
     steps:
     - uses: actions/checkout@v2
