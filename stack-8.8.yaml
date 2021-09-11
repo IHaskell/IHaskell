@@ -35,10 +35,6 @@ ghc-options:
   # ihaskell: -Wall -Wpartial-fields -Werror
   # ihaskell-widgets: -Wall -Wpartial-fields -Werror
 
-docker:
-    repo: "ihaskell-dev:latest"
-    enable: false
-
 nix:
   enable: false
   packages:
