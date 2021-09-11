@@ -87,6 +87,7 @@ RUN stack exec env --system-ghc > ${IHASKELL_DATA_DIR}/env
 # Install + setup IHaskell
 COPY --from=builder --chown=${NB_UID} /build/bin/ihaskell /usr/local/bin/
 COPY --from=builder --chown=${NB_UID} /build/html ${IHASKELL_DATA_DIR}/html
+COPY --from=builder --chown=${NB_UID} /build/jupyterlab-ihaskell ${IHASKELL_DATA_DIR}/jupyterlab-ihaskell
 RUN export ihaskell_datadir=${IHASKELL_DATA_DIR} && \
     ihaskell install --env-file ${IHASKELL_DATA_DIR}/env
 RUN jupyter notebook --generate-config
