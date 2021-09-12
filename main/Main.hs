@@ -101,6 +101,8 @@ parseKernelArgs = foldl' addFlag defaultKernelSpecOptions
       kernelSpecOpts { kernelSpecUseStack = True }
     addFlag kernelSpecOpts (KernelspecEnvFile fp) =
       kernelSpecOpts { kernelSpecEnvFile = Just fp }
+    addFlag kernelSpecOpts (KernelName name) =
+      kernelSpecOpts { kernelName = name }
     addFlag _kernelSpecOpts flag = error $ "Unknown flag" ++ show flag
 
 -- | Run the IHaskell language kernel.

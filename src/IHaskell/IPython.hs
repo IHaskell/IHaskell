@@ -8,7 +8,6 @@ module IHaskell.IPython (
     getIHaskellDir,
     getSandboxPackageConf,
     subHome,
-    kernelName,
     KernelSpecOptions(..),
     defaultKernelSpecOptions,
     installLabextension,
@@ -45,6 +44,7 @@ data KernelSpecOptions =
          , kernelSpecInstallPrefix :: Maybe String
          , kernelSpecUseStack :: Bool              -- ^ Whether to use @stack@ environments.
          , kernelSpecEnvFile :: Maybe FilePath
+         , kernelName :: String                    -- ^ The Jupyter kernel name.
          }
 
 defaultKernelSpecOptions :: KernelSpecOptions
@@ -58,11 +58,8 @@ defaultKernelSpecOptions = KernelSpecOptions
   , kernelSpecInstallPrefix = Nothing
   , kernelSpecUseStack = False
   , kernelSpecEnvFile = Nothing
+  , kernelName = "haskell"
   }
-
--- | The IPython kernel name.
-kernelName :: String
-kernelName = "haskell"
 
 ipythonCommand :: SH.Sh SH.FilePath
 ipythonCommand = do
@@ -148,14 +145,14 @@ installKernelspec repl opts = void $ do
 
   let kernelSpec = KernelSpec
         { kernelDisplayName = "Haskell"
-        , kernelLanguage = kernelName
+        , kernelLanguage = kernelName opts
         , kernelCommand = [ihaskellPath, "kernel", "{connection_file}"] ++ kernelFlags
         }
 
   -- Create a temporary directory. Use this temporary directory to make a kernelspec directory; then,
   -- shell out to IPython to install this kernelspec directory.
   SH.withTmpDir $ \tmp -> do
-    let kernelDir = tmp SH.</> kernelName
+    let kernelDir = tmp SH.</> kernelName opts
     let filename = kernelDir SH.</> ("kernel.json" :: SH.FilePath)
 
     SH.mkdir_p kernelDir
@@ -163,7 +160,7 @@ installKernelspec repl opts = void $ do
     let files = ["kernel.js", "logo-64x64.svg"]
     forM_ files $ \file -> do
       src <- liftIO $ Paths.getDataFileName $ "html/" ++ file
-      SH.cp (SH.fromText $ T.pack src) (tmp SH.</> kernelName SH.</> file)
+      SH.cp (SH.fromText $ T.pack src) (tmp SH.</> kernelName opts SH.</> file)
 
     ipython <- locateIPython
 

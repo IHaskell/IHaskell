@@ -40,6 +40,7 @@ data Argument = ConfFile String     -- ^ A file with commands to load at startup
               | KernelspecInstallPrefix String
               | KernelspecUseStack
               | KernelspecEnvFile FilePath
+              | KernelName String
   deriving (Eq, Show)
 
 data LhsStyle string =
@@ -133,6 +134,10 @@ kernelEnvFileFlag =
     "<file>"
     "Load environment from this file when kernel is installed"
 
+kernelNameFlag :: Flag Args
+kernelNameFlag = flagReq ["kernel-name"] (store KernelName) "<name>"
+  "Specify a name for the install kernel (default: haskell)"
+
 confFlag :: Flag Args
 confFlag = flagReq ["conf", "c"] (store ConfFile) "<rc.hs>"
              "File with commands to execute at start; replaces ~/.ihaskell/rc.hs."
@@ -153,7 +158,7 @@ store constructor str (Args md prev) = Right $ Args md $ constructor str : prev
 installKernelSpec :: Mode Args
 installKernelSpec =
   mode "install" (Args InstallKernelSpec []) "Install the Jupyter kernelspec." noArgs
-    [ghcLibFlag, ghcRTSFlag, kernelDebugFlag, confFlag, installPrefixFlag, helpFlag, kernelStackFlag, kernelEnvFileFlag]
+    [ghcLibFlag, ghcRTSFlag, kernelDebugFlag, confFlag, installPrefixFlag, helpFlag, kernelStackFlag, kernelEnvFileFlag, kernelNameFlag]
 
 kernel :: Mode Args
 kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg
