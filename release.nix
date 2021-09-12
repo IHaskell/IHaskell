@@ -55,13 +55,11 @@ let
   jupyterlab = nixpkgs.python3.withPackages (ps: [ ps.jupyterlab ] ++ pythonPackages ps);
 
   ihaskellWrapperSh = nixpkgs.writeShellScriptBin "ihaskell-wrapper" ''
-    export GHC_PACKAGE_PATH="$(echo ${ihaskellEnv}/lib/*/package.conf.d| ${nixpkgs.coreutils}/bin/tr ' ' ':'):$GHC_PACKAGE_PATH"
     export PATH="${nixpkgs.lib.makeBinPath ([ ihaskellEnv jupyterlab ] ++ systemPackages nixpkgs)}''${PATH:+:}$PATH"
     exec ${ihaskellEnv}/bin/ihaskell "$@"
   '';
 
   ihaskellJupyterCmdSh = cmd: extraArgs: nixpkgs.writeShellScriptBin "ihaskell-${cmd}" ''
-    export GHC_PACKAGE_PATH="$(echo ${ihaskellEnv}/lib/*/package.conf.d| ${nixpkgs.coreutils}/bin/tr ' ' ':'):$GHC_PACKAGE_PATH"
     export PATH="${nixpkgs.lib.makeBinPath ([ ihaskellEnv jupyterlab ] ++ systemPackages nixpkgs)}''${PATH:+:}$PATH"
     export JUPYTER_DATA_DIR=$(mktemp -d) # Install IHaskell kernel and extension files to a fresh directory
     ${ihaskellEnv}/bin/ihaskell install \
