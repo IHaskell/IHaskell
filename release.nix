@@ -63,6 +63,7 @@ let
   ihaskellJupyterCmdSh = cmd: extraArgs: nixpkgs.writeShellScriptBin "ihaskell-${cmd}" ''
     export GHC_PACKAGE_PATH="$(echo ${ihaskellEnv}/lib/*/package.conf.d| ${nixpkgs.coreutils}/bin/tr ' ' ':'):$GHC_PACKAGE_PATH"
     export PATH="${nixpkgs.lib.makeBinPath ([ ihaskellEnv jupyterlab ] ++ systemPackages nixpkgs)}''${PATH:+:}$PATH"
+    export JUPYTER_DATA_DIR=$(mktemp -d) # Install IHaskell kernel and extension files to a fresh directory
     ${ihaskellEnv}/bin/ihaskell install \
       -l $(${ihaskellEnv}/bin/ghc --print-libdir) \
       --use-rtsopts="${rtsopts}" \
