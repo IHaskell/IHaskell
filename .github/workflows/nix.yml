@@ -50,5 +50,5 @@ jobs:
         nix-shell \
         -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-21.05 \
         -p jq --run \
-        'test/acceptance.nbconvert.sh result/bin/ihaskell-nbconvert'
+        'test/acceptance.nbconvert.sh result/bin/jupyter nbconvert'
 

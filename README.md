@@ -156,7 +156,7 @@ notebook environment with one command. For example:
 ```bash
 $ nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/nixos-20.03.tar.gz release.nix --argstr compiler ghc865 --arg packages "haskellPackages: [ haskellPackages.lens ]"
 <result path>
-$ <result path>/bin/ihaskell-notebook
+$ <result path>/bin/jupyter notebook
 ```
 
 It might take a while the first time, but subsequent builds will be much
