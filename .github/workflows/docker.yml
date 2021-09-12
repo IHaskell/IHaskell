@@ -13,17 +13,35 @@ on:
       - 'ihaskell-display/**'
       - 'ihaskell.cabal'
       - 'ipython-kernel/**'
+      - 'jupyterlab-ihaskell/**'
       - 'main/**'
       - 'src/**'
       - 'stack.yaml'
+  pull_request:
+    paths:
+      - '.dockerignore'
+      - '.github/workflows/docker.yml'
+      - 'Dockerfile'
+      - 'LICENSE'
+      - 'ghc-parser/**'
+      - 'html/**'
+      - 'ihaskell-display/**'
+      - 'ihaskell.cabal'
+      - 'ipython-kernel/**'
+      - 'jupyterlab-ihaskell/**'
+      - 'main/**'
+      - 'src/**'
+      - 'stack.yaml'
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@01aecccf739ca6ff86c0539fbc67a7a5007bbc81
-    - uses: elgohr/Publish-Docker-Github-Action@f7aca2fea76a5218f3c76cd5933c3ba1d8008774
+    - uses: actions/checkout@v2
+    - uses: elgohr/Publish-Docker-Github-Action@3.04
       with:
         name: gibiansky/ihaskell
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
         snapshot: true
+        no_push: ${{ github.event_name == 'pull_request' }}
