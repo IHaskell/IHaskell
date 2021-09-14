@@ -75,9 +75,8 @@ let
   '';
 
   ihaskellLabextension = nixpkgs.runCommand "ihaskell-labextension" {} ''
-    export labextensiondir=$out/labextensions/jupyterlab-ihaskell
-    mkdir -p $labextensiondir
-    cp -R ${./jupyterlab-ihaskell/labextension}/* $labextensiondir
+    mkdir -p $out/labextensions/
+    ln -s ${./jupyterlab-ihaskell/labextension} $out/labextensions/jupyterlab-ihaskell
   '';
 
   ihaskellDataDir = nixpkgs.buildEnv {
