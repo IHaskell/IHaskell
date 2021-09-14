@@ -31,16 +31,12 @@ let
   haskellPackages = nixpkgs.haskell.packages."${compiler}".override (old: {
     overrides = nixpkgs.lib.composeExtensions (old.overrides or (_: _: {})) (self: super: {
       ihaskell          = nixpkgs.haskell.lib.overrideCabal (
-                          self.callCabal2nix "ihaskell" ihaskell-src {}) (drv: {
+                          self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
         preCheck = ''
           export HOME=$TMPDIR/home
           export PATH=$PWD/dist/build/ihaskell:$PATH
           export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
         '';
-        configureFlags = (drv.configureFlags or []) ++ [
-          # otherwise the tests are agonisingly slow and the kernel times out
-          "--enable-executable-dynamic"
-        ];
         doHaddock = false;
       });
       ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
@@ -50,16 +46,17 @@ let
       static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
     } // displays self);
   });
+  ihaskellExe = nixpkgs.haskell.lib.justStaticExecutables haskellPackages.ihaskell;
   ihaskellEnv = haskellPackages.ghcWithPackages packages;
   jupyterlab = nixpkgs.python3.withPackages (ps: [ ps.jupyterlab ] ++ pythonPackages ps);
 
   ihaskellWrapperSh = nixpkgs.writeShellScriptBin "ihaskell-wrapper" ''
     export PATH="${nixpkgs.lib.makeBinPath ([ ihaskellEnv jupyterlab ] ++ systemPackages nixpkgs)}''${PATH:+:}$PATH"
-    exec ${haskellPackages.ihaskell}/bin/ihaskell "$@"
+    exec ${ihaskellExe}/bin/ihaskell "$@"
   '';
 
   ihaskellGhcLib = nixpkgs.writeShellScriptBin "ihaskell" ''
-    ${haskellPackages.ihaskell}/bin/ihaskell -l $(${ihaskellEnv}/bin/ghc --print-libdir) "$@"
+    ${ihaskellExe}/bin/ihaskell -l $(${ihaskellEnv}/bin/ghc --print-libdir) "$@"
   '';
 
   kernelFile = {
@@ -110,6 +107,7 @@ nixpkgs.buildEnv {
 
   passthru = {
     inherit haskellPackages;
+    inherit ihaskellExe;
     inherit ihaskellEnv;
     inherit jupyterlab;
     inherit ihaskellWrapperSh;
