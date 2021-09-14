@@ -50,11 +50,6 @@ let
   ihaskellEnv = haskellPackages.ghcWithPackages packages;
   jupyterlab = nixpkgs.python3.withPackages (ps: [ ps.jupyterlab ] ++ pythonPackages ps);
 
-  ihaskellWrapperSh = nixpkgs.writeShellScriptBin "ihaskell-wrapper" ''
-    export PATH="${nixpkgs.lib.makeBinPath ([ ihaskellEnv jupyterlab ] ++ systemPackages nixpkgs)}''${PATH:+:}$PATH"
-    exec ${ihaskellExe}/bin/ihaskell "$@"
-  '';
-
   ihaskellGhcLib = nixpkgs.writeShellScriptBin "ihaskell" ''
     ${ihaskellExe}/bin/ihaskell -l $(${ihaskellEnv}/bin/ghc --print-libdir) "$@"
   '';
@@ -110,7 +105,6 @@ nixpkgs.buildEnv {
     inherit ihaskellExe;
     inherit ihaskellEnv;
     inherit jupyterlab;
-    inherit ihaskellWrapperSh;
     inherit ihaskellKernelSpec;
     inherit ihaskellLabextension;
     inherit ihaskellDataDir;
