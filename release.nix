@@ -31,13 +31,13 @@ let
   haskellPackages = nixpkgs.haskell.packages."${compiler}".override (old: {
     overrides = nixpkgs.lib.composeExtensions (old.overrides or (_: _: {})) (self: super: {
       ihaskell          = nixpkgs.haskell.lib.overrideCabal (
-                          self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
+                          self.callCabal2nix "ihaskell" ihaskell-src {}) (drv: {
         preCheck = ''
           export HOME=$TMPDIR/home
           export PATH=$PWD/dist/build/ihaskell:$PATH
           export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
         '';
-        configureFlags = (_drv.configureFlags or []) ++ [
+        configureFlags = (drv.configureFlags or []) ++ [
           # otherwise the tests are agonisingly slow and the kernel times out
           "--enable-executable-dynamic"
         ];
