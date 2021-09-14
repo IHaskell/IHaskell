@@ -50,12 +50,12 @@ let
       static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
     } // displays self);
   });
-  ihaskellEnv = haskellPackages.ghcWithPackages (self: [ self.ihaskell ] ++ packages self);
+  ihaskellEnv = haskellPackages.ghcWithPackages packages;
   jupyterlab = nixpkgs.python3.withPackages (ps: [ ps.jupyterlab ] ++ pythonPackages ps);
 
   ihaskellWrapperSh = nixpkgs.writeShellScriptBin "ihaskell-wrapper" ''
     export PATH="${nixpkgs.lib.makeBinPath ([ ihaskellEnv jupyterlab ] ++ systemPackages nixpkgs)}''${PATH:+:}$PATH"
-    exec ${ihaskellEnv}/bin/ihaskell "$@"
+    exec ${haskellPackages.ihaskell}/bin/ihaskell "$@"
   '';
 
   ihaskellGhcLib = nixpkgs.writeShellScriptBin "ihaskell" ''
