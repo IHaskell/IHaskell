@@ -47,7 +47,7 @@ jobs:
         -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-21.05 \
         release.nix \
         --argstr compiler ${{ matrix.versions.compiler }} \
-        --arg packages "haskellPackages: haskellPackages.ihaskell"
+        --arg packages "haskellPackages: [ haskellPackages.ihaskell ]"
         nix-shell \
         -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-21.05 \
         -p jq --run \
