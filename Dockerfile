@@ -48,11 +48,11 @@ RUN mkdir /data && \
 
 FROM ihaskell_base AS ihaskell
 
-# Install Jupyter notebook
+# Install JupyterLab
 RUN apt-get update && \
     apt-get install -y python3-pip && \
     rm -rf /var/lib/apt/lists/*
-RUN pip3 install -U jupyter
+RUN pip3 install -U jupyterlab
 
 # Create runtime user
 ENV NB_USER jovyan
