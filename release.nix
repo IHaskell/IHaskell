@@ -107,7 +107,5 @@ nixpkgs.buildEnv {
     inherit ihaskellKernelSpec;
     inherit ihaskellLabextension;
     inherit ihaskellDataDir;
-    ihaskellJsFile = ./. + "/html/kernel.js";
-    ihaskellLogo64 = ./. + "/html/logo-64x64.svg";
   };
 }
