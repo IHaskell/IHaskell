@@ -50,11 +50,13 @@ let
   ihaskellEnv = haskellPackages.ghcWithPackages packages;
   jupyterlab = nixpkgs.python3.withPackages (ps: [ ps.jupyterlab ] ++ pythonPackages ps);
 
-  ihaskellGhcLib = nixpkgs.writeShellScriptBin "ihaskell" ''
-    ${ihaskellExe}/bin/ihaskell -l $(${ihaskellEnv}/bin/ghc --print-libdir) "$@"
+  ihaskellGhcLibFunc = exe: env: nixpkgs.writeShellScriptBin "ihaskell" ''
+    ${exe}/bin/ihaskell -l $(${env}/bin/ghc --print-libdir) "$@"
   '';
+  ihaskellGhcLib = ihaskellGhcLibFunc ihaskellExe ihaskellEnv;
 
-  kernelFile = {
+
+  ihaskellKernelFileFunc = ihaskellGhcLib: rtsopts: {
     display_name = "Haskell";
     argv = [
       "${ihaskellGhcLib}/bin/ihaskell"
@@ -66,46 +68,60 @@ let
     ];
     language = "haskell";
   };
+  ihaskellKernelFile = ihaskellKernelFileFunc ihaskellGhcLib rtsopts;
 
-  ihaskellKernelSpec = nixpkgs.runCommand "ihaskell-kernel" {} ''
+  ihaskellKernelSpecFunc = ihaskellKernelFile: nixpkgs.runCommand "ihaskell-kernel" {} ''
     export kerneldir=$out/kernels/haskell
     mkdir -p $kerneldir
     cp ${./html}/* $kerneldir
-    echo '${builtins.toJSON kernelFile}' > $kerneldir/kernel.json
+    echo '${builtins.toJSON ihaskellKernelFile}' > $kerneldir/kernel.json
   '';
+  ihaskellKernelSpec = ihaskellKernelSpecFunc ihaskellKernelFile;
 
   ihaskellLabextension = nixpkgs.runCommand "ihaskell-labextension" {} ''
     mkdir -p $out/labextensions/
     ln -s ${./jupyterlab-ihaskell/labextension} $out/labextensions/jupyterlab-ihaskell
   '';
 
-  ihaskellDataDir = nixpkgs.buildEnv {
+  ihaskellDataDirFunc = ihaskellKernelSpec: ihaskellLabextension: nixpkgs.buildEnv {
     name = "ihaskell-data-dir";
     paths = [ ihaskellKernelSpec ihaskellLabextension ];
   };
+  ihaskellDataDir = ihaskellDataDirFunc ihaskellKernelSpec ihaskellLabextension;
 
-in
-nixpkgs.buildEnv {
-  name = "ihaskell-with-packages";
-  buildInputs = [ nixpkgs.makeWrapper ];
-  paths = [ ihaskellEnv jupyterlab ];
-  postBuild = ''
-    for prg in $out/bin"/"*;do
-      if [[ -f $prg && -x $prg ]]; then
-        wrapProgram $prg \
-          --prefix PATH : "${nixpkgs.lib.makeBinPath ([ihaskellEnv] ++ systemPackages nixpkgs)}" \
-          --prefix JUPYTER_PATH : "${ihaskellDataDir}"
-      fi
-    done
-  '';
+  ihaskellBuildEnvFunc = { ihaskellEnv, jupyterlab, sysPackages, ihaskellDataDir }: nixpkgs.buildEnv {
+    name = "ihaskell-with-packages";
+    buildInputs = [ nixpkgs.makeWrapper ];
+    paths = [ ihaskellEnv jupyterlab ];
+    postBuild = ''
+      for prg in $out/bin"/"*;do
+        if [[ -f $prg && -x $prg ]]; then
+          wrapProgram $prg \
+            --prefix PATH : "${nixpkgs.lib.makeBinPath ([ihaskellEnv] ++ sysPackages)}" \
+            --prefix JUPYTER_PATH : "${ihaskellDataDir}"
+        fi
+      done
+    '';
 
-  passthru = {
-    inherit haskellPackages;
-    inherit ihaskellExe;
+    passthru = {
+      inherit haskellPackages;
+      inherit ihaskellExe;
+      inherit ihaskellEnv;
+      inherit jupyterlab;
+      inherit ihaskellGhcLibFunc;
+      inherit ihaskellKernelFileFunc;
+      inherit ihaskellKernelSpecFunc;
+      inherit ihaskellLabextension;
+      inherit ihaskellDataDirFunc;
+      inherit ihaskellBuildEnvFunc;
+    };
+  };
+
+  ihaskellBuildEnv = ihaskellBuildEnvFunc {
     inherit ihaskellEnv;
     inherit jupyterlab;
-    inherit ihaskellKernelSpec;
-    inherit ihaskellLabextension;
     inherit ihaskellDataDir;
+    sysPackages = systemPackages nixpkgs;
   };
-}
+
+in ihaskellBuildEnv
