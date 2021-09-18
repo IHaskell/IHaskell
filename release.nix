@@ -8,7 +8,7 @@
 
 let
   ihaskell-src = nixpkgs.nix-gitignore.gitignoreSource
-    [ "**/*.ipynb" "**/*.nix" "**/*.yaml" "**/*.yml" "/Dockerfile" "/README.md" "/cabal.project" "/images" "/notebooks" "/requirements.txt" ]
+    [ "**/*.ipynb" "**/*.nix" "**/*.yaml" "**/*.yml" "**/\.*" "/Dockerfile" "/README.md" "/cabal.project" "/images" "/notebooks" "/requirements.txt" ]
     ./.;
   ipython-kernel-src   = "${ihaskell-src}/ipython-kernel";
   ghc-parser-src       = "${ihaskell-src}/ghc-parser";
