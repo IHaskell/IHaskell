@@ -7,24 +7,13 @@
 }:
 
 let
-  inherit (builtins) any elem filterSource listToAttrs;
-  lib = nixpkgs.lib;
-  cleanSource = name: type: let
-    baseName = baseNameOf (toString name);
-  in lib.cleanSourceFilter name type && !(
-    (type == "directory" && (elem baseName [ ".stack-work" "dist"])) ||
-    any (lib.flip lib.hasSuffix baseName) [ ".hi" ".ipynb" ".nix" ".sock" ".yaml" ".yml" ]
-  );
-  ihaskellSourceFilter = src: name: type: let
-    relPath = lib.removePrefix (toString src + "/") (toString name);
-  in cleanSource name type && ( any (lib.flip lib.hasPrefix relPath) [
-    "src" "main" "html" "jupyterlab-ihaskell" "Setup.hs" "ihaskell.cabal" "LICENSE"
-  ]);
-  ihaskell-src         = filterSource (ihaskellSourceFilter ./.) ./.;
-  ipython-kernel-src   = filterSource cleanSource ./ipython-kernel;
-  ghc-parser-src       = filterSource cleanSource ./ghc-parser;
-  ihaskell-display-src = filterSource cleanSource ./ihaskell-display;
-  displays = self: listToAttrs (
+  ihaskell-src = nixpkgs.nix-gitignore.gitignoreSource
+    [ "**/*.ipynb" "**/*.nix" "**/*.yaml" "**/*.yml" "/Dockerfile" "/README.md" "/cabal.project" "/images" "/notebooks" "/requirements.txt" ]
+    ./.;
+  ipython-kernel-src   = "${ihaskell-src}/ipython-kernel";
+  ghc-parser-src       = "${ihaskell-src}/ghc-parser";
+  ihaskell-display-src = "${ihaskell-src}/ihaskell-display";
+  displays = self: builtins.listToAttrs (
     map
       (display: { name = "ihaskell-${display}"; value = self.callCabal2nix display "${ihaskell-display-src}/ihaskell-${display}" {}; })
       [ "aeson" "blaze" "charts" "diagrams" "gnuplot" "graphviz" "hatex" "juicypixels" "magic" "plot" "rlangqq" "static-canvas" "widgets" ]);
@@ -54,7 +43,6 @@ let
     ${exe}/bin/ihaskell -l $(${env}/bin/ghc --print-libdir) "$@"
   '';
   ihaskellGhcLib = ihaskellGhcLibFunc ihaskellExe ihaskellEnv;
-
 
   ihaskellKernelFileFunc = ihaskellGhcLib: rtsopts: {
     display_name = "Haskell";
