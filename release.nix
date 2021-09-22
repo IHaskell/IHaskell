@@ -30,9 +30,6 @@ let
       });
       ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
       ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
-
-      inline-r          = nixpkgs.haskell.lib.dontCheck super.inline-r;
-      static-canvas     = nixpkgs.haskell.lib.doJailbreak super.static-canvas;
     } // displays self);
   });
   ihaskellExe = nixpkgs.haskell.lib.justStaticExecutables haskellPackages.ihaskell;
