@@ -35,12 +35,9 @@ let
   ihaskellExe = nixpkgs.haskell.lib.justStaticExecutables haskellPackages.ihaskell;
   ihaskellEnv = haskellPackages.ghcWithPackages packages;
   jupyterlab = nixpkgs.python3.withPackages (ps: [ ps.jupyterlab ] ++ pythonPackages ps);
-
   ihaskellGhcLibFunc = exe: env: nixpkgs.writeShellScriptBin "ihaskell" ''
     ${exe}/bin/ihaskell -l $(${env}/bin/ghc --print-libdir) "$@"
   '';
-  ihaskellGhcLib = ihaskellGhcLibFunc ihaskellExe ihaskellEnv;
-
   ihaskellKernelFileFunc = ihaskellGhcLib: rtsopts: {
     display_name = "Haskell";
     argv = [
@@ -53,27 +50,20 @@ let
     ];
     language = "haskell";
   };
-  ihaskellKernelFile = ihaskellKernelFileFunc ihaskellGhcLib rtsopts;
-
   ihaskellKernelSpecFunc = ihaskellKernelFile: nixpkgs.runCommand "ihaskell-kernel" {} ''
     export kerneldir=$out/kernels/haskell
     mkdir -p $kerneldir
     cp ${./html}/* $kerneldir
     echo '${builtins.toJSON ihaskellKernelFile}' > $kerneldir/kernel.json
   '';
-  ihaskellKernelSpec = ihaskellKernelSpecFunc ihaskellKernelFile;
-
   ihaskellLabextension = nixpkgs.runCommand "ihaskell-labextension" {} ''
     mkdir -p $out/labextensions/
     ln -s ${./jupyterlab-ihaskell/labextension} $out/labextensions/jupyterlab-ihaskell
   '';
-
   ihaskellDataDirFunc = ihaskellKernelSpec: ihaskellLabextension: nixpkgs.buildEnv {
     name = "ihaskell-data-dir";
     paths = [ ihaskellKernelSpec ihaskellLabextension ];
   };
-  ihaskellDataDir = ihaskellDataDirFunc ihaskellKernelSpec ihaskellLabextension;
-
   ihaskellBuildEnvFunc = { ihaskellEnv, jupyterlab, systemPackages, ihaskellDataDir }: nixpkgs.buildEnv {
     name = "ihaskell-with-packages";
     buildInputs = [ nixpkgs.makeWrapper ];
@@ -87,7 +77,6 @@ let
         fi
       done
     '';
-
     passthru = {
       inherit haskellPackages;
       inherit ihaskellExe;
@@ -101,9 +90,11 @@ let
       inherit ihaskellBuildEnvFunc;
     };
   };
-
-  ihaskellBuildEnv = ihaskellBuildEnvFunc {
-    inherit ihaskellEnv jupyterlab ihaskellDataDir systemPackages;
-  };
-
-in ihaskellBuildEnv
+in ihaskellBuildEnvFunc {
+  inherit ihaskellEnv jupyterlab systemPackages;
+  ihaskellDataDir = let
+    ihaskellGhcLib =  ihaskellGhcLibFunc ihaskellExe ihaskellEnv;
+    ihaskellKernelFile = ihaskellKernelFileFunc ihaskellGhcLib rtsopts;
+    ihaskellKernelSpec = ihaskellKernelSpecFunc ihaskellKernelFile;
+  in ihaskellDataDirFunc ihaskellKernelSpec ihaskellLabextension;
+}
