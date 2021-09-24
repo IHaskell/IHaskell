@@ -10,12 +10,9 @@ let
   ihaskell-src = nixpkgs.nix-gitignore.gitignoreSource
     [ "**/*.ipynb" "**/*.nix" "**/*.yaml" "**/*.yml" "**/\.*" "/Dockerfile" "/README.md" "/cabal.project" "/images" "/notebooks" "/requirements.txt" ]
     ./.;
-  ipython-kernel-src   = "${ihaskell-src}/ipython-kernel";
-  ghc-parser-src       = "${ihaskell-src}/ghc-parser";
-  ihaskell-display-src = "${ihaskell-src}/ihaskell-display";
   displays = self: builtins.listToAttrs (
     map
-      (display: { name = "ihaskell-${display}"; value = self.callCabal2nix display "${ihaskell-display-src}/ihaskell-${display}" {}; })
+      (display: { name = "ihaskell-${display}"; value = self.callCabal2nix display "${ihaskell-src}/ihaskell-display/ihaskell-${display}" {}; })
       [ "aeson" "blaze" "charts" "diagrams" "gnuplot" "graphviz" "hatex" "juicypixels" "magic" "plot" "rlangqq" "static-canvas" "widgets" ]);
   haskellPackages = nixpkgs.haskell.packages."${compiler}".override (old: {
     overrides = nixpkgs.lib.composeExtensions (old.overrides or (_: _: {})) (self: super: {
@@ -26,10 +23,9 @@ let
           export PATH=$PWD/dist/build/ihaskell:$PATH
           export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
         '';
-        doHaddock = false;
       });
-      ghc-parser        = self.callCabal2nix "ghc-parser" ghc-parser-src {};
-      ipython-kernel    = self.callCabal2nix "ipython-kernel" ipython-kernel-src {};
+      ghc-parser        = self.callCabal2nix "ghc-parser" "${ihaskell-src}/ghc-parser" {};
+      ipython-kernel    = self.callCabal2nix "ipython-kernel" "${ihaskell-src}/ipython-kernel" {};
     } // displays self);
   });
   ihaskellExe = nixpkgs.haskell.lib.justStaticExecutables haskellPackages.ihaskell;
