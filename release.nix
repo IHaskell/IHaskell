@@ -3,6 +3,7 @@
 , packages ? (_: [])
 , pythonPackages ? (_: [])
 , rtsopts ? "-M3g -N2"
+, staticExecutable ? false
 , systemPackages ? (_: [])
 }:
 
@@ -28,7 +29,11 @@ let
       ipython-kernel    = self.callCabal2nix "ipython-kernel" "${ihaskell-src}/ipython-kernel" {};
     } // displays self);
   });
-  ihaskellExe = nixpkgs.haskell.lib.justStaticExecutables haskellPackages.ihaskell;
+  # statically linking against haskell libs reduces closure size at the expense
+  # of startup/reload time, so we make it configurable
+  ihaskellExe = if staticExecutable
+    then nixpkgs.haskell.lib.justStaticExecutables haskellPackages.ihaskell
+    else nixpkgs.haskell.lib.enableSharedExecutables haskellPackages.ihaskell;
   ihaskellEnv = haskellPackages.ghcWithPackages packages;
   jupyterlab = nixpkgs.python3.withPackages (ps: [ ps.jupyterlab ] ++ pythonPackages ps);
   ihaskellGhcLibFunc = exe: env: nixpkgs.writeShellScriptBin "ihaskell" ''
