@@ -279,7 +279,13 @@ doc sdoc = do
 initGhci :: GhcMonad m => Maybe String -> m ()
 initGhci sandboxPackages = do
   -- Initialize dyn flags. Start with -XExtendedDefaultRules and -XNoMonomorphismRestriction.
+#if MIN_VERSION_ghc(9,0,0)
+  -- We start handling GHC environment files
+  originalFlagsNoPackageEnv <- getSessionDynFlags
+  originalFlags <- liftIO $ interpretPackageEnv originalFlagsNoPackageEnv
+#else
   originalFlags <- getSessionDynFlags
+#endif
   let flag = flip xopt_set
       unflag = flip xopt_unset
       dflags = flag ExtendedDefaultRules . unflag MonomorphismRestriction $ originalFlags
