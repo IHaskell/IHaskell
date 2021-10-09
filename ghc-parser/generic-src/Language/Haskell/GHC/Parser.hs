@@ -28,6 +28,11 @@ module Language.Haskell.GHC.Parser (
 import Data.List (intercalate, findIndex, isInfixOf)
 import Data.Char (isAlphaNum)
 
+#if MIN_VERSION_ghc(9,2,0)
+import GHC.Driver.Config (initParserOpts)
+import GHC.Parser.Errors.Ppr (pprError)
+#endif
+
 #if MIN_VERSION_ghc(9,0,0)
 import GHC.Data.Bag
 import GHC.Driver.Session (parseDynamicFilePragma)
@@ -144,12 +149,23 @@ runParser flags (Parser parser) str =
   let filename = "<interactive>"
       location = SrcLoc.mkRealSrcLoc (mkFastString filename) 1 1
       buffer = stringToStringBuffer str
+#if MIN_VERSION_ghc(9,2,0)
+      parseState = initParserState (initParserOpts flags) buffer location in
+#else
       parseState = mkPState flags buffer location in
+#endif
     -- Convert a GHC parser output into our own.
     toParseOut $ unP parser parseState
   where
     toParseOut :: ParseResult a -> ParseOutput a
-#if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,2,0)
+    toParseOut (PFailed pstate) =
+      let realSpan = SrcLoc.psRealSpan $ last_loc pstate
+          errMsg = printErrorBag (errors pstate)
+          ln = srcLocLine $ SrcLoc.realSrcSpanStart realSpan
+          col = srcLocCol $ SrcLoc.realSrcSpanStart realSpan
+        in Failure errMsg $ Loc ln col
+#elif MIN_VERSION_ghc(9,0,0)
     toParseOut (PFailed pstate) =
       let realSpan = SrcLoc.psRealSpan $ last_loc pstate
           errMsg = printErrorBag $ snd $ (messages pstate) flags
@@ -192,7 +208,11 @@ runParser flags (Parser parser) str =
       Parsed result
 
     -- Convert the bag of errors into an error string.
+#if MIN_VERSION_ghc(9,2,0)
+    printErrorBag bag = joinLines . map (show . pprError) $ bagToList bag
+#else
     printErrorBag bag = joinLines . map show $ bagToList bag
+#endif
 
 -- Taken from http://blog.shaynefletcher.org/2019/06/have-ghc-parsing-respect-dynamic-pragmas.html
 parsePragmasIntoDynFlags :: DynFlags -> FilePath -> String -> IO (Maybe DynFlags)
