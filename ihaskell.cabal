@@ -49,6 +49,11 @@ data-files:
     jupyterlab-ihaskell/labextension/static/*.js
     jupyterlab-ihaskell/labextension/static/*.json
 
+flag use-hlint
+  description: Include HLint support
+  default:     True
+  manual:      True
+
 library
   hs-source-dirs:      src
   default-language:    Haskell2010
@@ -72,7 +77,6 @@ library
                        ghc-parser           >=0.2.1,
                        ghc-paths            >=0.1,
                        haskeline            -any,
-                       hlint                >=1.9,
                        http-client          >= 0.4,
                        http-client-tls      >= 0.2,
                        mtl                  >=2.1,
@@ -93,10 +97,6 @@ library
                        ipython-kernel       >=0.10.2.0,
                        ghc-boot             >=8.0 && <9.1
 
-  if impl (ghc < 8.10)
-    build-depends:
-                       haskell-src-exts     >=1.18
-
   exposed-modules: IHaskell.Display
                    IHaskell.Convert
                    IHaskell.Convert.Args
@@ -106,7 +106,6 @@ library
                    IHaskell.Eval.Inspect
                    IHaskell.Eval.Evaluate
                    IHaskell.Eval.Info
-                   IHaskell.Eval.Lint
                    IHaskell.Eval.Parser
                    IHaskell.Eval.Hoogle
                    IHaskell.Eval.ParseShell
@@ -123,6 +122,14 @@ library
                    IHaskellPrelude
   other-modules:
                    StringUtils
+
+  if flag(use-hlint)
+    exposed-modules: IHaskell.Eval.Lint
+    build-depends: hlint >=1.9
+    cpp-options: -DUSE_HLINT
+
+  if flag(use-hlint) && impl (ghc < 8.10)
+    build-depends: haskell-src-exts     >=1.18
 
 executable ihaskell
   -- .hs or .lhs file containing the Main module.

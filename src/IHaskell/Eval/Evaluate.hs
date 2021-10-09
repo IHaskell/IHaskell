@@ -68,12 +68,15 @@ import           GHC hiding (Stmt, TypeSig)
 import           IHaskell.Types
 import           IHaskell.IPython
 import           IHaskell.Eval.Parser
-import           IHaskell.Eval.Lint
 import           IHaskell.Display
 import qualified IHaskell.Eval.Hoogle as Hoogle
 import           IHaskell.Eval.Util
 import           IHaskell.BrokenPackages
 import           StringUtils (replace, split, strip, rstrip)
+
+#ifdef USE_HLINT
+import           IHaskell.Eval.Lint
+#endif
 
 #if MIN_VERSION_ghc(9,0,0)
 import           GHC.Data.FastString
@@ -351,10 +354,13 @@ evaluate kernelState code output widgetHandler = do
   updated <- case errs of
                -- Only run things if there are no parse errors.
                [] -> do
+
+#ifdef USE_HLINT
                  when (getLintStatus kernelState /= LintOff) $ liftIO $ do
                    lintSuggestions <- lint code cmds
                    unless (noResults lintSuggestions) $
                      output (FinalResult lintSuggestions [] []) Success
+#endif
 
                  runUntilFailure kernelState (map unloc cmds ++ [storeItCommand execCount])
                -- Print all parse errors.
