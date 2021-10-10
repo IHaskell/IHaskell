@@ -34,7 +34,9 @@ jobs:
     strategy:
       matrix:
         versions:
-          - compiler: 'ghc8104'
+          - release: 'release-8.10.nix'
+          - release: 'release-9.0.nix'
+          - release: 'release-9.2.nix'
     steps:
     - uses: actions/checkout@v2
     - uses: cachix/install-nix-action@v12
@@ -43,11 +45,13 @@ jobs:
         name: ihaskell
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
     - run: |
-        nix-build \
+        nix-build --keep-going \
         -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-21.05 \
-        release.nix \
-        --argstr compiler ${{ matrix.versions.compiler }} \
+        ${{ matrix.versions.release }} \
         --arg packages "haskellPackages: [ haskellPackages.ihaskell ]"
+    # release-9.2.nix doesn't include HLint support so the test fails
+    - if: ${{ matrix.versions.release != 'release-9.2.nix' }}
+      run: |
         nix-shell \
         -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-21.05 \
         -p jq --run \
