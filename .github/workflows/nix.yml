@@ -34,7 +34,9 @@ jobs:
     strategy:
       matrix:
         versions:
-          - compiler: 'ghc8104'
+          - release: 'release-8.10.nix'
+          - release: 'release-9.0.nix'
+          - release: 'release-9.2.nix'
     steps:
     - uses: actions/checkout@v2
     - uses: cachix/install-nix-action@v12
@@ -45,8 +47,7 @@ jobs:
     - run: |
         nix-build \
         -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-21.05 \
-        release.nix \
-        --argstr compiler ${{ matrix.versions.compiler }} \
+        ${{ matrix.versions.release }} \
         --arg packages "haskellPackages: [ haskellPackages.ihaskell ]"
         nix-shell \
         -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-21.05 \
