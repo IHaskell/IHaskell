@@ -33,7 +33,23 @@ import qualified Data.ByteString.Char8 as CBS
 #endif
 
 -- GHC imports.
-#if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,2,0)
+import           GHC.Core.InstEnv (is_cls, is_tys)
+import           GHC.Core.Unify
+import           GHC.Types.TyThing.Ppr
+import           GHC.Driver.CmdLine
+import           GHC.Driver.Monad (modifySession)
+import           GHC.Driver.Ppr
+import           GHC.Driver.Session
+import           GHC.Driver.Env.Types
+import           GHC.Runtime.Context
+import           GHC.Types.Name (pprInfixName)
+import           GHC.Types.Name.Set
+import           GHC.Types.TyThing
+import qualified GHC.Driver.Session as DynFlags
+import qualified GHC.Utils.Outputable as O
+import qualified GHC.Utils.Ppr as Pretty
+#elif MIN_VERSION_ghc(9,0,0)
 import           GHC.Core.InstEnv (is_cls, is_tys)
 import           GHC.Core.Unify
 import           GHC.Core.Ppr.TyThing
@@ -218,7 +234,12 @@ setFlags :: GhcMonad m => [String] -> m [String]
 setFlags ext = do
   -- Try to parse flags.
   flags <- getSessionDynFlags
+#if MIN_VERSION_ghc(9,2,0)
+  logger <- getLogger
+  (flags', unrecognized, warnings) <- parseDynamicFlags logger flags (map noLoc ext)
+#else
   (flags', unrecognized, warnings) <- parseDynamicFlags flags (map noLoc ext)
+#endif
 
   -- First, try to check if this flag matches any extension name.
   let restoredPkgs = flags' { packageFlags = packageFlags flags }
@@ -252,8 +273,13 @@ doc sdoc = do
   let style = O.mkUserStyle unqual O.AllTheWay
 #endif
   let cols = pprCols flags
+#if MIN_VERSION_ghc(9,2,0)
+      d = O.runSDoc sdoc (initSDocContext flags style)
+  return $ Pretty.fullRender (Pretty.PageMode False) cols 1.5 string_txt "" d
+#else
       d = O.runSDoc sdoc (O.initSDocContext flags style)
   return $ Pretty.fullRender Pretty.PageMode cols 1.5 string_txt "" d
+#endif
 
   where
     string_txt :: Pretty.TextDetails -> String -> String
@@ -279,7 +305,12 @@ doc sdoc = do
 initGhci :: GhcMonad m => Maybe String -> m ()
 initGhci sandboxPackages = do
   -- Initialize dyn flags. Start with -XExtendedDefaultRules and -XNoMonomorphismRestriction.
-#if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,2,0)
+  -- We start handling GHC environment files
+  originalFlagsNoPackageEnv <- getSessionDynFlags
+  logger <- getLogger
+  originalFlags <- liftIO $ interpretPackageEnv logger originalFlagsNoPackageEnv
+#elif MIN_VERSION_ghc(9,0,0)
   -- We start handling GHC environment files
   originalFlagsNoPackageEnv <- getSessionDynFlags
   originalFlags <- liftIO $ interpretPackageEnv originalFlagsNoPackageEnv
@@ -302,7 +333,11 @@ initGhci sandboxPackages = do
             in packageDBFlags originalFlags ++ [pkg]
 
   void $ setSessionDynFlags $ dflags
+#if MIN_VERSION_ghc(9,2,0)
+    { backend = Interpreter
+#else
     { hscTarget = HscInterpreted
+#endif
     , ghcLink = LinkInMemory
     , pprCols = 300
     , packageDBFlags = pkgFlags
@@ -394,7 +429,11 @@ evalDeclarations decl = do
   names <- runDecls decl
   cleanUpDuplicateInstances
   flags <- getSessionDynFlags
+#if MIN_VERSION_ghc(9,2,0)
+  return $ map (replace ":Interactive." "" . showPpr flags) names
+#else
   return $ map (replace ":Interactive." "" . O.showPpr flags) names
+#endif
 
 cleanUpDuplicateInstances :: GhcMonad m => m ()
 cleanUpDuplicateInstances = modifySession $ \hscEnv ->
@@ -421,7 +460,11 @@ getType expr = do
   result <- exprType expr
 #endif
   flags <- getSessionDynFlags
+#if MIN_VERSION_ghc(9,2,0)
+  let typeStr = showSDoc flags $ O.ppr result
+#else
   let typeStr = O.showSDocUnqual flags $ O.ppr result
+#endif
   return typeStr
 
 -- | This is unfoldM from monad-loops. It repeatedly runs an IO action until it return Nothing, and

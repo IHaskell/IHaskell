@@ -22,7 +22,13 @@ import qualified Data.List.Split.Internals as Split
 import           System.Environment (getEnv)
 
 import           GHC
-#if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,2,0)
+import           GHC.Unit.Database
+import           GHC.Unit.State
+import           GHC.Driver.Ppr
+import           GHC.Driver.Session
+import           GHC.Driver.Monad as GhcMonad
+#elif MIN_VERSION_ghc(9,0,0)
 import           GHC.Unit.Database
 import           GHC.Unit.State
 import           GHC.Driver.Session
@@ -81,8 +87,12 @@ complete code posOffset = do
   let isQualified = ('.' `elem`)
       unqualNames = nub $ filter (not . isQualified) rdrNames
       qualNames = nub $ scopeNames ++ filter isQualified rdrNames
-
-#if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,2,0)
+  logger <- getLogger
+  (db, _, _, _) <- liftIO $ initUnits logger flags Nothing
+  let getNames = map (moduleNameString . exposedName) . unitExposedModules
+      moduleNames = nub $ concatMap getNames $ concatMap unitDatabaseUnits db
+#elif MIN_VERSION_ghc(9,0,0)
   let Just db = unitDatabases flags
       getNames = map (moduleNameString . exposedName) . unitExposedModules
       moduleNames = nub $ concatMap getNames $ concatMap unitDatabaseUnits db

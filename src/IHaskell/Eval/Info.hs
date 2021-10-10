@@ -8,7 +8,10 @@ import           IHaskellPrelude
 import           IHaskell.Eval.Evaluate (typeCleaner, Interpreter)
 
 import           GHC
-#if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,2,0)
+import           GHC.Driver.Ppr
+import           Control.Monad.Catch (handle)
+#elif MIN_VERSION_ghc(9,0,0)
 import           GHC.Utils.Outputable
 import           Control.Monad.Catch (handle)
 #else

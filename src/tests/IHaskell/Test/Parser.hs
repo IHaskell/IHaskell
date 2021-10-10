@@ -232,7 +232,9 @@ testParseString = describe "Parser" $ do
 #else
     dataKindsError = ParseError (Loc 1 10) msg
 #endif
-#if MIN_VERSION_ghc(8,8,0)
+#if MIN_VERSION_ghc(9,2,0)
+    msg = "Cannot parse data constructor in a data/newtype declaration: 3"
+#elif MIN_VERSION_ghc(8,8,0)
     msg = "Cannot parse data constructor in a data/newtype declaration:\n  3"
 #else
     msg = "Cannot parse data constructor in a data/newtype declaration: 3"
