@@ -3,7 +3,7 @@
 
   inputs = {
 
-    nixpkgs.url = "github:NixOS/nixpkgs?rev=a51aa6523bd8ee985bc70987909eff235900197a";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     hls.url = "github:haskell/haskell-language-server";
 
@@ -13,20 +13,44 @@
     };
   };
 
-  outputs = inputs@{ self, hls, nixpkgs, flake-utils, ... }:
+  outputs = { self, hls, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
+
+      compilerVersion = "8107";
+
       pkgs = import nixpkgs {
         inherit system;
       };
-      compilerVersion = "8107";
 
       ihaskellEnv = import ./release.nix {
         compiler = "ghc${compilerVersion}";
         nixpkgs = pkgs;
-        # just for the example
-        packages = p: [ p.Frames ];
       };
+
+      hsPkgs = pkgs.haskell.packages."ghc${compilerVersion}";
+
+      myModifier = drv:
+        pkgs.haskell.lib.addBuildTools drv (with hsPkgs; [
+          cabal-install
+          self.inputs.hls.packages."${system}"."haskell-language-server-${compilerVersion}"
+        ]);
     in {
-      defaultPackage = ihaskellEnv;
+
+      packages = {
+        ihaskell = hsPkgs.developPackage {
+          root =  pkgs.lib.cleanSource ./.;
+          name = "ihaskell";
+          returnShellEnv = false;
+          modifier = pkgs.haskell.lib.dontCheck;
+          overrides = ihaskellEnv.ihaskellOverlay;
+          withHoogle = true;
+        };
+
+        ihaskellEnv = ihaskellEnv;
+      };
+
+      defaultPackage = self.packages.${system}.ihaskell;
+
+      devShell = (myModifier self.packages.${system}.ihaskell).envFunc {withHoogle=true;};
     });
 }
