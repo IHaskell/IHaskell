@@ -49,6 +49,9 @@ jobs:
         -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-21.05 \
         ${{ matrix.versions.release }} \
         --arg packages "haskellPackages: [ haskellPackages.ihaskell ]"
+      # release-9.2.nix doesn't include HLint support so the test fails
+    - if: ${{ matrix.versions.release != 'release-9.2.nix' }}
+      run: |
         nix-shell \
         -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-21.05 \
         -p jq --run \
