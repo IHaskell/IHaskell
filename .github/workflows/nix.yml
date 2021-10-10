@@ -45,7 +45,7 @@ jobs:
         name: ihaskell
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
     - run: |
-        nix-build \
+        nix-build --keep-going \
         -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-21.05 \
         ${{ matrix.versions.release }} \
         --arg packages "haskellPackages: [ haskellPackages.ihaskell ]"
