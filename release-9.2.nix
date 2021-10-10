@@ -1,8 +1,8 @@
 let
   # https://github.com/NixOS/nixpkgs/pull/141095
   nixpkgs-src = builtins.fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/tarball/bab822b583416305be6b98424cb2980f4fcf4f24";
-    sha256 = "1iwhb8i7v9734z0mk695klflry4kfrcs3m5l7g97brsyardcz9gj";
+    url = "https://github.com/NixOS/nixpkgs/tarball/12c0ddf68107e7e434f0632e34100f31d815e424";
+    sha256 = "10077pn5qbm14phdmfl8c3rphys22iif6r0b8pzj5pc4hy9dwx33";
   };
 in
 
