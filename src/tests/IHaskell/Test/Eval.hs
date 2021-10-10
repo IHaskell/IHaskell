@@ -161,7 +161,10 @@ testEval =
       ":! printf \"hello\\nworld\"" `becomes` ["hello\nworld"]
 
     it "evaluates directives" $ do
-#if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,2,0)
+      -- It's `a` instead of `p`
+      ":typ 3" `becomes` ["3 :: forall {a}. Num a => a"]
+#elif MIN_VERSION_ghc(9,0,0)
       -- brackets around the type variable
       ":typ 3" `becomes` ["3 :: forall {p}. Num p => p"]
 #elif MIN_VERSION_ghc(8,2,0)

@@ -37,7 +37,21 @@ import           System.Exit
 import           Data.Maybe (mapMaybe)
 import           System.Environment (getEnv)
 
-#if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,2,0)
+import qualified GHC.Runtime.Debugger as Debugger
+import           GHC.Runtime.Eval
+import           GHC.Driver.Session
+import           GHC.Unit.State
+import           Control.Monad.Catch as MC
+import           GHC.Utils.Outputable hiding ((<>))
+import           GHC.Data.Bag
+import           GHC.Driver.Backend
+import           GHC.Driver.Ppr
+import           GHC.Runtime.Context
+import           GHC.Types.SourceError
+import           GHC.Unit.Types (UnitId)
+import qualified GHC.Utils.Error as ErrUtils
+#elif MIN_VERSION_ghc(9,0,0)
 import qualified GHC.Runtime.Debugger as Debugger
 import           GHC.Runtime.Eval
 import           GHC.Driver.Session
@@ -85,6 +99,11 @@ import           FastString (unpackFS)
 #else
 import           Paths_ihaskell (version)
 import           Data.Version (versionBranch)
+#endif
+
+#if MIN_VERSION_ghc(9,2,0)
+showSDocUnqual :: DynFlags -> SDoc -> String
+showSDocUnqual = showSDoc
 #endif
 
 #if MIN_VERSION_ghc(9,0,0)
@@ -192,29 +211,43 @@ interpret libdir allowedStdin needsSupportLibraries action = runGhc (Just libdir
   -- Run the rest of the interpreter
   action hasSupportLibraries
 
-#if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,2,0)
+packageIdString' :: Logger -> DynFlags -> UnitInfo -> IO String
+packageIdString' logger dflags pkg_cfg = do
+    (_, unitState, _, _) <- initUnits logger dflags Nothing
+    case (lookupUnit unitState $ mkUnit pkg_cfg) of
+      Nothing -> pure "(unknown)"
+      Just cfg -> let
+        PackageName name = unitPackageName cfg
+        in pure $ unpackFS name
+#elif MIN_VERSION_ghc(9,0,0)
 packageIdString' :: DynFlags -> UnitInfo -> String
-#else
-packageIdString' :: DynFlags -> PackageConfig -> String
-#endif
 packageIdString' dflags pkg_cfg =
-#if MIN_VERSION_ghc(9,0,0)
     case (lookupUnit (unitState dflags) $ mkUnit pkg_cfg) of
       Nothing -> "(unknown)"
       Just cfg -> let
         PackageName name = unitPackageName cfg
         in unpackFS name
 #elif MIN_VERSION_ghc(8,2,0)
+packageIdString' :: DynFlags -> PackageConfig -> String
+packageIdString' dflags pkg_cfg =
     case (lookupPackage dflags $ packageConfigId pkg_cfg) of
       Nothing -> "(unknown)"
       Just cfg -> let
         PackageName name = packageName cfg
         in unpackFS name
 #else
+packageIdString' :: DynFlags -> PackageConfig -> String
+packageIdString' dflags pkg_cfg =
     fromMaybe "(unknown)" (unitIdPackageIdString dflags $ packageConfigId pkg_cfg)
 #endif
 
-#if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,2,0)
+getPackageConfigs :: Logger -> DynFlags -> IO [GenUnitInfo UnitId]
+getPackageConfigs logger dflags = do
+    (pkgDb, _, _, _) <- initUnits logger dflags Nothing
+    pure $ foldMap unitDatabaseUnits pkgDb
+#elif MIN_VERSION_ghc(9,0,0)
 getPackageConfigs :: DynFlags -> [GenUnitInfo UnitId]
 getPackageConfigs dflags =
     foldMap unitDatabaseUnits pkgDb
@@ -236,16 +269,28 @@ initializeImports importSupportLibraries = do
   -- version of the ihaskell library. Also verify that the packages we load are not broken.
   dflags <- getSessionDynFlags
   broken <- liftIO getBrokenPackages
-#if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,2,0)
+  let dflgs = dflags
+#elif MIN_VERSION_ghc(9,0,0)
   dflgs <- liftIO $ initUnits dflags
 #else
   (dflgs, _) <- liftIO $ initPackages dflags
 #endif
+
+#if MIN_VERSION_ghc(9,2,0)
+  logger <- getLogger
+  db <- liftIO $ getPackageConfigs logger dflgs
+  packageNames <- liftIO $ mapM (packageIdString' logger dflgs) db
+  let hiddenPackages = Set.intersection hiddenPackageNames (Set.fromList packageNames)
+      hiddenFlags = fmap HidePackage $ Set.toList hiddenPackages
+      initStr = "ihaskell-"
+#else
   let db = getPackageConfigs dflgs
       packageNames = map (packageIdString' dflgs) db
       hiddenPackages = Set.intersection hiddenPackageNames (Set.fromList packageNames)
       hiddenFlags = fmap HidePackage $ Set.toList hiddenPackages
       initStr = "ihaskell-"
+#endif
 
 #if MIN_VERSION_ghc(8,2,0)
       -- Name of the ihaskell package, i.e. "ihaskell"
@@ -464,9 +509,13 @@ flushWidgetMessages state evalmsgs widgetHandler = do
         let commMessages = evalmsgs ++ messages
         widgetHandler state commMessages
 
-
+#if MIN_VERSION_ghc(9,2,0)
+getErrMsgDoc :: ErrUtils.WarnMsg -> SDoc
+getErrMsgDoc = ErrUtils.pprLocMsgEnvelope
+#else
 getErrMsgDoc :: ErrUtils.ErrMsg -> SDoc
 getErrMsgDoc = ErrUtils.pprLocErrMsg
+#endif
 
 safely :: KernelState -> Interpreter EvalOut -> Interpreter EvalOut
 safely state = ghandle handler . ghandle sourceErrorHandler
@@ -862,9 +911,16 @@ evalCommand _ (Directive SPrint binding) state = wrapExecution state $ do
 #else
   let action = \_dflags _sev _srcspan _ppr _style msg -> modifyIORef' contents (showSDoc flags msg :)
 #endif
+#if MIN_VERSION_ghc(9,2,0)
+  pushLogHookM (const action)
+#else
   let flags' = flags { log_action = action }
   _ <- setSessionDynFlags flags'
+#endif
   Debugger.pprintClosureCommand False False binding
+#if MIN_VERSION_ghc(9,2,0)
+  popLogHookM
+#endif
   _ <- setSessionDynFlags flags
   sprint <- liftIO $ readIORef contents
   return $ formatType (unlines sprint)
@@ -1100,13 +1156,21 @@ doLoadModule name modName = do
     -- Compile loaded modules.
     flags <- getSessionDynFlags
     errRef <- liftIO $ newIORef []
+#if MIN_VERSION_ghc(9,0,0)
+    let logAction = \_dflags _warn _sev _srcspan msg -> modifyIORef' errRef (showSDoc flags msg :)
+#else
+    let logAction = \_dflags _sev _srcspan _ppr _style msg -> modifyIORef' errRef (showSDoc flags msg :)
+#endif
+#if MIN_VERSION_ghc(9,2,0)
+    pushLogHookM (const logAction)
+#endif
     _ <- setSessionDynFlags $ flip gopt_set Opt_BuildDynamicToo
       flags
-        { hscTarget = objTarget flags
-#if MIN_VERSION_ghc(9,0,0)
-        , log_action = \_dflags _warn _sev _srcspan msg -> modifyIORef' errRef (showSDoc flags msg :)
+#if MIN_VERSION_ghc(9,2,0)
+        { backend = objTarget flags
 #else
-        , log_action = \_dflags _sev _srcspan _ppr _style msg -> modifyIORef' errRef (showSDoc flags msg :)
+        { hscTarget = objTarget flags
+        , log_action = logAction
 #endif
         }
 
@@ -1134,6 +1198,9 @@ doLoadModule name modName = do
 
     -- Switch back to interpreted mode.
     _ <- setSessionDynFlags flags
+#if MIN_VERSION_ghc(9,2,0)
+    popLogHookM
+#endif
 
     case result of
       Succeeded -> return mempty
@@ -1151,7 +1218,11 @@ doLoadModule name modName = do
 
       -- Switch to interpreted mode!
       flags <- getSessionDynFlags
+#if MIN_VERSION_ghc(9,2,0)
+      _ <- setSessionDynFlags flags { backend = Interpreter }
+#else
       _ <- setSessionDynFlags flags { hscTarget = HscInterpreted }
+#endif
 
       -- Return to old context, make sure we have `it`.
       setContext imported
@@ -1170,10 +1241,13 @@ doReload = do
     errRef <- liftIO $ newIORef []
     _ <- setSessionDynFlags $ flip gopt_set Opt_BuildDynamicToo
       flags
+#if MIN_VERSION_ghc(9,2,0)
+        { backend = objTarget flags
+#elif MIN_VERSION_ghc(9,0,0)
         { hscTarget = objTarget flags
-#if MIN_VERSION_ghc(9,0,0)
         , log_action = \_dflags _warn _sev _srcspan msg -> modifyIORef' errRef (showSDoc flags msg :)
 #else
+        { hscTarget = objTarget flags
         , log_action = \_dflags _sev _srcspan _ppr _style msg -> modifyIORef' errRef (showSDoc flags msg :)
 #endif
         }
@@ -1212,7 +1286,11 @@ doReload = do
 
       -- Switch to interpreted mode!
       flags <- getSessionDynFlags
+#if MIN_VERSION_ghc(9,2,0)
+      _ <- setSessionDynFlags flags { backend = Interpreter }
+#else
       _ <- setSessionDynFlags flags { hscTarget = HscInterpreted }
+#endif
 
       -- Return to old context, make sure we have `it`.
       setContext imported
@@ -1220,10 +1298,14 @@ doReload = do
 
       return $ displayError $ "Failed to reload."
 
+#if MIN_VERSION_ghc(9,2,0)
+objTarget :: DynFlags -> Backend
+objTarget = platformDefaultBackend . targetPlatform
+#elif MIN_VERSION_ghc(8,10,0)
 objTarget :: DynFlags -> HscTarget
-#if MIN_VERSION_ghc(8,10,0)
 objTarget = defaultObjectTarget
 #else
+objTarget :: DynFlags -> HscTarget
 objTarget flags = defaultObjectTarget $ targetPlatform flags
 #endif
 
