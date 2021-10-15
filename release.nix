@@ -25,8 +25,8 @@ let
           export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
         '';
       });
-      ghc-parser        = self.callCabal2nix "ghc-parser" ./ghc-parser {};
-      ipython-kernel    = self.callCabal2nix "ipython-kernel" ./ipython-kernel {};
+      ghc-parser        = self.callCabal2nix "ghc-parser" (builtins.path { path = ./ghc-parser; name = "ghc-parser-src"; }) {};
+      ipython-kernel    = self.callCabal2nix "ipython-kernel" (builtins.path { path = ./ipython-kernel; name = "ipython-kernel-src"; }) {};
     } // displays self);
   });
   # statically linking against haskell libs reduces closure size at the expense
