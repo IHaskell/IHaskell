@@ -1,6 +1,6 @@
 # should match the GHC version of the stack.yaml resolver
 # checked in CI
-ARG GHC_VERSION=8.10.4
+ARG GHC_VERSION=8.10.7
 
 FROM haskell:${GHC_VERSION} AS ihaskell_base
 
@@ -14,7 +14,7 @@ FROM ihaskell_base AS builder
 
 # Install Ubuntu packages needed for IHaskell build
 RUN apt-get update && \
-    apt-get install -y libzmq3-dev \
+    apt-get install -y libzmq3-dev pkg-config \
         && \
     rm -rf /var/lib/apt/lists/*
 
