@@ -20,17 +20,17 @@ let
   });
 
   ihaskellOverlay = (self: super: {
-      ihaskell = nixpkgs.haskell.lib.overrideCabal (
-                          self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
-        preCheck = ''
-          export HOME=$TMPDIR/home
-          export PATH=$PWD/dist/build/ihaskell:$PATH
-          export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
-        '';
-      });
-      ghc-parser        = self.callCabal2nix "ghc-parser" (builtins.path { path = ./ghc-parser; name = "ghc-parser-src"; }) {};
-      ipython-kernel    = self.callCabal2nix "ipython-kernel" (builtins.path { path = ./ipython-kernel; name = "ipython-kernel-src"; }) {};
-    } // displays self);
+    ihaskell = nixpkgs.haskell.lib.overrideCabal (
+                     self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
+      preCheck = ''
+        export HOME=$TMPDIR/home
+        export PATH=$PWD/dist/build/ihaskell:$PATH
+        export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
+      '';
+    });
+    ghc-parser     = self.callCabal2nix "ghc-parser" (builtins.path { path = ./ghc-parser; name = "ghc-parser-src"; }) {};
+    ipython-kernel = self.callCabal2nix "ipython-kernel" (builtins.path { path = ./ipython-kernel; name = "ipython-kernel-src"; }) {};
+  } // displays self);
 
   # statically linking against haskell libs reduces closure size at the expense
   # of startup/reload time, so we make it configurable
@@ -98,7 +98,7 @@ let
 in ihaskellBuildEnvFunc {
   inherit ihaskellEnv jupyterlab systemPackages;
   ihaskellDataDir = let
-    ihaskellGhcLib =  ihaskellGhcLibFunc ihaskellExe ihaskellEnv;
+    ihaskellGhcLib = ihaskellGhcLibFunc ihaskellExe ihaskellEnv;
     ihaskellKernelFile = ihaskellKernelFileFunc ihaskellGhcLib rtsopts;
     ihaskellKernelSpec = ihaskellKernelSpecFunc ihaskellKernelFile;
   in ihaskellDataDirFunc ihaskellKernelSpec ihaskellLabextension;
