@@ -16,8 +16,11 @@ let
       (display: { name = "ihaskell-${display}"; value = self.callCabal2nix display "${ihaskell-src}/ihaskell-display/ihaskell-${display}" {}; })
       [ "aeson" "blaze" "charts" "diagrams" "gnuplot" "graphviz" "hatex" "juicypixels" "magic" "plot" "rlangqq" "static-canvas" "widgets" ]);
   haskellPackages = nixpkgs.haskell.packages."${compiler}".override (old: {
-    overrides = nixpkgs.lib.composeExtensions (old.overrides or (_: _: {})) (self: super: {
-      ihaskell          = nixpkgs.haskell.lib.overrideCabal (
+    overrides = nixpkgs.lib.composeExtensions (old.overrides or (_: _: {})) ihaskellOverlay;
+  });
+
+  ihaskellOverlay = (self: super: {
+      ihaskell = nixpkgs.haskell.lib.overrideCabal (
                           self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
         preCheck = ''
           export HOME=$TMPDIR/home
@@ -28,7 +31,7 @@ let
       ghc-parser        = self.callCabal2nix "ghc-parser" (builtins.path { path = ./ghc-parser; name = "ghc-parser-src"; }) {};
       ipython-kernel    = self.callCabal2nix "ipython-kernel" (builtins.path { path = ./ipython-kernel; name = "ipython-kernel-src"; }) {};
     } // displays self);
-  });
+
   # statically linking against haskell libs reduces closure size at the expense
   # of startup/reload time, so we make it configurable
   ihaskellExe = if staticExecutable
@@ -67,7 +70,7 @@ let
   };
   ihaskellBuildEnvFunc = { ihaskellEnv, jupyterlab, systemPackages, ihaskellDataDir }: nixpkgs.buildEnv {
     name = "ihaskell-with-packages";
-    buildInputs = [ nixpkgs.makeWrapper ];
+    nativeBuildInputs = [ nixpkgs.makeWrapper ];
     paths = [ ihaskellEnv jupyterlab ];
     postBuild = ''
       for prg in $out/bin"/"*;do
@@ -82,6 +85,7 @@ let
       inherit haskellPackages;
       inherit ihaskellExe;
       inherit ihaskellEnv;
+      inherit ihaskellOverlay;
       inherit ihaskellLabextension;
       inherit jupyterlab;
       inherit ihaskellGhcLibFunc;
