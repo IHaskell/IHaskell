@@ -248,13 +248,13 @@ setFlags ext = do
 
 #if MIN_VERSION_ghc(9,2,0)
   -- Loading plugins explicitly is no longer required in 9.2
-  let flags'' = flags'
+  let flags'' = flags' { packageFlags = packageFlags flags }
 #elif MIN_VERSION_ghc(8,6,0)
   -- Plugins were introduced in 8.6
   hsc_env <- GHC.getSession
   flags'' <- liftIO (initializePlugins hsc_env (flags' { packageFlags = packageFlags flags }))
 #else
-  let flags'' = flags'
+  let flags'' = flags' { packageFlags = packageFlags flags }
 #endif
   _ <- GHC.setProgramDynFlags flags''
   GHC.setInteractiveDynFlags flags''
