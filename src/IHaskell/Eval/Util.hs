@@ -49,6 +49,7 @@ import           GHC.Types.TyThing
 import qualified GHC.Driver.Session as DynFlags
 import qualified GHC.Utils.Outputable as O
 import qualified GHC.Utils.Ppr as Pretty
+import           GHC.Runtime.Loader
 #elif MIN_VERSION_ghc(9,0,0)
 import           GHC.Core.InstEnv (is_cls, is_tys)
 import           GHC.Core.Unify
@@ -62,6 +63,7 @@ import           GHC.Types.Name.Set
 import qualified GHC.Driver.Session as DynFlags
 import qualified GHC.Utils.Outputable as O
 import qualified GHC.Utils.Ppr as Pretty
+import           GHC.Runtime.Loader
 #else
 import           DynFlags
 import           GhcMonad
@@ -73,6 +75,9 @@ import           InstEnv (ClsInst(..))
 import           Unify (tcMatchTys)
 import qualified Pretty
 import qualified Outputable as O
+#if MIN_VERSION_ghc(8,6,0)
+import           DynamicLoading
+#endif
 #endif
 #if MIN_VERSION_ghc(8,6,0)
 #else
@@ -236,15 +241,26 @@ setFlags ext = do
   flags <- getSessionDynFlags
 #if MIN_VERSION_ghc(9,2,0)
   logger <- getLogger
-  (flags', unrecognized, warnings) <- parseDynamicFlags logger flags (map noLoc ext)
+  (flags0, unrecognized, warnings) <- parseDynamicFlags logger flags (map noLoc ext)
 #else
-  (flags', unrecognized, warnings) <- parseDynamicFlags flags (map noLoc ext)
+  (flags0, unrecognized, warnings) <- parseDynamicFlags flags (map noLoc ext)
 #endif
 
-  -- First, try to check if this flag matches any extension name.
-  let restoredPkgs = flags' { packageFlags = packageFlags flags }
-  _ <- GHC.setProgramDynFlags restoredPkgs
-  GHC.setInteractiveDynFlags restoredPkgs
+  -- We can't update packages here
+  let flags1 = flags0 { packageFlags = packageFlags flags }
+
+#if MIN_VERSION_ghc(9,2,0)
+  -- Loading plugins explicitly is no longer required in 9.2
+  let flags2 = flags1
+#elif MIN_VERSION_ghc(8,6,0)
+  -- Plugins were introduced in 8.6
+  hsc_env <- GHC.getSession
+  flags2 <- liftIO (initializePlugins hsc_env flags1)
+#else
+  let flags2 = flags1
+#endif
+  _ <- GHC.setProgramDynFlags flags2
+  GHC.setInteractiveDynFlags flags2
 
   -- Create the parse errors.
   let noParseErrs = map (("Could not parse: " ++) . unLoc) unrecognized
@@ -253,7 +269,7 @@ setFlags ext = do
 #else
       allWarns = map unLoc warnings ++
 #endif
-                 ["-package not supported yet" | packageFlags flags /= packageFlags flags']
+                 ["-package not supported yet" | packageFlags flags /= packageFlags flags0]
       warnErrs = map ("Warning: " ++) allWarns
   return $ noParseErrs ++ warnErrs
 
