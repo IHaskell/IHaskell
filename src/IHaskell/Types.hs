@@ -47,7 +47,7 @@ import qualified Data.HashMap.Strict as HashMap
 import           Data.Aeson (ToJSON (..), Value, (.=), object, Value(String))
 import           Data.Function (on)
 import           Data.Text (pack)
-import           Data.Serialize
+import           Data.Binary
 import           GHC.Generics
 
 import           IHaskell.IPython.Kernel
@@ -159,7 +159,7 @@ instance ToJSON Display where
   toJSON (Display d) = object (map displayDataToJson d)
   toJSON (ManyDisplay d) = toJSON d
 
-instance Serialize Display
+instance Binary Display
 
 instance Semigroup Display where
   ManyDisplay a <> ManyDisplay b = ManyDisplay (a ++ b)

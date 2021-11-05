@@ -47,8 +47,7 @@ import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
 import           Data.Semigroup (Semigroup)
-import           Data.Serialize
-import           Data.Serialize.Text ()
+import           Data.Binary
 import           Data.Text (Text, pack)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
@@ -923,9 +922,9 @@ data DisplayData = DisplayData MimeType Text
 instance Show DisplayData where
   show _ = "DisplayData"
 
-instance Serialize DisplayData
+instance Binary DisplayData
 
-instance Serialize MimeType
+instance Binary MimeType
 
 -- | Possible MIME types for the display data.
 type Width = Int

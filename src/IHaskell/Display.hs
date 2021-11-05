@@ -60,8 +60,9 @@ module IHaskell.Display (
 import           IHaskellPrelude
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as CBS
+import qualified Data.ByteString.Lazy as LBS
 
-import           Data.Serialize as Serialize
+import           Data.Binary as Binary
 import qualified Data.ByteString.Base64 as Base64
 import           System.Directory (getTemporaryDirectory, setCurrentDirectory)
 
@@ -164,8 +165,8 @@ base64 :: ByteString -> Base64
 base64 = E.decodeUtf8 . Base64.encode
 
 -- | For internal use within IHaskell. Serialize displays to a ByteString.
-serializeDisplay :: Display -> ByteString
-serializeDisplay = Serialize.encode
+serializeDisplay :: Display -> LBS.ByteString
+serializeDisplay = Binary.encode
 
 -- | Items written to this chan will be included in the output sent to the frontend (ultimately the
 -- browser), the next time IHaskell has an item to display.
@@ -175,9 +176,9 @@ displayChan = unsafePerformIO newTChanIO
 
 -- | Take everything that was put into the 'displayChan' at that point out, and make a 'Display' out
 -- of it.
-displayFromChanEncoded :: IO ByteString
+displayFromChanEncoded :: IO LBS.ByteString
 displayFromChanEncoded =
-  Serialize.encode <$> Just . many <$> unfoldM (atomically $ tryReadTChan displayChan)
+  Binary.encode <$> Just . many <$> unfoldM (atomically $ tryReadTChan displayChan)
 
 -- | Write to the display channel. The contents will be displayed in the notebook once the current
 -- execution call ends.
