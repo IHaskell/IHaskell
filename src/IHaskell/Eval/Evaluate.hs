@@ -27,7 +27,7 @@ import           Data.List (nubBy)
 import qualified Data.Set as Set
 import           Data.Char as Char
 import           Data.Dynamic
-import qualified Data.Serialize as Serialize
+import qualified Data.Binary as Binary
 import           System.Directory
 import           System.Posix.IO (fdToHandle)
 import           System.IO (hGetChar, hSetEncoding, utf8)
@@ -436,9 +436,9 @@ evaluate kernelState code output widgetHandler = do
                         Left err -> error $ "Deserialization error (Evaluate.hs): " ++ err
                         Right displaysIO -> do
                           result <- liftIO displaysIO
-                          case Serialize.decode result of
-                            Left err  -> error $ "Deserialization error (Evaluate.hs): " ++ err
-                            Right res -> return res
+                          case Binary.decodeOrFail result of
+                            Left (_, _, err) -> error $ "Deserialization error (Evaluate.hs): " ++ err
+                            Right (_, _, res) -> return res
                     else return Nothing
       let result =
             case dispsMay of
@@ -1044,9 +1044,9 @@ evalCommand output (Expression expr) state = do
             Nothing -> error "Expecting lazy Bytestring"
             Just bytestringIO -> do
               bytestring <- liftIO bytestringIO
-              case Serialize.decode bytestring of
-                Left err -> error err
-                Right disp ->
+              case Binary.decodeOrFail bytestring of
+                Left (_, _, err) -> error err
+                Right (_, _, disp) ->
                   return $
                     if useSvg state
                       then disp :: Display
