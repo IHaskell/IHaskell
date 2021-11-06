@@ -103,14 +103,3 @@ jobs:
           stack install
           stack exec -- ihaskell install --stack
           test/acceptance.nbconvert.sh stack exec -- jupyter nbconvert
-      - name: Check Dockerfile GHC version matches
-        if: ${{ matrix.versions.stack-yaml == 'stack.yaml' }}
-        run: |
-          set -e
-          STACK_GHC_VERSION=$(stack exec -- ghc --version | awk '{ print $NF }')
-          DOCKER_GHC_VERSION=$(sed -n 's/ARG GHC_VERSION=\(.*\)/\1/p' Dockerfile)
-          if [[ ${STACK_GHC_VERSION} != ${DOCKER_GHC_VERSION} ]]; then
-            echo 'GHC_VERSION in Dockerfile does not match stack resolver'
-            echo "GHC_VERSION should be ${STACK_GHC_VERSION}"
-            exit 1
-          fi

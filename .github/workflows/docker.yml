@@ -38,6 +38,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Install Stack
+      run: |
+        export PATH=$HOME/.local/bin:$PATH
+        mkdir -p ~/.local/bin
+        curl -L https://get.haskellstack.org/stable/linux-x86_64.tar.gz | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+    - name: Check Dockerfile GHC version matches
+      run: |
+        set -e
+        STACK_GHC_VERSION=$(stack exec -- ghc --version | awk '{ print $NF }')
+        DOCKER_GHC_VERSION=$(sed -n 's/ARG GHC_VERSION=\(.*\)/\1/p' Dockerfile)
+        if [[ ${STACK_GHC_VERSION} != ${DOCKER_GHC_VERSION} ]]; then
+          echo 'GHC_VERSION in Dockerfile does not match stack resolver'
+          echo "GHC_VERSION should be ${STACK_GHC_VERSION}"
+          exit 1
+        fi
     - uses: elgohr/Publish-Docker-Github-Action@3.04
       with:
         name: gibiansky/ihaskell
