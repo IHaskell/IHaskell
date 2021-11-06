@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 
 -- | Description : Easy IPython kernels = Overview This module provides automation for writing
 -- simple IPython kernels. In particular, it provides a record type that defines configurations and
@@ -34,7 +34,6 @@ import           Control.Concurrent (MVar, readChan, writeChan, newMVar, readMVa
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad (forever, when, void)
 
-import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
 import qualified Data.Text as T
@@ -46,6 +45,12 @@ import           System.Directory (createDirectoryIfMissing, getTemporaryDirecto
 import           System.FilePath ((</>))
 import           System.Exit (exitSuccess)
 import           System.IO (openFile, IOMode(ReadMode))
+
+#if MIN_VERSION_aeson(2,0,0)
+import qualified Data.Aeson.KeyMap as KeyMap
+#else
+import qualified Data.HashMap.Strict as HashMap
+#endif
 
 -- | The kernel configuration specifies the behavior that is specific to your language. The type
 -- parameters provide the monad in which your kernel will run, the type of intermediate outputs from
@@ -124,8 +129,13 @@ createReplyHeader parent = do
   let repType = fromMaybe err (replyType $ mhMsgType parent)
       err = error $ "No reply for message " ++ show (mhMsgType parent)
 
+#if MIN_VERSION_aeson(2,0,0)
+  return $ MessageHeader (mhIdentifiers parent) (Just parent) (Metadata (KeyMap.fromList []))
+            newMessageId (mhSessionId parent) (mhUsername parent) repType []
+#else
   return $ MessageHeader (mhIdentifiers parent) (Just parent) (Metadata (HashMap.fromList []))
             newMessageId (mhSessionId parent) (mhUsername parent) repType []
+#endif
 
 
 -- | Execute an IPython kernel for a config. Your 'main' action should call this as the last thing
@@ -221,7 +231,11 @@ replyTo config _ _ req@CompleteRequest{} replyHeader = do
 
   let start = pos - T.length matchedText
       end = pos
+#if MIN_VERSION_aeson(2,0,0)
+      reply = CompleteReply replyHeader completions start end (Metadata KeyMap.empty) True
+#else
       reply = CompleteReply replyHeader completions start end (Metadata HashMap.empty) True
+#endif
   return reply
 
 replyTo config _ _ req@InspectRequest{} replyHeader = do
