@@ -1,8 +1,8 @@
 let
   # https://github.com/NixOS/nixpkgs/pull/144758
   nixpkgs-src = builtins.fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/tarball/b38d0a808655d67253c91a5d724130a31e0aedb2";
-    sha256 = "0pgydkfir85q8jha6yzgsk3gidjblgdzckxwx8kbk6298429i237";
+    url = "https://github.com/NixOS/nixpkgs/tarball/207243f7c9ca642af5c7f6bc0e7dcbd32890b411";
+    sha256 = "099311cml687zm3mi9pqabd5c46nl2ydg2akidfj4a2w59pl39kn";
   };
 in
 
@@ -38,6 +38,8 @@ let
       });
       ghc-parser        = self.callCabal2nix "ghc-parser" ./ghc-parser {};
       ipython-kernel    = self.callCabal2nix "ipython-kernel" ./ipython-kernel {};
+
+      aeson = super.aeson_2_0_1_0;
     } // displays self);
   });
   # statically linking against haskell libs reduces closure size at the expense
