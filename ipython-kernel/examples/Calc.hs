@@ -8,7 +8,7 @@ import           Control.Arrow
 import           Control.Concurrent (MVar, newMVar, takeMVar, putMVar, threadDelay)
 import           Control.Monad (guard)
 import           Control.Monad.IO.Class (MonadIO(..))
-import           Control.Monad.State.Strict (StateT, get, modify, runStateT)
+import           Control.Monad.Trans.State.Strict (StateT, get, modify, runStateT)
 
 import           Data.Char (isDigit)
 import           Data.List (isPrefixOf)
