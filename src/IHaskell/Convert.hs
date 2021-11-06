@@ -5,7 +5,8 @@ module IHaskell.Convert (convert) where
 
 import           IHaskellPrelude
 
-import           Control.Monad.Identity (Identity(Identity), unless, when)
+import           Control.Monad (unless, when)
+import           Data.Functor.Identity (Identity(Identity))
 import           IHaskell.Convert.Args (ConvertSpec(..), fromJustConvertSpec, toConvertSpec)
 import           IHaskell.Convert.IpynbToLhs (ipynbToLhs)
 import           IHaskell.Convert.LhsToIpynb (lhsToIpynb)

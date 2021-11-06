@@ -7,7 +7,7 @@ import           IHaskellPrelude
 import qualified Data.Text.Lazy as LT
 
 import           Control.Applicative ((<$>))
-import           Control.Monad.Identity (Identity(Identity))
+import           Data.Functor.Identity (Identity(Identity))
 import           Data.Char (toLower)
 import           Data.List (partition)
 import           Data.Maybe (fromMaybe)
