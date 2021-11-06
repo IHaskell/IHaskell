@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
 
 module IHaskell.Convert.IpynbToLhs (ipynbToLhs) where
 
@@ -9,12 +10,17 @@ import qualified Data.ByteString.Lazy as LBS
 
 import           Data.Aeson (decode, Object, Value(Array, Object, String))
 import           Data.Vector (Vector)
-import           Data.HashMap.Strict (lookup)
 
 import qualified Data.Text.Lazy.IO as LTIO
 import qualified Data.Vector as V (map, mapM, toList)
 
 import           IHaskell.Flags (LhsStyle(..))
+
+#if MIN_VERSION_aeson(2,0,0)
+import           Data.Aeson.KeyMap (lookup)
+#else
+import           Data.HashMap.Strict (lookup)
+#endif
 
 ipynbToLhs :: LhsStyle LText
            -> FilePath -- ^ the filename of an ipython notebook

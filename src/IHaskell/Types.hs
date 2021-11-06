@@ -4,6 +4,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP #-}
 
 -- | Description : All message type definitions.
 module IHaskell.Types (
@@ -43,7 +44,6 @@ module IHaskell.Types (
 
 import           IHaskellPrelude
 
-import qualified Data.HashMap.Strict as HashMap
 import           Data.Aeson (ToJSON (..), Value, (.=), object, Value(String))
 import           Data.Function (on)
 import           Data.Text (pack)
@@ -51,6 +51,12 @@ import           Data.Binary
 import           GHC.Generics
 
 import           IHaskell.IPython.Kernel
+
+#if MIN_VERSION_aeson(2,0,0)
+import qualified Data.Aeson.KeyMap as KeyMap
+#else
+import qualified Data.HashMap.Strict as HashMap
+#endif
 
 -- | A class for displayable Haskell types.
 --
@@ -299,9 +305,15 @@ dupHeader hdr messageType = do
 setVersion :: MessageHeader  -- ^ The header to modify
            -> String         -- ^ The version to set
            -> MessageHeader  -- ^ The modified header
--- We use the 'fromList' function from "Data.HashMap.Strict" instead of the 'object' function from
--- "Data.Aeson" because 'object' returns a 'Value', but metadata needs an 'Object'.
+
+-- We use the 'fromList' function from "Data.HashMap.Strict" (or
+-- "Data.Aeson.KeyMap") instead of the 'object' function from "Data.Aeson"
+-- because 'object' returns a 'Value', but metadata needs an 'Object'.
+#if MIN_VERSION_aeson(2,0,0)
+setVersion hdr v = hdr { mhMetadata = Metadata (KeyMap.fromList [("version", String $ pack v)]) }
+#else
 setVersion hdr v = hdr { mhMetadata = Metadata (HashMap.fromList [("version", String $ pack v)]) }
+#endif
 
 -- | Whether or not an error occurred.
 data ErrorOccurred = Success

@@ -20,7 +20,6 @@ import           System.Environment (getArgs)
 import           System.Environment (setEnv)
 import           System.Posix.Signals
 import qualified Data.Map as Map
-import qualified Data.HashMap.Strict as HashMap
 import           Data.List (break, last)
 import           Data.Version (showVersion)
 
@@ -42,6 +41,13 @@ import qualified IHaskell.IPython.Stdin as Stdin
 
 -- Cabal imports.
 import           Paths_ihaskell(version)
+
+#if MIN_VERSION_aeson(2,0,0)
+import qualified Data.Aeson.KeyMap as KeyMap
+import qualified Data.Aeson.Key as Key
+#else
+import qualified Data.HashMap.Strict as HashMap
+#endif
 
 main :: IO ()
 main = do
@@ -340,7 +346,11 @@ replyTo _ _ req@CompleteRequest{} replyHeader state = do
 
   let start = pos - length matchedText
       end = pos
+#if MIN_VERSION_aeson(2,0,0)
+      reply = CompleteReply replyHeader (map T.pack completions) start end (Metadata KeyMap.empty) True
+#else
       reply = CompleteReply replyHeader (map T.pack completions) start end (Metadata HashMap.empty) True
+#endif
   return (state, reply)
 
 replyTo _ _ req@InspectRequest{} replyHeader state = do
@@ -387,7 +397,11 @@ replyTo _ interface ocomm@CommOpen{} replyHeader state = do
       commMap = openComms state
       uuidTargetPairs = map (second targetName) $ Map.toList commMap
 
+#if MIN_VERSION_aeson(2,0,0)
+      pairProcessor (x, y) = (Key.fromText $ T.pack (UUID.uuidToString x)) .= object ["target_name" .= T.pack y]
+#else
       pairProcessor (x, y) = T.pack (UUID.uuidToString x) .= object ["target_name" .= T.pack y]
+#endif
 
       currentComms = object $ map pairProcessor $ (incomingUuid, "comm") : uuidTargetPairs
 
