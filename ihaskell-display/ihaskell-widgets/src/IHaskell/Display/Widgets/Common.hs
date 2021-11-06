@@ -6,6 +6,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE AutoDeriveTypeable #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE CPP #-}
 
 -- There are lots of pattern synpnyms, and little would be gained by adding
 -- the type signatures.
@@ -16,7 +17,6 @@ module IHaskell.Display.Widgets.Common where
 
 import           Data.Aeson
 import           Data.Aeson.Types (emptyObject)
-import           Data.HashMap.Strict as HM
 import           Data.Text (pack, Text)
 import           Data.Typeable (Typeable)
 
@@ -24,6 +24,13 @@ import           IHaskell.Display (IHaskellWidget)
 import           IHaskell.Eval.Widgets (widgetSendClose)
 
 import qualified IHaskell.Display.Widgets.Singletons as S
+
+#if MIN_VERSION_aeson(2,0,0)
+import qualified Data.Aeson.KeyMap as KeyMap
+import qualified Data.Aeson.Key    as Key
+#else
+import           Data.HashMap.Strict as HM
+#endif
 
 -- | The view module string
 pattern ViewModule = S.SViewModule
@@ -354,5 +361,9 @@ nestedObjectLookup :: Value -> [Text] -> Maybe Value
 nestedObjectLookup val [] = Just val
 nestedObjectLookup val (x:xs) =
   case val of
+#if MIN_VERSION_aeson(2,0,0)
+    Object o -> (`nestedObjectLookup` xs) =<< KeyMap.lookup (Key.fromText x) o
+#else
     Object o -> (`nestedObjectLookup` xs) =<< HM.lookup x o
+#endif
     _ -> Nothing
