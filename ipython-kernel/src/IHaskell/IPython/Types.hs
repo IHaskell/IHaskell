@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings, DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving, CPP #-}
 {-# OPTIONS_GHC -fno-warn-unused-binds -fno-warn-name-shadowing -fno-warn-unused-matches #-}
 
 -- | This module contains all types used to create an IPython language kernel.
@@ -54,6 +54,10 @@ import qualified Data.Text.Encoding as Text
 import           Data.Typeable
 import           GHC.Generics (Generic)
 import           IHaskell.IPython.Message.UUID
+
+#if MIN_VERSION_aeson(2,0,0)
+import           Data.Aeson.Key
+#endif
 
 ------------------ IPython Kernel Profile Types ----------------------
 --
@@ -996,6 +1000,19 @@ instance Read MimeType where
   readsPrec _ t = [(MimeCustom (Text.pack t), "")]
 
 -- | Convert a MIME type and value into a JSON dictionary pair.
+#if MIN_VERSION_aeson(2,0,0)
+displayDataToJson :: DisplayData -> (Key, Value)
+displayDataToJson (DisplayData MimeJson dataStr) =
+    fromText (pack (show MimeJson)) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
+displayDataToJson (DisplayData MimeVegalite dataStr) =
+    fromText (pack (show MimeVegalite)) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
+displayDataToJson (DisplayData MimeVega dataStr) =
+    fromText (pack (show MimeVega)) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
+displayDataToJson (DisplayData MimeWidget dataStr) =
+    fromText (pack (show MimeWidget)) .= fromMaybe (object []) (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
+displayDataToJson (DisplayData mimeType dataStr) =
+    fromText (pack (show mimeType)) .= String dataStr
+#else
 displayDataToJson :: DisplayData -> (Text, Value)
 displayDataToJson (DisplayData MimeJson dataStr) =
     pack (show MimeJson) .= fromMaybe (String "") (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
@@ -1006,7 +1023,8 @@ displayDataToJson (DisplayData MimeVega dataStr) =
 displayDataToJson (DisplayData MimeWidget dataStr) =
     pack (show MimeWidget) .= fromMaybe (object []) (decodeStrict (Text.encodeUtf8 dataStr) :: Maybe Value)
 displayDataToJson (DisplayData mimeType dataStr) =
-  pack (show mimeType) .= String dataStr
+    pack (show mimeType) .= String dataStr
+#endif
 
 string :: String -> String
 string = id

@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, CPP #-}
 {-# OPTIONS_GHC -fno-warn-unused-binds -fno-warn-name-shadowing #-}
 
 -- | Description : Parsing messages received from IPython
@@ -13,11 +13,17 @@ import           Data.Aeson ((.:), (.:?), (.!=), decode, FromJSON, Result(..), O
 import           Data.Aeson.Types (Parser, parse, parseEither)
 import           Data.ByteString hiding (unpack)
 import qualified Data.ByteString.Lazy as Lazy
-import           Data.HashMap.Strict as HM
 import           Data.Maybe (fromMaybe)
 import           Data.Text (unpack)
 import           Debug.Trace
 import           IHaskell.IPython.Types
+
+#if MIN_VERSION_aeson(2,0,0)
+import qualified Data.Aeson.KeyMap   as KM
+import           Data.Aeson.Key
+#else
+import           Data.HashMap.Strict as HM
+#endif
 
 type LByteString = Lazy.ByteString
 
@@ -154,8 +160,11 @@ executeErrorParser = requestParser $ \obj -> do
   return $ ExecuteError noHeader traceback ename evalue
 
 makeDisplayDatas :: Object -> [DisplayData]
-makeDisplayDatas dataDict = [DisplayData (read $ unpack mimeType) content | (mimeType, String content) <- HM.toList
-                                                                                                            dataDict]
+#if MIN_VERSION_aeson(2,0,0)
+makeDisplayDatas dataDict = [DisplayData (read $ unpack (toText mimeType)) content | (mimeType, String content) <- KM.toList dataDict]
+#else
+makeDisplayDatas dataDict = [DisplayData (read $ unpack mimeType) content | (mimeType, String content) <- HM.toList dataDict]
+#endif
 
 -- | Parse an execute result
 executeResultParser :: LByteString -> Message
