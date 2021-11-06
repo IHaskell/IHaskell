@@ -21,7 +21,6 @@ import           Data.Aeson
 import           Data.ByteString.Base64 as B64 (decodeLenient)
 import qualified Data.Map as Map
 import           Data.Text.Encoding (encodeUtf8)
-import           Data.HashMap.Strict as HM (lookup,insert,delete)
 
 import           Data.Foldable (foldl)
 import           System.IO.Unsafe (unsafePerformIO)
@@ -30,6 +29,13 @@ import           IHaskell.Display
 import           IHaskell.Eval.Util (unfoldM)
 import           IHaskell.IPython.Types (showMessageType)
 import           IHaskell.Types
+
+#if MIN_VERSION_aeson(2,0,0)
+import qualified Data.Aeson.KeyMap as KM (lookup,insert,delete)
+import qualified Data.Aeson.Key    as Key
+#else
+import qualified Data.HashMap.Strict as HM (lookup,insert,delete)
+#endif
 
 -- All comm_open messages go here
 widgetMessages :: TChan WidgetMsg
@@ -186,6 +192,21 @@ handleMessage send replyHeader state msg = do
     -- For this reason we fold on the bufferpaths
     processBPs val = foldl f (val,[],[])
       where
+#if MIN_VERSION_aeson(2,0,0)
+        nestedLookupRemove :: BufferPath -> Value -> (Value, Maybe Value)
+        nestedLookupRemove [] v = (v,Just v)
+        nestedLookupRemove [b] v =
+          case v of
+            Object o -> (Object $ KM.delete (Key.fromText b) o, KM.lookup (Key.fromText b) o)
+            _ -> (v, Nothing)
+        nestedLookupRemove (b:bp) v =
+          case v of
+            Object o -> maybe (v,Nothing) (upd . nestedLookupRemove bp) (KM.lookup (Key.fromText b) o)
+            _ -> (v,Nothing)
+            where upd :: (Value, Maybe Value) -> (Value, Maybe Value)
+                  upd (Object v', Just (Object u)) = (Object $ KM.insert (Key.fromText b) (Object u) v', Just $ Object u)
+                  upd r = r
+#else
         nestedLookupRemove :: BufferPath -> Value -> (Value, Maybe Value)
         nestedLookupRemove [] v = (v,Just v)
         nestedLookupRemove [b] v =
@@ -199,6 +220,7 @@ handleMessage send replyHeader state msg = do
             where upd :: (Value, Maybe Value) -> (Value, Maybe Value)
                   upd (Object v', Just (Object u)) = (Object $ HM.insert b (Object u) v', Just $ Object u)
                   upd r = r
+#endif
 
         f :: (Value, [ByteString], [BufferPath]) -> BufferPath -> (Value, [ByteString], [BufferPath])
         f r@(v,bs,bps) bp =

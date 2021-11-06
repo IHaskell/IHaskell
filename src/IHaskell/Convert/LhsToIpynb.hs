@@ -15,6 +15,12 @@ import qualified Data.List as List
 
 import           IHaskell.Flags (LhsStyle(LhsStyle))
 
+#if MIN_VERSION_aeson(2,0,0)
+import qualified Data.Aeson.KeyMap as KeyMap
+import qualified Data.Aeson.Key as Key
+#else
+#endif
+
 lhsToIpynb :: LhsStyle LText -> FilePath -> FilePath -> IO ()
 lhsToIpynb sty from to = do
   classed <- classifyLines sty . LT.lines . LT.pack <$> readFile from
@@ -82,7 +88,11 @@ arrayFromTxt i = Array (V.fromList $ map stringify i)
 
 -- | ihaskell needs this boilerplate at the upper level to interpret the json describing cells and
 -- output correctly.
+#if MIN_VERSION_aeson(2,0,0)
+boilerplate :: [(Key.Key, Value)]
+#else
 boilerplate :: [(T.Text, Value)]
+#endif
 boilerplate =
   ["metadata" .= object [kernelspec, lang], "nbformat" .= Number 4, "nbformat_minor" .= Number 0]
   where
