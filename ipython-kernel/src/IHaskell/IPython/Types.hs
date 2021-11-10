@@ -38,7 +38,6 @@ module IHaskell.IPython.Types (
     displayDataToJson,
     ) where
 
-import           Control.Applicative ((<$>), (<*>))
 import           Data.Aeson
 import           Data.Aeson.Types (typeMismatch)
 import           Data.ByteString (ByteString)

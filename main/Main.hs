@@ -15,7 +15,7 @@ import           Control.Arrow (second)
 import           Data.Aeson hiding (Success)
 import           System.Process (readProcess, readProcessWithExitCode)
 import           System.Exit (exitSuccess, ExitCode(ExitSuccess))
-import           Control.Exception (try, SomeException)
+import           Control.Exception (try)
 import           System.Environment (getArgs)
 import           System.Environment (setEnv)
 import           System.Posix.Signals

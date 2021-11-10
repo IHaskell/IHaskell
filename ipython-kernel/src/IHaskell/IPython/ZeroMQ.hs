@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DoAndIfThenElse, FlexibleContexts #-}
+{-# LANGUAGE OverloadedStrings, DoAndIfThenElse, FlexibleContexts, CPP #-}
 
 -- | Description : Low-level ZeroMQ communication wrapper.
 --

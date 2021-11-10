@@ -16,7 +16,6 @@ import           IHaskellPrelude
 
 import           Control.Concurrent.STM (atomically)
 import           Control.Concurrent.STM.TChan
-import           Control.Monad (foldM)
 import           Data.Aeson
 import           Data.ByteString.Base64 as B64 (decodeLenient)
 import qualified Data.Map as Map
