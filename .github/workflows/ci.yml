@@ -32,9 +32,9 @@ on:
 
 jobs:
   linux:
-
     runs-on: ubuntu-18.04
     strategy:
+      fail-fast: false
       matrix:
         versions:
           - stack-yaml: 'stack-8.0.yaml'
