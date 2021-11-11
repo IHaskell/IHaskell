@@ -23,7 +23,6 @@ import           IHaskellPrelude
 import           Control.Concurrent (forkIO, threadDelay)
 import           Data.Foldable (foldMap)
 import           Prelude (head, tail, last, init)
-import           Data.List (nubBy)
 import qualified Data.Set as Set
 import           Data.Char as Char
 import           Data.Dynamic
@@ -34,7 +33,6 @@ import           System.IO (hGetChar, hSetEncoding, utf8)
 import           System.Random (getStdGen, randomRs)
 import           System.Process
 import           System.Exit
-import           Data.Maybe (mapMaybe)
 import           System.Environment (getEnv)
 
 #if MIN_VERSION_ghc(9,2,0)
@@ -68,7 +66,6 @@ import           Bag
 import           DynFlags
 import           HscTypes
 import           InteractiveEval
-import           Exception (gtry)
 import           Exception hiding (evaluate)
 import           GhcMonad (liftIO)
 import           Outputable hiding ((<>))

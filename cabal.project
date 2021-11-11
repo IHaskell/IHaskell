@@ -13,3 +13,8 @@ packages: .
           ./ihaskell-display/ihaskell-plot
           ./ihaskell-display/ihaskell-static-canvas
           ./ihaskell-display/ihaskell-widgets
+
+source-repository-package
+  type: git
+  location: https://github.com/jeffreyrosenbluth/static-canvas.git
+  tag: 1aad0f192828ded72dced14e42ac4e6baa6dab6f

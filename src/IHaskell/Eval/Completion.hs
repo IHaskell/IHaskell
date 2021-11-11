@@ -14,9 +14,8 @@ module IHaskell.Eval.Completion (complete, completionTarget, completionType, Com
 
 import           IHaskellPrelude
 
-import           Control.Applicative ((<$>))
 import           Data.Char
-import           Data.List (nub, init, last, elemIndex, concatMap)
+import           Data.List (init, last, elemIndex)
 import qualified Data.List.Split as Split
 import qualified Data.List.Split.Internals as Split
 import           System.Environment (getEnv)

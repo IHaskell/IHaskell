@@ -6,14 +6,10 @@ module IHaskell.Convert.Args (ConvertSpec(..), fromJustConvertSpec, toConvertSpe
 import           IHaskellPrelude
 import qualified Data.Text.Lazy as LT
 
-import           Control.Applicative ((<$>))
 import           Data.Functor.Identity (Identity(Identity))
 import           Data.Char (toLower)
-import           Data.List (partition)
-import           Data.Maybe (fromMaybe)
 import           IHaskell.Flags (Argument(..), LhsStyle, lhsStyleBird, NotebookFormat(..))
 import           System.FilePath ((<.>), dropExtension, takeExtension)
-import           Text.Printf (printf)
 
 -- | ConvertSpec is the accumulator for command line arguments
 data ConvertSpec f =
