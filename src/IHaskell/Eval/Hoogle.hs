@@ -14,7 +14,6 @@ module IHaskell.Eval.Hoogle (
 
 import qualified Data.ByteString.Char8   as CBS
 import qualified Data.ByteString.Lazy    as LBS
-import           Data.Either             (either)
 import           IHaskellPrelude
 
 import           Data.Aeson
