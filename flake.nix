@@ -20,19 +20,26 @@
         inherit system;
       };
 
-      ihaskellEnv = compilerVersion:
+      compilerVersionFromHsPkgs = hsPkgs:
+        pkgs.lib.replaceStrings [ "." ] [ "" ] hsPkgs.ghc.version;
+
+      mkEnv = hsPkgs:
         import ./release.nix {
-          compiler = "ghc${compilerVersion}";
+          compiler = "ghc${compilerVersionFromHsPkgs hsPkgs}";
           nixpkgs = pkgs;
         };
 
+      mkExe = hsPkgs: (mkEnv hsPkgs).ihaskellExe;
+
+      ghcDefault = ghc8107;
       ghc884  = pkgs.haskell.packages.ghc884;
       ghc8107  = pkgs.haskell.packages.ghc8107;
+      ghc921  = pkgs.haskell.packages.ghc921;
 
       mkDevShell = hsPkgs:
         let
           myIHaskell = (mkPackage hsPkgs);
-          compilerVersion = pkgs.lib.replaceStrings [ "." ] [ "" ] hsPkgs.ghc.version;
+          compilerVersion = compilerVersionFromHsPkgs hsPkgs;
 
           myModifier = drv:
             pkgs.haskell.lib.addBuildTools drv (with hsPkgs; [
@@ -51,19 +58,29 @@
           name = "ihaskell";
           returnShellEnv = false;
           modifier = pkgs.haskell.lib.dontCheck;
-          overrides = (ihaskellEnv compilerVersion).ihaskellOverlay ;
+          overrides = (mkEnv hsPkgs).ihaskellOverlay ;
           withHoogle = true;
         };
 
     in {
 
       packages = {
-        ihaskell = mkDevShell ghc8107;
-        ihaskell8107 = mkDevShell ghc8107;
-        ihaskell884 = mkDevShell ghc884;
-        ihaskellEnv = ihaskellEnv ghc8107;
+        ihaskell-dev = mkDevShell ghcDefault;
+        ihaskell-dev-921 = mkDevShell ghc921;
+        ihaskell-dev-8107 = mkDevShell ghc8107;
+        ihaskell-dev-884 = mkDevShell ghc884;
+
+        ihaskell = mkExe ghcDefault;
+        ihaskell-8107 = mkExe ghc8107;
+        ihaskell-921 = mkExe ghc921;
+
+        # I actually wish those would disappear ? let jupyterWith or use deal with it
+        ihaskell-env = mkEnv ghcDefault;
+        ihaskell-env-8107 = mkEnv ghc8107;
       };
 
       defaultPackage = self.packages.${system}.ihaskell;
+
+      devShell = self.packages.${system}.ihaskell-dev;
     });
 }
