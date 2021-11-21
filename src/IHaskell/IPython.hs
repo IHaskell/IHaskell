@@ -171,10 +171,11 @@ installKernelspec repl opts = void $ do
         installPrefixFlag = maybe ["--user"] (\prefix -> ["--prefix", T.pack prefix]) (kernelSpecInstallPrefix opts)
         cmd = concat [["kernelspec", "install"], installPrefixFlag, [SH.toTextIgnore kernelDir], replaceFlag]
 
-    SH.silently $ SH.run ipython cmd
+    let transformOutput = if kernelSpecDebug opts then id else SH.silently
+    transformOutput $ SH.run ipython cmd
 
-installLabextension :: IO ()
-installLabextension = SH.shelly $ do
+installLabextension :: Bool -> IO ()
+installLabextension debug = SH.shelly $ do
   -- Find the prebuilt extension directory
   ihaskellDataDir <- liftIO $ Paths.getDataDir
   let labextensionDataDir = ihaskellDataDir
@@ -188,6 +189,7 @@ installLabextension = SH.shelly $ do
         SH.</> ("labextensions" :: SH.FilePath)
         SH.</> ("jupyterlab-ihaskell" :: SH.FilePath)
 
+  when debug (putStrLn $ "Installing kernel in folder: " ++ show jupyterlabIHaskellDir)
   -- Remove the extension directory with extreme prejudice if it already exists
   SH.rm_rf jupyterlabIHaskellDir
   -- Create an empty 'jupyterlab-ihaskell' directory to install our extension in
