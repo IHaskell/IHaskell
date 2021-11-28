@@ -85,10 +85,6 @@ import           FastString
 #endif
 import           GHC
 
-import           Control.Monad (void)
-import           Data.Function (on)
-import           Data.List (nubBy)
-
 import           StringUtils (replace)
 
 #if MIN_VERSION_ghc(9,0,0)
