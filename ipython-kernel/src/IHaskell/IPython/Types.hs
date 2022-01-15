@@ -390,7 +390,7 @@ data Message =
              |
              -- | An error reply to an execute request
                ExecuteError
-                 { header :: MessageHeader
+                 { header :: MessageHeader              -- ^ Unused field retained for backwards compatibility.
                  , traceback :: [Text]
                  , ename :: Text
                  , evalue :: Text
@@ -573,10 +573,11 @@ instance ToJSON Message where
                         , "data" .= object (map displayDataToJson o)
                         ]
                     ]
-  toJSON ExecuteError { header = header, traceback = traceback, ename = ename, evalue = evalue } =
+  -- `header` is not a supported field, but removing it would complicate things
+  -- downstream in terms of dependency bounds so we just drop it on the floor
+  toJSON ExecuteError { header = _header, traceback = traceback, ename = ename, evalue = evalue } =
     object
-      [ "header" .= show header
-      , "traceback" .= map toJSON traceback
+      [ "traceback" .= map toJSON traceback
       , "ename" .= ename
       , "evalue" .= evalue
       ]
@@ -728,10 +729,11 @@ instance ToJSON Message where
                         , "data" .= object (map displayDataToJson o)
                         ]
                     ]
-  toEncoding ExecuteError { header = header, traceback = traceback, ename = ename, evalue = evalue } =
+  -- `header` is not a supported field, but removing it would complicate things
+  -- downstream in terms of dependency bounds so we just drop it on the floor
+  toEncoding ExecuteError { header = _header, traceback = traceback, ename = ename, evalue = evalue } =
     pairs $ mconcat
-      [ "header" .= show header
-      , "traceback" .= map toJSON traceback
+      [ "traceback" .= map toJSON traceback
       , "ename" .= ename
       , "evalue" .= evalue
       ]
