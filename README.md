@@ -172,6 +172,20 @@ $ nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs-channels/archive/nixos-2
 
 For more examples of using IHaskell with Nix, see https://github.com/vaibhavsagar/notebooks.
 
+# Developing
+
+To work on IHaskell's source code, there is a Nix flake that provides a developer environment. Note that Nix flakes require at least Nix 2.4. Besides that, `flakes` must be listed in the `experimental-features` of the Nix config, depending on the Nix version.
+
+After this, IHaskell can be compiled as follows:
+
+```bash
+nix develop # This opens a new shell with all dependencies installed
+cabal update # Make sure Cabal's package index is up-to-date
+cabal build # Builds IHaskell
+```
+
+Note that this shell also provides haskell-language-server, which can be used in your editor if it supports it.
+
 # Troubleshooting
 
 ## Where are my packages? (IHaskell + Stack)
