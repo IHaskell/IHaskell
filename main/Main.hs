@@ -309,7 +309,10 @@ replyTo _ interface req@ExecuteRequest { getCode = code } replyHeader state = do
   -- Run code and publish to the frontend as we go.
   let widgetMessageHandler = widgetHandler send replyHeader
       publish = publishResult send replyHeader displayed updateNeeded pOut (usePager state)
-  updatedState <- evaluate state (T.unpack code) publish widgetMessageHandler
+  (updatedState, errorOccurred) <- evaluate state (T.unpack code) publish widgetMessageHandler
+  let executeReplyStatus = case errorOccurred of
+        Success -> Ok
+        Failure -> Err
 
   -- Take pager output if we're using the pager.
   pager <- if usePager state
@@ -320,7 +323,7 @@ replyTo _ interface req@ExecuteRequest { getCode = code } replyHeader state = do
                      { header = replyHeader
                      , pagerOutput = pager
                      , executionCounter = execCount
-                     , status = Ok
+                     , status = executeReplyStatus
                      })
 
 -- Check for a trailing empty line. If it doesn't exist, we assume the code is incomplete,

@@ -383,7 +383,7 @@ evaluate :: KernelState                  -- ^ The kernel state.
          -> String                       -- ^ Haskell code or other interpreter commands.
          -> Publisher                    -- ^ Function used to publish data outputs.
          -> (KernelState -> [WidgetMsg] -> IO KernelState) -- ^ Function to handle widget messages
-         -> Interpreter KernelState
+         -> Interpreter (KernelState, ErrorOccurred)
 evaluate kernelState code output widgetHandler = do
   cmds <- parseString (cleanString code)
   let execCount = getExecutionCounter kernelState
@@ -393,7 +393,7 @@ evaluate kernelState code output widgetHandler = do
       justError _ = Nothing
       errs = mapMaybe (justError . unloc) cmds
 
-  updated <- case errs of
+  (updated, errorOccurred) <- case errs of
                -- Only run things if there are no parse errors.
                [] -> do
 
@@ -412,16 +412,16 @@ evaluate kernelState code output widgetHandler = do
                    liftIO $ output
                      (FinalResult (evalResult out) [] [])
                      (evalStatus out)
-                 return kernelState
+                 return (kernelState, Failure)
 
-  return updated { getExecutionCounter = execCount + 1 }
+  return (updated { getExecutionCounter = execCount + 1 }, errorOccurred)
 
   where
     noResults (Display res) = null res
     noResults (ManyDisplay res) = all noResults res
 
-    runUntilFailure :: KernelState -> [CodeBlock] -> Interpreter KernelState
-    runUntilFailure state [] = return state
+    runUntilFailure :: KernelState -> [CodeBlock] -> Interpreter (KernelState, ErrorOccurred)
+    runUntilFailure state [] = return (state, Success)
     runUntilFailure state (cmd:rest) = do
       evalOut <- evalCommand output cmd state
 
@@ -458,7 +458,7 @@ evaluate kernelState code output widgetHandler = do
 
       case evalStatus evalOut of
         Success -> runUntilFailure newState rest
-        Failure -> return newState
+        Failure -> return (newState, Failure)
 
     storeItCommand execCount = Statement $ printf "let it%d = it" execCount
 
