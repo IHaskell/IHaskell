@@ -174,7 +174,11 @@ For more examples of using IHaskell with Nix, see https://github.com/vaibhavsaga
 
 # Developing
 
-To work on IHaskell's source code, there is a Nix flake that provides a developer environment. Note that Nix flakes require at least Nix 2.4. Besides that, `flakes` must be listed in the `experimental-features` of the Nix config, depending on the Nix version.
+IHaskell is regularly updated to work with the latest version of GHC. To read how this is done, and how the development environment is set up, please see [this blog post](https://vaibhavsagar.com/blog/2021/05/02/updating-ihaskell-newer-ghc).
+
+## Nix flake
+
+There is also a Nix flake that provides a developer environment. For details on Nix flakes, please see the documentation at https://nixos.wiki/wiki/Flakes.
 
 After this, IHaskell can be compiled as follows:
 
@@ -184,7 +188,7 @@ cabal update # Make sure Cabal's package index is up-to-date
 cabal build # Builds IHaskell
 ```
 
-Note that this shell also provides haskell-language-server, which can be used in your editor if it supports it.
+Note that this shell also provides `haskell-language-server`, which can be used in your editor if it supports it. Opening your editor from within the `nix develop` shell should allow it to see `haskell-language-server`.
 
 # Troubleshooting
 
