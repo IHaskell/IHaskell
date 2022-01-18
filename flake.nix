@@ -36,6 +36,8 @@
       ghc8107  = pkgs.haskell.packages.ghc8107;
       ghc921  = pkgs.haskell.packages.ghc921;
 
+      pythonDevEnv = pkgs.python3.withPackages (p: [p.jupyterlab]);
+
       mkDevShell = hsPkgs:
         let
           myIHaskell = (mkPackage hsPkgs);
@@ -44,6 +46,7 @@
           myModifier = drv:
             pkgs.haskell.lib.addBuildTools drv (with hsPkgs; [
               cabal-install
+              pythonDevEnv
               self.inputs.hls.packages.${system}."haskell-language-server-${compilerVersion}"
             ]);
         in (myModifier myIHaskell).envFunc {withHoogle=true;};
