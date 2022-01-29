@@ -94,6 +94,8 @@ let
       inherit ihaskellDataDirFunc;
       inherit ihaskellBuildEnvFunc;
     };
+
+    meta.mainProgram = "jupyter-lab";
   };
 in ihaskellBuildEnvFunc {
   inherit ihaskellEnv jupyterlab systemPackages;

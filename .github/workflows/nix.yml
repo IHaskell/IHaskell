@@ -34,9 +34,9 @@ jobs:
     strategy:
       matrix:
         versions:
-          - release: 'release-8.10.nix'
-          - release: 'release-9.0.nix'
-          - release: 'release-9.2.nix'
+          - release: 'release-8107.nix'
+          - release: 'release-902.nix'
+          - release: 'release-921.nix'
     steps:
     - uses: actions/checkout@v2
     - uses: cachix/install-nix-action@v12
@@ -50,7 +50,7 @@ jobs:
         ${{ matrix.versions.release }} \
         --arg packages "haskellPackages: [ haskellPackages.ihaskell ]"
     # release-9.2.nix doesn't include HLint support so the test fails
-    - if: ${{ matrix.versions.release != 'release-9.2.nix' }}
+    - if: ${{ matrix.versions.release != 'release-921.nix' }}
       run: |
         nix-shell \
         -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-21.11 \
