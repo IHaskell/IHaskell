@@ -67,7 +67,7 @@ stack install --fast
 ihaskell install --stack
 ```
 
-If you have Homebrew installed to a location that `stack` does not expect (e.g. `/opt/homebrew`), you'd need to specify `--extra-include-dirs ${HOMEBREW_PREFIX}/include --extra-lib-dir ${HOMEBREW_PREFIX}/lib` to the `stack` command.
+If you have Homebrew installed to a location that `stack` does not expect (e.g. `/opt/homebrew`), you'd need to specify `--extra-include-dirs ${HOMEBREW_PREFIX}/include --extra-lib-dirs ${HOMEBREW_PREFIX}/lib` to the `stack` command.
 
 Run Jupyter.
 
