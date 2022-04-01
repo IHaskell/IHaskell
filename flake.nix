@@ -13,12 +13,14 @@
     };
   };
 
-  outputs = { self, hls, nixpkgs, flake-utils, ... }:
+  outputs = { self, hls, nixpkgs, flake-utils, ihaskell, ... }:
     flake-utils.lib.eachSystem ["x86_64-linux" "x86_64-darwin"] (system: let
 
       pkgs = import nixpkgs {
         inherit system;
-        overlays = [ self.overlay ];
+        overlays = [ 
+          self.overlay
+        ];
       };
 
       compilerVersionFromHsPkgs = hsPkgs:
@@ -104,31 +106,108 @@
           };
         };
 
-        ihaskellGhc921 = prev.haskell.packages.ghc921.extend (final: prev: let 
-          displays = final: builtins.listToAttrs (
-            map
-              (display: { name = "ihaskell-${display}"; value = final.callCabal2nix display "${ihaskell-src}/ihaskell-display/ihaskell-${display}" {}; })
-              [ "aeson" "blaze" "charts" "diagrams" "gnuplot" "graphviz" "hatex" "juicypixels" "magic" "plot" "rlangqq" "static-canvas" "widgets" ]);
-          ihaskell-src = final.nix-gitignore.gitignoreSource
-            [ "**/*.ipynb" "**/*.nix" "**/*.yaml" "**/*.yml" "**/\.*" "/Dockerfile" "/README.md" "/cabal.project" "/images" "/notebooks" "/requirements.txt" ]
-            ./.;
-          in {
-          ihaskell          = (final.haskell.lib.overrideCabal (
-                              final.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
+        ihaskellKernelSpecFunc = ihaskellKernelFile: final.runCommand "ihaskell-kernel" {} ''
+          export kerneldir=$out/kernels/haskell
+          mkdir -p $kerneldir
+          cp ${./html}/* $kerneldir
+          echo '${builtins.toJSON ihaskellKernelFile}' > $kerneldir/kernel.json
+        '';
+
+        ihaskellGhcLibFunc = exe: env: final.writeShellScriptBin "ihaskell" ''
+          ${exe}/bin/ihaskell -l $(${env}/bin/ghc --print-libdir) "$@"
+        '';
+
+        ihaskellDataDirFunc = ihaskellEnv: let
+          rtsopts =  "-M3g -N2";
+          ihaskellGhcLib = final.ihaskellGhcLibFunc ihaskellEnv ihaskellEnv;
+          ihaskellKernelFile = final.ihaskellKernelFileFunc ihaskellGhcLib rtsopts;
+          ihaskellKernelSpec = final.ihaskellKernelSpecFunc ihaskellKernelFile;
+          ihaskellLabextension = final.runCommand "ihaskell-labextension" {} ''
+            mkdir -p $out/labextensions/
+            ln -s ${./jupyterlab-ihaskell/labextension} $out/labextensions/jupyterlab-ihaskell
+          '';
+
+          ihaskellDataDirFunc' = ihaskellKernelSpec: ihaskellLabextension: final.buildEnv {
+            name = "ihaskell-data-dir";
+            paths = [ ihaskellKernelSpec ihaskellLabextension ];
+          };
+
+        in ihaskellDataDirFunc' ihaskellKernelSpec ihaskellLabextension;
+
+        ihaskellKernelFileFunc = ihaskellGhcLib: rtsopts: {
+          display_name = "Haskell";
+          argv = [
+            "${ihaskellGhcLib}/bin/ihaskell"
+            "kernel"
+            "{connection_file}"
+            "+RTS"
+          ] ++ (final.lib.splitString " " rtsopts) ++ [
+            "-RTS"
+          ];
+          language = "haskell";
+        };
+
+        ihaskellBuildEnvFunc = {
+          ihaskellEnv, 
+          jupyterlab,
+          # systemPackages,
+          ihaskellDataDir
+          }: final.pkgs.buildEnv {
+          name = "ihaskell-with-packages";
+          nativeBuildInputs = [ final.pkgs.makeWrapper ];
+          paths = [ ihaskellEnv jupyterlab ];
+          # --prefix PATH : "${nixpkgs.lib.makeBinPath ([ihaskellEnv] ++ (systemPackages nixpkgs))}" \
+          postBuild = ''
+            for prg in $out/bin"/"*;do
+              if [[ -f $prg && -x $prg ]]; then
+                wrapProgram $prg \
+                  --prefix JUPYTER_PATH : "${ihaskellDataDir}"
+              fi
+            done
+          '';
+          passthru = {
+            # inherit haskellPackages;
+            # inherit ihaskellExe;
+            inherit ihaskellEnv;
+            # inherit ihaskellOverlay;
+            # inherit ihaskellLabextension;
+            # inherit jupyterlab;
+            # inherit ihaskellGhcLibFunc;
+            # inherit ihaskellKernelFileFunc;
+            # inherit ihaskellKernelSpecFunc;
+            # inherit ihaskellDataDirFunc;
+            # inherit ihaskellBuildEnvFunc;
+          };
+
+          meta.mainProgram = "jupyter-lab";
+        };
+
+        # prev.haskell.packages.ghc921.extend (
+        ihaskellGhc921Overlay = hfinal: hprev: let 
+          displays = hfinal': builtins.listToAttrs (
+              map
+                (display: { name = "ihaskell-${display}"; value = hfinal'.callCabal2nix display "${ihaskell-src}/ihaskell-display/ihaskell-${display}" {}; })
+                [ "aeson" "blaze" "charts" "diagrams" "gnuplot" "graphviz" "hatex" "juicypixels" "magic" "plot" "rlangqq" "static-canvas" "widgets" ]);
+            ihaskell-src = final.nix-gitignore.gitignoreSource
+              [ "**/*.ipynb" "**/*.nix" "**/*.yaml" "**/*.yml" "**/\.*" "/Dockerfile" "/README.md" "/cabal.project" "/images" "/notebooks" "/requirements.txt" ]
+              ./.;
+        in {
+          ihaskell = (final.haskell.lib.overrideCabal (
+                              hfinal.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
             preCheck = ''
               export HOME=$TMPDIR/home
               export PATH=$PWD/dist/build/ihaskell:$PATH
               export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
             '';
             configureFlags = (_drv.configureFlags or []) ++ [ "-f" "-use-hlint" ];
-          })).overrideScope (final: prev: {
+          })).overrideScope (final': prev': {
             hlint = null;
           });
-          ghc-parser        = final.callCabal2nix "ghc-parser" ./ghc-parser {};
-          ipython-kernel    = final.callCabal2nix "ipython-kernel" ./ipython-kernel {};
+          ghc-parser        = hfinal.callCabal2nix "ghc-parser" ./ghc-parser {};
+          ipython-kernel    = hfinal.callCabal2nix "ipython-kernel" ./ipython-kernel {};
 
-          aeson = prev.aeson_2_0_3_0;
-        } // displays final);
+          # aeson = hprev.aeson_2_0_3_0;
+        } // displays hfinal;
 
         # ihaskellGhc902 = final.haskell.packages.ghc902.extend({
         # });
