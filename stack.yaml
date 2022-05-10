@@ -32,7 +32,7 @@ extra-deps:
 - cairo-0.13.8.1
 - pango-0.13.8.1
 - glib-0.13.8.1
-- gtk2hs-buildtools-0.13.8.0
+- gtk2hs-buildtools-0.13.8.3
 - plot-0.2.3.11
 # - static-canvas-0.2.0.3
 - statestack-0.3
