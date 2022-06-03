@@ -1,0 +1,63 @@
+# the GHC version of this resolver needs to match the GHC version in Dockerfile
+resolver: lts-19.3
+#allow-newer: true
+
+flags: {}
+packages:
+    - .
+    - ./ipython-kernel
+    - ./ghc-parser
+    - ./ihaskell-display/ihaskell-aeson
+    - ./ihaskell-display/ihaskell-blaze
+    - ./ihaskell-display/ihaskell-charts
+    - ./ihaskell-display/ihaskell-diagrams
+    - ./ihaskell-display/ihaskell-gnuplot
+    - ./ihaskell-display/ihaskell-graphviz
+    - ./ihaskell-display/ihaskell-hatex
+    - ./ihaskell-display/ihaskell-juicypixels
+    - ./ihaskell-display/ihaskell-magic
+    - ./ihaskell-display/ihaskell-plot
+    # - ./ihaskell-display/ihaskell-static-canvas
+    - ./ihaskell-display/ihaskell-widgets
+
+extra-deps:
+- active-0.2.0.15
+- Chart-cairo-1.9.3
+- diagrams-1.4.0.1
+- diagrams-cairo-1.4.2
+- diagrams-contrib-1.4.4
+- diagrams-core-1.5.0
+- diagrams-lib-1.4.4
+- diagrams-svg-1.4.3
+- cairo-0.13.8.2
+- pango-0.13.8.2
+- glib-0.13.8.2
+- gtk2hs-buildtools-0.13.8.3
+- plot-0.2.3.11
+# - static-canvas-0.2.0.3
+- statestack-0.3
+- dual-tree-0.2.3.0
+- monoid-extras-0.6
+- svg-builder-0.1.1
+- force-layout-0.4.0.6
+
+ghc-options:
+  # Eventually we want "$locals": -Wall -Wpartial-fields -Werror
+  # ghc-parser: -Wall -Wpartial-fields -Werror
+  # ihaskell: -Wall -Wpartial-fields -Werror
+  # ihaskell-widgets: -Wall -Wpartial-fields -Werror
+
+nix:
+  enable: false
+  packages:
+    - blas
+    - cairo
+    - file
+    - gcc
+    - gfortran.cc.lib
+    - liblapack
+    - ncurses
+    - pango
+    - pkgconfig
+    - zeromq
+    - zlib
