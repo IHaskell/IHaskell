@@ -501,7 +501,7 @@ instance HasKey f ~ 'False => ToPairs' 'False f where
   toPairs' _ = []
 
 instance (ToJSON (FieldType f), HasKey f ~ 'True) => ToPairs' 'True f where
-  toPairs' x = [ pack (toKey $ _field x) .= toJSON x ]
+  toPairs' x = [ fromString (toKey $ _field x) .= toJSON x ]
 
 newtype JSONByteString = JSONByteString ByteString
   deriving (Eq,Ord)
