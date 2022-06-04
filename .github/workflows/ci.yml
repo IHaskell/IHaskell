@@ -43,6 +43,7 @@ jobs:
           - stack-yaml: 'stack-8.6.yaml'
           - stack-yaml: 'stack-8.8.yaml'
           - stack-yaml: 'stack.yaml'
+          - stack-yaml: 'stack-9.0.yaml'
 
     steps:
       - uses: actions/checkout@v2
