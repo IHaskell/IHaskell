@@ -48,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Cache .stack
-        uses: pat-s/always-upload-cache@v3
+        uses: actions/cache@v2.1.6
         with:
           path: ~/.stack/snapshots
           key: ${{ runner.os }}-${{ matrix.versions.stack-yaml }}-${{ hashFiles(format('./{0}', matrix.versions.stack-yaml)) }}
