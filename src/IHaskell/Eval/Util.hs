@@ -265,7 +265,8 @@ setFlags ext = do
 #else
       allWarns = map unLoc warnings ++
 #endif
-                 ["-package not supported yet" | packageFlags flags /= packageFlags flags0]
+        -- Stack appears to duplicate package flags, so we use `nub` to work around this
+        ["-package not supported yet" | nub (packageFlags flags) /= nub (packageFlags flags0)]
       warnErrs = map ("Warning: " ++) allWarns
   return $ noParseErrs ++ warnErrs
 

@@ -1,5 +1,5 @@
 # the GHC version of this resolver needs to match the GHC version in Dockerfile
-resolver: lts-19.3
+resolver: lts-19.10
 #allow-newer: true
 
 flags: {}
