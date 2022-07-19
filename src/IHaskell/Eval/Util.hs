@@ -9,6 +9,7 @@ module IHaskell.Eval.Util (
     setExtension,
     ExtFlag(..),
     setFlags,
+    setWayDynFlag,
 
     -- * Code Evaluation
     evalImport,
@@ -42,6 +43,7 @@ import           GHC.Driver.Monad (modifySession)
 import           GHC.Driver.Ppr
 import           GHC.Driver.Session
 import           GHC.Driver.Env.Types
+import           GHC.Platform.Ways
 import           GHC.Runtime.Context
 import           GHC.Types.Name (pprInfixName)
 import           GHC.Types.Name.Set
@@ -58,6 +60,7 @@ import           GHC.Driver.CmdLine
 import           GHC.Driver.Monad (modifySession)
 import           GHC.Driver.Session
 import           GHC.Driver.Types
+import           GHC.Driver.Ways
 import           GHC.Types.Name (pprInfixName)
 import           GHC.Types.Name.Set
 import qualified GHC.Driver.Session as DynFlags
@@ -118,6 +121,33 @@ extensionFlag ext =
 
     -- Check if a FlagSpec matches "No<ExtensionName>". In that case, we disable the extension.
     flagMatchesNo ex fs = ex == "No" ++ flagSpecName fs
+
+#if MIN_VERSION_ghc(9,2,0)
+-- Taken from GHC
+addWay' :: Way
+        -> DynFlags
+        -> DynFlags
+addWay' w dflags0 =
+  let platform = targetPlatform dflags0
+      dflags1 = dflags0 { targetWays_ = addWay w (targetWays_ dflags0) }
+      dflags2 = foldr setGeneralFlag' dflags1 (wayGeneralFlags platform w)
+      dflags3 = foldr unSetGeneralFlag' dflags2 (wayUnsetGeneralFlags platform w)
+  in dflags3
+#endif
+
+-- | Consult the RTS to find if GHC has been built with dynamic linking and then turn on the
+-- dynamic way for GHC. Otherwise it does nothing.
+setWayDynFlag :: DynFlags
+              -> DynFlags
+setWayDynFlag =
+  if hostIsDynamic
+  then addWay' WayDyn
+  else id
+#if MIN_VERSION_ghc(9,0,0)
+#else
+  where
+    hostIsDynamic = dynamicGhc
+#endif
 
 -- | Pretty-print dynamic flags (taken from 'InteractiveUI' module of `ghc-bin`)
 pprDynFlags :: Bool       -- ^ Whether to include flags which are on by default
@@ -332,7 +362,7 @@ initGhci sandboxPackages = do
 #endif
   let flag = flip xopt_set
       unflag = flip xopt_unset
-      dflags = flag ExtendedDefaultRules . unflag MonomorphismRestriction $ originalFlags
+      dflags = flag ExtendedDefaultRules . unflag MonomorphismRestriction $ setWayDynFlag originalFlags
 #if MIN_VERSION_ghc(8,2,0)
       pkgFlags =
         case sandboxPackages of
