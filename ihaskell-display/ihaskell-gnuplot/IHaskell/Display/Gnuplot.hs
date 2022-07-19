@@ -21,6 +21,7 @@ import qualified Graphics.Gnuplot.Terminal.SVG as Sv
 import qualified Graphics.Gnuplot.Graph.TwoDimensional as Tw
 import qualified Graphics.Gnuplot.Graph.ThreeDimensional as Th
 import qualified Data.ByteString.Char8 as Char
+import           System.IO.Temp
 import           Graphics.Gnuplot.Advanced (plot)
 import           Graphics.Gnuplot.Value.Atom (C)
 import           IHaskell.Display
@@ -58,9 +59,6 @@ instance IHaskellDisplay M.T where
     svgDisp <- graphDataSVGM fig
     return $ Display [pngDisp, svgDisp]
 
--- Filename
-name = ".ihaskell-gnuplot."
-
 -- Width and height
 w = 300
 
@@ -68,120 +66,110 @@ h = 300
 
 graphDataPNG2P :: (C x, C y) => P.T (Tw.T x y) -> IO DisplayData
 graphDataPNG2P graph = do
-  switchToTmpDir
+  withSystemTempFile "ihaskell-gnuplot.png" $ \path _ -> do
 
-  -- Write the image.
-  let fname = Pn.cons $ name ++ "png"
-  plot fname graph
+    -- Write the image.
+    plot (Pn.cons path) graph
 
-  -- Read back, and convert to base64.
-  imgData <- Char.readFile $ name ++ "png"
-  return $ png w h $ base64 imgData
+    -- Read back, and convert to base64.
+    imgData <- Char.readFile path
+    return $ png w h $ base64 imgData
 
 graphDataSVG2P :: (C x, C y) => P.T (Tw.T x y) -> IO DisplayData
 graphDataSVG2P graph = do
-  switchToTmpDir
+  withSystemTempFile "ihaskell-gnuplot.svg" $ \path _ -> do
 
-  -- Write the image.
-  let fname = Sv.cons $ name ++ "svg"
-  plot fname graph
+    -- Write the image.
+    plot (Sv.cons path) graph
 
-  -- Read back, and convert to base64.
-  imgData <- Char.readFile $ name ++ "svg"
-  return $ svg $ Char.unpack imgData
+    -- Read back, and convert to base64.
+    imgData <- Char.readFile path
+    return $ svg $ Char.unpack imgData
 
 graphDataPNG2F :: (C x, C y) => F.T (Tw.T x y) -> IO DisplayData
 graphDataPNG2F graph = do
-  switchToTmpDir
+  withSystemTempFile "ihaskell-gnuplot.png" $ \path _ -> do
 
-  -- Write the image.
-  let fname = Pn.cons $ name ++ "png"
-  plot fname graph
+    -- Write the image.
+    plot (Pn.cons path) graph
 
-  -- Read back, and convert to base64.
-  imgData <- Char.readFile $ name ++ "png"
-  return $ png w h $ base64 imgData
+    -- Read back, and convert to base64.
+    imgData <- Char.readFile path
+    return $ png w h $ base64 imgData
 
 graphDataSVG2F :: (C x, C y) => F.T (Tw.T x y) -> IO DisplayData
 graphDataSVG2F graph = do
-  switchToTmpDir
+  withSystemTempFile "ihaskell-gnuplot.svg" $ \path _ -> do
 
-  -- Write the image.
-  let fname = Sv.cons $ name ++ "svg"
-  plot fname graph
+    -- Write the image.
+    plot (Sv.cons path) graph
 
-  -- Read back, and convert to base64.
-  imgData <- Char.readFile $ name ++ "svg"
-  return $ svg $ Char.unpack imgData
+    -- Read back, and convert to base64.
+    imgData <- Char.readFile path
+    return $ svg $ Char.unpack imgData
 
 graphDataPNG3P :: (C x, C y, C z) => P.T (Th.T x y z) -> IO DisplayData
 graphDataPNG3P graph = do
-  switchToTmpDir
+  withSystemTempFile "ihaskell-gnuplot.png" $ \path _ -> do
 
-  -- Write the image.
-  let fname = Pn.cons $ name ++ "png"
-  plot fname graph
+    -- Write the image.
+    plot (Pn.cons path) graph
 
-  -- Read back, and convert to base64.
-  imgData <- Char.readFile $ name ++ "png"
-  return $ png w h $ base64 imgData
+    -- Read back, and convert to base64.
+    imgData <- Char.readFile path
+    return $ png w h $ base64 imgData
 
 graphDataSVG3P :: (C x, C y, C z) => P.T (Th.T x y z) -> IO DisplayData
 graphDataSVG3P graph = do
-  switchToTmpDir
+  withSystemTempFile "ihaskell-gnuplot.svg" $ \path _ -> do
 
-  -- Write the image.
-  let fname = Sv.cons $ name ++ "svg"
-  plot fname graph
+    -- Write the image.
+    plot (Sv.cons path) graph
 
-  -- Read back, and convert to base64.
-  imgData <- Char.readFile $ name ++ "svg"
-  return $ svg $ Char.unpack imgData
+    -- Read back, and convert to base64.
+    imgData <- Char.readFile path
+    return $ svg $ Char.unpack imgData
 
 graphDataPNG3F :: (C x, C y, C z) => F.T (Th.T x y z) -> IO DisplayData
 graphDataPNG3F graph = do
-  switchToTmpDir
+  withSystemTempFile "ihaskell-gnuplot.png" $ \path _ -> do
 
-  -- Write the image.
-  let fname = Pn.cons $ name ++ "png"
-  plot fname graph
+    -- Write the image.
+    plot (Pn.cons path) graph
 
-  -- Read back, and convert to base64.
-  imgData <- Char.readFile $ name ++ "png"
-  return $ png w h $ base64 imgData
+    -- Read back, and convert to base64.
+    imgData <- Char.readFile path
+    return $ png w h $ base64 imgData
 
 graphDataSVG3F :: (C x, C y, C z) => F.T (Th.T x y z) -> IO DisplayData
 graphDataSVG3F graph = do
-  switchToTmpDir
+  withSystemTempFile "ihaskell-gnuplot.svg" $ \path _ -> do
 
-  -- Write the image.
-  let fname = Sv.cons $ name ++ "svg"
-  plot fname graph
+    -- Write the image.
+    plot (Sv.cons path) graph
 
-  -- Read back, and convert to base64.
-  imgData <- Char.readFile $ name ++ "svg"
-  return $ svg $ Char.unpack imgData
+    -- Read back, and convert to base64.
+    imgData <- Char.readFile path
+    return $ svg $ Char.unpack imgData
 
 graphDataPNGM :: M.T -> IO DisplayData
 graphDataPNGM graph = do
-  switchToTmpDir
+  withSystemTempFile "ihaskell-gnuplot.png" $ \path _ -> do
 
-  -- Write the image.
-  let fname = Pn.cons $ name ++ "png"
-  plot fname graph
+    -- Write the image.
+    plot (Pn.cons path) graph
 
-  -- Read back, and convert to base64.
-  imgData <- Char.readFile $ name ++ "png"
-  return $ png w h $ base64 imgData
+    -- Read back, and convert to base64.
+    imgData <- Char.readFile path
+    return $ png w h $ base64 imgData
 
 graphDataSVGM :: M.T -> IO DisplayData
 graphDataSVGM graph = do
-  switchToTmpDir
+  withSystemTempFile "ihaskell-gnuplot.svg" $ \path _ -> do
 
-  -- Write the image.
-  let fname = Sv.cons $ name ++ "svg"
-  plot fname graph
+    -- Write the image.
+    plot (Sv.cons path) graph
 
-  -- Read back, and convert to base64.
-  imgData <- Char.readFile $ name ++ "svg"
-  return $ svg $ Char.unpack imgData
+    -- Read back, and convert to base64.
+    imgData <- Char.readFile path
+    return $ svg $ Char.unpack imgData

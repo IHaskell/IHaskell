@@ -9,6 +9,7 @@ module IHaskell.Display.Diagrams
 
 import qualified Data.ByteString.Char8 as Char
 import           System.Directory
+import           System.IO.Temp
 import           Diagrams.Backend.Cairo
 import           Diagrams.Prelude
 import           IHaskell.Display
@@ -23,21 +24,20 @@ instance IHaskellDisplay (ManuallySized (QDiagram Cairo V2 Double Any)) where
 
 diagramData :: ManuallySized (Diagram Cairo) -> OutputType -> IO DisplayData
 diagramData (ManuallySized renderable imgWidth imgHeight) format = do
-  switchToTmpDir
+  withSystemTempFile ("ihaskell-diagram." ++ extension format) $ \path _ -> do
 
-  -- Write the image.
-  let filename = ".ihaskell-diagram." ++ extension format
-  renderCairo filename (mkSizeSpec2D (Just imgWidth)
-                                     (Just imgHeight)) renderable
+    -- Write the image.
+    renderCairo path (mkSizeSpec2D (Just imgWidth)
+                                   (Just imgHeight)) renderable
 
-  -- Convert to base64.
-  imgData <- Char.readFile filename
-  let value =
-        case format of
-          PNG -> png (floor imgWidth) (floor imgHeight) $ base64 imgData
-          SVG -> svg (Char.unpack imgData)
+    -- Convert to base64.
+    imgData <- Char.readFile path
+    let value =
+          case format of
+            PNG -> png (floor imgWidth) (floor imgHeight) $ base64 imgData
+            SVG -> svg (Char.unpack imgData)
 
-  return value
+    return value
 
   where
     extension SVG = "svg"

@@ -59,6 +59,7 @@ library
                        text,
                        bytestring,
                        directory,
+                       temporary,
                        -- Use diagrams wrapper package to ensure all same versions of subpackages
                        diagrams >= 1.3,
                        diagrams-lib,

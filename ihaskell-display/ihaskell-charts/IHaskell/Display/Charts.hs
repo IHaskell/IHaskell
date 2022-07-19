@@ -5,6 +5,7 @@ import           Data.Default.Class
 import           Graphics.Rendering.Chart.Renderable
 import           Graphics.Rendering.Chart.Backend.Cairo
 import qualified Data.ByteString.Char8 as Char
+import           System.IO.Temp
 import           System.IO.Unsafe
 
 import           IHaskell.Display
@@ -27,16 +28,15 @@ instance IHaskellDisplay (Renderable a) where
 
 chartData :: Renderable a -> FileFormat -> IO DisplayData
 chartData renderable format = do
-  switchToTmpDir
+  withSystemTempFile "ihaskell-chart.png" $ \path _ -> do
 
-  -- Write the PNG image.
-  let filename = ".ihaskell-chart.png"
-      opts = def { _fo_format = format, _fo_size = (width, height) }
-  renderableToFile opts filename renderable
+    -- Write the PNG image.
+    let opts = def { _fo_format = format, _fo_size = (width, height) }
+    renderableToFile opts path renderable
 
-  -- Convert to base64.
-  imgData <- Char.readFile filename
-  return $
-    case format of
-      PNG -> png width height $ base64 imgData
-      SVG -> svg $ Char.unpack imgData
+    -- Convert to base64.
+    imgData <- Char.readFile path
+    return $
+      case format of
+        PNG -> png width height $ base64 imgData
+        SVG -> svg $ Char.unpack imgData

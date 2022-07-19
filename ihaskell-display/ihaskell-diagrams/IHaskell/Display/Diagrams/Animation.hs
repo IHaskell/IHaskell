@@ -16,6 +16,7 @@ import           Diagrams.Prelude
 import           Diagrams.Backend.Cairo
 import           Diagrams.Backend.Cairo.CmdLine (GifOpts(..))
 import           Diagrams.Backend.CmdLine (DiagramOpts(..), mainRender)
+import           System.IO.Temp
 
 import           IHaskell.Display
 import           IHaskell.Display.Diagrams.ImgSize
@@ -45,28 +46,27 @@ instance IHaskellDisplay (ManuallySized (ManuallySampled (QAnimation Cairo V2 Do
 
 animationData :: ManuallySized (ManuallySampled (Animation Cairo V2 Double)) -> IO String
 animationData (ManuallySized (ManuallySampled renderable fps) imgWidth imgHeight) = do
-  switchToTmpDir
+  withSystemTempFile "ihaskell-diagram.gif" $ \path _ -> do
 
-  -- Generate the frames
-  let actualFps = fromMaybe defaultFps fps
-      animAdjusted = animEnvelope' actualFps renderable
-      frames = simulate actualFps animAdjusted
-      timediff = 100 `div` ceiling actualFps :: Int
-      frameSet = map (\x -> (x # bg white, timediff)) frames
+    -- Generate the frames
+    let actualFps = fromMaybe defaultFps fps
+        animAdjusted = animEnvelope' actualFps renderable
+        frames = simulate actualFps animAdjusted
+        timediff = 100 `div` ceiling actualFps :: Int
+        frameSet = map (\x -> (x # bg white, timediff)) frames
 
-  -- Write the image.
-  let filename = ".ihaskell-diagram.gif"
-      diagOpts = DiagramOpts
-        { _width = Just . ceiling $ imgWidth
-        , _height = Just . ceiling $ imgHeight
-        , _output = filename
-        }
-      gifOpts = GifOpts { _dither = True, _noLooping = False, _loopRepeat = Nothing }
-  mainRender (diagOpts, gifOpts) frameSet
+    -- Write the image.
+    let diagOpts = DiagramOpts
+          { _width = Just . ceiling $ imgWidth
+          , _height = Just . ceiling $ imgHeight
+          , _output = path
+          }
+        gifOpts = GifOpts { _dither = True, _noLooping = False, _loopRepeat = Nothing }
+    mainRender (diagOpts, gifOpts) frameSet
 
-  -- Convert to ascii represented base64 encoding
-  imgData <- CBS.readFile filename
-  return . T.unpack . base64 $ imgData
+    -- Convert to ascii represented base64 encoding
+    imgData <- CBS.readFile path
+    return . T.unpack . base64 $ imgData
 
 
 -- Rendering hint.
