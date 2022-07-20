@@ -52,7 +52,7 @@ FROM ihaskell_base AS ihaskell
 RUN apt-get update && \
     apt-get install -y python3-pip && \
     rm -rf /var/lib/apt/lists/*
-RUN pip3 install -U jupyterlab
+RUN pip3 install -U jupyterlab notebook
 
 # Create runtime user
 ENV NB_USER jovyan
