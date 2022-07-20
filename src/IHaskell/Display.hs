@@ -48,9 +48,6 @@ module IHaskell.Display (
     encode64,
     base64,
 
-    -- ** Utilities
-    switchToTmpDir,
-
     -- * Internal only use
     displayFromChanEncoded,
     serializeDisplay,
@@ -64,10 +61,8 @@ import qualified Data.ByteString.Lazy as LBS
 
 import           Data.Binary as Binary
 import qualified Data.ByteString.Base64 as Base64
-import           System.Directory (getTemporaryDirectory, setCurrentDirectory)
 
 import           Control.Concurrent.STM (atomically)
-import           Control.Exception (try)
 import           Control.Concurrent.STM.TChan
 import           System.IO.Unsafe (unsafePerformIO)
 
@@ -184,12 +179,3 @@ displayFromChanEncoded =
 -- execution call ends.
 printDisplay :: IHaskellDisplay a => a -> IO ()
 printDisplay disp = display disp >>= atomically . writeTChan displayChan
-
--- | Convenience function for client libraries. Switch to a temporary directory so that any files we
--- create aren't visible. On Unix, this is usually /tmp.
-switchToTmpDir :: IO ()
-switchToTmpDir = void (try switchDir :: IO (Either SomeException ()))
-  where
-    switchDir =
-      getTemporaryDirectory >>=
-      setCurrentDirectory

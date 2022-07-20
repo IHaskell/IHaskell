@@ -58,6 +58,7 @@ library
                        bytestring,
                        data-default-class,
                        directory,
+                       temporary,
                        Chart,
                        Chart-cairo >=1.2,
                        ihaskell >= 0.6.2
