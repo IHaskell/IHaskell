@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-
 {- There are 3 types of plots to consider in haskell-gnuplot: Plot, Frame and Multiplot.
    Plot types are the actual plots, whereas Frame types are plots with additional options
    e.g. custom axes tics, graph title etc.. Multiplots are collections of 2D and/or 3D plots.
@@ -18,54 +16,32 @@ import qualified Graphics.Gnuplot.Frame as F
 import qualified Graphics.Gnuplot.MultiPlot as M
 import qualified Graphics.Gnuplot.Terminal.PNG as Pn
 import qualified Graphics.Gnuplot.Terminal.SVG as Sv
-import qualified Graphics.Gnuplot.Graph.TwoDimensional as Tw
-import qualified Graphics.Gnuplot.Graph.ThreeDimensional as Th
+import qualified Graphics.Gnuplot.Display as D
+import qualified Graphics.Gnuplot.Graph as G
 import qualified Data.ByteString.Char8 as Char
 import           System.IO.Temp
 import           Graphics.Gnuplot.Advanced (plot)
-import           Graphics.Gnuplot.Value.Atom (C)
 import           IHaskell.Display
 
 -- Plot-types
-instance (C x, C y) => IHaskellDisplay (P.T (Tw.T x y)) where
-  display fig = do
-    pngDisp <- graphDataPNG2P fig
-    svgDisp <- graphDataSVG2P fig
-    return $ Display [pngDisp, svgDisp]
-
-instance (C x, C y, C z) => IHaskellDisplay (P.T (Th.T x y z)) where
-  display fig = do
-    pngDisp <- graphDataPNG3P fig
-    svgDisp <- graphDataSVG3P fig
-    return $ Display [pngDisp, svgDisp]
+instance G.C graph => IHaskellDisplay (P.T graph) where
+  display = graphDataDisplayBoth
 
 -- Frame-types
-instance (C x, C y) => IHaskellDisplay (F.T (Tw.T x y)) where
-  display fig = do
-    pngDisp <- graphDataPNG2F fig
-    svgDisp <- graphDataSVG2F fig
-    return $ Display [pngDisp, svgDisp]
-
-instance (C x, C y, C z) => IHaskellDisplay (F.T (Th.T x y z)) where
-  display fig = do
-    pngDisp <- graphDataPNG3F fig
-    svgDisp <- graphDataSVG3F fig
-    return $ Display [pngDisp, svgDisp]
+instance G.C graph => IHaskellDisplay (F.T graph) where
+  display = graphDataDisplayBoth
 
 -- Type: Multiplot
 instance IHaskellDisplay M.T where
-  display fig = do
-    pngDisp <- graphDataPNGM fig
-    svgDisp <- graphDataSVGM fig
-    return $ Display [pngDisp, svgDisp]
+  display = graphDataDisplayBoth
 
 -- Width and height
 w = 300
 
 h = 300
 
-graphDataPNG2P :: (C x, C y) => P.T (Tw.T x y) -> IO DisplayData
-graphDataPNG2P graph = do
+graphDataPNG :: D.C gfx => gfx -> IO DisplayData
+graphDataPNG graph = do
   withSystemTempFile "ihaskell-gnuplot.png" $ \path _ -> do
 
     -- Write the image.
@@ -75,8 +51,8 @@ graphDataPNG2P graph = do
     imgData <- Char.readFile path
     return $ png w h $ base64 imgData
 
-graphDataSVG2P :: (C x, C y) => P.T (Tw.T x y) -> IO DisplayData
-graphDataSVG2P graph = do
+graphDataSVG :: D.C gfx => gfx -> IO DisplayData
+graphDataSVG graph = do
   withSystemTempFile "ihaskell-gnuplot.svg" $ \path _ -> do
 
     -- Write the image.
@@ -86,90 +62,8 @@ graphDataSVG2P graph = do
     imgData <- Char.readFile path
     return $ svg $ Char.unpack imgData
 
-graphDataPNG2F :: (C x, C y) => F.T (Tw.T x y) -> IO DisplayData
-graphDataPNG2F graph = do
-  withSystemTempFile "ihaskell-gnuplot.png" $ \path _ -> do
-
-    -- Write the image.
-    plot (Pn.cons path) graph
-
-    -- Read back, and convert to base64.
-    imgData <- Char.readFile path
-    return $ png w h $ base64 imgData
-
-graphDataSVG2F :: (C x, C y) => F.T (Tw.T x y) -> IO DisplayData
-graphDataSVG2F graph = do
-  withSystemTempFile "ihaskell-gnuplot.svg" $ \path _ -> do
-
-    -- Write the image.
-    plot (Sv.cons path) graph
-
-    -- Read back, and convert to base64.
-    imgData <- Char.readFile path
-    return $ svg $ Char.unpack imgData
-
-graphDataPNG3P :: (C x, C y, C z) => P.T (Th.T x y z) -> IO DisplayData
-graphDataPNG3P graph = do
-  withSystemTempFile "ihaskell-gnuplot.png" $ \path _ -> do
-
-    -- Write the image.
-    plot (Pn.cons path) graph
-
-    -- Read back, and convert to base64.
-    imgData <- Char.readFile path
-    return $ png w h $ base64 imgData
-
-graphDataSVG3P :: (C x, C y, C z) => P.T (Th.T x y z) -> IO DisplayData
-graphDataSVG3P graph = do
-  withSystemTempFile "ihaskell-gnuplot.svg" $ \path _ -> do
-
-    -- Write the image.
-    plot (Sv.cons path) graph
-
-    -- Read back, and convert to base64.
-    imgData <- Char.readFile path
-    return $ svg $ Char.unpack imgData
-
-graphDataPNG3F :: (C x, C y, C z) => F.T (Th.T x y z) -> IO DisplayData
-graphDataPNG3F graph = do
-  withSystemTempFile "ihaskell-gnuplot.png" $ \path _ -> do
-
-    -- Write the image.
-    plot (Pn.cons path) graph
-
-    -- Read back, and convert to base64.
-    imgData <- Char.readFile path
-    return $ png w h $ base64 imgData
-
-graphDataSVG3F :: (C x, C y, C z) => F.T (Th.T x y z) -> IO DisplayData
-graphDataSVG3F graph = do
-  withSystemTempFile "ihaskell-gnuplot.svg" $ \path _ -> do
-
-    -- Write the image.
-    plot (Sv.cons path) graph
-
-    -- Read back, and convert to base64.
-    imgData <- Char.readFile path
-    return $ svg $ Char.unpack imgData
-
-graphDataPNGM :: M.T -> IO DisplayData
-graphDataPNGM graph = do
-  withSystemTempFile "ihaskell-gnuplot.png" $ \path _ -> do
-
-    -- Write the image.
-    plot (Pn.cons path) graph
-
-    -- Read back, and convert to base64.
-    imgData <- Char.readFile path
-    return $ png w h $ base64 imgData
-
-graphDataSVGM :: M.T -> IO DisplayData
-graphDataSVGM graph = do
-  withSystemTempFile "ihaskell-gnuplot.svg" $ \path _ -> do
-
-    -- Write the image.
-    plot (Sv.cons path) graph
-
-    -- Read back, and convert to base64.
-    imgData <- Char.readFile path
-    return $ svg $ Char.unpack imgData
+graphDataDisplayBoth :: D.C gfx => gfx -> IO Display
+graphDataDisplayBoth fig = do
+    pngDisp <- graphDataPNG fig
+    svgDisp <- graphDataSVG fig
+    return $ Display [pngDisp, svgDisp]
