@@ -30,6 +30,7 @@ import           Shelly (toTextIgnore, (</>), shelly, fromText, get_env_text, Fi
 import           IHaskell.Eval.Evaluate (Interpreter, liftIO)
 import           IHaskell.Eval.Completion (complete, CompletionType(..), completionType,
                                            completionTarget)
+import           IHaskell.Eval.Util (setWayDynFlag)
 import           IHaskell.Test.Util (replace, shouldBeAmong, ghc)
 
 -- | @readCompletePrompt "xs*ys"@ return @(xs, i)@ where i is the location of
@@ -67,9 +68,9 @@ initCompleter :: Interpreter ()
 initCompleter = do
   flags <- getSessionDynFlags
 #if MIN_VERSION_ghc(9,2,0)
-  _ <- setSessionDynFlags $ flags { backend = Interpreter, ghcLink = LinkInMemory }
+  _ <- setSessionDynFlags $ setWayDynFlag flags { backend = Interpreter, ghcLink = LinkInMemory }
 #else
-  _ <- setSessionDynFlags $ flags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
+  _ <- setSessionDynFlags $ setWayDynFlag flags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
 #endif
 
   -- Import modules.
