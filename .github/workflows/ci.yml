@@ -32,7 +32,9 @@ on:
 
 jobs:
   linux:
-    runs-on: ubuntu:18.04
+    runs:
+      using: 'docker'
+      image: 'docker://ubuntu:18.04'
     strategy:
       fail-fast: false
       matrix:
