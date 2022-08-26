@@ -10,10 +10,10 @@ name:                ihaskell
 version:             0.10.2.2
 
 -- A short (one-line) description of the package.
-synopsis:            A Haskell backend kernel for the IPython project.
+synopsis:            A Haskell backend kernel for the Jupyter project.
 
 -- A longer description of the package.
-description:         IHaskell is a Haskell backend kernel for the IPython project. This allows using Haskell via
+description:         IHaskell is a Haskell backend kernel for the Jupyter project. This allows using Haskell via
                      a console or notebook interface. Additional packages may be installed to provide richer data visualizations.
 
 -- URL for the project homepage or repository.
