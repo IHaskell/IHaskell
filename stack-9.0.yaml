@@ -1,6 +1,4 @@
-# the GHC version of this resolver needs to match the GHC version in Dockerfile
-resolver: lts-19.10
-#allow-newer: true
+resolver: lts-19.23 # GHC 9.0.2
 
 flags: {}
 packages:
@@ -21,19 +19,13 @@ packages:
     - ./ihaskell-display/ihaskell-widgets
 
 extra-deps:
-- Chart-cairo-1.9.3@sha256:893d9da563b54350da20f258fe75e894f71ba5297dacc6b531407e0abc8988b4,924
-- diagrams-cairo-1.4.2@sha256:a9586a56c90fca258988ad0d1eec122ed62dadbfdd8a4ef022d02c1de0268cdd,3810
+- Chart-cairo-1.9.3
+- diagrams-cairo-1.4.2
 - cairo-0.13.8.2
 - pango-0.13.8.2
 - glib-0.13.8.2
-- gtk2hs-buildtools-0.13.8.3
 - plot-0.2.3.11
-# - static-canvas-0.2.0.3
 - statestack-0.3
-- dual-tree-0.2.3.0
-- monoid-extras-0.6
-- svg-builder-0.1.1
-- force-layout-0.4.0.6
 
 ghc-options:
   # Eventually we want "$locals": -Wall -Wpartial-fields -Werror

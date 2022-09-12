@@ -25,7 +25,7 @@ ghc-options:
   # ihaskell-widgets: -Wall -Wpartial-fields -Werror
 
 nix:
-  enable: true
+  enable: false
   packages:
     - blas
     - cairo
