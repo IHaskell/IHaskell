@@ -5,7 +5,7 @@ name:                ghc-parser
 version:             0.2.4.0
 synopsis:            Haskell source parser from GHC.
 -- description:
-homepage:            https://github.com/gibiansky/IHaskell
+homepage:            https://github.com/IHaskell/IHaskell
 license:             MIT
 license-file:        LICENSE
 author:              Andrew Gibiansky
