@@ -28,7 +28,12 @@ module Language.Haskell.GHC.Parser (
 import Data.List (intercalate, findIndex, isInfixOf)
 import Data.Char (isAlphaNum)
 
-#if MIN_VERSION_ghc(9,2,0)
+#if MIN_VERSION_ghc(9,4,0)
+import GHC.Driver.Config.Parser (initParserOpts)
+import GHC.Types.Error (diagnosticMessage, getMessages, MsgEnvelope(..))
+import GHC.Utils.Error (formatBulleted)
+import GHC.Utils.Outputable (defaultSDocContext)
+#elif MIN_VERSION_ghc(9,2,0)
 import GHC.Driver.Config (initParserOpts)
 import GHC.Parser.Errors.Ppr (pprError)
 #endif
@@ -155,10 +160,17 @@ runParser flags (Parser parser) str =
       parseState = mkPState flags buffer location in
 #endif
     -- Convert a GHC parser output into our own.
-    toParseOut $ unP parser parseState
+    toParseOut (unP parser parseState)
   where
     toParseOut :: ParseResult a -> ParseOutput a
-#if MIN_VERSION_ghc(9,2,0)
+#if MIN_VERSION_ghc(9,4,0)
+    toParseOut (PFailed pstate) =
+      let realSpan = SrcLoc.psRealSpan $ last_loc pstate
+          errMsg = printErrorBag (getMessages $ errors pstate)
+          ln = srcLocLine $ SrcLoc.realSrcSpanStart realSpan
+          col = srcLocCol $ SrcLoc.realSrcSpanStart realSpan
+        in Failure errMsg $ Loc ln col
+#elif MIN_VERSION_ghc(9,2,0)
     toParseOut (PFailed pstate) =
       let realSpan = SrcLoc.psRealSpan $ last_loc pstate
           errMsg = printErrorBag (errors pstate)
@@ -208,7 +220,9 @@ runParser flags (Parser parser) str =
       Parsed result
 
     -- Convert the bag of errors into an error string.
-#if MIN_VERSION_ghc(9,2,0)
+#if MIN_VERSION_ghc(9,4,0)
+    printErrorBag bag = joinLines . map (show . formatBulleted defaultSDocContext . diagnosticMessage . errMsgDiagnostic) $ bagToList bag
+#elif MIN_VERSION_ghc(9,2,0)
     printErrorBag bag = joinLines . map (show . pprError) $ bagToList bag
 #else
     printErrorBag bag = joinLines . map show $ bagToList bag
@@ -218,7 +232,11 @@ runParser flags (Parser parser) str =
 parsePragmasIntoDynFlags :: DynFlags -> FilePath -> String -> IO (Maybe DynFlags)
 parsePragmasIntoDynFlags flags filepath str =
   catchErrors $ do
+#if MIN_VERSION_ghc(9,4,0)
+    let opts = snd $ getOptions (initParserOpts flags) (stringToStringBuffer str) filepath
+#else
     let opts = getOptions flags (stringToStringBuffer str) filepath
+#endif
     (flags', _, _) <- parseDynamicFilePragma flags opts
     return $ Just flags'
   where
