@@ -35,7 +35,23 @@ import           System.Process
 import           System.Exit
 import           System.Environment (getEnv)
 
-#if MIN_VERSION_ghc(9,2,0)
+#if MIN_VERSION_ghc(9,4,0)
+import qualified GHC.Runtime.Debugger as Debugger
+import           GHC.Runtime.Eval
+import           GHC.Driver.Session
+import           GHC.Unit.State
+import           Control.Monad.Catch as MC
+import           GHC.Utils.Outputable hiding ((<>))
+import           GHC.Data.Bag
+import           GHC.Driver.Backend
+import           GHC.Driver.Env
+import           GHC.Driver.Ppr
+import           GHC.Runtime.Context
+import           GHC.Types.Error
+import           GHC.Types.SourceError
+import           GHC.Unit.Types (UnitId)
+import qualified GHC.Utils.Error as ErrUtils
+#elif MIN_VERSION_ghc(9,2,0)
 import qualified GHC.Runtime.Debugger as Debugger
 import           GHC.Runtime.Eval
 import           GHC.Driver.Session
@@ -208,7 +224,16 @@ interpret libdir allowedStdin needsSupportLibraries action = runGhc (Just libdir
   -- Run the rest of the interpreter
   action hasSupportLibraries
 
-#if MIN_VERSION_ghc(9,2,0)
+#if MIN_VERSION_ghc(9,4,0)
+packageIdString' :: Logger -> DynFlags -> HscEnv -> UnitInfo -> IO String
+packageIdString' logger dflags hsc_env pkg_cfg = do
+    (_, unitState, _, _) <- initUnits logger dflags Nothing (hsc_all_home_unit_ids hsc_env)
+    case (lookupUnit unitState $ mkUnit pkg_cfg) of
+      Nothing -> pure "(unknown)"
+      Just cfg -> let
+        PackageName name = unitPackageName cfg
+        in pure $ unpackFS name
+#elif MIN_VERSION_ghc(9,2,0)
 packageIdString' :: Logger -> DynFlags -> UnitInfo -> IO String
 packageIdString' logger dflags pkg_cfg = do
     (_, unitState, _, _) <- initUnits logger dflags Nothing
@@ -239,7 +264,12 @@ packageIdString' dflags pkg_cfg =
     fromMaybe "(unknown)" (unitIdPackageIdString dflags $ packageConfigId pkg_cfg)
 #endif
 
-#if MIN_VERSION_ghc(9,2,0)
+#if MIN_VERSION_ghc(9,4,0)
+getPackageConfigs :: Logger -> DynFlags -> HscEnv -> IO [GenUnitInfo UnitId]
+getPackageConfigs logger dflags hsc_env = do
+    (pkgDb, _, _, _) <- initUnits logger dflags Nothing (hsc_all_home_unit_ids hsc_env)
+    pure $ foldMap unitDatabaseUnits pkgDb
+#elif MIN_VERSION_ghc(9,2,0)
 getPackageConfigs :: Logger -> DynFlags -> IO [GenUnitInfo UnitId]
 getPackageConfigs logger dflags = do
     (pkgDb, _, _, _) <- initUnits logger dflags Nothing
@@ -274,7 +304,15 @@ initializeImports importSupportLibraries = do
   (dflgs, _) <- liftIO $ initPackages dflags
 #endif
 
-#if MIN_VERSION_ghc(9,2,0)
+#if MIN_VERSION_ghc(9,4,0)
+  logger <- getLogger
+  hsc_env <- getSession
+  db <- liftIO $ getPackageConfigs logger dflgs hsc_env
+  packageNames <- liftIO $ mapM (packageIdString' logger dflgs hsc_env) db
+  let hiddenPackages = Set.intersection hiddenPackageNames (Set.fromList packageNames)
+      hiddenFlags = fmap HidePackage $ Set.toList hiddenPackages
+      initStr = "ihaskell-"
+#elif MIN_VERSION_ghc(9,2,0)
   logger <- getLogger
   db <- liftIO $ getPackageConfigs logger dflgs
   packageNames <- liftIO $ mapM (packageIdString' logger dflgs) db
@@ -506,7 +544,10 @@ flushWidgetMessages state evalmsgs widgetHandler = do
         let commMessages = evalmsgs ++ messages
         widgetHandler state commMessages
 
-#if MIN_VERSION_ghc(9,2,0)
+#if MIN_VERSION_ghc(9,4,0)
+getErrMsgDoc :: ErrUtils.Diagnostic e => ErrUtils.MsgEnvelope e -> SDoc
+getErrMsgDoc = ErrUtils.pprLocMsgEnvelope
+#elif MIN_VERSION_ghc(9,2,0)
 getErrMsgDoc :: ErrUtils.WarnMsg -> SDoc
 getErrMsgDoc = ErrUtils.pprLocMsgEnvelope
 #else
@@ -530,7 +571,11 @@ safely state = ghandle handler . ghandle sourceErrorHandler
 
     sourceErrorHandler :: SourceError -> Interpreter EvalOut
     sourceErrorHandler srcerr = do
+#if MIN_VERSION_ghc(9,4,0)
+      let msgs = bagToList . getMessages $ srcErrorMessages srcerr
+#else
       let msgs = bagToList $ srcErrorMessages srcerr
+#endif
       errStrs <- forM msgs $ doc . getErrMsgDoc
 
       let fullErr = unlines errStrs
@@ -903,7 +948,9 @@ evalCommand _ (Directive GetDoc query) state = safely state $ do
 evalCommand _ (Directive SPrint binding) state = wrapExecution state $ do
   flags <- getSessionDynFlags
   contents <- liftIO $ newIORef []
-#if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,4,0)
+  let action = \_lflags _msgclass _srcspan msg -> modifyIORef' contents (showSDoc flags msg :)
+#elif MIN_VERSION_ghc(9,0,0)
   let action = \_dflags _warn _sev _srcspan msg -> modifyIORef' contents (showSDoc flags msg :)
 #else
   let action = \_dflags _sev _srcspan _ppr _style msg -> modifyIORef' contents (showSDoc flags msg :)
@@ -1153,7 +1200,9 @@ doLoadModule name modName = do
     -- Compile loaded modules.
     flags <- getSessionDynFlags
     errRef <- liftIO $ newIORef []
-#if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,4,0)
+    let logAction = \_lflags _msgclass _srcspan msg -> modifyIORef' errRef (showSDoc flags msg :)
+#elif MIN_VERSION_ghc(9,0,0)
     let logAction = \_dflags _warn _sev _srcspan msg -> modifyIORef' errRef (showSDoc flags msg :)
 #else
     let logAction = \_dflags _sev _srcspan _ppr _style msg -> modifyIORef' errRef (showSDoc flags msg :)
@@ -1172,7 +1221,11 @@ doLoadModule name modName = do
         }
 
     -- Load the new target.
+#if MIN_VERSION_ghc(9,4,0)
+    target <- guessTarget name Nothing Nothing
+#else
     target <- guessTarget name Nothing
+#endif
     oldTargets <- getTargets
     -- Add a target, but make sure targets are unique!
     addTarget target
