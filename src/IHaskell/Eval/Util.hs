@@ -34,7 +34,25 @@ import qualified Data.ByteString.Char8 as CBS
 #endif
 
 -- GHC imports.
-#if MIN_VERSION_ghc(9,2,0)
+#if MIN_VERSION_ghc(9,4,0)
+import           GHC.Core.InstEnv (is_cls, is_tys, mkInstEnv, instEnvElts)
+import           GHC.Core.Unify
+import           GHC.Types.TyThing.Ppr
+import           GHC.Driver.CmdLine
+import           GHC.Driver.Monad (modifySession)
+import           GHC.Driver.Ppr
+import           GHC.Driver.Session
+import           GHC.Driver.Env.Types
+import           GHC.Platform.Ways
+import           GHC.Runtime.Context
+import           GHC.Types.Name (pprInfixName)
+import           GHC.Types.Name.Set
+import           GHC.Types.TyThing
+import qualified GHC.Driver.Session as DynFlags
+import qualified GHC.Utils.Outputable as O
+import qualified GHC.Utils.Ppr as Pretty
+import           GHC.Runtime.Loader
+#elif MIN_VERSION_ghc(9,2,0)
 import           GHC.Core.InstEnv (is_cls, is_tys)
 import           GHC.Core.Unify
 import           GHC.Types.TyThing.Ppr
@@ -215,6 +233,10 @@ pprLanguages show_all dflags =
         Nothing          -> O.text "Haskell2010"
         Just Haskell98   -> O.text "Haskell98"
         Just Haskell2010 -> O.text "Haskell2010"
+#if MIN_VERSION_ghc(9,4,0)
+        Just GHC2021 -> O.text "GHC2021"
+#else
+#endif
     , (if show_all
          then O.text "all active language options:"
          else O.text "with the following modifiers:") O.$$
@@ -485,7 +507,11 @@ cleanUpDuplicateInstances = modifySession $ \hscEnv ->
       ic = hsc_IC hscEnv
       (clsInsts, famInsts) = ic_instances ic
       -- Remove duplicates
+#if MIN_VERSION_ghc(9,4,0)
+      clsInsts' = mkInstEnv $ nubBy instEq $ instEnvElts clsInsts
+#else
       clsInsts' = nubBy instEq clsInsts
+#endif
   in hscEnv { hsc_IC = ic { ic_instances = (clsInsts', famInsts) } }
   where
     instEq :: ClsInst -> ClsInst -> Bool
