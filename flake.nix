@@ -23,13 +23,17 @@
       compilerVersionFromHsPkgs = hsPkgs:
         pkgs.lib.replaceStrings [ "." ] [ "" ] hsPkgs.ghc.version;
 
-      mkEnv = hsPkgs:
+      mkEnv = hsPkgs: displayPkgs:
         import ./release.nix {
           compiler = "ghc${compilerVersionFromHsPkgs hsPkgs}";
           nixpkgs = pkgs;
+          packages = displayPkgs;
+          systemPackages = p: with p; [
+            gnuplot # for the ihaskell-gnuplot runtime
+          ];
         };
 
-      mkExe = hsPkgs: (mkEnv hsPkgs).ihaskellExe;
+      mkExe = hsPkgs: (mkEnv hsPkgs (_:[])).ihaskellExe;
 
       ghcDefault = ghc8107;
       ghc884  = pkgs.haskell.packages.ghc884;
@@ -65,25 +69,46 @@
           name = "ihaskell";
           returnShellEnv = false;
           modifier = pkgs.haskell.lib.dontCheck;
-          overrides = (mkEnv hsPkgs).ihaskellOverlay ;
+          overrides = (mkEnv hsPkgs (_:[])).ihaskellOverlay ;
           withHoogle = true;
         };
 
     in {
 
       packages = {
+        # Development environment
         ihaskell-dev = mkDevShell ghcDefault;
         ihaskell-dev-921 = mkDevShell ghc921;
         ihaskell-dev-8107 = mkDevShell ghc8107;
         ihaskell-dev-884 = mkDevShell ghc884;
 
+        # IHaskell kernel
         ihaskell = mkExe ghcDefault;
         ihaskell-8107 = mkExe ghc8107;
         ihaskell-921 = mkExe ghc921;
 
+        # Full Jupyter environment
         # I actually wish those would disappear ? let jupyterWith or use deal with it
-        ihaskell-env = mkEnv ghcDefault;
-        ihaskell-env-8107 = mkEnv ghc8107;
+        ihaskell-env = mkEnv ghcDefault (_:[]);
+        ihaskell-env-8107 = mkEnv ghc8107 (_:[]);
+
+        # Full Jupyter environment with all Display modules (build is not incremental)
+        #
+        #     result/bin/jupyter-lab
+        #
+        ihaskell-env-display = mkEnv ghcDefault (p: with p; [
+            ihaskell-aeson
+            ihaskell-blaze
+            ihaskell-charts
+            ihaskell-diagrams
+            ihaskell-gnuplot
+            ihaskell-graphviz
+            ihaskell-hatex
+            ihaskell-juicypixels
+            ihaskell-magic
+            ihaskell-plot
+            ihaskell-widgets
+            ]);
       };
 
       defaultPackage = self.packages.${system}.ihaskell;
