@@ -7,6 +7,7 @@ import           Graphics.Rendering.Chart.Backend.Cairo
 import qualified Data.ByteString.Char8 as Char
 import           System.IO.Temp
 import           System.IO.Unsafe
+import           System.FilePath ((</>))
 
 import           IHaskell.Display
 
@@ -28,15 +29,21 @@ instance IHaskellDisplay (Renderable a) where
 
 chartData :: Renderable a -> FileFormat -> IO DisplayData
 chartData renderable format = do
-  withSystemTempFile "ihaskell-chart.png" $ \path _ -> do
+  -- We should not have to round-trip this ByteString to a temp file.
+  -- https://github.com/IHaskell/IHaskell/issues/1248
+  withSystemTempDirectory "ihaskell-charts" $ \tmpdir -> do
 
-    -- Write the PNG image.
-    let opts = def { _fo_format = format, _fo_size = (width, height) }
-    renderableToFile opts path renderable
+  -- Write the PNG image.
+    let
+      filename = tmpdir </> "ihaskell-chart.png"
+      opts = def { _fo_format = format, _fo_size = (width, height) }
+    renderableToFile opts filename renderable
 
     -- Convert to base64.
-    imgData <- Char.readFile path
+    imgData <- Char.readFile filename
+
     return $
       case format of
         PNG -> png width height $ base64 imgData
         SVG -> svg $ Char.unpack imgData
+        _ -> error "Unreachable case, not PNG or SVG"

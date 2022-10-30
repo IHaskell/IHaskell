@@ -5,6 +5,7 @@ import           Graphics.Rendering.Plot
 import           Control.Monad (void)
 import           Control.Applicative ((<$>))
 import           System.IO.Temp
+import           System.FilePath ((</>))
 
 import           IHaskell.Display
 
@@ -17,12 +18,17 @@ instance IHaskellDisplay (Figure a) where
 
 figureData :: Figure () -> OutputType -> IO DisplayData
 figureData figure format = do
-  withSystemTempFile ("ihaskell-plot." ++ extension format) $ \path _ -> do
+  withSystemTempDirectory "ihaskell-plot" $ \tmpdir  -> do
 
     -- Width and height
     let size = 300
         w = size
         h = size
+
+    let path = case format of
+          PNG -> tmpdir </> "ihaskell-plot.png"
+          SVG -> tmpdir </> "ihaslell-plot.svg"
+          _ -> error "Unreachable case"
 
     -- Write the image.
     writeFigure format path (w, h) figure
@@ -36,8 +42,3 @@ figureData figure format = do
             _   -> error "Unsupported format for display"
 
     return value
-
-  where
-    extension SVG = "svg"
-    extension PNG = "png"
-    extension _ = ""

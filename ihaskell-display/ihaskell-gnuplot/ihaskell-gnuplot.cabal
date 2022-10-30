@@ -57,6 +57,7 @@ library
   build-depends:       base >=4.9 && <5,
                        bytestring,
                        temporary,
+                       filepath,
                        gnuplot >= 0.5.4,
                        ihaskell >= 0.6.2
 

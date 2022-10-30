@@ -58,6 +58,7 @@ library
                        plot,
                        bytestring,
                        temporary,
+                       filepath,
                        hmatrix >= 0.10,
                        ihaskell >= 0.6.2
 

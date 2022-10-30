@@ -58,6 +58,7 @@ library
                        bytestring,
                        data-default-class,
                        directory,
+                       filepath,
                        temporary,
                        Chart,
                        Chart-cairo >=1.2,

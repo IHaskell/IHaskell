@@ -10,6 +10,7 @@ module IHaskell.Display.Diagrams
 import qualified Data.ByteString.Char8 as Char
 import           System.Directory
 import           System.IO.Temp
+import           System.FilePath ((</>))
 import           Diagrams.Backend.Cairo
 import           Diagrams.Prelude
 import           IHaskell.Display
@@ -24,7 +25,13 @@ instance IHaskellDisplay (ManuallySized (QDiagram Cairo V2 Double Any)) where
 
 diagramData :: ManuallySized (Diagram Cairo) -> OutputType -> IO DisplayData
 diagramData (ManuallySized renderable imgWidth imgHeight) format = do
-  withSystemTempFile ("ihaskell-diagram." ++ extension format) $ \path _ -> do
+  -- We should not have to round-trip this ByteString to a temp file.
+  -- https://github.com/IHaskell/IHaskell/issues/1248
+  withSystemTempDirectory "ihaskell-diagram" $ \tmpdir -> do
+    let path = case format of
+          SVG -> tmpdir </> "ihaskell-diagram.svg"
+          PNG -> tmpdir </> "ihaskell-diagram.png"
+          _ -> error "Unreachable case"
 
     -- Write the image.
     renderCairo path (mkSizeSpec2D (Just imgWidth)
@@ -36,12 +43,10 @@ diagramData (ManuallySized renderable imgWidth imgHeight) format = do
           case format of
             PNG -> png (floor imgWidth) (floor imgHeight) $ base64 imgData
             SVG -> svg (Char.unpack imgData)
+            _ -> error "Unreachable case"
 
     return value
 
-  where
-    extension SVG = "svg"
-    extension PNG = "png"
 
 -- Rendering hint.
 diagram :: Diagram Cairo -> Diagram Cairo
