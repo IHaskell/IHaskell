@@ -32,3 +32,5 @@ cradle:
       component: "ihaskell-static-canvas:lib:ihaskell-static-canvas"
     - path: "./ihaskell-display/ihaskell-widgets"
       component: "ihaskell-widgets:lib:ihaskell-widgets"
+    - path: "./ihaskell-display/ihaskell-graphviz"
+      component: "ihaskell-graphviz:lib:ihaskell-graphviz"

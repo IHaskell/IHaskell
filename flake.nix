@@ -48,6 +48,10 @@
               cabal-install
               pythonDevEnv
               self.inputs.hls.packages.${system}."haskell-language-server-${compilerVersion}"
+              pkgs.cairo # for the ihaskell-charts HLS dev environment
+              pkgs.pango # for the ihaskell-diagrams HLS dev environment
+              pkgs.lapack # for the ihaskell-plot HLS dev environment
+              pkgs.blas # for the ihaskell-plot HLS dev environment
             ]);
         in (myModifier myIHaskell).envFunc {withHoogle=true;};
 
