@@ -22,6 +22,8 @@ import qualified Graphics.Gnuplot.Terminal.SVG as Sv
 import qualified Graphics.Gnuplot.Display as D
 import qualified Graphics.Gnuplot.Graph as G
 import qualified Data.ByteString.Char8 as Char
+import qualified Data.ByteString as BS
+import qualified Data.Text.Encoding as T.Encoding
 import           System.IO.Temp
 import           System.FilePath ((</>))
 import           Graphics.Gnuplot.Advanced (plot)
@@ -66,9 +68,9 @@ graphDataSVG graph = do
     -- Write the image.
     plot (Sv.cons path) graph
 
-    -- Read back, and convert to base64.
-    imgData <- Char.readFile path
-    return $ svg $ Char.unpack imgData
+    -- Read back
+    imgData <- BS.readFile path
+    return $ svg $ T.Encoding.decodeUtf8 imgData
 
 graphDataDisplayBoth :: D.C gfx => gfx -> IO Display
 graphDataDisplayBoth fig = do

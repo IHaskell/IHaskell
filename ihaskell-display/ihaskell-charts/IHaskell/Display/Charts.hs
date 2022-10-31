@@ -5,6 +5,8 @@ import           Data.Default.Class
 import           Graphics.Rendering.Chart.Renderable
 import           Graphics.Rendering.Chart.Backend.Cairo
 import qualified Data.ByteString.Char8 as Char
+import qualified Data.ByteString as BS
+import qualified Data.Text.Encoding as T.Encoding
 import           System.IO.Temp
 import           System.IO.Unsafe
 import           System.FilePath ((</>))
@@ -39,11 +41,12 @@ chartData renderable format = do
       opts = def { _fo_format = format, _fo_size = (width, height) }
     renderableToFile opts filename renderable
 
-    -- Convert to base64.
-    imgData <- Char.readFile filename
-
-    return $
-      case format of
-        PNG -> png width height $ base64 imgData
-        SVG -> svg $ Char.unpack imgData
-        _ -> error "Unreachable case, not PNG or SVG"
+    case format of
+      PNG -> do
+        -- Convert to base64.
+        imgData <- Char.readFile filename
+        pure $ png width height $ base64 imgData
+      SVG -> do
+        imgData <- BS.readFile filename
+        pure $ svg $ T.Encoding.decodeUtf8 imgData
+      _ -> error "Unreachable case, not PNG or SVG"

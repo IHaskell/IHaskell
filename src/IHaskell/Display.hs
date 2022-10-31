@@ -87,8 +87,8 @@ html :: String -> DisplayData
 html = DisplayData MimeHtml . T.pack
 
 -- | Generate an SVG display.
-svg :: String -> DisplayData
-svg = DisplayData MimeSvg . T.pack
+svg :: T.Text -> DisplayData
+svg = DisplayData MimeSvg
 
 -- | Generate a LaTeX display.
 latex :: String -> DisplayData

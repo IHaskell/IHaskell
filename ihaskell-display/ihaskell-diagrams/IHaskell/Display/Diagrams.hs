@@ -7,7 +7,9 @@ module IHaskell.Display.Diagrams
          , ManuallySampled, withAnimFps
          ) where
 
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as Char
+import qualified Data.Text.Encoding as T.Encoding
 import           System.Directory
 import           System.IO.Temp
 import           System.FilePath ((</>))
@@ -37,16 +39,15 @@ diagramData (ManuallySized renderable imgWidth imgHeight) format = do
     renderCairo path (mkSizeSpec2D (Just imgWidth)
                                    (Just imgHeight)) renderable
 
-    -- Convert to base64.
-    imgData <- Char.readFile path
-    let value =
-          case format of
-            PNG -> png (floor imgWidth) (floor imgHeight) $ base64 imgData
-            SVG -> svg (Char.unpack imgData)
-            _ -> error "Unreachable case"
-
-    return value
-
+    case format of
+      PNG -> do
+        -- Convert to base64.
+        imgData <- Char.readFile path
+        pure $ png (floor imgWidth) (floor imgHeight) $ base64 imgData
+      SVG -> do
+        imgData <- BS.readFile path
+        pure $ svg (T.Encoding.decodeUtf8 imgData)
+      _ -> error "Unreachable case"
 
 -- Rendering hint.
 diagram :: Diagram Cairo -> Diagram Cairo

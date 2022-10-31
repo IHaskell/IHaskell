@@ -57,6 +57,7 @@ library
   build-depends:       base >=4.9 && <5,
                        plot,
                        bytestring,
+                       text,
                        temporary,
                        filepath,
                        hmatrix >= 0.10,
