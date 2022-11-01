@@ -56,7 +56,9 @@ library
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.9 && <5,
                        bytestring,
+                       text,
                        temporary,
+                       filepath,
                        gnuplot >= 0.5.4,
                        ihaskell >= 0.6.2
 

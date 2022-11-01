@@ -17,6 +17,7 @@ import           Diagrams.Backend.Cairo
 import           Diagrams.Backend.Cairo.CmdLine (GifOpts(..))
 import           Diagrams.Backend.CmdLine (DiagramOpts(..), mainRender)
 import           System.IO.Temp
+import           System.FilePath ((</>))
 
 import           IHaskell.Display
 import           IHaskell.Display.Diagrams.ImgSize
@@ -46,7 +47,11 @@ instance IHaskellDisplay (ManuallySized (ManuallySampled (QAnimation Cairo V2 Do
 
 animationData :: ManuallySized (ManuallySampled (Animation Cairo V2 Double)) -> IO String
 animationData (ManuallySized (ManuallySampled renderable fps) imgWidth imgHeight) = do
-  withSystemTempFile "ihaskell-diagram.gif" $ \path _ -> do
+  -- We should not have to round-trip this ByteString to a temp file.
+  -- https://github.com/IHaskell/IHaskell/issues/1248
+  withSystemTempDirectory "ihaskell-diagram" $ \tmpdir -> do
+
+    let path = tmpdir </> "ihaskell-diagram.gif"
 
     -- Generate the frames
     let actualFps = fromMaybe defaultFps fps
