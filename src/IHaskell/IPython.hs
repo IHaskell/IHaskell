@@ -8,7 +8,6 @@ module IHaskell.IPython (
     getIHaskellDir,
     getSandboxPackageConf,
     subHome,
-    kernelName,
     KernelSpecOptions(..),
     defaultKernelSpecOptions,
     installLabextension,
@@ -45,6 +44,8 @@ data KernelSpecOptions =
          , kernelSpecInstallPrefix :: Maybe String
          , kernelSpecUseStack :: Bool              -- ^ Whether to use @stack@ environments.
          , kernelSpecEnvFile :: Maybe FilePath
+         , kernelSpecKernelName :: String          -- ^ The IPython kernel name
+         , kernelSpecDisplayName :: String         -- ^ The IPython kernel display name
          }
 
 defaultKernelSpecOptions :: KernelSpecOptions
@@ -58,11 +59,9 @@ defaultKernelSpecOptions = KernelSpecOptions
   , kernelSpecInstallPrefix = Nothing
   , kernelSpecUseStack = False
   , kernelSpecEnvFile = Nothing
+  , kernelSpecKernelName = "haskell"
+  , kernelSpecDisplayName = "Haskell"
   }
-
--- | The IPython kernel name.
-kernelName :: String
-kernelName = "haskell"
 
 ipythonCommand :: SH.Sh SH.FilePath
 ipythonCommand = do
@@ -134,6 +133,8 @@ installKernelspec repl opts = void $ do
   ihaskellPath <- getIHaskellPath
   confFile <- liftIO $ kernelSpecConfFile opts
 
+  let kernelName = kernelSpecKernelName opts
+
   let kernelFlags :: [String]
       kernelFlags =
         ["--debug" | kernelSpecDebug opts] ++
@@ -147,7 +148,7 @@ installKernelspec repl opts = void $ do
            ++ ["--stack" | kernelSpecUseStack opts]
 
   let kernelSpec = KernelSpec
-        { kernelDisplayName = "Haskell"
+        { kernelDisplayName = kernelSpecDisplayName opts
         , kernelLanguage = kernelName
         , kernelCommand = [ihaskellPath, "kernel", "{connection_file}"] ++ kernelFlags
         }
