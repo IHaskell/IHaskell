@@ -29,6 +29,8 @@ data Argument = ConfFile String     -- ^ A file with commands to load at startup
               | RTSFlags [String]   -- ^ Options for the GHC runtime (e.g. heap-size limit
                                     --     or number of threads).
               | KernelDebug         -- ^ Spew debugging output from the kernel.
+              | KernelName String   -- ^ The IPython kernel directory name.
+              | DisplayName String  -- ^ The IPython display name.
               | Help                -- ^ Display help text.
               | Version             -- ^ Display version text.
               | CodeMirror String   -- ^ change codemirror mode (default=ihaskell)
@@ -115,6 +117,22 @@ kernelDebugFlag = flagNone ["debug"] addDebug "Print debugging output from the k
   where
     addDebug (Args md prev) = Args md (KernelDebug : prev)
 
+kernelNameFlag :: Flag Args
+kernelNameFlag =
+  flagReq
+    ["kernel-name"]
+    (store KernelName)
+    "<name>"
+    "The directory name of the kernel."
+
+displayNameFlag :: Flag Args
+displayNameFlag =
+  flagReq
+    ["display-name"]
+    (store DisplayName)
+    "<name>"
+    "The display name of the kernel."
+
 kernelCodeMirrorFlag :: Flag Args
 kernelCodeMirrorFlag = flagReq ["codemirror"] (store CodeMirror) "<codemirror>"
         "Specify codemirror mode that is used for syntax highlighting (default: ihaskell)."
@@ -153,7 +171,7 @@ store constructor str (Args md prev) = Right $ Args md $ constructor str : prev
 installKernelSpec :: Mode Args
 installKernelSpec =
   mode "install" (Args InstallKernelSpec []) "Install the Jupyter kernelspec." noArgs
-    [ghcLibFlag, ghcRTSFlag, kernelDebugFlag, confFlag, installPrefixFlag, helpFlag, kernelStackFlag, kernelEnvFileFlag]
+    [ghcLibFlag, ghcRTSFlag, kernelDebugFlag, kernelNameFlag, displayNameFlag, confFlag, installPrefixFlag, helpFlag, kernelStackFlag, kernelEnvFileFlag]
 
 kernel :: Mode Args
 kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg
