@@ -77,6 +77,20 @@ stack exec jupyter -- notebook
 
 _Tested on macOS Sierra (10.12.6)_
 
+### Extra instructions for Apple Silicon chip Macs
+
+The following content is tested on Apple Silicon M2 with MacOS version 12.6
+
+1. Install llvm-12, and add symlink to `$PATH`. Please add it to `$PATH` on your own, I didn't put it here.
+```bash
+brew install llvm@12
+```
+2. Install ghc-9.0.2 using `ghcup`.
+3. Then the following command will run **without** running in the `git cloned` repo.
+```bash
+CFLAGS="-march=armv8.2-a+sha3 -mcpu=apple-m1" C_INCLUDE_PATH="`xcrun --show-sdk-path`/usr/include/ffi" cabal install ihaskell -w ghc-9.0.2 --verbose --with-gcc clang-12
+```
+
 ## Windows
 
 IHaskell does not support Windows, however it can be used on Windows 10 via
