@@ -36,6 +36,7 @@ jobs:
         versions:
           - release: 'release-9.0.nix'
           - release: 'release-9.2.nix'
+          - release: 'release-9.4.nix'
     steps:
     - uses: actions/checkout@v2
     - uses: cachix/install-nix-action@v12
