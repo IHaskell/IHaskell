@@ -25,20 +25,18 @@ let
   });
 
   ihaskellOverlay = (self: super: {
-    ihaskell = (nixpkgs.haskell.lib.overrideCabal (
+    ihaskell = nixpkgs.haskell.lib.overrideCabal (
                      self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
       preCheck = ''
         export HOME=$TMPDIR/home
         export PATH=$PWD/dist/build/ihaskell:$PATH
         export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
       '';
-      configureFlags = (_drv.configureFlags or []) ++ [ "-f" "-use-hlint" ];
-    })).overrideScope (self: super: {
-      hlint = null;
     });
     ghc-parser     = self.callCabal2nix "ghc-parser" (builtins.path { path = ./ghc-parser; name = "ghc-parser-src"; }) {};
     ipython-kernel = self.callCabal2nix "ipython-kernel" (builtins.path { path = ./ipython-kernel; name = "ipython-kernel-src"; }) {};
 
+    hlint           = super.hlint_3_5;
     zeromq4-haskell = nixpkgs.haskell.lib.addPkgconfigDepend super.zeromq4-haskell nixpkgs.libsodium;
   } // displays self);
 
