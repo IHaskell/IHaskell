@@ -86,9 +86,22 @@ The following content is tested on Apple Silicon M2 with MacOS version 12.6
 brew install llvm@12
 ```
 2. Install ghc-9.0.2 using `ghcup`.
+#### For cabal
 3. Then the following command will run **without** running in the `git cloned` repo.
 ```bash
 CFLAGS="-march=armv8.2-a+sha3 -mcpu=apple-m1" C_INCLUDE_PATH="`xcrun --show-sdk-path`/usr/include/ffi" cabal install ihaskell -w ghc-9.0.2 --verbose --with-gcc clang-12
+```
+
+#### For stack 
+1. Change to ghc-9.0.2 using `ghcup`.
+2. Run the 
+```
+brew install python3 zeromq libmagic cairo pkg-config haskell-stack pango
+git clone https://github.com/gibiansky/IHaskell
+cd IHaskell
+pip3 install -r requirements.txt
+CFLAGS="-march=armv8.2-a+sha3 -mcpu=apple-m1" C_INCLUDE_PATH="`xcrun --show-sdk-path`/usr/include/ffi" stack install --fast  --verbose --with-gcc clang-12
+ihaskell install --stack
 ```
 
 ## Windows
