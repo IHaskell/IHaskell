@@ -136,7 +136,7 @@ runKernel kOpts profileSrc = do
     let stack =
           case runResult :: Either SomeException (ExitCode, String, String) of
             Left _ -> False
-            Right (exitCode, stackStdout, _) -> exitCode == ExitSuccess && "The Haskell Tool Stack" `isInfixOf` stackStdout
+            Right (exitCode, stackStdout, stackStderr) -> "The Haskell Tool Stack" `isInfixOf` (stackStdout ++ stackStderr)
 
     -- If we're in a stack directory, use `stack` to set the environment
     -- We can't do this with base <= 4.6 because setEnv doesn't exist.
