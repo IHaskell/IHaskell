@@ -136,7 +136,11 @@ executable ihaskell
   hs-source-dirs: main
   other-modules:
                    Paths_ihaskell
-  ghc-options: -threaded -rtsopts -Wall
+  -- NB Without -dynamic IHaskell loads every package statically on startup
+  -- This makes startup incredibly slow on large projects
+  -- Without -dynamic IHaskell also cannot load shared libraries
+  -- This leads to users getting cryptic error messages about missing symbols
+  ghc-options: -threaded -rtsopts -Wall -dynamic
 
   if os(darwin)
     ghc-options: -optP-Wno-nonportable-include-path
