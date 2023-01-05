@@ -69,6 +69,8 @@ ihaskell install --stack
 
 If you have Homebrew installed to a location that `stack` does not expect (e.g. `/opt/homebrew`), you'd need to specify `--extra-include-dirs ${HOMEBREW_PREFIX}/include --extra-lib-dirs ${HOMEBREW_PREFIX}/lib` to the `stack` command.
 
+If you have a MacOS 13 running on a M1 Mac, select version 9.2 of YAML configuration file by specifying `--stack-yaml stack-9.2.yaml` to the `stack` command. 
+
 Run Jupyter.
 
 ```bash
