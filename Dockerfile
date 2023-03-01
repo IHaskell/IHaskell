@@ -1,6 +1,6 @@
 # should match the GHC version of the stack.yaml resolver
 # checked in CI
-ARG GHC_VERSION=8.10.7
+ARG GHC_VERSION=9.2.6
 
 FROM haskell:${GHC_VERSION} AS ihaskell_base
 
