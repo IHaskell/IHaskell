@@ -1,6 +1,6 @@
 # should match the GHC version of the stack.yaml resolver
 # checked in CI
-ARG GHC_VERSION=8.10.7
+ARG GHC_VERSION=9.2.7
 
 FROM haskell:${GHC_VERSION} AS ihaskell_base
 
@@ -52,6 +52,7 @@ FROM ihaskell_base AS ihaskell
 RUN apt-get update && \
     apt-get install -y python3-pip && \
     rm -rf /var/lib/apt/lists/*
+RUN pip3 install -U pip
 RUN pip3 install -U jupyterlab notebook
 
 # Create runtime user

@@ -39,19 +39,21 @@ jobs:
           - release: 'release-9.4.nix'
     steps:
     - uses: actions/checkout@v2
-    - uses: cachix/install-nix-action@v12
-    - uses: cachix/cachix-action@v10
+    - uses: cachix/install-nix-action@v19
+      with:
+        install_url: https://releases.nixos.org/nix/nix-2.13.3/install
+    - uses: cachix/cachix-action@v12
       with:
         name: ihaskell
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
     - run: |
         nix-build --keep-going \
-        -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-22.05 \
+        -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-22.11 \
         ${{ matrix.versions.release }} \
         --arg packages "haskellPackages: [ haskellPackages.ihaskell ]"
     - run: |
         nix-shell \
-        -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-22.05 \
+        -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-22.11 \
         -p jq --run \
         'test/acceptance.nbconvert.sh result/bin/jupyter nbconvert'
 

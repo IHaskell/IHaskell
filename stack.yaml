@@ -1,6 +1,4 @@
-# the GHC version of this resolver needs to match the GHC version in Dockerfile
-resolver: lts-18.27
-allow-newer: true
+resolver: lts-20.13
 
 flags: {}
 packages:
@@ -19,27 +17,6 @@ packages:
     - ./ihaskell-display/ihaskell-plot
     # - ./ihaskell-display/ihaskell-static-canvas
     - ./ihaskell-display/ihaskell-widgets
-
-extra-deps:
-- active-0.2.0.14
-- Chart-cairo-1.9.3
-- diagrams-1.4
-- diagrams-cairo-1.4.1.1
-- diagrams-contrib-1.4.4
-- diagrams-core-1.5.0
-- diagrams-lib-1.4.4
-- diagrams-svg-1.4.3
-- cairo-0.13.8.1
-- pango-0.13.8.1
-- glib-0.13.8.1
-- gtk2hs-buildtools-0.13.8.3
-- plot-0.2.3.11
-# - static-canvas-0.2.0.3
-- statestack-0.3
-- dual-tree-0.2.2.1
-- monoid-extras-0.6
-- svg-builder-0.1.1
-- force-layout-0.4.0.6
 
 ghc-options:
   # Eventually we want "$locals": -Wall -Wpartial-fields -Werror
