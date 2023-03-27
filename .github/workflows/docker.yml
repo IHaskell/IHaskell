@@ -53,7 +53,7 @@ jobs:
           echo "GHC_VERSION should be ${STACK_GHC_VERSION}"
           exit 1
         fi
-    - uses: elgohr/Publish-Docker-Github-Action@3.04
+    - uses: elgohr/Publish-Docker-Github-Action@v5
       with:
         name: gibiansky/ihaskell
         username: ${{ secrets.DOCKER_USERNAME }}
