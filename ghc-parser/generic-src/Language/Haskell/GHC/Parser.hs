@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TypeApplications #-}
 module Language.Haskell.GHC.Parser (
   -- Parser handling
   runParser,
@@ -28,7 +29,13 @@ module Language.Haskell.GHC.Parser (
 import Data.List (intercalate, findIndex, isInfixOf)
 import Data.Char (isAlphaNum)
 
-#if MIN_VERSION_ghc(9,4,0)
+#if MIN_VERSION_ghc(9,6,0)
+import GHC.Driver.Config.Parser (initParserOpts)
+import GHC.Parser.Errors.Types (PsMessage(..))
+import GHC.Types.Error (getMessages, MsgEnvelope(..))
+import GHC.Utils.Error (diagnosticMessage, defaultDiagnosticOpts, formatBulleted)
+import GHC.Utils.Outputable (defaultSDocContext, renderWithContext)
+#elif MIN_VERSION_ghc(9,4,0)
 import GHC.Driver.Config.Parser (initParserOpts)
 import GHC.Types.Error (diagnosticMessage, getMessages, MsgEnvelope(..))
 import GHC.Utils.Error (formatBulleted)
@@ -137,7 +144,9 @@ parserTypeSignature :: Parser (SrcLoc.Located (OrdList (LHsDecl RdrName)))
 #endif
 parserTypeSignature = Parser Parse.fullTypeSignature
 
-#if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,6,0)
+parserModule :: Parser (SrcLoc.Located (HsModule GhcPs))
+#elif MIN_VERSION_ghc(9,0,0)
 parserModule :: Parser (SrcLoc.Located HsModule)
 #elif MIN_VERSION_ghc(8,4,0)
 parserModule :: Parser (SrcLoc.Located (HsModule GhcPs))
@@ -220,7 +229,9 @@ runParser flags (Parser parser) str =
       Parsed result
 
     -- Convert the bag of errors into an error string.
-#if MIN_VERSION_ghc(9,4,0)
+#if MIN_VERSION_ghc(9,6,0)
+    printErrorBag bag = joinLines . map (renderWithContext defaultSDocContext . formatBulleted defaultSDocContext . diagnosticMessage (defaultDiagnosticOpts @PsMessage) . errMsgDiagnostic) $ bagToList bag
+#elif MIN_VERSION_ghc(9,4,0)
     printErrorBag bag = joinLines . map (show . formatBulleted defaultSDocContext . diagnosticMessage . errMsgDiagnostic) $ bagToList bag
 #elif MIN_VERSION_ghc(9,2,0)
     printErrorBag bag = joinLines . map (show . pprError) $ bagToList bag

@@ -63,14 +63,14 @@ library
     ghc-options:       -Wpartial-fields
 
   build-depends:
-                       base                 >=4.9 && <4.18,
+                       base                 >=4.9 && <4.19,
                        binary               ,
                        containers           ,
                        directory            ,
                        bytestring           ,
                        exceptions           ,
                        filepath             ,
-                       ghc                  >=8.0 && <9.5,
+                       ghc                  >=8.0 && <9.7,
                        ghc-boot             ,
                        haskeline            ,
                        parsec               ,

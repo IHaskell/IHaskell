@@ -366,9 +366,15 @@ initializeImports importSupportLibraries = do
 
   void $ setSessionDynFlags $ dflgs { packageFlags = hiddenFlags ++ packageFlags dflgs }
 
+#if MIN_VERSION_ghc(9,6,0)
+  -- Import implicit prelude.
+  importDecl <- parseImportDecl "import Prelude"
+  let implicitPrelude = importDecl { ideclExt = (ideclExt importDecl) { ideclImplicit = True } }
+#else
   -- Import implicit prelude.
   importDecl <- parseImportDecl "import Prelude"
   let implicitPrelude = importDecl { ideclImplicit = True }
+#endif
       displayImports' = if importSupportLibraries then displayImports else []
 
   -- Import modules.
@@ -544,7 +550,10 @@ flushWidgetMessages state evalmsgs widgetHandler = do
         let commMessages = evalmsgs ++ messages
         widgetHandler state commMessages
 
-#if MIN_VERSION_ghc(9,4,0)
+#if MIN_VERSION_ghc(9,6,0)
+getErrMsgDoc :: ErrUtils.Diagnostic e => ErrUtils.MsgEnvelope e -> SDoc
+getErrMsgDoc = ErrUtils.pprLocMsgEnvelopeDefault
+#elif MIN_VERSION_ghc(9,4,0)
 getErrMsgDoc :: ErrUtils.Diagnostic e => ErrUtils.MsgEnvelope e -> SDoc
 getErrMsgDoc = ErrUtils.pprLocMsgEnvelope
 #elif MIN_VERSION_ghc(9,2,0)
@@ -701,7 +710,11 @@ evalCommand _output (Directive SetDynFlag flagsStr) state = safely state $ do
         then evalImport "import qualified Prelude as Prelude"
         else when ("-XImplicitPrelude" `elem` flags) $ do
           importDecl <- parseImportDecl "import Prelude"
+#if MIN_VERSION_ghc(9,6,0)
+          let implicitPrelude = importDecl { ideclExt = (ideclExt importDecl) { ideclImplicit = True } }
+#else
           let implicitPrelude = importDecl { ideclImplicit = True }
+#endif
           imports <- getContext
           setContext $ IIDecl implicitPrelude : imports
 
@@ -1268,7 +1281,9 @@ doLoadModule name modName = do
 
       -- Switch to interpreted mode!
       flags <- getSessionDynFlags
-#if MIN_VERSION_ghc(9,2,0)
+#if MIN_VERSION_ghc(9,6,0)
+      _ <- setSessionDynFlags flags { backend = interpreterBackend }
+#elif MIN_VERSION_ghc(9,2,0)
       _ <- setSessionDynFlags flags { backend = Interpreter }
 #else
       _ <- setSessionDynFlags flags { hscTarget = HscInterpreted }
@@ -1336,7 +1351,9 @@ doReload = do
 
       -- Switch to interpreted mode!
       flags <- getSessionDynFlags
-#if MIN_VERSION_ghc(9,2,0)
+#if MIN_VERSION_ghc(9,6,0)
+      _ <- setSessionDynFlags flags { backend = interpreterBackend }
+#elif MIN_VERSION_ghc(9,2,0)
       _ <- setSessionDynFlags flags { backend = Interpreter }
 #else
       _ <- setSessionDynFlags flags { hscTarget = HscInterpreted }

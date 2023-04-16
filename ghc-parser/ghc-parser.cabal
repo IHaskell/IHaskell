@@ -23,7 +23,7 @@ library
   -- other-modules:
   -- other-extensions:
   build-depends:       base                 >=4.9 && < 5,
-                       ghc                  >=8.0 && <9.5
+                       ghc                  >=8.0 && <9.7
 
   if impl(ghc >= 8.0) && impl(ghc < 8.4)
     hs-source-dirs:  generic-src src-8.0
@@ -37,6 +37,8 @@ library
     hs-source-dirs:  generic-src src-9.2
   if impl(ghc >= 9.4) && impl(ghc < 9.6)
     hs-source-dirs:  generic-src src-9.4
+  if impl(ghc >= 9.6) && impl(ghc < 9.8)
+    hs-source-dirs:  generic-src src-9.6
 
 
   default-language:    Haskell2010

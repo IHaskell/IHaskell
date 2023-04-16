@@ -98,6 +98,7 @@ import qualified Data.Text.Lazy
 import qualified Data.ByteString
 import qualified Data.ByteString.Lazy
 import qualified Data.Function
+import qualified Data.List.NonEmpty
 import qualified GHC.Exts
 import qualified System.IO
 import qualified System.IO.Strict
@@ -157,3 +158,6 @@ putChar = liftIO . P.putChar
 
 print :: (MonadIO m, Show a) => a -> m ()
 print = liftIO . P.print
+
+nonEmptyToList :: Data.List.NonEmpty.NonEmpty a -> [a]
+nonEmptyToList = Data.List.NonEmpty.toList

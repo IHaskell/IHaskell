@@ -20,7 +20,7 @@ import qualified Data.List.Split as Split
 import qualified Data.List.Split.Internals as Split
 import           System.Environment (getEnv)
 
-import           GHC
+import           GHC hiding (ModuleName)
 #if MIN_VERSION_ghc(9,4,0)
 import           GHC.Unit.Database
 import           GHC.Unit.State
