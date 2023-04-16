@@ -196,7 +196,9 @@ pprDynFlags show_all dflags =
         is_on = test f dflags
         quiet = not show_all && test f default_dflags == is_on
 
-#if MIN_VERSION_ghc(8,10,0)
+#if MIN_VERSION_ghc(9,6,0)
+    default_dflags = defaultDynFlags (settings dflags)
+#elif MIN_VERSION_ghc(8,10,0)
     default_dflags = defaultDynFlags (settings dflags) (llvmConfig dflags)
 #elif MIN_VERSION_ghc(8,6,0)
     default_dflags = defaultDynFlags (settings dflags) (llvmTargets dflags, llvmPasses dflags)
@@ -254,7 +256,9 @@ pprLanguages show_all dflags =
         quiet = not show_all && test f default_dflags == is_on
 
     default_dflags =
-#if MIN_VERSION_ghc(8,10,0)
+#if MIN_VERSION_ghc(9,6,0)
+      defaultDynFlags (settings dflags) `lang_set`
+#elif MIN_VERSION_ghc(8,10,0)
       defaultDynFlags (settings dflags) (llvmConfig dflags) `lang_set`
 #elif MIN_VERSION_ghc(8,6,0)
       defaultDynFlags (settings dflags) (llvmTargets dflags, llvmPasses dflags) `lang_set`
@@ -329,7 +333,11 @@ setFlags ext = do
 doc :: GhcMonad m => O.SDoc -> m String
 doc sdoc = do
   flags <- getSessionDynFlags
+#if MIN_VERSION_ghc(9,6,0)
+  let unqual = O.neverQualify
+#else
   unqual <- getPrintUnqual
+#endif
 #if MIN_VERSION_ghc(9,0,0)
   let style = O.mkUserStyle unqual O.AllTheWay
 #elif MIN_VERSION_ghc(8,2,0)
@@ -398,7 +406,9 @@ initGhci sandboxPackages = do
             in packageDBFlags originalFlags ++ [pkg]
 
   void $ setSessionDynFlags $ dflags
-#if MIN_VERSION_ghc(9,2,0)
+#if MIN_VERSION_ghc(9,6,0)
+    { backend = interpreterBackend
+#elif MIN_VERSION_ghc(9,2,0)
     { backend = Interpreter
 #else
     { hscTarget = HscInterpreted
@@ -458,24 +468,40 @@ evalImport imports = do
 #endif
 
     -- Check whether an import is an *implicit* import of something.
-#if MIN_VERSION_ghc(8,4,0)
+#if MIN_VERSION_ghc(9,6,0)
     implicitImportOf :: ImportDecl GhcPs -> InteractiveImport -> Bool
-#else
-    implicitImportOf :: ImportDecl RdrName -> InteractiveImport -> Bool
-#endif
+    implicitImportOf _ (IIModule _) = False
+    implicitImportOf imp (IIDecl decl) = ideclImplicit (ideclExt decl) && imp `importOf` IIDecl decl
+#elif MIN_VERSION_ghc(8,4,0)
+    implicitImportOf :: ImportDecl GhcPs -> InteractiveImport -> Bool
     implicitImportOf _ (IIModule _) = False
     implicitImportOf imp (IIDecl decl) = ideclImplicit decl && imp `importOf` IIDecl decl
+#else
+    implicitImportOf :: ImportDecl RdrName -> InteractiveImport -> Bool
+    implicitImportOf _ (IIModule _) = False
+    implicitImportOf imp (IIDecl decl) = ideclImplicit decl && imp `importOf` IIDecl decl
+#endif
 
     -- Check whether an import is hidden.
-#if MIN_VERSION_ghc(8,4,0)
+#if MIN_VERSION_ghc(9,6,0)
     isHiddenImport :: ImportDecl GhcPs -> Bool
-#else
-    isHiddenImport :: ImportDecl RdrName -> Bool
-#endif
+    isHiddenImport imp =
+      case ideclImportList imp of
+        Just (EverythingBut, _) -> True
+        _              -> False
+#elif MIN_VERSION_ghc(8,4,0)
+    isHiddenImport :: ImportDecl GhcPs -> Bool
     isHiddenImport imp =
       case ideclHiding imp of
         Just (True, _) -> True
         _              -> False
+#else
+    isHiddenImport :: ImportDecl RdrName -> Bool
+    isHiddenImport imp =
+      case ideclHiding imp of
+        Just (True, _) -> True
+        _              -> False
+#endif
 
 removeImport :: GhcMonad m => String -> m ()
 removeImport modName = do
@@ -549,7 +575,11 @@ getDescription str = do
   maybeInfos <- mapM getInfo' names
 
   -- Filter out types that have parents in the same set. GHCi also does this.
+#if MIN_VERSION_ghc(9,6,0)
+  let infos = catMaybes $ nonEmptyToList maybeInfos
+#else
   let infos = catMaybes maybeInfos
+#endif
       allNames = mkNameSet $ map (getName . getInfoType) infos
       hasParent info =
         case tyThingParent_maybe (getInfoType info) of

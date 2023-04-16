@@ -14,7 +14,10 @@ import           Control.Monad.IO.Class (liftIO)
 import           System.Environment (setEnv)
 import           System.Directory (setCurrentDirectory, getCurrentDirectory)
 
-#if MIN_VERSION_ghc(9,2,0)
+#if MIN_VERSION_ghc(9,6,0)
+import           GHC (getSessionDynFlags, setSessionDynFlags, DynFlags(..), GhcLink(..), setContext,
+                      parseImportDecl, interpreterBackend, Backend(..), InteractiveImport(..))
+#elif MIN_VERSION_ghc(9,2,0)
 import           GHC (getSessionDynFlags, setSessionDynFlags, DynFlags(..), GhcLink(..), setContext,
                       parseImportDecl, Backend(..), InteractiveImport(..))
 #else
@@ -67,7 +70,9 @@ completionHas string expected = do
 initCompleter :: Interpreter ()
 initCompleter = do
   flags <- getSessionDynFlags
-#if MIN_VERSION_ghc(9,2,0)
+#if MIN_VERSION_ghc(9,6,0)
+  _ <- setSessionDynFlags $ setWayDynFlag flags { backend = interpreterBackend, ghcLink = LinkInMemory }
+#elif MIN_VERSION_ghc(9,2,0)
   _ <- setSessionDynFlags $ setWayDynFlag flags { backend = Interpreter, ghcLink = LinkInMemory }
 #else
   _ <- setSessionDynFlags $ setWayDynFlag flags { hscTarget = HscInterpreted, ghcLink = LinkInMemory }
