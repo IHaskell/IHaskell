@@ -1,61 +1,72 @@
-name: "Nix"
+name: Nix
+
 on:
   schedule:
-    - cron: '0 2 * * *'
+  - cron: '0 2 * * *'
   push:
-    branches:
-      - master
     paths-ignore:
-      - 'demo/**'
-      - 'docker/**'
-      - 'Dockerfile'
-      - '.dockerignore'
-      - '.ghci'
-      - '.gitignore'
-      - 'images/**'
-      - 'notebooks/**'
-      - 'README.md'
-      - '*.yaml'
+    - 'demo/**'
+    - 'docker/**'
+    - 'Dockerfile'
+    - '.dockerignore'
+    - '.ghci'
+    - '.gitignore'
+    - 'images/**'
+    - 'notebooks/**'
+    - 'README.md'
+    - '*.yaml'
   pull_request:
     paths-ignore:
-      - 'demo/**'
-      - 'docker/**'
-      - 'Dockerfile'
-      - '.dockerignore'
-      - '.ghci'
-      - '.gitignore'
-      - 'images/**'
-      - 'notebooks/**'
-      - 'README.md'
-      - '*.yaml'
+    - 'demo/**'
+    - 'docker/**'
+    - 'Dockerfile'
+    - '.dockerignore'
+    - '.ghci'
+    - '.gitignore'
+    - 'images/**'
+    - 'notebooks/**'
+    - 'README.md'
+    - '*.yaml'
+
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        versions:
-          - release: 'release-9.2.nix'
-          - release: 'release-9.4.nix'
-          - release: 'release-9.6.nix'
-          - release: 'release-9.8.nix'
+        env:
+        - ihaskell-env-ghc810
+        - ihaskell-env-ghc90
+        - ihaskell-env-ghc92
+        - ihaskell-env-ghc94
+        - ihaskell-env-ghc96
+        - ihaskell-env-ghc98
+
+        - ihaskell-env-display-ghc810
+        - ihaskell-env-display-ghc90
+        - ihaskell-env-display-ghc92
+        - ihaskell-env-display-ghc94
+        - ihaskell-env-display-ghc96
+        - ihaskell-env-display-ghc98
+
     steps:
-    - uses: actions/checkout@v2
-    - uses: cachix/install-nix-action@v20
+    - uses: actions/checkout@v3
+
+    - uses: cachix/install-nix-action@v22
       with:
         install_url: https://releases.nixos.org/nix/nix-2.13.3/install
+
     - uses: cachix/cachix-action@v12
       with:
         name: ihaskell
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
-    - run: |
-        nix-build --keep-going \
-        -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-23.05 \
-        ${{ matrix.versions.release }} \
-        --arg packages "haskellPackages: [ haskellPackages.ihaskell ]"
-    - if: matrix.versions.release != 'release-9.8.nix'
-      run: |
-        nix-shell \
-        -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-23.05 \
-        -p jq --run \
-        'test/acceptance.nbconvert.sh result/bin/jupyter nbconvert'
 
+    - name: Build environment ${{matrix.env}}
+      run: |
+        nix build .#${{matrix.env}}
+
+    - name: Check acceptance test for ${{matrix.env}}
+      # Disable GHC 9.8 here since we don't have hlint support yet
+      if: ${{ !contains(fromJSON('["ihaskell-env-ghc98"]'), matrix.env) && !contains(matrix.env, fromJSON('"display"')) }}
+      run: |
+        nix build .#checks.x86_64-linux.${{matrix.env}} -L

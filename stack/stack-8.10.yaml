@@ -2,23 +2,22 @@
 resolver: lts-18.27
 allow-newer: true
 
-flags: {}
 packages:
-    - .
-    - ./ipython-kernel
-    - ./ghc-parser
-    - ./ihaskell-display/ihaskell-aeson
-    - ./ihaskell-display/ihaskell-blaze
-    - ./ihaskell-display/ihaskell-charts
-    - ./ihaskell-display/ihaskell-diagrams
-    - ./ihaskell-display/ihaskell-gnuplot
-    - ./ihaskell-display/ihaskell-graphviz
-    - ./ihaskell-display/ihaskell-hatex
-    - ./ihaskell-display/ihaskell-juicypixels
-    - ./ihaskell-display/ihaskell-magic
-    - ./ihaskell-display/ihaskell-plot
-    # - ./ihaskell-display/ihaskell-static-canvas
-    - ./ihaskell-display/ihaskell-widgets
+- ..
+- ../ipython-kernel
+- ../ghc-parser
+- ../ihaskell-display/ihaskell-aeson
+- ../ihaskell-display/ihaskell-blaze
+- ../ihaskell-display/ihaskell-charts
+- ../ihaskell-display/ihaskell-diagrams
+- ../ihaskell-display/ihaskell-gnuplot
+- ../ihaskell-display/ihaskell-graphviz
+- ../ihaskell-display/ihaskell-hatex
+- ../ihaskell-display/ihaskell-juicypixels
+- ../ihaskell-display/ihaskell-magic
+- ../ihaskell-display/ihaskell-plot
+# - ../ihaskell-display/ihaskell-static-canvas
+- ../ihaskell-display/ihaskell-widgets
 
 extra-deps:
 - active-0.2.0.14
@@ -49,14 +48,14 @@ ghc-options:
 
 nix:
   packages:
-    - blas
-    - cairo
-    - file
-    - gcc
-    - gfortran.cc.lib
-    - liblapack
-    - ncurses
-    - pango
-    - pkgconfig
-    - zeromq
-    - zlib
+  - blas
+  - cairo
+  - file
+  - gcc
+  - gfortran.cc.lib
+  - liblapack
+  - ncurses
+  - pango
+  - pkg-config
+  - zeromq
+  - zlib

@@ -1,118 +1,104 @@
 {
   description = "A Haskell kernel for IPython.";
 
-  inputs = {
+  inputs.nixpkgs23_05.url = "github:NixOS/nixpkgs/release-23.05";
+  inputs.nixpkgsMaster.url = "github:NixOS/nixpkgs/master";
+  inputs.flake-utils.url = "github:numtide/flake-utils";
+  inputs.hls.url = "github:haskell/haskell-language-server";
+  inputs.nix-filter.url = "github:numtide/nix-filter";
 
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
-    hls.url = "github:haskell/haskell-language-server";
+  outputs = { self, nixpkgs23_05, nixpkgsMaster, flake-utils, hls, nix-filter, ... }:
+    # "x86_64-darwin" "aarch64-darwin"
+    flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
+      baseOverlay = self: super: { inherit nix-filter; };
+      pkgs23_05 = import nixpkgs23_05 { inherit system; overlays = [baseOverlay]; };
+      pkgsMaster = import nixpkgsMaster { inherit system; overlays = [baseOverlay]; };
 
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
-  };
+      jupyterlab = pkgsMaster.python3.withPackages (ps: [ ps.jupyterlab ps.notebook ]);
 
-  outputs = { self, hls, nixpkgs, flake-utils, ... }:
-    flake-utils.lib.eachSystem ["x86_64-linux" "x86_64-darwin" "aarch64-darwin"] (system: let
+      versions = let
+        mkVersion = pkgsSrc: compiler: overlays: extraArgs: {
+          name = compiler;
+          value = (import pkgsSrc { inherit system; overlays = [baseOverlay] ++ overlays; }).callPackage ./nix/release.nix ({
+            inherit compiler;
+          } // extraArgs);
+        };
+        in
+          pkgsMaster.lib.listToAttrs [
+            (mkVersion nixpkgs23_05  "ghc810" [(import ./nix/overlay-8.10.nix)] {})
+            (mkVersion nixpkgs23_05  "ghc90"  [(import ./nix/overlay-9.0.nix)]  {})
+            (mkVersion nixpkgs23_05  "ghc92"  []                                {})
+            (mkVersion nixpkgsMaster "ghc94"  [(import ./nix/overlay-9.4.nix)]  {})
+            (mkVersion nixpkgsMaster "ghc96"  [(import ./nix/overlay-9.6.nix)]  {})
+            (mkVersion nixpkgsMaster "ghc98"  [(import ./nix/overlay-9.8.nix)]  { enableHlint = false; })
+          ];
 
-      pkgs = import nixpkgs {
-        inherit system;
-      };
-
-      compilerVersionFromHsPkgs = hsPkgs:
-        pkgs.lib.replaceStrings [ "." ] [ "" ] hsPkgs.ghc.version;
-
-      mkEnv = hsPkgs: displayPkgs:
-        import ./release.nix {
-          compiler = "ghc${compilerVersionFromHsPkgs hsPkgs}";
-          nixpkgs = pkgs;
-          packages = displayPkgs;
+      envs' = prefix: packages: pkgsMaster.lib.mapAttrs' (version: releaseFn: {
+        name = prefix + version;
+        value = (releaseFn {
+          # Note: this can be changed to other Jupyter systems like jupyter-console
+          extraEnvironmentBinaries = [ jupyterlab ];
           systemPackages = p: with p; [
             gnuplot # for the ihaskell-gnuplot runtime
           ];
+          inherit packages;
+        });
+      }) versions;
+
+      # Basic envs with Jupyterlab and IHaskell
+      envs = envs' "ihaskell-env-" (_: []);
+
+      # Envs with Jupyterlab, IHaskell, and all display packages
+      displayEnvs = envs' "ihaskell-env-display-" (p: with p; map (n: builtins.getAttr n p) (import ./nix/displays.nix));
+
+      exes = pkgsMaster.lib.mapAttrs' (envName: env: {
+        name = builtins.replaceStrings ["-env"] [""] envName;
+        value = env.ihaskellExe;
+      }) envs;
+
+      devShells = pkgsMaster.lib.mapAttrs' (version: releaseFn: {
+        name = "ihaskell-dev-" + version;
+        value = pkgsMaster.callPackage ./nix/mkDevShell.nix {
+          inherit hls system version;
+          haskellPackages = (releaseFn {}).haskellPackages;
+          ihaskellOverlay = (releaseFn {}).ihaskellOverlay;
         };
-
-      mkExe = hsPkgs: (mkEnv hsPkgs (_:[])).ihaskellExe;
-
-      ghcDefault = ghc8107;
-      ghc884  = pkgs.haskell.packages.ghc884;
-      ghc8107  = pkgs.haskell.packages.ghc8107;
-      ghc921  = pkgs.haskell.packages.ghc921;
-
-      pythonDevEnv = pkgs.python3.withPackages (p: [p.jupyterlab]);
-
-      mkDevShell = hsPkgs:
-        let
-          myIHaskell = (mkPackage hsPkgs);
-          compilerVersion = compilerVersionFromHsPkgs hsPkgs;
-
-          myModifier = drv:
-            pkgs.haskell.lib.addBuildTools drv (with hsPkgs; [
-              cabal-install
-              pythonDevEnv
-              self.inputs.hls.packages.${system}."haskell-language-server-${compilerVersion}"
-              pkgs.cairo # for the ihaskell-charts HLS dev environment
-              pkgs.pango # for the ihaskell-diagrams HLS dev environment
-              pkgs.lapack # for the ihaskell-plot HLS dev environment
-              pkgs.blas # for the ihaskell-plot HLS dev environment
-            ]);
-        in (myModifier myIHaskell).envFunc {withHoogle=true;};
-
-
-      mkPackage = hsPkgs:
-        let
-          compilerVersion = pkgs.lib.replaceStrings [ "." ] [ "" ] hsPkgs.ghc.version;
-        in
-        hsPkgs.developPackage {
-          root =  pkgs.lib.cleanSource ./.;
-          name = "ihaskell";
-          returnShellEnv = false;
-          modifier = pkgs.haskell.lib.dontCheck;
-          overrides = (mkEnv hsPkgs (_:[])).ihaskellOverlay ;
-          withHoogle = true;
-        };
+      }) versions;
 
     in {
+      packages = envs // displayEnvs // exes // devShells // rec  {
+        # For easily testing that everything builds
+        allEnvs = pkgsMaster.linkFarm "ihaskell-envs" envs;
+        allDisplayEnvs = pkgsMaster.linkFarm "ihaskell-display-envs" displayEnvs;
+        allExes = pkgsMaster.linkFarm "ihaskell-exes" exes;
+        allDevShells = pkgsMaster.linkFarm "ihaskell-dev-shells" devShells;
 
-      packages = {
-        # Development environment
-        ihaskell-dev = mkDevShell ghcDefault;
-        ihaskell-dev-921 = mkDevShell ghc921;
-        ihaskell-dev-8107 = mkDevShell ghc8107;
-        ihaskell-dev-884 = mkDevShell ghc884;
-
-        # IHaskell kernel
-        ihaskell = mkExe ghcDefault;
-        ihaskell-8107 = mkExe ghc8107;
-        ihaskell-921 = mkExe ghc921;
-
-        # Full Jupyter environment
-        # I actually wish those would disappear ? let jupyterWith or use deal with it
-        ihaskell-env = mkEnv ghcDefault (_:[]);
-        ihaskell-env-8107 = mkEnv ghc8107 (_:[]);
-
-        # Full Jupyter environment with all Display modules (build is not incremental)
-        #
-        #     result/bin/jupyter-lab
-        #
-        ihaskell-env-display = mkEnv ghcDefault (p: with p; [
-            ihaskell-aeson
-            ihaskell-blaze
-            ihaskell-charts
-            ihaskell-diagrams
-            ihaskell-gnuplot
-            ihaskell-graphviz
-            ihaskell-hatex
-            ihaskell-juicypixels
-            ihaskell-magic
-            ihaskell-plot
-            ihaskell-widgets
-            ]);
+        # For getting Nix paths in CI
+        print-nixpkgs-stable = pkgsMaster.writeShellScriptBin "print-nixpkgs-stable.sh" "echo ${pkgs23_05.path}";
+        print-nixpkgs-master = pkgsMaster.writeShellScriptBin "print-nixpkgs-master.sh" "echo ${pkgsMaster.path}";
+        inherit jupyterlab;
       };
 
-      defaultPackage = self.packages.${system}.ihaskell;
+      # Run the acceptance tests on each env
+      checks = pkgsMaster.lib.mapAttrs (envName: env:
+        pkgsMaster.stdenv.mkDerivation {
+          name = envName + "-check";
+          src = pkgsMaster.callPackage ./nix/ihaskell-src.nix {};
+          nativeBuildInputs = with pkgsMaster; [jq bash];
+          doCheck = true;
+          checkPhase = ''
+            mkdir -p home
+            export HOME=$(pwd)/home
+            bash ./test/acceptance.nbconvert.sh ${env}/bin/jupyter nbconvert
+          '';
+          installPhase = ''
+            touch $out
+          '';
+        }
+      ) envs;
 
-      devShell = self.packages.${system}.ihaskell-dev;
+      defaultPackage = self.packages.${system}.ihaskell-ghc810;
+
+      devShell = self.packages.${system}.ihaskell-dev-ghc810;
     });
 }

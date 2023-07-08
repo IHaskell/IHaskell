@@ -1,4 +1,4 @@
-resolver: lts-21.21 # GHC 9.4.7
+resolver: lts-11.22
 
 packages:
 - .
@@ -14,38 +14,48 @@ packages:
 - ./ihaskell-display/ihaskell-juicypixels
 - ./ihaskell-display/ihaskell-magic
 - ./ihaskell-display/ihaskell-plot
-# - ./ihaskell-display/ihaskell-static-canvas
+- ./ihaskell-display/ihaskell-static-canvas
 - ./ihaskell-display/ihaskell-widgets
 
 ghc-options:
-  # Eventually we want "$locals": -Wall -Wpartial-fields -Werror
-  # ghc-parser: -Wall -Wpartial-fields -Werror
-  # ihaskell: -Wall -Wpartial-fields -Werror
-  # ihaskell-widgets: -Wall -Wpartial-fields -Werror
+  # Eventually we want "$locals": -Wall -Werror
+  ghc-parser: -Wall -Werror
+  ihaskell: -Wall -Werror
+  ihaskell-widgets: -Wall -Werror
+
+allow-newer: true
 
 extra-deps:
-- Chart-cairo-1.9.3
+- Chart-cairo-1.9.1
+- cairo-0.13.6.0
+- cubicbezier-0.6.0.5
+- diagrams-1.4
+- diagrams-cairo-1.4.1
+- diagrams-contrib-1.4.2.1
+- diagrams-core-1.4.0.1
+- diagrams-lib-1.4.2
+- diagrams-solve-0.1.1
+- diagrams-svg-1.4.1.1
+- dual-tree-0.2.1
+- fast-math-1.0.2
+- glib-0.13.7.1
+- gtk2hs-buildtools-0.13.5.4
+- magic-1.1
+- mfsolve-0.3.2.0
+- pango-0.13.6.1
+- plot-0.2.3.9
+- static-canvas-0.2.0.3
 
 nix:
   packages:
   - blas
   - cairo
-  - expat
   - file
-  - fribidi
   - gcc
   - gfortran.cc.lib
-  - libdatrie
   - liblapack
-  - libselinux
-  - libsepol
-  - libthai
   - ncurses
   - pango
-  - pcre
-  - pcre2.dev
   - pkg-config
-  - util-linux.dev
-  - xorg.libXdmcp
   - zeromq
   - zlib

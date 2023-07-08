@@ -1,6 +1,5 @@
 resolver: lts-9.21
 
-flags: {}
 packages:
     - .
     - ./ipython-kernel
@@ -27,14 +26,14 @@ ghc-options:
 
 nix:
   packages:
-    - blas
-    - cairo
-    - file
-    - gcc
-    - gfortran.cc.lib
-    - liblapack
-    - ncurses
-    - pango
-    - pkgconfig
-    - zeromq
-    - zlib
+  - blas
+  - cairo
+  - file
+  - gcc
+  - gfortran.cc.lib
+  - liblapack
+  - ncurses
+  - pango
+  - pkg-config
+  - zeromq
+  - zlib
