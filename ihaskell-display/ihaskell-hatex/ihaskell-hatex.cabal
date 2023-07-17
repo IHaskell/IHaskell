@@ -9,7 +9,7 @@ author:              Adam Vogt
 maintainer:          andrew.gibiansky@gmail.com
 category:            Development
 build-type:          Simple
-cabal-version:       >=1.16
+cabal-version:       1.16
 
 
 library

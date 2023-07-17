@@ -45,7 +45,7 @@ build-type:          Simple
 -- extra-source-files:
 
 -- Constraint on the version of Cabal needed to build this package.
-cabal-version:       >=1.16
+cabal-version:       1.16
 
 library
   -- Modules exported by the library.
