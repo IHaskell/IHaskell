@@ -1,4 +1,4 @@
-{ compiler ? "ghc925"
+{ compiler ? "ghc928"
 , nixpkgs ? import <nixpkgs> {}
 , packages ? (_: [])
 , pythonPackages ? (_: [])
