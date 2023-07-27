@@ -34,7 +34,6 @@ jobs:
     strategy:
       matrix:
         versions:
-          - release: 'release-9.0.nix'
           - release: 'release-9.2.nix'
           - release: 'release-9.4.nix'
           - release: 'release-9.6.nix'
