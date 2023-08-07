@@ -44,6 +44,7 @@ jobs:
           - stack-yaml: 'stack-8.8.yaml'
           - stack-yaml: 'stack-8.10.yaml'
           - stack-yaml: 'stack-9.0.yaml'
+          - stack-yaml: 'stack-9.2.yaml'
           - stack-yaml: 'stack.yaml'
 
     steps:

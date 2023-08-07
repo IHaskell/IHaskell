@@ -1,4 +1,4 @@
-resolver: lts-21.6
+resolver: lts-20.13
 
 flags: {}
 packages:
@@ -17,15 +17,6 @@ packages:
     - ./ihaskell-display/ihaskell-plot
     # - ./ihaskell-display/ihaskell-static-canvas
     - ./ihaskell-display/ihaskell-widgets
-
-extra-deps:
-- Chart-cairo-1.9.3
-- diagrams-cairo-1.4.2.1
-- cairo-0.13.10.0
-- pango-0.13.10.0
-- glib-0.13.10.0
-- plot-0.2.3.11
-- statestack-0.3.1.1
 
 ghc-options:
   # Eventually we want "$locals": -Wall -Wpartial-fields -Werror

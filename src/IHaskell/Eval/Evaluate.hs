@@ -364,7 +364,7 @@ initializeImports importSupportLibraries = do
 
       displayImports = map toImportStmt displayPkgs
 
-  void $ setSessionDynFlags $ dflgs { packageFlags = hiddenFlags ++ packageFlags dflgs }
+  void $ setSessionDynFlags $ dflgs { packageFlags = packageFlags dflgs ++ hiddenFlags }
 
 #if MIN_VERSION_ghc(9,6,0)
   -- Import implicit prelude.
