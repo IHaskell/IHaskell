@@ -22,7 +22,7 @@ extra-deps:
 - Chart-cairo-1.9.3
 - diagrams-cairo-1.4.2.1
 - cairo-0.13.10.0
-- pango-0.13.10
+- pango-0.13.10.0
 - glib-0.13.10.0
 - plot-0.2.3.11
 - statestack-0.3.1.1
