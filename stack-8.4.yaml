@@ -7,8 +7,8 @@ packages:
     - ./ghc-parser
     - ./ihaskell-display/ihaskell-aeson
     - ./ihaskell-display/ihaskell-blaze
-    # - ./ihaskell-display/ihaskell-charts
-    # - ./ihaskell-display/ihaskell-diagrams
+    - ./ihaskell-display/ihaskell-charts
+    - ./ihaskell-display/ihaskell-diagrams
     - ./ihaskell-display/ihaskell-gnuplot
     - ./ihaskell-display/ihaskell-hatex
     - ./ihaskell-display/ihaskell-juicypixels
@@ -18,10 +18,14 @@ packages:
     - ./ihaskell-display/ihaskell-widgets
 
 extra-deps:
-- magic-1.1
-- Chart-1.9
-- Chart-cairo-1.9
 - plot-0.2.3.9
+- Chart-cairo-1.9.1
+- diagrams-cairo-1.4.1
+- cairo-0.13.6.0
+- pango-0.13.6.1
+- glib-0.13.7.1
+- gtk2hs-buildtools-0.13.5.4
+- magic-1.1
 
 ghc-options:
   # Eventually we want "$locals": -Wall -Wpartial-fields -Werror
