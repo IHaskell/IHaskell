@@ -7,8 +7,8 @@ packages:
     - ./ghc-parser
     - ./ihaskell-display/ihaskell-aeson
     - ./ihaskell-display/ihaskell-blaze
-    - ./ihaskell-display/ihaskell-charts
-    - ./ihaskell-display/ihaskell-diagrams
+    # - ./ihaskell-display/ihaskell-charts
+    # - ./ihaskell-display/ihaskell-diagrams
     - ./ihaskell-display/ihaskell-gnuplot
     - ./ihaskell-display/ihaskell-graphviz
     - ./ihaskell-display/ihaskell-hatex

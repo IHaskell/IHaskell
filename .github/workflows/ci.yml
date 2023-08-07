@@ -96,7 +96,7 @@ jobs:
         # above pass, it's unlikely that we'll introduce a bug that we will
         # only catch through the integration test on this version and not other
         # versions.
-        if: ${{ matrix.versions.stack-yaml != 'stack-8.0.yaml' }}
+        if: ${{ contains(fromJSON('["stack-8.0.yaml", "stack-8.2.yaml", "stack-8.4.yaml"]'), matrix.versions.stack-yaml) }}
         run: |
           set -e
           stack build --no-terminal
