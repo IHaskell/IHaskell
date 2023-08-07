@@ -32,7 +32,7 @@ on:
 
 jobs:
   linux:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -96,7 +96,7 @@ jobs:
         # above pass, it's unlikely that we'll introduce a bug that we will
         # only catch through the integration test on this version and not other
         # versions.
-        if: ${{ matrix.versions.stack-yaml != 'stack-8.0.yaml' }}
+        if: ${{ !contains(fromJSON('["stack-8.0.yaml"]'), matrix.versions.stack-yaml) }}
         run: |
           set -e
           stack build --no-terminal
