@@ -19,13 +19,13 @@ import           Language.Haskell.HLint as HLint
 import           Language.Haskell.HLint3
 #endif
 
-import           IHaskell.CSS (ihaskellCSS)
 import           IHaskell.Display
-import           IHaskell.Types
 import           IHaskell.Eval.Parser hiding (line)
 import           StringUtils (replace)
 
 #if MIN_VERSION_hlint(2,1,18)
+import           IHaskell.CSS (ihaskellCSS)
+import           IHaskell.Types
 
 #else
 
