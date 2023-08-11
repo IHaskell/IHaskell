@@ -27,7 +27,6 @@ import qualified Data.Set as Set
 import           Data.Char as Char
 import           Data.Dynamic
 import qualified Data.Binary as Binary
-import qualified Data.Text as Text
 import           System.Directory
 import           System.Posix.IO (fdToHandle)
 import           System.IO (hGetChar, hSetEncoding, utf8)
@@ -108,6 +107,7 @@ import           IHaskell.Eval.Lint
 #endif
 
 #if MIN_VERSION_ghc(8,4,0)
+import qualified Data.Text as Text
 import           IHaskell.Eval.Evaluate.HTML (htmlify)
 #endif
 
