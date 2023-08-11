@@ -4,7 +4,6 @@
 module IHaskell.CSS (ihaskellCSS) where
 
 import           Data.Text as T
-import           IHaskellPrelude
 
 ihaskellCSS :: Text
 ihaskellCSS =
