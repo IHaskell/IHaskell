@@ -69,7 +69,6 @@ import           System.IO.Unsafe (unsafePerformIO)
 
 import qualified Data.Text.Encoding as E
 
-import           IHaskell.CSS (ihaskellCSS)
 import           IHaskell.Eval.Util (unfoldM)
 import           IHaskell.Types
 import           StringUtils (rstrip)
