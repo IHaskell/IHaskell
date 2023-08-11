@@ -62,6 +62,7 @@ library
   if impl (ghc >= 8.4)
     ghc-options:       -Wpartial-fields
     build-depends:     ghc-syntax-highlighter
+    exposed-modules:   IHaskell.Eval.Evaluate.HTML
 
   build-depends:
                        base                  >=4.9 && <4.19,
@@ -105,7 +106,6 @@ library
                    IHaskell.Eval.Completion
                    IHaskell.Eval.Inspect
                    IHaskell.Eval.Evaluate
-                   IHaskell.Eval.Evaluate.HTML
                    IHaskell.Eval.Info
                    IHaskell.Eval.Parser
                    IHaskell.Eval.Hoogle

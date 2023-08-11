@@ -10,7 +10,6 @@ import qualified Data.Time as Time
 
 import           IHaskell.Display
 import           IHaskell.Types
-import           IHaskell.CSS (ihaskellCSS)
 
 -- | Publish evaluation results, ignore any CommMsgs. This function can be used to create a function
 -- of type (EvaluationResult -> IO ()), which can be used to publish results to the frontend. The
