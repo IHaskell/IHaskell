@@ -61,6 +61,7 @@ library
 
   if impl (ghc >= 8.4)
     ghc-options:       -Wpartial-fields
+    build-depends:     ghc-syntax-highlighter
 
   build-depends:
                        base                  >=4.9 && <4.19,
@@ -72,7 +73,6 @@ library
                        filepath              ,
                        ghc                   >=8.0 && <9.7,
                        ghc-boot              ,
-                       ghc-syntax-highlighter,
                        haskeline             ,
                        parsec                ,
                        process               ,

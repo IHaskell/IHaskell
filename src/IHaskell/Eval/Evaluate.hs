@@ -98,7 +98,6 @@ import           IHaskell.Types
 import           IHaskell.IPython
 import           IHaskell.Eval.Parser
 import           IHaskell.Display
-import           IHaskell.Eval.Evaluate.HTML (htmlify)
 import qualified IHaskell.Eval.Hoogle as Hoogle
 import           IHaskell.Eval.Util
 import           IHaskell.BrokenPackages
@@ -106,6 +105,10 @@ import           StringUtils (replace, split, strip, rstrip)
 
 #ifdef USE_HLINT
 import           IHaskell.Eval.Lint
+#endif
+
+#if MIN_VERSION_ghc(8,4,0)
+import           IHaskell.Eval.Evaluate.HTML (htmlify)
 #endif
 
 #if MIN_VERSION_ghc(9,0,0)
@@ -938,9 +941,11 @@ evalCommand _ (Directive GetInfo str) state = safely state $ do
       { evalStatus = Success
       , evalResult = Display [
           plain strings
+#if MIN_VERSION_ghc(8,4,0)
           , htmlify (Text.pack <$> htmlCodeWrapperClass state)
                     (Text.pack $ htmlCodeTokenPrefix state)
                     strings
+#endif
           ]
       , evalState = state
       , evalPager = []
