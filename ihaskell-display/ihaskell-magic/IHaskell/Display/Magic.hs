@@ -2,21 +2,23 @@
 
 module IHaskell.Display.Magic () where
 
-import           IHaskell.Display
-import           Magic
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Unsafe as B
 import qualified Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Char8 as Char
+import           Data.ByteString.UTF8
 import qualified Data.ByteString.UTF8 as B
-
-import           Text.Read
+import qualified Data.ByteString.Unsafe as B
 import           Data.Char
-
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
+import           Text.Read
+
+import           Magic
+
+import           IHaskell.CSS (ihaskellCSS)
+import           IHaskell.Display
 import           IHaskell.IPython.Types (MimeType(MimeSvg))
-import           Data.ByteString.UTF8
+
 
 instance IHaskellDisplay T.Text where
   display = display . T.encodeUtf8
@@ -35,7 +37,7 @@ withClass :: MagicClass -> B.ByteString -> DisplayData
 withClass SVG = DisplayData MimeSvg . T.decodeUtf8
 withClass (PNG w h) = png w h . T.decodeUtf8 . Base64.encode
 withClass JPG = jpg 400 300 . T.decodeUtf8 . Base64.encode
-withClass HTML = html . B.toString
+withClass HTML = html' (Just ihaskellCSS) . B.toString
 withClass LaTeX = latex . B.toString
 withClass _ = plain . B.toString
 

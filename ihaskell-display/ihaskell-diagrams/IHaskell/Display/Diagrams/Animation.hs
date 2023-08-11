@@ -7,8 +7,8 @@ module IHaskell.Display.Diagrams.Animation
          , ManuallySampled, withAnimFps
          ) where
 
-import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as CBS
+import qualified Data.Text as T
 
 import           GHC.Generics (Generic)
 import           Data.Maybe (fromMaybe)
@@ -41,8 +41,7 @@ withAnimFps fps = withSamplingSpec (Just fps)
 instance IHaskellDisplay (ManuallySized (ManuallySampled (QAnimation Cairo V2 Double Any))) where
   display renderable = do
     gif <- animationData renderable
-    return $ Display [html $ "<img src=\"data:image/gif;base64,"
-                             ++ gif ++ "\" />"]
+    return $ Display [html' Nothing $ "<img src=\"data:image/gif;base64," ++ gif ++ "\" />"]
 
 
 animationData :: ManuallySized (ManuallySampled (Animation Cairo V2 Double)) -> IO String

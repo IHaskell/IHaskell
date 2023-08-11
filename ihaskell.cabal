@@ -63,38 +63,39 @@ library
     ghc-options:       -Wpartial-fields
 
   build-depends:
-                       base                 >=4.9 && <4.19,
-                       binary               ,
-                       containers           ,
-                       directory            ,
-                       bytestring           ,
-                       exceptions           ,
-                       filepath             ,
-                       ghc                  >=8.0 && <9.7,
-                       ghc-boot             ,
-                       haskeline            ,
-                       parsec               ,
-                       process              ,
-                       random               ,
-                       stm                  ,
-                       text                 ,
-                       time                 ,
-                       transformers         ,
-                       unix                 ,
-                       aeson                >=1.0,
-                       base64-bytestring    >=1.0,
-                       cmdargs              >=0.10,
-                       ghc-parser           >=0.2.1,
-                       ghc-paths            >=0.1,
-                       http-client          >=0.4,
-                       http-client-tls      >=0.2,
-                       shelly               >=1.5,
-                       split                >=0.2,
-                       strict               >=0.3,
-                       unordered-containers -any,
-                       utf8-string          -any,
-                       vector               -any,
-                       ipython-kernel       >=0.10.2.0
+                       base                  >=4.9 && <4.19,
+                       binary                ,
+                       containers            ,
+                       directory             ,
+                       bytestring            ,
+                       exceptions            ,
+                       filepath              ,
+                       ghc                   >=8.0 && <9.7,
+                       ghc-boot              ,
+                       ghc-syntax-highlighter,
+                       haskeline             ,
+                       parsec                ,
+                       process               ,
+                       random                ,
+                       stm                   ,
+                       text                  ,
+                       time                  ,
+                       transformers          ,
+                       unix                  ,
+                       aeson                 >=1.0,
+                       base64-bytestring     >=1.0,
+                       cmdargs               >=0.10,
+                       ghc-parser            >=0.2.1,
+                       ghc-paths             >=0.1,
+                       http-client           >=0.4,
+                       http-client-tls       >=0.2,
+                       shelly                >=1.5,
+                       split                 >=0.2,
+                       strict                >=0.3,
+                       unordered-containers  -any,
+                       utf8-string           -any,
+                       vector                -any,
+                       ipython-kernel        >=0.10.2.0
 
   exposed-modules: IHaskell.Display
                    IHaskell.Convert
@@ -104,6 +105,7 @@ library
                    IHaskell.Eval.Completion
                    IHaskell.Eval.Inspect
                    IHaskell.Eval.Evaluate
+                   IHaskell.Eval.Evaluate.HTML
                    IHaskell.Eval.Info
                    IHaskell.Eval.Parser
                    IHaskell.Eval.Hoogle

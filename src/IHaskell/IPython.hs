@@ -13,9 +13,9 @@ module IHaskell.IPython (
     installLabextension,
     ) where
 
-import           IHaskellPrelude
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
+import           IHaskellPrelude
 
 import qualified Shelly as SH
 import qualified System.IO as IO
@@ -36,16 +36,18 @@ import           StringUtils (replace, split)
 
 data KernelSpecOptions =
        KernelSpecOptions
-         { kernelSpecGhcLibdir :: String           -- ^ GHC libdir.
-         , kernelSpecRTSOptions :: [String]        -- ^ Runtime options to use.
-         , kernelSpecDebug :: Bool                 -- ^ Spew debugging output?
-         , kernelSpecCodeMirror :: String          -- ^ CodeMirror mode
-         , kernelSpecConfFile :: IO (Maybe String) -- ^ Filename of profile JSON file.
+         { kernelSpecGhcLibdir :: String                  -- ^ GHC libdir.
+         , kernelSpecRTSOptions :: [String]               -- ^ Runtime options to use.
+         , kernelSpecDebug :: Bool                        -- ^ Spew debugging output?
+         , kernelSpecCodeMirror :: String                 -- ^ CodeMirror mode
+         , kernelSpecHtmlCodeWrapperClass :: Maybe String -- ^ HTML output: class name for wrapper div
+         , kernelSpecHtmlCodeTokenPrefix :: String        -- ^ HTML output: class name prefix for token spans
+         , kernelSpecConfFile :: IO (Maybe String)        -- ^ Filename of profile JSON file.
          , kernelSpecInstallPrefix :: Maybe String
-         , kernelSpecUseStack :: Bool              -- ^ Whether to use @stack@ environments.
+         , kernelSpecUseStack :: Bool                     -- ^ Whether to use @stack@ environments.
          , kernelSpecEnvFile :: Maybe FilePath
-         , kernelSpecKernelName :: String          -- ^ The IPython kernel name
-         , kernelSpecDisplayName :: String         -- ^ The IPython kernel display name
+         , kernelSpecKernelName :: String                 -- ^ The IPython kernel name
+         , kernelSpecDisplayName :: String                -- ^ The IPython kernel display name
          }
 
 defaultKernelSpecOptions :: KernelSpecOptions
@@ -55,6 +57,8 @@ defaultKernelSpecOptions = KernelSpecOptions
                                             -- multithreading on two processors.
   , kernelSpecDebug = False
   , kernelSpecCodeMirror = "ihaskell"
+  , kernelSpecHtmlCodeWrapperClass = Just "cm-s-jupyter"
+  , kernelSpecHtmlCodeTokenPrefix = "cm-"
   , kernelSpecConfFile = defaultConfFile
   , kernelSpecInstallPrefix = Nothing
   , kernelSpecUseStack = False

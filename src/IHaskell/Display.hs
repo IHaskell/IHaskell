@@ -25,6 +25,7 @@ module IHaskell.Display (
     -- * Constructors for displays
     plain,
     html,
+    html',
     bmp,
     png,
     jpg,
@@ -68,8 +69,9 @@ import           System.IO.Unsafe (unsafePerformIO)
 
 import qualified Data.Text.Encoding as E
 
-import           IHaskell.Types
+import           IHaskell.CSS (ihaskellCSS)
 import           IHaskell.Eval.Util (unfoldM)
+import           IHaskell.Types
 import           StringUtils (rstrip)
 
 type Base64 = Text
@@ -84,7 +86,13 @@ plain = DisplayData PlainText . T.pack . rstrip
 
 -- | Generate an HTML display.
 html :: String -> DisplayData
-html = DisplayData MimeHtml . T.pack
+html = html' Nothing
+
+-- | Generate an HTML display with optional styles.
+html' :: Maybe Text -> String -> DisplayData
+html' maybeStyles s = DisplayData MimeHtml $ case maybeStyles of
+  Just css -> mconcat ["<style>", css, "</style>", T.pack s]
+  Nothing -> T.pack s
 
 -- | Generate an SVG display.
 svg :: T.Text -> DisplayData

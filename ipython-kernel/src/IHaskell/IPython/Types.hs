@@ -40,13 +40,13 @@ module IHaskell.IPython.Types (
 
 import           Data.Aeson
 import           Data.Aeson.Types (typeMismatch)
+import           Data.Binary
 import           Data.ByteString (ByteString)
 import           Data.List (find)
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
 import           Data.Semigroup (Semigroup)
-import           Data.Binary
 import           Data.Text (Text, pack)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
@@ -920,7 +920,7 @@ replyType _ = Nothing
 
 -- | Data for display: a string with associated MIME type.
 data DisplayData = DisplayData MimeType Text
-  deriving (Typeable, Generic)
+  deriving (Typeable, Eq, Generic)
 
 -- We can't print the actual data, otherwise this will be printed every time it gets computed
 -- because of the way the evaluator is structured. See how `displayExpr` is computed.

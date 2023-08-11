@@ -27,6 +27,7 @@ import qualified Data.Set as Set
 import           Data.Char as Char
 import           Data.Dynamic
 import qualified Data.Binary as Binary
+import qualified Data.Text as Text
 import           System.Directory
 import           System.Posix.IO (fdToHandle)
 import           System.IO (hGetChar, hSetEncoding, utf8)
@@ -92,10 +93,12 @@ import qualified ErrUtils
 import qualified GHC.Paths
 import           GHC hiding (Stmt, TypeSig)
 
+import           IHaskell.CSS (ihaskellCSS)
 import           IHaskell.Types
 import           IHaskell.IPython
 import           IHaskell.Eval.Parser
 import           IHaskell.Display
+import           IHaskell.Eval.Evaluate.HTML (htmlify)
 import qualified IHaskell.Eval.Hoogle as Hoogle
 import           IHaskell.Eval.Util
 import           IHaskell.BrokenPackages
@@ -930,23 +933,17 @@ evalCommand _ (Directive GetInfo str) state = safely state $ do
   -- Get all the info for all the names we're given.
   strings <- unlines <$> getDescription str
 
-  -- Make pager work without html by porting to newer architecture
-  let htmlify str1 =
-        html $
-          concat
-            [ "<div style='background: rgb(247, 247, 247);'><form><textarea id='code'>"
-            , str1
-            , "</textarea></form></div>"
-            , "<script>CodeMirror.fromTextArea(document.getElementById('code'),"
-            , " {mode: 'haskell', readOnly: 'nocursor'});</script>"
-            ]
-
   return
     EvalOut
       { evalStatus = Success
-      , evalResult = mempty
+      , evalResult = Display [
+          plain strings
+          , htmlify (Text.pack <$> htmlCodeWrapperClass state)
+                    (Text.pack $ htmlCodeTokenPrefix state)
+                    strings
+          ]
       , evalState = state
-      , evalPager = [plain strings, htmlify strings]
+      , evalPager = []
       , evalMsgs = []
       }
 
@@ -1122,8 +1119,7 @@ evalCommand output (Expression expr) state = do
         txt = extractPlain disps
 
         postprocess (DisplayData MimeHtml _) =
-          html $ printf fmt unshowableType
-                    (formatErrorWithClass "err-msg collapse" txt) script
+          html' (Just ihaskellCSS) $ printf fmt unshowableType (formatErrorWithClass "err-msg collapse" txt) script
           where
             fmt = "<div class='collapse-group'><span class='btn btn-default' href='#' id='unshowable'>Unshowable:<span class='show-type'>%s</span></span>%s</div><script>%s</script>"
             script = unlines
@@ -1167,7 +1163,7 @@ evalCommand _ (Declaration decl) state = wrapExecution state $ do
 #endif
                  return $ name ++ " :: " ++ theType
 
-      return $ Display [html $ unlines $ map formatGetType types]
+      return $ Display [html' (Just ihaskellCSS) $ unlines $ map formatGetType types]
 
 evalCommand _ (TypeSignature sig) state = wrapExecution state $
   -- We purposefully treat this as a "success" because that way execution continues. Empty type
@@ -1199,7 +1195,7 @@ hoogleResults state results =
     , evalResult = mempty
     , evalState = state
     , evalPager = [ plain $ unlines $ map (Hoogle.render Hoogle.Plain) results
-                  , html $ unlines $ map (Hoogle.render Hoogle.HTML) results
+                  , html' (Just ihaskellCSS) $ unlines $ map (Hoogle.render Hoogle.HTML) results
                   ]
     , evalMsgs = []
     }
@@ -1560,10 +1556,10 @@ evalStatementOrIO publish state cmd = do
 
           return $
             case extractPlain oput of
-              "" -> Display [html htmled]
+              "" -> Display [html' (Just ihaskellCSS) htmled]
 
               -- Return plain and html versions. Previously there was only a plain version.
-              txt -> Display [plain $ joined ++ "\n" ++ txt, html $ htmled ++ mono txt]
+              txt -> Display [plain $ joined ++ "\n" ++ txt, html' (Just ihaskellCSS) $ htmled ++ mono txt]
 
     ExecComplete (Left exception) _ -> throw exception
     ExecBreak{} -> error "Should not break."
@@ -1616,10 +1612,10 @@ formatGetType :: String -> String
 formatGetType = printf "<span class='get-type'>%s</span>"
 
 formatType :: String -> Display
-formatType typeStr = Display [plain typeStr, html $ formatGetType typeStr]
+formatType typeStr = Display [plain typeStr, html' (Just ihaskellCSS) $ formatGetType typeStr]
 
 displayError :: ErrMsg -> Display
-displayError msg = Display [plain . typeCleaner $ msg, html $ formatError msg]
+displayError msg = Display [plain . typeCleaner $ msg, html' (Just ihaskellCSS) $ formatError msg]
 
 mono :: String -> String
 mono = printf "<span class='mono'>%s</span>"

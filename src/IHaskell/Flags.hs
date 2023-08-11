@@ -12,8 +12,8 @@ module IHaskell.Flags (
     help,
     ) where
 
-import           IHaskellPrelude hiding (Arg(..))
 import qualified Data.Text as T
+import           IHaskellPrelude hiding (Arg(..))
 
 import           System.Console.CmdArgs.Explicit
 import           System.Console.CmdArgs.Text
@@ -23,17 +23,19 @@ import           Data.List (findIndex)
 data Args = Args IHaskellMode [Argument]
   deriving Show
 
-data Argument = ConfFile String     -- ^ A file with commands to load at startup.
-              | OverwriteFiles      -- ^ Present when output should overwrite existing files.
-              | GhcLibDir String    -- ^ Where to find the GHC libraries.
-              | RTSFlags [String]   -- ^ Options for the GHC runtime (e.g. heap-size limit
-                                    --     or number of threads).
-              | KernelDebug         -- ^ Spew debugging output from the kernel.
-              | KernelName String   -- ^ The IPython kernel directory name.
-              | DisplayName String  -- ^ The IPython display name.
-              | Help                -- ^ Display help text.
-              | Version             -- ^ Display version text.
-              | CodeMirror String   -- ^ change codemirror mode (default=ihaskell)
+data Argument = ConfFile String               -- ^ A file with commands to load at startup.
+              | OverwriteFiles                -- ^ Present when output should overwrite existing files.
+              | GhcLibDir String              -- ^ Where to find the GHC libraries.
+              | RTSFlags [String]             -- ^ Options for the GHC runtime (e.g. heap-size limit
+                                              --     or number of threads).
+              | KernelDebug                   -- ^ Spew debugging output from the kernel.
+              | KernelName String             -- ^ The IPython kernel directory name.
+              | DisplayName String            -- ^ The IPython display name.
+              | Help                          -- ^ Display help text.
+              | Version                       -- ^ Display version text.
+              | CodeMirror String             -- ^ change codemirror mode (default=ihaskell)
+              | HtmlCodeWrapperClass String   -- ^ set the wrapper class for HTML output
+              | HtmlCodeTokenPrefix String    -- ^ set a prefix on each token of HTML output
               | ConvertFrom String
               | ConvertTo String
               | ConvertFromFormat NotebookFormat
@@ -137,6 +139,14 @@ kernelCodeMirrorFlag :: Flag Args
 kernelCodeMirrorFlag = flagReq ["codemirror"] (store CodeMirror) "<codemirror>"
         "Specify codemirror mode that is used for syntax highlighting (default: ihaskell)."
 
+kernelHtmlCodeWrapperClassFlag :: Flag Args
+kernelHtmlCodeWrapperClassFlag = flagReq ["html-code-wrapper-class"] (store HtmlCodeWrapperClass) "cm-s-jupyter"
+        "Specify class name for wrapper div around HTML output (default: cm-s-jupyter)"
+
+kernelHtmlCodeTokenPrefixFlag :: Flag Args
+kernelHtmlCodeTokenPrefixFlag = flagReq ["html-code-token-prefix"] (store HtmlCodeTokenPrefix) "cm-"
+        "Specify class name prefix for each token in HTML output (default: cm-)"
+
 kernelStackFlag :: Flag Args
 kernelStackFlag = flagNone ["stack"] addStack
                     "Inherit environment from `stack` when it is installed"
@@ -175,7 +185,15 @@ installKernelSpec =
 
 kernel :: Mode Args
 kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg
-           [ghcLibFlag, kernelDebugFlag, confFlag, kernelStackFlag, kernelEnvFileFlag, kernelCodeMirrorFlag]
+           [ghcLibFlag
+           , kernelDebugFlag
+           , confFlag
+           , kernelStackFlag
+           , kernelEnvFileFlag
+           , kernelCodeMirrorFlag
+           , kernelHtmlCodeWrapperClassFlag
+           , kernelHtmlCodeTokenPrefixFlag
+           ]
   where
     kernelArg = flagArg update "<json-kernel-file>"
     update filename (Args _ flags) = Right $ Args (Kernel $ Just filename) flags

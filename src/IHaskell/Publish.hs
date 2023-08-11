@@ -73,14 +73,10 @@ publishResult send replyHeader displayed updateNeeded poutput upager result succ
     sendOutput uniqueLabel (Display outs) = case success of
       Success -> do
         hdr <- dupHeader replyHeader DisplayDataMessage
-        send $ PublishDisplayData hdr (map (makeUnique uniqueLabel . prependCss) outs) Nothing
+        send $ PublishDisplayData hdr (map (makeUnique uniqueLabel) outs) Nothing
       Failure -> do
         hdr <- dupHeader replyHeader ExecuteErrorMessage
         send $ ExecuteError hdr [T.pack (extractPlain outs)] "" ""
-
-    prependCss (DisplayData MimeHtml h) =
-      DisplayData MimeHtml $ mconcat ["<style>", T.pack ihaskellCSS, "</style>", h]
-    prependCss x = x
 
     makeUnique l (DisplayData MimeSvg s) =
       DisplayData MimeSvg

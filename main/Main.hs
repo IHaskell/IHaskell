@@ -5,9 +5,9 @@
 --                 Chans to communicate with the ZeroMQ sockets.
 module Main (main) where
 
-import           IHaskellPrelude
-import qualified Data.Text as T
 import qualified Data.ByteString.Lazy as LBS
+import qualified Data.Text as T
+import           IHaskellPrelude
 
 -- Standard library imports.
 import           Control.Concurrent.Chan
@@ -97,6 +97,10 @@ parseKernelArgs = foldl' addFlag defaultKernelSpecOptions
       kernelSpecOpts { kernelSpecDebug = True }
     addFlag kernelSpecOpts (CodeMirror codemirror) =
       kernelSpecOpts { kernelSpecCodeMirror = codemirror }
+    addFlag kernelSpecOpts (HtmlCodeWrapperClass clazz) =
+      kernelSpecOpts { kernelSpecHtmlCodeWrapperClass = Just clazz }
+    addFlag kernelSpecOpts (HtmlCodeTokenPrefix prefix) =
+      kernelSpecOpts { kernelSpecHtmlCodeTokenPrefix = prefix }
     addFlag kernelSpecOpts (GhcLibDir libdir) =
       kernelSpecOpts { kernelSpecGhcLibdir = libdir }
     addFlag kernelSpecOpts (KernelName name) =
@@ -151,7 +155,7 @@ runKernel kOpts profileSrc = do
   interface <- serveProfile profile debug
 
   -- Create initial state in the directory the kernel *should* be in.
-  state <- initialKernelState
+  state <- initialKernelState kOpts
   modifyMVar_ state $ \kernelState -> return $
     kernelState { kernelDebug = debug }
 
@@ -169,7 +173,7 @@ runKernel kOpts profileSrc = do
         noWidget s _ = return s
         evaluator line = void $ do
           -- Create a new state each time.
-          stateVar <- liftIO initialKernelState
+          stateVar <- liftIO $ initialKernelState kOpts
           st <- liftIO $ takeMVar stateVar
           evaluate st line noPublish noWidget
 
@@ -229,8 +233,12 @@ runKernel kOpts profileSrc = do
           (key, _:val) -> setEnv key val
 
 -- Initial kernel state.
-initialKernelState :: IO (MVar KernelState)
-initialKernelState = newMVar defaultKernelState
+initialKernelState :: KernelSpecOptions -> IO (MVar KernelState)
+initialKernelState kOpts = newMVar (
+  defaultKernelState {
+    htmlCodeWrapperClass = kernelSpecHtmlCodeWrapperClass kOpts
+    , htmlCodeTokenPrefix = kernelSpecHtmlCodeTokenPrefix kOpts
+    })
 
 -- | Create a new message header, given a parent message header.
 createReplyHeader :: MessageHeader -> Interpreter MessageHeader
