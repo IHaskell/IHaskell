@@ -42,6 +42,13 @@ eval string = do
   pagerout <- readIORef pagerAccum
   return (reverse out, unlines . map extractPlain . reverse $ pagerout)
 
+displayDatasBecome :: String -> [Display] -> IO ()
+displayDatasBecome command desired = do
+  (displays, _output) <- eval command
+  when (displays /= desired) $
+    expectationFailure $ "Expected display datas to be " ++ show (encode desired)
+                         ++ ". Got " ++ show (encode displays)
+
 becomes :: String -> [String] -> IO ()
 becomes string expected = evaluationComparing comparison string
   where
@@ -156,27 +163,31 @@ testEval =
 
     it "evaluates :in directive" $ do
 #if MIN_VERSION_ghc(8,10,0)
-      (displays, _output) <- eval ":in String"
-      displays `shouldBe` [ManyDisplay [Display [
-                                           DisplayData PlainText "type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Base\8217"
-                                           , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">::</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">*</span><span class=\"cm-space\"><br /></span>\n<span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"><br />  \t</span><span class=\"cm-comment\">-- Defined in \8216GHC.Base\8217</span><span class=\"cm-space\"><br /></span></div>"
-                                           ]]]
+      displayDatasBecome ":in String" [
+        ManyDisplay [Display [
+                        DisplayData PlainText "type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Base\8217"
+                        , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">::</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">*</span><span class=\"cm-space\"><br /></span>\n<span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"><br />  \t</span><span class=\"cm-comment\">-- Defined in \8216GHC.Base\8217</span><span class=\"cm-space\"><br /></span></div>"
+                        ]]
+        ]
 #elif MIN_VERSION_ghc(8,4,0)
-      (displays, _output) <- eval ":in String"
-      displays `shouldBe` [ManyDisplay [Display [
-                                           DisplayData PlainText "type String = [Char] \t-- Defined in `GHC.Base'"
-                                           , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"> \t</span><span class=\"cm-comment\">-- Defined in `GHC.Base'</span><span class=\"cm-space\"><br /></span></div>"
-                                           ]]]
+      displayDatasBecome ":in String" [
+        ManyDisplay [Display [
+                        DisplayData PlainText "type String = [Char] \t-- Defined in `GHC.Base'"
+                        , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"> \t</span><span class=\"cm-comment\">-- Defined in `GHC.Base'</span><span class=\"cm-space\"><br /></span></div>"
+                        ]]
+        ]
 #elif MIN_VERSION_ghc(8,2,0)
-      (displays, _output) <- eval ":in String"
-      displays `shouldBe` [ManyDisplay [Display [
-                                           DisplayData PlainText "type String = [Char] \t-- Defined in `GHC.Base'"
-                                           ]]]
+      displayDatasBecome ":in String" [
+        ManyDisplay [Display [
+                        DisplayData PlainText "type String = [Char] \t-- Defined in `GHC.Base'"
+                        ]]
+        ]
 #else
-      (displays, _output) <- eval ":in String"
-      displays `shouldBe` [ManyDisplay [Display [
-                                           DisplayData PlainText "type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Base\8217"
-                                           ]]]
+      displayDatasBecome ":in String" [
+        ManyDisplay [Display [
+                        DisplayData PlainText "type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Base\8217"
+                        ]]
+        ]
 #endif
 
     it "captures stderr" $ do
