@@ -66,34 +66,6 @@ evaluationComparing comparison string = do
       newString = unlines $ map (drop minIndent) stringLines
   eval newString >>= comparison
 
-pages :: String -> [String] -> IO ()
-pages string expected = evaluationComparing comparison string
-  where
-    comparison (_results, pageOut) =
-      strip (stripHtml pageOut) `shouldBe` strip (fixQuotes $ unlines expected)
-
-    -- A very, very hacky method for removing HTML
-    stripHtml str = go str
-      where
-        go ('<':xs) =
-          case stripPrefix "script" xs of
-            Nothing  -> go' str
-            Just s -> dropScriptTag s
-        go (x:xs) = x : go xs
-        go [] = []
-
-        go' ('>':xs) = go xs
-        go' (_:xs) = go' xs
-        go' [] = error $ "Unending bracket html tag in string " ++ str
-
-        dropScriptTag str1 =
-          case stripPrefix "</script>" str1 of
-            Just s  -> go s
-            Nothing -> dropScriptTag $ tail str
-
-    fixQuotes :: String -> String
-    fixQuotes = id
-
 
 testEval :: Spec
 testEval =
