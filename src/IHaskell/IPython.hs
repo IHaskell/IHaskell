@@ -57,7 +57,7 @@ defaultKernelSpecOptions = KernelSpecOptions
                                             -- multithreading on two processors.
   , kernelSpecDebug = False
   , kernelSpecCodeMirror = "ihaskell"
-  , kernelSpecHtmlCodeWrapperClass = Just "cm-s-jupyter"
+  , kernelSpecHtmlCodeWrapperClass = Just "CodeMirror cm-s-jupyter cm-s-ipython"
   , kernelSpecHtmlCodeTokenPrefix = "cm-"
   , kernelSpecConfFile = defaultConfFile
   , kernelSpecInstallPrefix = Nothing

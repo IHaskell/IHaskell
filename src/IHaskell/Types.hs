@@ -205,7 +205,7 @@ defaultKernelState = KernelState
   , openComms = mempty
   , kernelDebug = False
   , supportLibrariesAvailable = True
-  , htmlCodeWrapperClass = Just "cm-s-jupyter"
+  , htmlCodeWrapperClass = Just "CodeMirror cm-s-jupyter cm-s-ipython"
   , htmlCodeTokenPrefix = "cm-"
   }
 

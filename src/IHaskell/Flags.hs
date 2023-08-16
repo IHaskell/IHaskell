@@ -140,8 +140,8 @@ kernelCodeMirrorFlag = flagReq ["codemirror"] (store CodeMirror) "<codemirror>"
         "Specify codemirror mode that is used for syntax highlighting (default: ihaskell)."
 
 kernelHtmlCodeWrapperClassFlag :: Flag Args
-kernelHtmlCodeWrapperClassFlag = flagReq ["html-code-wrapper-class"] (store HtmlCodeWrapperClass) "cm-s-jupyter"
-        "Specify class name for wrapper div around HTML output (default: cm-s-jupyter)"
+kernelHtmlCodeWrapperClassFlag = flagReq ["html-code-wrapper-class"] (store HtmlCodeWrapperClass) "CodeMirror cm-s-jupyter cm-s-ipython"
+        "Specify class name for wrapper div around HTML output (default: 'CodeMirror cm-s-jupyter cm-s-ipython')"
 
 kernelHtmlCodeTokenPrefixFlag :: Flag Args
 kernelHtmlCodeTokenPrefixFlag = flagReq ["html-code-token-prefix"] (store HtmlCodeTokenPrefix) "cm-"
