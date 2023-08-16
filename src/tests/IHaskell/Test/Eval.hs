@@ -72,6 +72,7 @@ testEval =
   describe "Code Evaluation" $ do
     it "gets rid of the test failure with Nix" $
       let
+        throwAway :: String -> [String] -> IO ()
         throwAway string _ =
           evaluationComparing (const $ shouldBe True True) string
       in throwAway "True" ["True"]
