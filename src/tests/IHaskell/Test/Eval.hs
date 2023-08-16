@@ -161,7 +161,7 @@ testEval =
                                            , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">::</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">*</span><span class=\"cm-space\"><br /></span>\n<span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"><br />  \t</span><span class=\"cm-comment\">-- Defined in \8216GHC.Base\8217</span><span class=\"cm-space\"><br /></span></div>"
                                            ]]]
 
-#elif MIN_VERSION_ghc(8,6,0)
+#elif MIN_VERSION_ghc(8,4,0)
       (displays, _output) <- eval ":in String"
       displays `shouldBe` [ManyDisplay [Display [
                                            DisplayData PlainText "type String = [Char] \t-- Defined in `GHC.Base'"
