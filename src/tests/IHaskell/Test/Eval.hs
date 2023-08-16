@@ -7,6 +7,7 @@ module IHaskell.Test.Eval (testEval) where
 import           Prelude
 
 import           Control.Monad (when, forM_)
+import           Data.Aeson (encode)
 import           Data.IORef (newIORef, modifyIORef, readIORef)
 import           System.Directory (getTemporaryDirectory, setCurrentDirectory)
 
@@ -48,7 +49,7 @@ becomes string expected = evaluationComparing comparison string
     comparison (results, _pageOut) = do
       when (length results /= length expected) $
         expectationFailure $ "Expected result to have " ++ show (length expected)
-                                                        ++ " results. Got " ++ show results
+                                                        ++ " results. Got " ++ show (encode results)
 
       forM_ (zip results expected) $ \(ManyDisplay [Display result], expect) -> case extractPlain result of
         ""  -> expectationFailure $ "No plain-text output in " ++ show result ++ "\nExpected: " ++ expect
