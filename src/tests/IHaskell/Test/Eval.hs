@@ -6,7 +6,6 @@ module IHaskell.Test.Eval (testEval) where
 
 import           Prelude
 
-import           Data.List (stripPrefix)
 import           Control.Monad (when, forM_)
 import           Data.IORef (newIORef, modifyIORef, readIORef)
 import           System.Directory (getTemporaryDirectory, setCurrentDirectory)
@@ -18,7 +17,6 @@ import qualified GHC.Paths
 import           Test.Hspec
 
 import           IHaskell.Eval.Evaluate (interpret, evaluate)
-import           IHaskell.IPython (defaultKernelSpecOptions)
 import           IHaskell.Test.Util (strip)
 import           IHaskell.Types (Display(..), DisplayData(..), EvaluationResult(..), KernelState(..),
                                  LintStatus(..), MimeType(..), defaultKernelState, extractPlain)
@@ -157,16 +155,23 @@ testEval =
 
     it "evaluates :in directive" $ do
 #if MIN_VERSION_ghc(8,10,0)
-      (displays, output) <- eval ":in String"
+      (displays, _output) <- eval ":in String"
       displays `shouldBe` [ManyDisplay [Display [
                                            DisplayData PlainText "type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Base\8217"
                                            , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">::</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">*</span><span class=\"cm-space\"><br /></span>\n<span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"><br />  \t</span><span class=\"cm-comment\">-- Defined in \8216GHC.Base\8217</span><span class=\"cm-space\"><br /></span></div>"
                                            ]]]
 
+#elif MIN_VERSION_ghc(8,6,0)
+      (displays, _output) <- eval ":in String"
+      displays `shouldBe` [ManyDisplay [Display [
+                                           DisplayData PlainText "type String = [Char] \t-- Defined in `GHC.Base'"
+                                           , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"> \t</span><span class=\"cm-comment\">-- Defined in `GHC.Base'</span><span class=\"cm-space\"><br /></span></div>"
+                                           ]]]
 #else
-      ":in String" `becomes` [ManyDisplay [Display [
-                                              DisplayData PlainText "type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Base\8217"]
-                                              ]]
+      (displays, _output) <- eval ":in String"
+      displays `shouldBe` [ManyDisplay [Display [
+                                           DisplayData PlainText "type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Base\8217"]
+                                           ]]
 #endif
 
     it "captures stderr" $ do
