@@ -191,7 +191,9 @@ testEval =
                                            ]]]
 
 #else
-      ":in String" `becomes` []
+      ":in String" `becomes` [ManyDisplay [Display [
+                                              DisplayData PlainText "type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Base\8217"]
+                                              ]]
 #endif
 
     it "captures stderr" $ do
