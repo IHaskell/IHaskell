@@ -179,13 +179,13 @@ testEval =
 #elif MIN_VERSION_ghc(8,2,0)
       displayDatasBecome ":in String" [
         ManyDisplay [Display [
-                        DisplayData PlainText "type String = [Char] \t-- Defined in `GHC.Base'"
+                        DisplayData PlainText "type String = [Char] \t-- Defined in \226\128\152GHC.Base\226\128\153"
                         ]]
         ]
 #else
       displayDatasBecome ":in String" [
         ManyDisplay [Display [
-                        DisplayData PlainText "type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Base\8217"
+                        DisplayData PlainText "type String = [Char] \t-- Defined in \8216GHC.Base\8217"
                         ]]
         ]
 #endif
