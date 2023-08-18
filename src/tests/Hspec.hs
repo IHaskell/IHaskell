@@ -1,6 +1,5 @@
 module Main where
 
-import           GHC.IO.Encoding
 import           Prelude
 
 import           Test.Hspec
@@ -11,9 +10,7 @@ import           IHaskell.Test.Eval (testEval)
 import           IHaskell.Test.Hoogle (testHoogle)
 
 main :: IO ()
-main = do
-  setLocaleEncoding utf8
-
+main =
   hspec $ do
     testParser
     testEval
