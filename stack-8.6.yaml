@@ -20,9 +20,9 @@ packages:
 extra-deps:
 - Chart-cairo-1.9.1
 - diagrams-cairo-1.4.1
-- cairo-0.13.10.0
-- pango-0.13.10.0
-- glib-0.13.10.0
+- cairo-0.13.6.0
+- pango-0.13.6.1
+- glib-0.13.7.1
 - gtk2hs-buildtools-0.13.5.4
 - magic-1.1
 # - plot-0.2.3.9
