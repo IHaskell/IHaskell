@@ -19,12 +19,12 @@ import           Language.Haskell.HLint as HLint
 import           Language.Haskell.HLint3
 #endif
 
+import           IHaskell.CSS (ihaskellCSS)
 import           IHaskell.Display
 import           IHaskell.Eval.Parser hiding (line)
 import           StringUtils (replace)
 
 #if MIN_VERSION_hlint(2,1,18)
-import           IHaskell.CSS (ihaskellCSS)
 
 #else
 
@@ -114,7 +114,7 @@ lint _code blocks = do
   return $ Display $
     if null suggestions
       then []
-      else [plain $ concatMap plainSuggestion suggestions, html $ htmlSuggestions suggestions]
+      else [plain $ concatMap plainSuggestion suggestions, html' (Just ihaskellCSS) $ htmlSuggestions suggestions]
   where
     autoSettings' = do
       (fixts, classify, hints) <- autoSettings
