@@ -10,7 +10,6 @@ import qualified Data.Time as Time
 
 import           IHaskell.Display
 import           IHaskell.Types
-import           IHaskell.CSS (ihaskellCSS)
 
 -- | Publish evaluation results, ignore any CommMsgs. This function can be used to create a function
 -- of type (EvaluationResult -> IO ()), which can be used to publish results to the frontend. The
@@ -73,14 +72,10 @@ publishResult send replyHeader displayed updateNeeded poutput upager result succ
     sendOutput uniqueLabel (Display outs) = case success of
       Success -> do
         hdr <- dupHeader replyHeader DisplayDataMessage
-        send $ PublishDisplayData hdr (map (makeUnique uniqueLabel . prependCss) outs) Nothing
+        send $ PublishDisplayData hdr (map (makeUnique uniqueLabel) outs) Nothing
       Failure -> do
         hdr <- dupHeader replyHeader ExecuteErrorMessage
         send $ ExecuteError hdr [T.pack (extractPlain outs)] "" ""
-
-    prependCss (DisplayData MimeHtml h) =
-      DisplayData MimeHtml $ mconcat ["<style>", T.pack ihaskellCSS, "</style>", h]
-    prependCss x = x
 
     makeUnique l (DisplayData MimeSvg s) =
       DisplayData MimeSvg

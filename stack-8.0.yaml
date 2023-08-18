@@ -26,7 +26,6 @@ ghc-options:
   ihaskell-widgets: -Wall -Werror
 
 nix:
-  enable: false
   packages:
     - blas
     - cairo

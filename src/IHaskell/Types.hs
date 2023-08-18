@@ -159,7 +159,7 @@ instance Eq Widget where
 -- expression.
 data Display = Display [DisplayData]
              | ManyDisplay [Display]
-  deriving (Show, Typeable, Generic)
+  deriving (Show, Eq, Typeable, Generic)
 
 instance ToJSON Display where
   toJSON (Display d) = object (map displayDataToJson d)
@@ -189,6 +189,8 @@ data KernelState =
          , openComms :: Map UUID Widget
          , kernelDebug :: Bool
          , supportLibrariesAvailable :: Bool
+         , htmlCodeWrapperClass :: Maybe String -- ^ HTML output: class name for wrapper div
+         , htmlCodeTokenPrefix :: String        -- ^ HTML output: class name prefix for token spans
          }
   deriving Show
 
@@ -203,6 +205,8 @@ defaultKernelState = KernelState
   , openComms = mempty
   , kernelDebug = False
   , supportLibrariesAvailable = True
+  , htmlCodeWrapperClass = Just "CodeMirror cm-s-jupyter cm-s-ipython"
+  , htmlCodeTokenPrefix = "cm-"
   }
 
 -- | Kernel options to be set via `:set` and `:option`.

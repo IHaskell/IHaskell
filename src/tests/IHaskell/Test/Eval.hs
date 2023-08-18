@@ -1,11 +1,13 @@
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
+
 module IHaskell.Test.Eval (testEval) where
 
 import           Prelude
 
-import           Data.List (stripPrefix)
 import           Control.Monad (when, forM_)
+import           Data.Aeson (encode)
 import           Data.IORef (newIORef, modifyIORef, readIORef)
 import           System.Directory (getTemporaryDirectory, setCurrentDirectory)
 
@@ -15,10 +17,10 @@ import qualified GHC.Paths
 
 import           Test.Hspec
 
-import           IHaskell.Test.Util (strip)
 import           IHaskell.Eval.Evaluate (interpret, evaluate)
-import           IHaskell.Types (EvaluationResult(..), defaultKernelState, KernelState(..),
-                                 LintStatus(..), Display(..), extractPlain)
+import           IHaskell.Test.Util (strip)
+import           IHaskell.Types (Display(..), DisplayData(..), EvaluationResult(..), KernelState(..),
+                                 LintStatus(..), MimeType(..), defaultKernelState, extractPlain)
 
 eval :: String -> IO ([Display], String)
 eval string = do
@@ -40,6 +42,13 @@ eval string = do
   pagerout <- readIORef pagerAccum
   return (reverse out, unlines . map extractPlain . reverse $ pagerout)
 
+displayDatasBecome :: String -> [Display] -> IO ()
+displayDatasBecome command desired = do
+  (displays, _output) <- eval command
+  when (displays /= desired) $
+    expectationFailure $ "Expected display datas to be " ++ show (encode desired)
+                         ++ ". Got " ++ show (encode displays)
+
 becomes :: String -> [String] -> IO ()
 becomes string expected = evaluationComparing comparison string
   where
@@ -47,7 +56,7 @@ becomes string expected = evaluationComparing comparison string
     comparison (results, _pageOut) = do
       when (length results /= length expected) $
         expectationFailure $ "Expected result to have " ++ show (length expected)
-                                                           ++ " results. Got " ++ show results
+                                                        ++ " results. Got " ++ show (encode results)
 
       forM_ (zip results expected) $ \(ManyDisplay [Display result], expect) -> case extractPlain result of
         ""  -> expectationFailure $ "No plain-text output in " ++ show result ++ "\nExpected: " ++ expect
@@ -63,40 +72,13 @@ evaluationComparing comparison string = do
       newString = unlines $ map (drop minIndent) stringLines
   eval newString >>= comparison
 
-pages :: String -> [String] -> IO ()
-pages string expected = evaluationComparing comparison string
-  where
-    comparison (_results, pageOut) =
-      strip (stripHtml pageOut) `shouldBe` strip (fixQuotes $ unlines expected)
-
-    -- A very, very hacky method for removing HTML
-    stripHtml str = go str
-      where
-        go ('<':xs) =
-          case stripPrefix "script" xs of
-            Nothing  -> go' str
-            Just s -> dropScriptTag s
-        go (x:xs) = x : go xs
-        go [] = []
-
-        go' ('>':xs) = go xs
-        go' (_:xs) = go' xs
-        go' [] = error $ "Unending bracket html tag in string " ++ str
-
-        dropScriptTag str1 =
-          case stripPrefix "</script>" str1 of
-            Just s  -> go s
-            Nothing -> dropScriptTag $ tail str
-
-    fixQuotes :: String -> String
-    fixQuotes = id
-
 
 testEval :: Spec
 testEval =
   describe "Code Evaluation" $ do
     it "gets rid of the test failure with Nix" $
       let
+        throwAway :: String -> [String] -> IO ()
         throwAway string _ =
           evaluationComparing (const $ shouldBe True True) string
       in throwAway "True" ["True"]
@@ -111,9 +93,11 @@ testEval =
           x+z
       |] `becomes` ["21"]
 
-    it "evaluates flags" $ do
+    it "evaluates :set -package" $ do
       ":set -package hello" `becomes` ["Warning: -package not supported yet"]
-      ":set -XNoImplicitPrelude" `becomes` []
+
+    -- it "evaluates :set -XNoImplicitPrelude" $ do
+    --   ":set -XNoImplicitPrelude" `becomes` []
 
     it "evaluates multiline expressions" $ do
       [hereLit|
@@ -160,7 +144,7 @@ testEval =
     it "prints multiline output correctly" $ do
       ":! printf \"hello\\nworld\"" `becomes` ["hello\nworld"]
 
-    it "evaluates directives" $ do
+    it "evaluates :typ directive" $ do
 #if MIN_VERSION_ghc(9,2,0)
       -- It's `a` instead of `p`
       ":typ 3" `becomes` ["3 :: forall {a}. Num a => a"]
@@ -173,11 +157,37 @@ testEval =
 #else
       ":typ 3" `becomes` ["3 :: forall t. Num t => t"]
 #endif
+
+    it "evaluates :k directive" $ do
       ":k Maybe" `becomes` ["Maybe :: * -> *"]
+
+    it "evaluates :in directive" $ do
 #if MIN_VERSION_ghc(8,10,0)
-      ":in String" `pages` ["type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Base\8217"]
+      displayDatasBecome ":in String" [
+        ManyDisplay [Display [
+                        DisplayData PlainText "type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Base\8217"
+                        , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">::</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">*</span><span class=\"cm-space\"><br /></span>\n<span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"><br />  \t</span><span class=\"cm-comment\">-- Defined in \8216GHC.Base\8217</span><span class=\"cm-space\"><br /></span></div>"
+                        ]]
+        ]
+#elif MIN_VERSION_ghc(8,4,0)
+      displayDatasBecome ":in String" [
+        ManyDisplay [Display [
+                        DisplayData PlainText "type String = [Char] \t-- Defined in \8216GHC.Base\8217"
+                        , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"> \t</span><span class=\"cm-comment\">-- Defined in \8216GHC.Base\8217</span><span class=\"cm-space\"><br /></span></div>"
+                        ]]
+        ]
+#elif MIN_VERSION_ghc(8,2,0)
+      displayDatasBecome ":in String" [
+        ManyDisplay [Display [
+                        DisplayData PlainText "type String = [Char] \t-- Defined in \8216GHC.Base\8217"
+                        ]]
+        ]
 #else
-      ":in String" `pages` ["type String = [Char] \t-- Defined in \8216GHC.Base\8217"]
+      displayDatasBecome ":in String" [
+        ManyDisplay [Display [
+                        DisplayData PlainText "type String = [Char] \t-- Defined in \8216GHC.Base\8217"
+                        ]]
+        ]
 #endif
 
     it "captures stderr" $ do

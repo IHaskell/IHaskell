@@ -2,6 +2,7 @@
 
 module IHaskell.Display.Blaze () where
 
+import           IHaskell.CSS (ihaskellCSS)
 import           IHaskell.Display
 
 import           Text.Printf
@@ -15,4 +16,4 @@ instance IHaskellDisplay (MarkupM a) where
     where
       str = renderMarkup (void val)
       stringDisplay = plain str
-      htmlDisplay = html str
+      htmlDisplay = html' (Just ihaskellCSS) str

@@ -34,16 +34,26 @@ ghc-options:
   # ihaskell-widgets: -Wall -Wpartial-fields -Werror
 
 nix:
-  enable: false
   packages:
     - blas
     - cairo
     - file
+    - fribidi
     - gcc
     - gfortran.cc.lib
+    - libdatrie
     - liblapack
+    - libselinux
+    - libsepol
+    - libsodium # Needed by zeromq
+    - libthai
     - ncurses
     - pango
+    - pkg-config
+    - pcre
+    - pcre2
     - pkgconfig
+    - util-linux
+    - xorg.libXdmcp
     - zeromq
     - zlib

@@ -7,7 +7,7 @@ author:              Adam Vogt <vogt.adam@gmail.com>
 maintainer:          Adam Vogt <vogt.adam@gmail.com>
 category:            Development
 build-type:          Simple
-cabal-version:       >=1.10
+cabal-version:       1.16
 
 library
   exposed-modules:     IHaskell.Display.Rlangqq

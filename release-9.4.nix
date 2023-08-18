@@ -34,6 +34,15 @@ let
       '';
     });
     ghc-parser     = self.callCabal2nix "ghc-parser" (builtins.path { path = ./ghc-parser; name = "ghc-parser-src"; }) {};
+    ghc-syntax-highlighter = let
+      src = nixpkgs.fetchFromGitHub {
+        owner = "mrkkrp";
+        repo = "ghc-syntax-highlighter";
+        rev = "bbc049904524aae08e6431494f41fe2a288f6259";
+        sha256 = "sha256-w7AxGsUfqGhh7wrSPppQ2+gPwjvb4mwExJdDOcasAZ4=";
+      };
+      in
+        self.callCabal2nix "ghc-syntax-highlighter" src {};
     ipython-kernel = self.callCabal2nix "ipython-kernel" (builtins.path { path = ./ipython-kernel; name = "ipython-kernel-src"; }) {};
 
     hlint           = super.hlint_3_5;

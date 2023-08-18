@@ -37,6 +37,15 @@ let
       hlint = null;
     });
     ghc-parser     = self.callCabal2nix "ghc-parser" (builtins.path { path = ./ghc-parser; name = "ghc-parser-src"; }) {};
+    ghc-syntax-highlighter = let
+      src = nixpkgs.fetchFromGitHub {
+        owner = "mrkkrp";
+        repo = "ghc-syntax-highlighter";
+        rev = "71ff751eaa6034d4aef254d6bc5a8be4f6595344";
+        sha256 = "14yahxi4pnjbvcd9r843kn7b36jsjaixd99jswsrh9n8xd59c2f1";
+      };
+      in
+        self.callCabal2nix "ghc-syntax-highlighter" src {};
     ipython-kernel = self.callCabal2nix "ipython-kernel" (builtins.path { path = ./ipython-kernel; name = "ipython-kernel-src"; }) {};
 
     zeromq4-haskell = nixpkgs.haskell.lib.addPkgconfigDepend super.zeromq4-haskell nixpkgs.libsodium;

@@ -48,7 +48,6 @@ extra-deps:
 - static-canvas-0.2.0.3
 
 nix:
-  enable: false
   packages:
     - blas
     - cairo
