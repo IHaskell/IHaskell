@@ -26,8 +26,9 @@ publishResult :: (Message -> IO ()) -- ^ A function to send messages
               -> Bool               -- ^ Whether to use the pager
               -> EvaluationResult   -- ^ The evaluation result
               -> ErrorOccurred      -- ^ Whether evaluation completed successfully
+              -> Int
               -> IO ()
-publishResult send replyHeader displayed updateNeeded poutput upager result success = do
+publishResult send replyHeader displayed updateNeeded poutput upager result success execCount = do
   let final =
         case result of
           IntermediateResult{} -> False
@@ -71,8 +72,8 @@ publishResult send replyHeader displayed updateNeeded poutput upager result succ
       mapM_ (sendOutput uniqueLabel) manyOuts
     sendOutput uniqueLabel (Display outs) = case success of
       Success -> do
-        hdr <- dupHeader replyHeader DisplayDataMessage
-        send $ PublishDisplayData hdr (map (makeUnique uniqueLabel) outs) Nothing
+        hdr <- dupHeader replyHeader ExecuteResultMessage
+        send $ ExecuteResult hdr (map (makeUnique uniqueLabel) outs) mempty execCount
       Failure -> do
         hdr <- dupHeader replyHeader ExecuteErrorMessage
         send $ ExecuteError hdr [T.pack (extractPlain outs)] "" ""

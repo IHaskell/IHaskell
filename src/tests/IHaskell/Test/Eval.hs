@@ -26,7 +26,7 @@ eval :: String -> IO ([Display], String)
 eval string = do
   outputAccum <- newIORef []
   pagerAccum <- newIORef []
-  let publish evalResult _ =
+  let publish evalResult _ _ =
         case evalResult of
           IntermediateResult{} -> return ()
           FinalResult outs page _ -> do

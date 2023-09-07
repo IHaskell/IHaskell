@@ -594,6 +594,12 @@ instance ToJSON Message where
     $ ["metadata" .= object []
       , "data" .= object (map displayDataToJson datas)
       ]
+  toJSON r@(ExecuteResult header datas metadata execCount)
+    = object
+        [ "data" .= object (map displayDataToJson datas)
+        , "execution_count" .= execCount
+        , "metadata" .= metadata
+        ]
   toJSON r@PublishUpdateDisplayData { displayData = datas }
     = object
     $ case transient r of
@@ -737,6 +743,12 @@ instance ToJSON Message where
       , "ename" .= ename
       , "evalue" .= evalue
       ]
+  toEncoding r@(ExecuteResult header datas metadata execCount)
+    = pairs $ mconcat
+        [ "data" .= object (map displayDataToJson datas)
+        , "execution_count" .= execCount
+        , "metadata" .= metadata
+        ]
   toEncoding PublishStatus { executionState = executionState } =
     pairs $ mconcat ["execution_state" .= executionState]
   toEncoding PublishStream { streamType = streamType, streamContent = content } =

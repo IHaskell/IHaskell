@@ -198,7 +198,7 @@ testInterpret v = interpret GHC.Paths.libdir False False (const v)
 -- | Evaluation function for testing.
 testEvaluate :: String -> IO ()
 testEvaluate str = void $ testInterpret $
-  evaluate defaultKernelState str (\_ _ -> return ()) (\state _ -> return state)
+  evaluate defaultKernelState str (\_ _ _ -> return ()) (\state _ -> return state)
 
 -- | Run an interpreting action. This is effectively runGhc with initialization
 -- and importing. The `allowedStdin` argument indicates whether `stdin` is
@@ -400,8 +400,9 @@ initializeItVariable =
 
 -- | Publisher for IHaskell outputs. The first argument indicates whether this output is final
 -- (true) or intermediate (false). The second argument indicates whether the evaluation
--- completed successfully (Success) or an error occurred (Failure).
-type Publisher = (EvaluationResult -> ErrorOccurred -> IO ())
+-- completed successfully (Success) or an error occurred (Failure). The third argument is the
+-- execution_count.
+type Publisher = (EvaluationResult -> ErrorOccurred -> Int -> IO ())
 
 -- | Output of a command evaluation.
 data EvalOut =
@@ -451,10 +452,10 @@ evaluate kernelState code output widgetHandler = do
                  when (getLintStatus kernelState /= LintOff) $ liftIO $ do
                    lintSuggestions <- lint code cmds
                    unless (noResults lintSuggestions) $
-                     output (FinalResult lintSuggestions [] []) Success
+                     output (FinalResult lintSuggestions [] []) Success execCount
 #endif
 
-                 runUntilFailure kernelState (map unloc cmds ++ [storeItCommand execCount])
+                 runUntilFailure kernelState (map unloc cmds ++ [storeItCommand execCount]) execCount
                -- Print all parse errors.
                _ -> do
                  forM_ errs $ \err -> do
@@ -462,6 +463,7 @@ evaluate kernelState code output widgetHandler = do
                    liftIO $ output
                      (FinalResult (evalResult out) [] [])
                      (evalStatus out)
+                     execCount
                  return (kernelState, Failure)
 
   return (updated { getExecutionCounter = execCount + 1 }, errorOccurred)
@@ -470,9 +472,9 @@ evaluate kernelState code output widgetHandler = do
     noResults (Display res) = null res
     noResults (ManyDisplay res) = all noResults res
 
-    runUntilFailure :: KernelState -> [CodeBlock] -> Interpreter (KernelState, ErrorOccurred)
-    runUntilFailure state [] = return (state, Success)
-    runUntilFailure state (cmd:rest) = do
+    runUntilFailure :: KernelState -> [CodeBlock] -> Int -> Interpreter (KernelState, ErrorOccurred)
+    runUntilFailure state [] _ = return (state, Success)
+    runUntilFailure state (cmd:rest) execCount = do
       evalOut <- evalCommand output cmd state
 
       -- Get displayed channel outputs. Merge them with normal display outputs.
@@ -497,6 +499,7 @@ evaluate kernelState code output widgetHandler = do
         liftIO $ output
           (FinalResult result (evalPager evalOut) [])
           (evalStatus evalOut)
+          execCount
 
       let tempMsgs = evalMsgs evalOut
           tempState = evalState evalOut { evalMsgs = [] }
@@ -507,7 +510,7 @@ evaluate kernelState code output widgetHandler = do
                     else return tempState
 
       case evalStatus evalOut of
-        Success -> runUntilFailure newState rest
+        Success -> runUntilFailure newState rest execCount
         Failure -> return (newState, Failure)
 
     storeItCommand execCount = Statement $ printf "let it%d = it" execCount
@@ -867,6 +870,9 @@ evalCommand publish (Directive ShellCmd cmd) state = wrapExecution state $
           incSize = 200
           output str = publish $ IntermediateResult $ Display [plain str]
 
+          -- Get execution_count.
+          execCount = getExecutionCounter state
+
           loop = do
             -- Wait and then check if the computation is done.
             threadDelay delay
@@ -880,7 +886,7 @@ evalCommand publish (Directive ShellCmd cmd) state = wrapExecution state $
             case mExitCode of
               Nothing -> do
                 -- Write to frontend and repeat.
-                readMVar outputAccum >>= flip output Success
+                readMVar outputAccum >>= (\res -> output res Success execCount)
                 loop
               Just exitCode -> do
                 next <- readChars pipe "" maxSize
@@ -1521,6 +1527,7 @@ capturedIO publish state action = do
 evalStatementOrIO :: Publisher -> KernelState -> Captured a -> Interpreter Display
 evalStatementOrIO publish state cmd = do
   let output str = publish . IntermediateResult $ Display [plain str]
+  let execCount = getExecutionCounter state
 
   case cmd of
     CapturedStmt stmt ->
@@ -1528,7 +1535,7 @@ evalStatementOrIO publish state cmd = do
     CapturedIO _ ->
       write state "Evaluating Action"
 
-  (printed, result) <- capturedEval (flip output Success) cmd
+  (printed, result) <- capturedEval (\res -> output res Success execCount) cmd
   case result of
     ExecComplete (Right names) _ -> do
       dflags <- getSessionDynFlags
