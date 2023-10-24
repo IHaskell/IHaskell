@@ -29,7 +29,13 @@ module Language.Haskell.GHC.Parser (
 import Data.List (intercalate, findIndex, isInfixOf)
 import Data.Char (isAlphaNum)
 
-#if MIN_VERSION_ghc(9,6,0)
+#if MIN_VERSION_ghc(9,8,0)
+import GHC.Driver.Config.Parser (initParserOpts)
+import GHC.Parser.Errors.Types (PsMessage(..))
+import GHC.Types.Error (defaultDiagnosticOpts, getMessages, MsgEnvelope(..))
+import GHC.Utils.Error (diagnosticMessage, formatBulleted)
+import GHC.Utils.Outputable (defaultSDocContext, renderWithContext)
+#elif MIN_VERSION_ghc(9,6,0)
 import GHC.Driver.Config.Parser (initParserOpts)
 import GHC.Parser.Errors.Types (PsMessage(..))
 import GHC.Types.Error (getMessages, MsgEnvelope(..))
@@ -229,7 +235,9 @@ runParser flags (Parser parser) str =
       Parsed result
 
     -- Convert the bag of errors into an error string.
-#if MIN_VERSION_ghc(9,6,0)
+#if MIN_VERSION_ghc(9,8,0)
+    printErrorBag bag = joinLines . map (renderWithContext defaultSDocContext . formatBulleted . diagnosticMessage (defaultDiagnosticOpts @PsMessage) . errMsgDiagnostic) $ bagToList bag
+#elif MIN_VERSION_ghc(9,6,0)
     printErrorBag bag = joinLines . map (renderWithContext defaultSDocContext . formatBulleted defaultSDocContext . diagnosticMessage (defaultDiagnosticOpts @PsMessage) . errMsgDiagnostic) $ bagToList bag
 #elif MIN_VERSION_ghc(9,4,0)
     printErrorBag bag = joinLines . map (show . formatBulleted defaultSDocContext . diagnosticMessage . errMsgDiagnostic) $ bagToList bag

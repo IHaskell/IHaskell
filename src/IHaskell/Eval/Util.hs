@@ -34,7 +34,28 @@ import qualified Data.ByteString.Char8 as CBS
 #endif
 
 -- GHC imports.
-#if MIN_VERSION_ghc(9,4,0)
+#if MIN_VERSION_ghc(9,8,0)
+import           GHC.Core.InstEnv (is_cls, is_tys, mkInstEnv, instEnvElts)
+import           GHC.Core.Unify
+import           GHC.Data.Bag
+import           GHC.Types.TyThing.Ppr
+import           GHC.Driver.CmdLine
+import           GHC.Driver.Monad (modifySession)
+import           GHC.Driver.Ppr
+import           GHC.Driver.Session
+import           GHC.Driver.Env.Types
+import           GHC.Platform.Ways
+import           GHC.Runtime.Context
+import           GHC.Types.Error
+import           GHC.Types.Name (pprInfixName)
+import           GHC.Types.Name.Set
+import           GHC.Types.TyThing
+import qualified GHC.Driver.Session as DynFlags
+import qualified GHC.Utils.Error as E
+import qualified GHC.Utils.Outputable as O
+import qualified GHC.Utils.Ppr as Pretty
+import           GHC.Runtime.Loader
+#elif MIN_VERSION_ghc(9,4,0)
 import           GHC.Core.InstEnv (is_cls, is_tys, mkInstEnv, instEnvElts)
 import           GHC.Core.Unify
 import           GHC.Types.TyThing.Ppr
@@ -316,7 +337,9 @@ setFlags ext = do
 
   -- Create the parse errors.
   let noParseErrs = map (("Could not parse: " ++) . unLoc) unrecognized
-#if MIN_VERSION_ghc(8,4,0)
+#if MIN_VERSION_ghc(9,8,0)
+      allWarns = map (show . flip O.runSDoc O.defaultSDocContext . E.formatBulleted . diagnosticMessage defaultOpts . errMsgDiagnostic) (bagToList $ getWarningMessages warnings) ++
+#elif MIN_VERSION_ghc(8,4,0)
       allWarns = map (unLoc . warnMsg) warnings ++
 #else
       allWarns = map unLoc warnings ++

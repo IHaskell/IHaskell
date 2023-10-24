@@ -65,14 +65,14 @@ library
     exposed-modules:   IHaskell.Eval.Evaluate.HTML
 
   build-depends:
-                       base                  >=4.9 && <4.19,
+                       base                  >=4.9 && <5,
                        binary                ,
                        containers            ,
                        directory             ,
                        bytestring            ,
                        exceptions            ,
                        filepath              ,
-                       ghc                   >=8.0 && <9.7,
+                       ghc                   >=8.0 && <9.9,
                        ghc-boot              ,
                        haskeline             ,
                        parsec                ,
