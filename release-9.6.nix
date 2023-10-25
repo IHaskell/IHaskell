@@ -1,10 +1,10 @@
 let
   nixpkgs-src = builtins.fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/tarball/147886c1b7771e5f155beb2644545441737d450f";
-    sha256 = "sha256:1k1rcdcjvphp989lg32kcjwdww46k0i59kf98k4f75hpgfq2j6bb";
+    url = "https://github.com/NixOS/nixpkgs/tarball/02c6061679c99546ccff9ca241025134411e13ad";
+    sha256 = "sha256:03cwv27x1xl9fm2dzdgzm1lz9qimn3w10v8pb7wd4ld459jir8pb";
   };
 in
-{ compiler ? "ghc961"
+{ compiler ? "ghc963"
 , nixpkgs ? import nixpkgs-src {}
 , packages ? (_: [])
 , pythonPackages ? (_: [])
@@ -25,16 +25,13 @@ let
   });
 
   ihaskellOverlay = (self: super: {
-    ihaskell = (nixpkgs.haskell.lib.overrideCabal (
+    ihaskell = nixpkgs.haskell.lib.overrideCabal (
                      self.callCabal2nix "ihaskell" ihaskell-src {}) (_drv: {
       preCheck = ''
         export HOME=$TMPDIR/home
         export PATH=$PWD/dist/build/ihaskell:$PATH
         export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
       '';
-      configureFlags = (_drv.configureFlags or []) ++ [ "-f" "-use-hlint" ];
-    })).overrideScope (self: super: {
-      hlint = null;
     });
     ghc-parser     = self.callCabal2nix "ghc-parser" (builtins.path { path = ./ghc-parser; name = "ghc-parser-src"; }) {};
     ghc-syntax-highlighter = let
@@ -48,13 +45,6 @@ let
         self.callCabal2nix "ghc-syntax-highlighter" src {};
     ipython-kernel = self.callCabal2nix "ipython-kernel" (builtins.path { path = ./ipython-kernel; name = "ipython-kernel-src"; }) {};
 
-    zeromq4-haskell = nixpkgs.haskell.lib.addPkgconfigDepend super.zeromq4-haskell nixpkgs.libsodium;
-    here = nixpkgs.haskell.lib.appendPatch (nixpkgs.haskell.lib.doJailbreak super.here) (nixpkgs.fetchpatch {
-      url = "https://github.com/tmhedberg/here/commit/3c648cdef8998383d9b63af4984ccb12c7729644.patch";
-      sha256 = "sha256-Cvedt/UpH0tWrXVHCNFZlt0dr443IAkCOJdSjuPLIf8=";
-    });
-    shelly = nixpkgs.haskell.lib.doJailbreak super.shelly;
-    hourglass = nixpkgs.haskell.lib.dontCheck super.hourglass;
   } // displays self);
 
   # statically linking against haskell libs reduces closure size at the expense

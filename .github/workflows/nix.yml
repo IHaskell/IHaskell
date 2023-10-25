@@ -52,7 +52,7 @@ jobs:
         -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-23.05 \
         ${{ matrix.versions.release }} \
         --arg packages "haskellPackages: [ haskellPackages.ihaskell ]"
-    - if: matrix.versions.release != 'release-9.6.nix' && matrix.versions.release != 'release-9.8.nix'
+    - if: matrix.versions.release != 'release-9.8.nix'
       run: |
         nix-shell \
         -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-23.05 \
