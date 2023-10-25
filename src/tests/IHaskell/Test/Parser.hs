@@ -4,7 +4,7 @@ module IHaskell.Test.Parser (testParser) where
 
 import           Prelude
 
-import           Data.String.Here (hereLit)
+import           Text.RawString.QQ (r)
 
 import           Test.Hspec
 import           Test.HUnit (assertFailure)
@@ -47,7 +47,7 @@ testLayoutChunks = describe "Layout Chunk" $ do
     map unloc (layoutChunks "a\n\nstring") `shouldBe` ["a", "string"]
 
   it "parses multiple exprs" $ do
-    let text = [hereLit|
+    let text = [r|
                  first
 
                  second
@@ -201,7 +201,7 @@ testParseString = describe "Parser" $ do
     parses "import X\nprint 3" `like` [Import "import X", Expression "print 3"]
     parses "import X\n\nprint 3" `like` [Import "import X", Expression "print 3"]
   it "ignores blank lines properly" $
-    [hereLit|
+    [r|
       test arg = hello
         where
           x = y
@@ -213,7 +213,7 @@ testParseString = describe "Parser" $ do
     ("img ! src \"" ++ longString ++ "\" ! width \"500\"") `is` Expression
 
   it "parses do blocks in expression" $ do
-    [hereLit|
+    [r|
       show (show (do
         Just 10
         Nothing
@@ -221,7 +221,7 @@ testParseString = describe "Parser" $ do
     |] `is` Expression
   it "correctly locates parsed items" $ do
     ghc (parseString
-      [hereLit|
+      [r|
         first
 
         second

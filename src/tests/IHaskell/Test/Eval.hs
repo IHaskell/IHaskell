@@ -11,7 +11,7 @@ import           Data.Aeson (encode)
 import           Data.IORef (newIORef, modifyIORef, readIORef)
 import           System.Directory (getTemporaryDirectory, setCurrentDirectory)
 
-import           Data.String.Here (hereLit)
+import           Text.RawString.QQ (r)
 
 import qualified GHC.Paths
 
@@ -87,7 +87,7 @@ testEval =
       "3" `becomes` ["3"]
       "3+5" `becomes` ["8"]
       "print 3" `becomes` ["3"]
-      [hereLit|
+      [r|
         let x = 11
             z = 10 in
           x+z
@@ -100,14 +100,14 @@ testEval =
     --   ":set -XNoImplicitPrelude" `becomes` []
 
     it "evaluates multiline expressions" $ do
-      [hereLit|
+      [r|
         import Control.Monad
         forM_ [1, 2, 3] $ \x ->
           print x
       |] `becomes` ["1\n2\n3"]
 
     it "evaluates function declarations silently" $ do
-      [hereLit|
+      [r|
         fun :: [Int] -> Int
         fun [] = 3
         fun (x:xs) = 10
@@ -115,7 +115,7 @@ testEval =
       |] `becomes` ["10"]
 
     it "evaluates data declarations" $ do
-      [hereLit|
+      [r|
         data X = Y Int
                | Z String
                deriving (Show, Eq)
@@ -124,7 +124,7 @@ testEval =
       |] `becomes` ["[Y 3,Z \"No\"]", "False"]
 
     it "evaluates do blocks in expressions" $ do
-      [hereLit|
+      [r|
         show (show (do
             Just 10
             Nothing
@@ -191,13 +191,13 @@ testEval =
 #endif
 
     it "captures stderr" $ do
-      [hereLit|
+      [r|
         import Debug.Trace
         trace "test" 5
       |] `becomes` ["test\n5"]
 
     it "immediately applies language extensions" $ do
-      [hereLit|
+      [r|
         {-# LANGUAGE RankNTypes #-}
 
         identity :: forall a. a -> a

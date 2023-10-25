@@ -189,7 +189,6 @@ Test-Suite hspec
         directory,
         text,
         ihaskell,
-        here,
         hspec,
         hspec-contrib,
         HUnit,
