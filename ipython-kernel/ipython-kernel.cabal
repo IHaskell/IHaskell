@@ -1,5 +1,5 @@
 name:                ipython-kernel
-version:             0.10.3.0
+version:             0.11.0.0
 synopsis:            A library for creating kernels for IPython frontends
 
 description:         ipython-kernel is a library for communicating with frontends for the interactive IPython framework. It is used extensively in IHaskell, the interactive Haskell environment.
