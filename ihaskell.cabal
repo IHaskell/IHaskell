@@ -7,7 +7,7 @@ name:                ihaskell
 -- PVP summary:      +--+------- breaking API changes
 --                   |  | +----- non-breaking API additions
 --                   |  | | +--- code changes with no API change
-version:             0.10.4.0
+version:             0.11.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            A Haskell backend kernel for the Jupyter project.
@@ -96,7 +96,7 @@ library
                        unordered-containers  -any,
                        utf8-string           -any,
                        vector                -any,
-                       ipython-kernel        >=0.10.2.0
+                       ipython-kernel        >=0.11.0.0
 
   exposed-modules: IHaskell.Display
                    IHaskell.Convert
