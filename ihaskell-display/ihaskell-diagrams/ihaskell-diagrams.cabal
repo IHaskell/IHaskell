@@ -7,7 +7,7 @@ name:                ihaskell-diagrams
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.3.2.1
+version:             0.4.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            IHaskell display instances for diagram types
@@ -65,7 +65,7 @@ library
                        diagrams >= 1.3,
                        diagrams-lib,
                        diagrams-cairo,
-                       ihaskell >= 0.6.2,
+                       ihaskell >= 0.11,
 
                        -- The active package, used to represent animations
                        active >= 0.2
