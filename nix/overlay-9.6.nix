@@ -13,10 +13,6 @@ sel: sup: {
 
           ghc-lib-parser = self.ghc-lib-parser_9_6_3_20231014;
 
-          zeromq4-haskell = super.zeromq4-haskell.overrideAttrs (oldAttrs: {
-            buildInputs = oldAttrs.buildInputs ++ [super.libsodium];
-          });
-
           # https://github.com/amcphail/plot/pull/23
           plot = super.callCabal2nix "plot" (sup.fetchFromGitHub {
             owner = "codedownio";
