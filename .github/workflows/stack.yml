@@ -90,14 +90,8 @@ jobs:
 
         stack install --nix --stack-yaml ${{matrix.stack-yaml}}
 
-        echo "PATH: $PATH"
-        echo "jupyter: $(which jupyter)"
-        echo "ihaskell: $(which ihaskell)"
-
-        ihaskell install --stack
-
-        jupyter-kernelspec list
+        ihaskell install --stack --stack-flag="--nix" --stack-flag="--stack-yaml=$(realpath ${{matrix.stack-yaml}})"
 
         # Ensure that IHaskell notebook remains unchanged.
         # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
-        test/acceptance.nbconvert.sh stack exec --nix --no-nix-pure --stack-yaml ${{matrix.stack-yaml}} -- jupyter nbconvert
+        test/acceptance.nbconvert.sh jupyter nbconvert
