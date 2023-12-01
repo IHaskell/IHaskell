@@ -113,6 +113,8 @@ parseKernelArgs = foldl' addFlag defaultKernelSpecOptions
       kernelSpecOpts { kernelSpecInstallPrefix = Just prefix }
     addFlag kernelSpecOpts KernelspecUseStack =
       kernelSpecOpts { kernelSpecUseStack = True }
+    addFlag kernelSpecOpts (KernelspecStackFlag flag) =
+      kernelSpecOpts { kernelSpecStackFlags = flag : (kernelSpecStackFlags kernelSpecOpts) }
     addFlag kernelSpecOpts (KernelspecEnvFile fp) =
       kernelSpecOpts { kernelSpecEnvFile = Just fp }
     addFlag _kernelSpecOpts flag = error $ "Unknown flag" ++ show flag
@@ -125,6 +127,7 @@ runKernel kOpts profileSrc = do
   let debug = kernelSpecDebug kOpts
       libdir = kernelSpecGhcLibdir kOpts
       useStack = kernelSpecUseStack kOpts
+      stackFlags = kernelSpecStackFlags kOpts
 
   -- Parse the profile file.
   let profileErr = error $ "ihaskell: "++profileSrc++": Failed to parse profile file"
@@ -145,7 +148,7 @@ runKernel kOpts profileSrc = do
     -- If we're in a stack directory, use `stack` to set the environment
     -- We can't do this with base <= 4.6 because setEnv doesn't exist.
     when stack $
-      readProcess "stack" ["exec", "env"] "" >>= parseAndSetEnv
+      readProcess "stack" (["exec", "env"] <> stackFlags) "" >>= parseAndSetEnv
 
   case kernelSpecEnvFile kOpts of
     Nothing -> return ()

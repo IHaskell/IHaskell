@@ -45,6 +45,7 @@ data KernelSpecOptions =
          , kernelSpecConfFile :: IO (Maybe String)        -- ^ Filename of profile JSON file.
          , kernelSpecInstallPrefix :: Maybe String
          , kernelSpecUseStack :: Bool                     -- ^ Whether to use @stack@ environments.
+         , kernelSpecStackFlags :: [String]               -- ^ Extra flags to pass to @stack@.
          , kernelSpecEnvFile :: Maybe FilePath
          , kernelSpecKernelName :: String                 -- ^ The IPython kernel name
          , kernelSpecDisplayName :: String                -- ^ The IPython kernel display name
@@ -62,6 +63,7 @@ defaultKernelSpecOptions = KernelSpecOptions
   , kernelSpecConfFile = defaultConfFile
   , kernelSpecInstallPrefix = Nothing
   , kernelSpecUseStack = False
+  , kernelSpecStackFlags = []
   , kernelSpecEnvFile = Nothing
   , kernelSpecKernelName = "haskell"
   , kernelSpecDisplayName = "Haskell"
@@ -150,6 +152,7 @@ installKernelspec repl opts = void $ do
              [] -> []
              _ -> "+RTS" : kernelSpecRTSOptions opts ++ ["-RTS"])
            ++ ["--stack" | kernelSpecUseStack opts]
+           ++ mconcat [["--stack-flag", f] | f <- kernelSpecStackFlags opts]
 
   let kernelSpec = KernelSpec
         { kernelDisplayName = kernelSpecDisplayName opts
