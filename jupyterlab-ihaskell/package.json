@@ -29,18 +29,16 @@
     "watch": "tsc -w"
   },
   "dependencies": {
-    "@jupyterlab/application": ">=3.0.0",
-    "@jupyterlab/codemirror": ">=3.0.0",
-    "@jupyterlab/apputils": ">=3.0.0",
-    "@jupyterlab/docregistry": ">=3.0.0",
-    "@jupyterlab/notebook": ">=3.0.0",
-    "@jupyterlab/services": ">=6.0.0"
+    "@jupyterlab/application": ">=4.0.0",
+    "@jupyterlab/codemirror": ">=4.0.0",
+    "@jupyterlab/apputils": ">=4.0.0",
+    "@jupyterlab/notebook": ">=4.0.0"
   },
   "devDependencies": {
     "rimraf": "^3.0.0",
-    "typescript": "~3.7.3",
+    "typescript": "~5.0.4",
     "@types/codemirror": ">=0.0.0",
-    "@jupyterlab/builder": ">=3.0.0"
+    "@jupyterlab/builder": ">=4.0.0"
   },
   "jupyterlab": {
     "extension": true,
