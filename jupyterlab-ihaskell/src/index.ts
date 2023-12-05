@@ -1,4 +1,3 @@
-import { haskell } from '@codemirror/legacy-modes/mode/haskell';
 import { JupyterFrontEnd, JupyterFrontEndPlugin } from '@jupyterlab/application';
 import { StreamLanguage, LanguageSupport } from '@codemirror/language';
 import { IEditorLanguageRegistry } from '@jupyterlab/codemirror';
@@ -10,9 +9,10 @@ export const languagePlugin: JupyterFrontEndPlugin<void> = {
   activate: (app: JupyterFrontEnd, languages: IEditorLanguageRegistry) => {
     languages.addLanguage({
       name: 'ihaskell',
-      mime: 'text/x-ihaskell',
+      mime: 'text/x-haskell',
       load: async () => {
-        const parser = StreamLanguage.define(haskell);
+        const hs = await import('@codemirror/legacy-modes/mode/haskell');
+        const parser = StreamLanguage.define(hs.haskell);
         const languageSupport = new LanguageSupport(parser);
         return languageSupport;
       }
