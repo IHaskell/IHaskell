@@ -16,6 +16,7 @@
 
       jupyterlab = pkgsMaster.python3.withPackages (ps: [ ps.jupyterlab ps.notebook ]);
 
+      # Map from GHC version to release function
       versions = let
         mkVersion = pkgsSrc: compiler: overlays: extraArgs: {
           name = compiler;
@@ -33,7 +34,8 @@
             (mkVersion nixpkgsMaster "ghc98"  [(import ./nix/overlay-9.8.nix)]  { enableHlint = false; })
           ];
 
-      envs' = prefix: packages: pkgsMaster.lib.mapAttrs' (version: releaseFn: {
+      # Helper function for building environments with a given set of packages
+      mkEnvs = prefix: packages: pkgsMaster.lib.mapAttrs' (version: releaseFn: {
         name = prefix + version;
         value = (releaseFn {
           # Note: this can be changed to other Jupyter systems like jupyter-console
@@ -46,11 +48,12 @@
       }) versions;
 
       # Basic envs with Jupyterlab and IHaskell
-      envs = envs' "ihaskell-env-" (_: []);
+      envs = mkEnvs "ihaskell-env-" (_: []);
 
       # Envs with Jupyterlab, IHaskell, and all display packages
-      displayEnvs = envs' "ihaskell-env-display-" (p: with p; map (n: builtins.getAttr n p) (import ./nix/displays.nix));
+      displayEnvs = mkEnvs "ihaskell-env-display-" (p: with p; map (n: builtins.getAttr n p) (import ./nix/displays.nix));
 
+      # Executables only, pulled from passthru on the envs
       exes = pkgsMaster.lib.mapAttrs' (envName: env: {
         name = builtins.replaceStrings ["-env"] [""] envName;
         value = env.ihaskellExe;
