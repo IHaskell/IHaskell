@@ -47,7 +47,9 @@ jobs:
         - ihaskell-env-display-ghc92
         - ihaskell-env-display-ghc94
         - ihaskell-env-display-ghc96
-        - ihaskell-env-display-ghc98
+
+        # Disabled until display dependencies can all build with GHC 9.8
+        # - ihaskell-env-display-ghc98
 
     steps:
     - uses: actions/checkout@v3
@@ -67,6 +69,8 @@ jobs:
 
     - name: Check acceptance test for ${{matrix.env}}
       # Disable GHC 9.8 here since we don't have hlint support yet
+      # Also, don't bother running it with the display envs since we already run it with the
+      # basic envs, and it doesn't test any display stuff.
       if: ${{ !contains(fromJSON('["ihaskell-env-ghc98"]'), matrix.env) && !contains(matrix.env, fromJSON('"display"')) }}
       run: |
         nix build .#checks.x86_64-linux.${{matrix.env}} -L
