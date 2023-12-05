@@ -73,9 +73,7 @@
         allExes = pkgsMaster.linkFarm "ihaskell-exes" exes;
         allDevShells = pkgsMaster.linkFarm "ihaskell-dev-shells" devShells;
 
-        # For getting Nix paths in CI
-        print-nixpkgs-stable = pkgsMaster.writeShellScriptBin "print-nixpkgs-stable.sh" "echo ${pkgs23_05.path}";
-        print-nixpkgs-master = pkgsMaster.writeShellScriptBin "print-nixpkgs-master.sh" "echo ${pkgsMaster.path}";
+        # To use in CI
         inherit jupyterlab;
       };
 
