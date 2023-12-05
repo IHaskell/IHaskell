@@ -1,0 +1,55 @@
+resolver: nightly-2023-11-23 # GHC 9.6.3
+
+packages:
+- ..
+- ../ipython-kernel
+- ../ghc-parser
+- ../ihaskell-display/ihaskell-aeson
+- ../ihaskell-display/ihaskell-blaze
+- ../ihaskell-display/ihaskell-charts
+- ../ihaskell-display/ihaskell-diagrams
+- ../ihaskell-display/ihaskell-gnuplot
+- ../ihaskell-display/ihaskell-graphviz
+- ../ihaskell-display/ihaskell-hatex
+- ../ihaskell-display/ihaskell-juicypixels
+- ../ihaskell-display/ihaskell-magic
+- ../ihaskell-display/ihaskell-plot
+# - ../ihaskell-display/ihaskell-static-canvas
+- ../ihaskell-display/ihaskell-widgets
+
+ghc-options:
+  # Eventually we want "$locals": -Wall -Wpartial-fields -Werror
+  # ghc-parser: -Wall -Wpartial-fields -Werror
+  # ihaskell: -Wall -Wpartial-fields -Werror
+  # ihaskell-widgets: -Wall -Wpartial-fields -Werror
+
+extra-deps:
+# https://github.com/amcphail/plot/pull/23
+- git: https://github.com/codedownio/haskell-plot.git
+  commit: dfa26022b5815bcd6a5dd6c818fcd2c4d25c6d44
+
+allow-newer: true
+
+nix:
+  packages:
+  - blas
+  - cairo
+  - expat
+  - file
+  - fribidi
+  - gcc
+  - gfortran.cc.lib
+  - libdatrie
+  - liblapack
+  - libselinux
+  - libsepol
+  - libthai
+  - ncurses
+  - pango
+  - pcre
+  - pcre2.dev
+  - pkg-config
+  - util-linux.dev
+  - xorg.libXdmcp
+  - zeromq
+  - zlib

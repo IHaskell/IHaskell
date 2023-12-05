@@ -64,13 +64,13 @@
 -- specification.
 module IHaskell.Display.Widgets.Types where
 
-import           Control.Monad (unless, join, when, void,mzero)
 import           Control.Applicative ((<$>))
 import qualified Control.Exception as Ex
-import           Data.Typeable (Typeable, TypeRep, typeOf)
+import           Control.Monad (unless, join, when, void,mzero)
 import           Data.IORef (IORef, readIORef, modifyIORef)
 import           Data.String
 import           Data.Text (Text, pack)
+import           Data.Typeable (Typeable, TypeRep, typeOf)
 import           System.IO.Error
 import           System.Posix.IO
 import           Text.Printf (printf)
@@ -904,7 +904,11 @@ noStdin action =
       handler e = when (ioeGetErrorType e == InvalidArgument)
                     (error "Widgets cannot do console input, sorry :)")
   in Ex.handle handler $ do
+#if MIN_VERSION_unix(2,8,0)
+    nullFd <- openFd "/dev/null" WriteOnly defaultFileFlags
+#else
     nullFd <- openFd "/dev/null" WriteOnly Nothing defaultFileFlags
+#endif
     oldStdin <- dup stdInput
     void $ dupTo nullFd stdInput
     closeFd nullFd

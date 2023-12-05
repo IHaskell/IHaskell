@@ -43,6 +43,7 @@ data Argument = ConfFile String               -- ^ A file with commands to load 
               | ConvertLhsStyle (LhsStyle String)
               | KernelspecInstallPrefix String
               | KernelspecUseStack
+              | KernelspecStackFlag String
               | KernelspecEnvFile FilePath
   deriving (Eq, Show)
 
@@ -153,6 +154,10 @@ kernelStackFlag = flagNone ["stack"] addStack
   where
     addStack (Args md prev) = Args md (KernelspecUseStack : prev)
 
+kernelStackExtraFlags :: Flag Args
+kernelStackExtraFlags = flagReq ["stack-flag"] (store KernelspecStackFlag) ""
+        "Extra flag to pass to `stack` when --stack is used. Can be specified multiple times."
+
 kernelEnvFileFlag :: Flag Args
 kernelEnvFileFlag =
   flagReq
@@ -181,7 +186,7 @@ store constructor str (Args md prev) = Right $ Args md $ constructor str : prev
 installKernelSpec :: Mode Args
 installKernelSpec =
   mode "install" (Args InstallKernelSpec []) "Install the Jupyter kernelspec." noArgs
-    [ghcLibFlag, ghcRTSFlag, kernelDebugFlag, kernelNameFlag, displayNameFlag, confFlag, installPrefixFlag, helpFlag, kernelStackFlag, kernelEnvFileFlag]
+    [ghcLibFlag, ghcRTSFlag, kernelDebugFlag, kernelNameFlag, displayNameFlag, confFlag, installPrefixFlag, helpFlag, kernelStackFlag, kernelStackExtraFlags, kernelEnvFileFlag]
 
 kernel :: Mode Args
 kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." kernelArg
@@ -189,6 +194,7 @@ kernel = mode "kernel" (Args (Kernel Nothing) []) "Invoke the IHaskell kernel." 
            , kernelDebugFlag
            , confFlag
            , kernelStackFlag
+           , kernelStackExtraFlags
            , kernelEnvFileFlag
            , kernelCodeMirrorFlag
            , kernelHtmlCodeWrapperClassFlag

@@ -113,6 +113,8 @@ parseKernelArgs = foldl' addFlag defaultKernelSpecOptions
       kernelSpecOpts { kernelSpecInstallPrefix = Just prefix }
     addFlag kernelSpecOpts KernelspecUseStack =
       kernelSpecOpts { kernelSpecUseStack = True }
+    addFlag kernelSpecOpts (KernelspecStackFlag flag) =
+      kernelSpecOpts { kernelSpecStackFlags = flag : (kernelSpecStackFlags kernelSpecOpts) }
     addFlag kernelSpecOpts (KernelspecEnvFile fp) =
       kernelSpecOpts { kernelSpecEnvFile = Just fp }
     addFlag _kernelSpecOpts flag = error $ "Unknown flag" ++ show flag
@@ -125,6 +127,7 @@ runKernel kOpts profileSrc = do
   let debug = kernelSpecDebug kOpts
       libdir = kernelSpecGhcLibdir kOpts
       useStack = kernelSpecUseStack kOpts
+      stackFlags = kernelSpecStackFlags kOpts
 
   -- Parse the profile file.
   let profileErr = error $ "ihaskell: "++profileSrc++": Failed to parse profile file"
@@ -142,14 +145,19 @@ runKernel kOpts profileSrc = do
             Left _ -> False
             Right (_, stackStdout, stackStderr) -> "The Haskell Tool Stack" `isInfixOf` (stackStdout ++ stackStderr)
 
+    when debug $ putStrLn ("Using stack: " <> show stack)
+
     -- If we're in a stack directory, use `stack` to set the environment
     -- We can't do this with base <= 4.6 because setEnv doesn't exist.
-    when stack $
-      readProcess "stack" ["exec", "env"] "" >>= parseAndSetEnv
+    when stack $ do
+      when debug $ putStrLn "Using environment from stack:"
+      readProcess "stack" (["exec", "env"] <> stackFlags) "" >>= parseAndSetEnv debug
 
   case kernelSpecEnvFile kOpts of
     Nothing -> return ()
-    Just envFile -> readFile envFile >>= parseAndSetEnv
+    Just envFile -> do
+      when debug $ putStrLn "Using environment from env file: "
+      readFile envFile >>= parseAndSetEnv debug
 
   -- Serve on all sockets and ports defined in the profile.
   interface <- serveProfile profile debug
@@ -226,11 +234,13 @@ runKernel kOpts profileSrc = do
 
     isCommMessage req = mhMsgType (header req) `elem` [CommDataMessage, CommCloseMessage]
 
-    parseAndSetEnv envLines =
+    parseAndSetEnv debug envLines =
       forM_ (lines envLines) $ \line -> do
         case break (== '=') line of
           (_, []) -> return ()
-          (key, _:val) -> setEnv key val
+          (key, _:val) -> do
+            when debug $ putStrLn ("\t" <> line)
+            setEnv key val
 
 -- Initial kernel state.
 initialKernelState :: KernelSpecOptions -> IO (MVar KernelState)

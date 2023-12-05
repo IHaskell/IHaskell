@@ -1,0 +1,97 @@
+name: Stack
+
+on:
+  push:
+    paths-ignore:
+    - 'demo/**'
+    - 'docker/**'
+    - 'Dockerfile'
+    - '.dockerignore'
+    - '.ghci'
+    - '.gitignore'
+    - 'images/**'
+    - 'notebooks/**'
+    - 'README.md'
+    - 'hie.yaml'
+  pull_request:
+    paths-ignore:
+    - 'demo/**'
+    - 'docker/**'
+    - 'Dockerfile'
+    - '.dockerignore'
+    - '.ghci'
+    - '.gitignore'
+    - 'images/**'
+    - 'notebooks/**'
+    - 'README.md'
+    - 'hie.yaml'
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        stack-yaml:
+        # - 'stack/stack-8.2.yaml'
+        # - 'stack/stack-8.4.yaml'
+        # - 'stack/stack-8.6.yaml'
+        - 'stack/stack-8.8.yaml'
+        - 'stack/stack-8.10.yaml'
+        - 'stack/stack-9.0.yaml'
+        - 'stack/stack-9.2.yaml'
+        - 'stack/stack-9.4.yaml'
+        - 'stack/stack-9.6.yaml'
+        - 'stack.yaml'
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: cachix/install-nix-action@v22
+      with:
+        install_url: https://releases.nixos.org/nix/nix-2.13.3/install
+
+    - uses: haskell/actions/setup@v2
+      name: Setup Haskell Stack
+      with:
+        enable-stack: true
+        stack-version: "latest"
+
+    - uses: actions/cache@v3
+      name: Cache ~/.stack
+      with:
+        path: ~/.stack
+        key: ${{ runner.os }}-${{ matrix.stack-yaml }}-${{ hashFiles(format('./{0}', matrix.stack-yaml)) }}
+
+    - name: Install system dependencies
+      run: |
+        sudo apt update
+        sudo apt install libmagic-dev libgmp-dev libblas-dev liblapack-dev libcairo2-dev libpango1.0-dev libzmq3-dev jq
+
+    - name: Build
+      run: |
+        export "NIX_PATH=nixpkgs=$(nix run .#print-nixpkgs-master)"
+        stack build --stack-yaml ${{matrix.stack-yaml}}
+
+    - name: Test
+      if: ${{ !contains(fromJSON('["stack/stack-8.8.yaml"]'), matrix.stack-yaml) }}
+      run: |
+        stack test --stack-yaml ${{matrix.stack-yaml}}
+
+    - name: Run integration test
+      # The test is flaky on GHC 8.0 so we don't run it. As long as the tests
+      # above pass, it's unlikely that we'll introduce a bug that we will
+      # only catch through the integration test on this version and not other
+      # versions.
+      if: ${{ !contains(fromJSON('["stack/stack-8.0.yaml", "stack/stack-8.2.yaml"]'), matrix.stack-yaml) }}
+      run: |
+        nix build .#jupyterlab
+        export PATH="$(pwd)/result/bin:$(pwd)/.local/bin:$PATH"
+
+        stack install --stack-yaml ${{matrix.stack-yaml}}
+
+        ihaskell install --stack --stack-flag="--stack-yaml=$(realpath ${{matrix.stack-yaml}})"
+
+        # Ensure that IHaskell notebook remains unchanged.
+        # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
+        test/acceptance.nbconvert.sh jupyter nbconvert

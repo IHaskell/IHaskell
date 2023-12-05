@@ -1,48 +1,54 @@
-name: "Docker"
+name: Docker
+
 on:
   push:
     branches:
-      - master
     paths:
-      - '.dockerignore'
-      - '.github/workflows/docker.yml'
-      - 'Dockerfile'
-      - 'LICENSE'
-      - 'ghc-parser/**'
-      - 'html/**'
-      - 'ihaskell-display/**'
-      - 'ihaskell.cabal'
-      - 'ipython-kernel/**'
-      - 'jupyterlab-ihaskell/**'
-      - 'main/**'
-      - 'src/**'
-      - 'stack.yaml'
+    - '.dockerignore'
+    - '.github/workflows/docker.yml'
+    - 'Dockerfile'
+    - 'LICENSE'
+    - 'ghc-parser/**'
+    - 'html/**'
+    - 'ihaskell-display/**'
+    - 'ihaskell.cabal'
+    - 'ipython-kernel/**'
+    - 'jupyterlab-ihaskell/**'
+    - 'main/**'
+    - 'src/**'
+    - 'stack.yaml'
   pull_request:
     paths:
-      - '.dockerignore'
-      - '.github/workflows/docker.yml'
-      - 'Dockerfile'
-      - 'LICENSE'
-      - 'ghc-parser/**'
-      - 'html/**'
-      - 'ihaskell-display/**'
-      - 'ihaskell.cabal'
-      - 'ipython-kernel/**'
-      - 'jupyterlab-ihaskell/**'
-      - 'main/**'
-      - 'src/**'
-      - 'stack.yaml'
+    - '.dockerignore'
+    - '.github/workflows/docker.yml'
+    - 'Dockerfile'
+    - 'LICENSE'
+    - 'ghc-parser/**'
+    - 'html/**'
+    - 'ihaskell-display/**'
+    - 'ihaskell.cabal'
+    - 'ipython-kernel/**'
+    - 'jupyterlab-ihaskell/**'
+    - 'main/**'
+    - 'src/**'
+    - 'stack.yaml'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
     steps:
-    - uses: actions/checkout@v2
-    - name: Install Stack
-      run: |
-        export PATH=$HOME/.local/bin:$PATH
-        mkdir -p ~/.local/bin
-        curl -L https://get.haskellstack.org/stable/linux-x86_64.tar.gz | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+    - uses: actions/checkout@v3
+
+    - uses: haskell/actions/setup@v2
+      name: Setup Haskell Stack
+      with:
+        enable-stack: true
+        stack-version: "latest"
+
     - name: Check Dockerfile GHC version matches
       run: |
         set -e
@@ -53,6 +59,7 @@ jobs:
           echo "GHC_VERSION should be ${STACK_GHC_VERSION}"
           exit 1
         fi
+
     - uses: elgohr/Publish-Docker-Github-Action@v5
       with:
         name: gibiansky/ihaskell
