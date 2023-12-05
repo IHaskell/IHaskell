@@ -63,16 +63,20 @@ jobs:
         path: ~/.stack
         key: ${{ runner.os }}-${{ matrix.stack-yaml }}-${{ hashFiles(format('./{0}', matrix.stack-yaml)) }}
 
+    - name: Install system dependencies
+      run: |
+        sudo apt update
+        sudo apt install libmagic-dev libgmp-dev libblas-dev liblapack-dev libcairo2-dev libpango1.0-dev libzmq3-dev jq
+
     - name: Build
       run: |
         export "NIX_PATH=nixpkgs=$(nix run .#print-nixpkgs-master)"
-        stack build --nix --stack-yaml ${{matrix.stack-yaml}}
+        stack build --stack-yaml ${{matrix.stack-yaml}}
 
     - name: Test
       if: ${{ !contains(fromJSON('["stack/stack-8.8.yaml"]'), matrix.stack-yaml) }}
       run: |
-        export "NIX_PATH=nixpkgs=$(nix run .#print-nixpkgs-master)"
-        stack test --nix --stack-yaml ${{matrix.stack-yaml}}
+        stack test --stack-yaml ${{matrix.stack-yaml}}
 
     - name: Run integration test
       # The test is flaky on GHC 8.0 so we don't run it. As long as the tests
@@ -81,16 +85,12 @@ jobs:
       # versions.
       if: ${{ !contains(fromJSON('["stack/stack-8.0.yaml", "stack/stack-8.2.yaml"]'), matrix.stack-yaml) }}
       run: |
-        set -e
-
-        export "NIX_PATH=nixpkgs=$(nix run .#print-nixpkgs-master)"
-
         nix build .#jupyterlab
         export PATH="$(pwd)/result/bin:$(pwd)/.local/bin:$PATH"
 
-        stack install --nix --stack-yaml ${{matrix.stack-yaml}}
+        stack install --stack-yaml ${{matrix.stack-yaml}}
 
-        ihaskell install --stack --stack-flag="--nix" --stack-flag="--stack-yaml=$(realpath ${{matrix.stack-yaml}})"
+        ihaskell install --stack --stack-flag="--stack-yaml=$(realpath ${{matrix.stack-yaml}})"
 
         # Ensure that IHaskell notebook remains unchanged.
         # Run the notebook to regenerate the outputs, then compare the new notebook to the old one.
