@@ -78,6 +78,7 @@
 
         # To use in CI
         inherit jupyterlab;
+        print-nixpkgs-master = pkgsMaster.writeShellScriptBin "print-nixpkgs-master.sh" "echo ${pkgsMaster.path}";
       };
 
       # Run the acceptance tests on each env
