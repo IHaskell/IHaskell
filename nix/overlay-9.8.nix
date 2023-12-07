@@ -4,9 +4,12 @@ sel: sup: {
       ghc98 = sup.haskell.packages.ghc98.override {
         overrides = self: super: {
           aeson = self.callHackage "aeson" "2.2.1.0" {};
+          aeson-pretty = super.aeson-pretty_0_8_10;
+          attoparsec-aeson = super.attoparsec-aeson_2_2_0_1;
+
           alex = sup.haskell.lib.dontCheck super.alex;
           bifunctors = self.callHackage "bifunctors" "5.6.1" {};
-          doctest = self.callHackage "doctest" "0.22.2" {};
+          doctest = super.doctest_0_22_2;
           ghc-lib-parser = sup.haskell.lib.overrideCabal (self.callHackage "ghc-lib-parser" "9.8.1.20231009" {}) (_drv: {
             postPatch = let
               original-a = "cabal-version: 2.0";
@@ -33,30 +36,57 @@ sel: sup: {
             rev = "336df42e9185c2e2a91fa71eaa18b51f0f5437de";
             sha256 = "0nnpyq3z6c90z3j8xzw2gcj13nhihc7xa0sb4xbbdpxfnidplp9q";
           }) {};
-          haskell-src-meta = sup.haskell.lib.appendPatch (sup.haskell.lib.doJailbreak super.haskell-src-meta) (sup.fetchpatch {
-            url = "https://gitlab.haskell.org/ghc/head.hackage/-/raw/master/patches/haskell-src-meta-0.8.12.patch";
-            sha256 = "0wn0lnq522bhc65sw02jm448mg5ijdxwgs7gzp9xp6z8ir1a0bzr";
-          });
+          # ghc-syntax-highlighter = super.ghc-syntax-highlighter_0_0_11_0;
           here = sup.haskell.lib.doJailbreak (self.callHackage "here" "1.2.14" {});
           hourglass = sup.haskell.lib.dontCheck super.hourglass;
+
           hspec = self.callHackage "hspec" "2.11.6" {};
           hspec-core = sup.haskell.lib.dontCheck (self.callHackage "hspec-core" "2.11.6" {});
           hspec-discover = self.callHackage "hspec-discover" "2.11.6" {};
-          hspec-expectations = self.callHackage "hspec-expectations" "0.8.4" {};
           hspec-meta = self.callHackage "hspec-meta" "2.11.6" {};
+
+          hspec-expectations = self.callHackage "hspec-expectations" "0.8.4" {};
+
           lifted-base = sup.haskell.lib.dontCheck super.lifted-base;
           semigroupoids = self.callHackage "semigroupoids" "6.0.0.1" {};
           shelly = sup.haskell.lib.doJailbreak super.shelly;
-          tagged = self.callHackage "tagged" "0.8.8" {};
           th-abstraction = self.callHackage "th-abstraction" "0.6.0.0" {};
           th-lift = self.callHackage "th-lift" "0.8.4" {};
           unliftio-core = sup.haskell.lib.doJailbreak super.unliftio-core;
 
-          # For display libs (in progress)
+          tagged = super.tagged_0_8_8;
+
+          # For display libs
           statestack = sup.haskell.lib.doJailbreak super.statestack;
-          # TODO: wait for nixpkgs master to update Hackage pin to have this diagrams-core version
           diagrams-core = self.callHackage "diagrams-core" "1.5.1.1" {};
           diagrams-lib = sup.haskell.lib.doJailbreak super.diagrams-lib;
+          svg-builder = sup.haskell.lib.doJailbreak super.svg-builder;
+          th-desugar = self.callHackage "th-desugar" "1.16" {};
+          free = super.free_5_2;
+          turtle = super.turtle_1_6_2;
+          singletons-th = super.singletons-th_3_3;
+          singletons-base = super.singletons-base_3_3;
+          newtype-generics = sup.haskell.lib.doJailbreak super.newtype-generics;
+
+          # These ones have a non-working version of gtk2hs-buildtools added via addBuildTool
+          # in Nixpkgs. Override their cabal files to remove it.
+          cairo = sup.haskell.lib.overrideCabal (sup.haskell.lib.doJailbreak super.cairo) (_: { buildTools = []; });
+          pango = sup.haskell.lib.overrideCabal (sup.haskell.lib.doJailbreak super.pango) (_: { buildTools = []; });
+          glib = sup.haskell.lib.overrideCabal (sup.haskell.lib.doJailbreak super.glib) (_: { buildTools = []; });
+
+          # https://github.com/amcphail/plot/pull/23
+          plot = super.callCabal2nix "plot" (sup.fetchFromGitHub {
+            owner = "codedownio";
+            repo = "haskell-plot";
+            rev = "dfa26022b5815bcd6a5dd6c818fcd2c4d25c6d44";
+            sha256 = "1snk70l7q98cqflgaqf6l75g4hpcnf284flm9rsmk8kkzd5nnh5k";
+          }) {};
+
+          force-layout = sup.haskell.lib.doJailbreak super.force-layout;
+          active = sup.haskell.lib.doJailbreak super.active;
+          diagrams-svg = sup.haskell.lib.doJailbreak super.diagrams-svg;
+          diagrams-cairo = sup.haskell.lib.doJailbreak super.diagrams-cairo;
+          diagrams-contrib = sup.haskell.lib.doJailbreak super.diagrams-contrib;
         };
       };
     };

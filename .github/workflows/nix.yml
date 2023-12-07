@@ -47,9 +47,7 @@ jobs:
         - ihaskell-env-display-ghc92
         - ihaskell-env-display-ghc94
         - ihaskell-env-display-ghc96
-
-        # Disabled until display dependencies can all build with GHC 9.8
-        # - ihaskell-env-display-ghc98
+        - ihaskell-env-display-ghc98
 
     steps:
     - uses: actions/checkout@v3
