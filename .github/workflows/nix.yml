@@ -35,14 +35,12 @@ jobs:
       fail-fast: false
       matrix:
         env:
-        - ihaskell-env-ghc810
         - ihaskell-env-ghc90
         - ihaskell-env-ghc92
         - ihaskell-env-ghc94
         - ihaskell-env-ghc96
         - ihaskell-env-ghc98
 
-        - ihaskell-env-display-ghc810
         - ihaskell-env-display-ghc90
         - ihaskell-env-display-ghc92
         - ihaskell-env-display-ghc94
