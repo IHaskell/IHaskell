@@ -15,10 +15,7 @@ on:
     - 'ipython-kernel/**'
     - 'jupyterlab-ihaskell/**'
     - 'main/**'
-    - 'nix/**'
     - 'src/**'
-    - 'flake.nix'
-    - 'flake.lock'
     - 'stack.yaml'
   pull_request:
     paths:
@@ -32,11 +29,8 @@ on:
     - 'ihaskell.cabal'
     - 'ipython-kernel/**'
     - 'jupyterlab-ihaskell/**'
-    - 'nix/**'
     - 'main/**'
     - 'src/**'
-    - 'flake.nix'
-    - 'flake.lock'
     - 'stack.yaml'
 
 jobs:

@@ -7,6 +7,11 @@
   inputs.hls.url = "github:haskell/haskell-language-server";
   inputs.nix-filter.url = "github:numtide/nix-filter";
 
+  nixConfig = {
+    extra-substituters = [ "https://ihaskell.cachix.org" ];
+    extra-trusted-public-keys = [ "ihaskell.cachix.org-1:WoIvex/Ft/++sjYW3ntqPUL3jDGXIKDpX60pC8d5VLM="];
+  };
+
   outputs = { self, nixpkgs23_11, nixpkgsMaster, flake-utils, hls, nix-filter, ... }:
     # "x86_64-darwin" "aarch64-darwin"
     flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
