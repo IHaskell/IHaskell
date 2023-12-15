@@ -1,17 +1,17 @@
 {
   description = "A Haskell kernel for IPython.";
 
-  inputs.nixpkgs23_05.url = "github:NixOS/nixpkgs/release-23.05";
+  inputs.nixpkgs23_11.url = "github:NixOS/nixpkgs/release-23.11";
   inputs.nixpkgsMaster.url = "github:NixOS/nixpkgs/master";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.hls.url = "github:haskell/haskell-language-server";
   inputs.nix-filter.url = "github:numtide/nix-filter";
 
-  outputs = { self, nixpkgs23_05, nixpkgsMaster, flake-utils, hls, nix-filter, ... }:
+  outputs = { self, nixpkgs23_11, nixpkgsMaster, flake-utils, hls, nix-filter, ... }:
     # "x86_64-darwin" "aarch64-darwin"
     flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
       baseOverlay = self: super: { inherit nix-filter; };
-      pkgs23_05 = import nixpkgs23_05 { inherit system; overlays = [baseOverlay]; };
+      pkgs23_11 = import nixpkgs23_11 { inherit system; overlays = [baseOverlay]; };
       pkgsMaster = import nixpkgsMaster { inherit system; overlays = [baseOverlay]; };
 
       jupyterlab = pkgsMaster.python3.withPackages (ps: [ ps.jupyterlab ps.notebook ]);
@@ -26,10 +26,7 @@
         };
         in
           pkgsMaster.lib.listToAttrs [
-            (mkVersion nixpkgs23_05  "ghc810" [(import ./nix/overlay-8.10.nix)] {})
-            (mkVersion nixpkgs23_05  "ghc90"  [(import ./nix/overlay-9.0.nix)]  {})
-            (mkVersion nixpkgs23_05  "ghc92"  []                                {})
-            (mkVersion nixpkgsMaster "ghc94"  [(import ./nix/overlay-9.4.nix)]  {})
+            (mkVersion nixpkgs23_11  "ghc94"  [(import ./nix/overlay-9.4.nix)]  {})
             (mkVersion nixpkgsMaster "ghc96"  [(import ./nix/overlay-9.6.nix)]  {})
             (mkVersion nixpkgsMaster "ghc98"  [(import ./nix/overlay-9.8.nix)]  { enableHlint = false; })
           ];

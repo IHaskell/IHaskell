@@ -10,7 +10,10 @@ on:
     - '.ghci'
     - '.gitignore'
     - 'images/**'
+    - 'nix/**'
     - 'notebooks/**'
+    - 'flake.nix'
+    - 'flake.lock'
     - 'README.md'
     - 'hie.yaml'
   pull_request:
@@ -22,7 +25,10 @@ on:
     - '.ghci'
     - '.gitignore'
     - 'images/**'
+    - 'nix/**'
     - 'notebooks/**'
+    - 'flake.nix'
+    - 'flake.lock'
     - 'README.md'
     - 'hie.yaml'
 
