@@ -26,8 +26,6 @@
         };
         in
           pkgsMaster.lib.listToAttrs [
-            (mkVersion nixpkgs23_11  "ghc90"  [(import ./nix/overlay-9.0.nix)]  {})
-            (mkVersion nixpkgs23_11  "ghc92"  [(import ./nix/overlay-9.2.nix)]  {})
             (mkVersion nixpkgs23_11  "ghc94"  [(import ./nix/overlay-9.4.nix)]  {})
             (mkVersion nixpkgsMaster "ghc96"  [(import ./nix/overlay-9.6.nix)]  {})
             (mkVersion nixpkgsMaster "ghc98"  [(import ./nix/overlay-9.8.nix)]  { enableHlint = false; })
