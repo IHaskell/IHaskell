@@ -2,7 +2,6 @@
 , haskell
 , lib
 
-, compiler
 , enableHlint
 }:
 

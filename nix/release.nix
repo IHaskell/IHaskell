@@ -27,7 +27,7 @@ extraEnvironmentBinaries ? []
 }:
 
 let
-  ihaskellOverlay = callPackage ./ihaskell-overlay.nix { inherit compiler enableHlint; };
+  ihaskellOverlay = callPackage ./ihaskell-overlay.nix { inherit enableHlint; };
 
   # Haskell packages set with IHaskell packages added
   haskellPackages = haskell.packages."${compiler}".override (old: {
