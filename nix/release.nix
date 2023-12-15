@@ -106,4 +106,8 @@ buildEnv {
                   then haskell.lib.justStaticExecutables haskellPackages.ihaskell
                   else haskell.lib.enableSharedExecutables haskellPackages.ihaskell;
   };
+
+  meta = {
+    mainProgram = "jupyter-lab";
+  };
 }

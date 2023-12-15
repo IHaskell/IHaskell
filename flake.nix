@@ -99,7 +99,7 @@
         }
       ) envs;
 
-      defaultPackage = self.packages.${system}.ihaskell-ghc810;
+      defaultPackage = self.packages.${system}.ihaskell-env-ghc94;
 
       devShell = self.packages.${system}.ihaskell-dev-ghc810;
     });
