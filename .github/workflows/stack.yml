@@ -81,7 +81,6 @@ jobs:
         stack build --stack-yaml ${{matrix.stack-yaml}}
 
     - name: Test
-      if: ${{ !contains(fromJSON('["stack/stack-8.8.yaml"]'), matrix.stack-yaml) }}
       run: |
         stack test --stack-yaml ${{matrix.stack-yaml}}
 
