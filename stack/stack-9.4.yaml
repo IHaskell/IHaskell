@@ -24,7 +24,7 @@ ghc-options:
   # ihaskell-widgets: -Wall -Wpartial-fields -Werror
 
 extra-deps:
-- Chart-cairo-1.9.3
+- Chart-cairo-1.9.4
 
 nix:
   packages:
