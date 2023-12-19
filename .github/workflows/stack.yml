@@ -39,9 +39,10 @@ jobs:
       fail-fast: false
       matrix:
         stack-yaml:
-        # - 'stack/stack-8.2.yaml'
-        # - 'stack/stack-8.4.yaml'
-        # - 'stack/stack-8.6.yaml'
+        - 'stack/stack-8.0.yaml'
+        - 'stack/stack-8.2.yaml'
+        - 'stack/stack-8.4.yaml'
+        - 'stack/stack-8.6.yaml'
         - 'stack/stack-8.8.yaml'
         - 'stack/stack-8.10.yaml'
         - 'stack/stack-9.0.yaml'
@@ -89,7 +90,7 @@ jobs:
       # above pass, it's unlikely that we'll introduce a bug that we will
       # only catch through the integration test on this version and not other
       # versions.
-      if: ${{ !contains(fromJSON('["stack/stack-8.0.yaml", "stack/stack-8.2.yaml"]'), matrix.stack-yaml) }}
+      if: ${{ !contains(fromJSON('["stack/stack-8.0.yaml"]'), matrix.stack-yaml) }}
       run: |
         nix build .#jupyterlab
         export PATH="$(pwd)/result/bin:$(pwd)/.local/bin:$PATH"
