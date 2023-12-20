@@ -69,7 +69,7 @@ jobs:
       name: Cache ~/.stack
       with:
         path: ~/.stack
-        key: ${{ runner.os }}-${{ matrix.stack-yaml }}-${{ hashFiles(format('./{0}', matrix.stack-yaml)) }}
+        key: ${{ runner.os }}-${{ matrix.stack-yaml }}-nix-${{ hashFiles(format('./{0}', matrix.stack-yaml)) }}
 
     - name: Build
       run: |
