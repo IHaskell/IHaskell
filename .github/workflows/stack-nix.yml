@@ -50,7 +50,6 @@ jobs:
         - 'stack/stack-9.2.yaml'
         - 'stack/stack-9.4.yaml'
         - 'stack/stack-9.6.yaml'
-        - 'stack.yaml'
 
     steps:
     - uses: actions/checkout@v3
