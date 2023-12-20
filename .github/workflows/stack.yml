@@ -66,10 +66,15 @@ jobs:
         stack-version: "latest"
 
     - uses: actions/cache@v3
-      name: Cache ~/.stack
+      name: Cache Haskell dependencies
       with:
-        path: ~/.stack
-        key: ${{ runner.os }}-${{ matrix.stack-yaml }}-${{ hashFiles(format('./{0}', matrix.stack-yaml)) }}
+        path: |
+          ~/.stack/stack.sqlite3
+          ~/.stack/snapshots
+        key: ${{ matrix.stack-yaml }}-${{ hashFiles(format('./{0}', matrix.stack-yaml)) }}
+        restore-keys: |
+          ${{ matrix.stack-yaml }}-${{ hashFiles(format('./{0}', matrix.stack-yaml)) }}
+          ${{ matrix.stack-yaml }}-
 
     - name: Install system dependencies
       run: |
