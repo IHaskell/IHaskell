@@ -33,18 +33,33 @@ on:
 jobs:
   build:
     if: (github.event_name != 'pull_request' && ! github.event.pull_request.head.repo.fork) || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork)
+    name: "${{matrix.env.name}} (Cachix: ${{matrix.env.cachix}})"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         env:
-        - ihaskell-env-ghc94
-        - ihaskell-env-ghc96
-        - ihaskell-env-ghc98
+        - name: ihaskell-env-ghc90
+          cachix: false
+        - name: ihaskell-env-ghc92
+          cachix: false
+        - name: ihaskell-env-ghc94
+          cachix: true
+        - name: ihaskell-env-ghc96
+          cachix: true
+        - name: ihaskell-env-ghc98
+          cachix: true
 
-        - ihaskell-env-display-ghc94
-        - ihaskell-env-display-ghc96
-        - ihaskell-env-display-ghc98
+        - name: ihaskell-env-display-ghc90
+          cachix: false
+        - name: ihaskell-env-display-ghc92
+          cachix: false
+        - name: ihaskell-env-display-ghc94
+          cachix: true
+        - name: ihaskell-env-display-ghc96
+          cachix: true
+        - name: ihaskell-env-display-ghc98
+          cachix: true
 
     steps:
     - uses: actions/checkout@v3
@@ -53,19 +68,24 @@ jobs:
       with:
         install_url: https://releases.nixos.org/nix/nix-2.19.2/install
 
+    # Cache with either Cachix or the magic Nix cache, depending on the matrix.
+    # The latter uses only GitHub Actions storage.
     - uses: cachix/cachix-action@v12
+      if: ${{ matrix.env.cachix }}
       with:
         name: ihaskell
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
+    - uses: DeterminateSystems/magic-nix-cache-action@main
+      if: ${{ !matrix.env.cachix }}
 
-    - name: Build environment ${{matrix.env}}
+    - name: "Build environment ${{matrix.env.name}} (Cachix: ${{matrix.env.cachix}})"
       run: |
-        nix build .#${{matrix.env}}
+        nix build .#${{matrix.env.name}}
 
-    - name: Check acceptance test for ${{matrix.env}}
+    - name: Check acceptance test for ${{matrix.env.name}}
       # Disable GHC 9.8 here since we don't have hlint support yet
       # Also, don't bother running it with the display envs since we already run it with the
       # basic envs, and it doesn't test any display stuff.
-      if: ${{ !contains(fromJSON('["ihaskell-env-ghc98"]'), matrix.env) && !contains(matrix.env, fromJSON('"display"')) }}
+      if: ${{ !contains(fromJSON('["ihaskell-env-ghc98"]'), matrix.env.name) && !contains(matrix.env.name, fromJSON('"display"')) }}
       run: |
-        nix build .#checks.x86_64-linux.${{matrix.env}} -L
+        nix build .#checks.x86_64-linux.${{matrix.env.name}} -L
