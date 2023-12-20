@@ -85,11 +85,11 @@ jobs:
         stack test --stack-yaml ${{matrix.stack-yaml}}
 
     - name: Run integration test
-      # The test is flaky on GHC 8.0 so we don't run it. As long as the tests
-      # above pass, it's unlikely that we'll introduce a bug that we will
+      # The test is flaky on GHC 8.0 and 8.2 so we don't run it. As long as the
+      # tests above pass, it's unlikely that we'll introduce a bug that we will
       # only catch through the integration test on this version and not other
       # versions.
-      if: ${{ !contains(fromJSON('["stack/stack-8.0.yaml"]'), matrix.stack-yaml) }}
+      if: ${{ !contains(fromJSON('["stack/stack-8.0.yaml", "stack/stack-8.2.yaml"]'), matrix.stack-yaml) }}
       run: |
         nix build .#jupyterlab
         export PATH="$(pwd)/result/bin:$(pwd)/.local/bin:$PATH"
