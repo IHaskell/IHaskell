@@ -88,6 +88,7 @@ jobs:
 
     - name: Test
       run: |
+        stack build ipython-kernel --flag ipython-kernel:examples --stack-yaml ${{matrix.stack-yaml}}
         stack test --stack-yaml ${{matrix.stack-yaml}}
 
     - name: Run integration test
