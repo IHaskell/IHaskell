@@ -34,6 +34,7 @@ on:
 
 jobs:
   linux:
+    if: (github.event_name != 'pull_request' && ! github.event.pull_request.head.repo.fork) || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork)
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
