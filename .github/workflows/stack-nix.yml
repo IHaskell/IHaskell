@@ -59,7 +59,7 @@ jobs:
       with:
         install_url: https://releases.nixos.org/nix/nix-2.13.3/install
 
-    - uses: haskell/actions/setup@v2
+    - uses: haskell-actions/setup@v2
       name: Setup Haskell Stack
       with:
         enable-stack: true
