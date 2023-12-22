@@ -1,4 +1,8 @@
 sel: sup: {
+  all-cabal-hashes = sup.fetchurl {
+    url = "https://github.com/commercialhaskell/all-cabal-hashes/tarball/d77837f979c4b15fe0eb25cdf8a0463773434c9d";
+    sha256 = "0yl1ahbpn5w6n4xcgc23zcfr21f79dz7vz1xjlkzsvxddc2v8nm0";
+  };
   haskell = sup.haskell // {
     packages = sup.haskell.packages // {
       ghc98 = sup.haskell.packages.ghc98.override {
@@ -10,33 +14,15 @@ sel: sup: {
           alex = sup.haskell.lib.dontCheck super.alex;
           bifunctors = self.callHackage "bifunctors" "5.6.1" {};
           doctest = super.doctest_0_22_2;
-          ghc-lib-parser = sup.haskell.lib.overrideCabal (self.callHackage "ghc-lib-parser" "9.8.1.20231009" {}) (_drv: {
-            postPatch = let
-              original-a = "cabal-version: 2.0";
-              replacement-a = "cabal-version: 3.0";
-              original-b = "license: BSD3";
-              replacement-b = "license: BSD-3-Clause";
-              original-c =
-                "c-sources:\r\n        libraries/ghc-heap/cbits/HeapPrim.cmm";
-              replacement-c =
-                "cmm-sources:\r\n        libraries/ghc-heap/cbits/HeapPrim.cmm";
-            in ''
-                substituteInPlace ./ghc-lib-parser.cabal --replace \
-                  '${original-a}' '${replacement-a}'
-                substituteInPlace ./ghc-lib-parser.cabal --replace \
-                  '${original-b}' '${replacement-b}'
-                substituteInPlace ./ghc-lib-parser.cabal --replace \
-                  '${original-c}' '${replacement-c}'
-              '';
-          });
+          ghc-lib-parser = self.callHackage "ghc-lib-parser" "9.8.1.20231121" {};
           ghc-lib-parser-ex = super.ghc-lib-parser-ex_9_8_0_0;
-          ghc-syntax-highlighter = self.callCabal2nix "ghc-syntax-highlighter" (sup.fetchFromGitHub {
-            owner = "mrkkrp";
-            repo = "ghc-syntax-highlighter";
-            rev = "336df42e9185c2e2a91fa71eaa18b51f0f5437de";
-            sha256 = "0nnpyq3z6c90z3j8xzw2gcj13nhihc7xa0sb4xbbdpxfnidplp9q";
-          }) {};
-          # ghc-syntax-highlighter = super.ghc-syntax-highlighter_0_0_11_0;
+          # ghc-syntax-highlighter = self.callCabal2nix "ghc-syntax-highlighter" (sup.fetchFromGitHub {
+          #   owner = "mrkkrp";
+          #   repo = "ghc-syntax-highlighter";
+          #   rev = "336df42e9185c2e2a91fa71eaa18b51f0f5437de";
+          #   sha256 = "0nnpyq3z6c90z3j8xzw2gcj13nhihc7xa0sb4xbbdpxfnidplp9q";
+          # }) {};
+          # # ghc-syntax-highlighter = super.ghc-syntax-highlighter_0_0_11_0;
           here = sup.haskell.lib.doJailbreak (self.callHackage "here" "1.2.14" {});
           hourglass = sup.haskell.lib.dontCheck super.hourglass;
 
