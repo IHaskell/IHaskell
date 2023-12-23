@@ -54,7 +54,6 @@ library
 
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.9 && <5,
-                       here,
                        text,
                        bytestring,
                        aeson >= 0.7,
