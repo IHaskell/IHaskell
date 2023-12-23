@@ -8,7 +8,6 @@ import           Data.Text.Encoding as E
 
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
-import           Data.String.Here
 
 import           IHaskell.Display
 
