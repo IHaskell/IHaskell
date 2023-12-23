@@ -58,6 +58,9 @@ jobs:
         name: ihaskell
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
 
+    - name: Use latest Nixpkgs 23.11
+      run: nix flake update nixpkgs23_11
+
     - name: Build environment ${{matrix.env}}
       run: |
         nix build .#${{matrix.env}}
