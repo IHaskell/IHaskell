@@ -11,26 +11,22 @@ sel: sup: {
           aeson-pretty = super.aeson-pretty_0_8_10;
           attoparsec-aeson = super.attoparsec-aeson_2_2_0_1;
 
-          alex = sup.haskell.lib.dontCheck super.alex;
+          alex = super.alex_3_4_0_1;
           bifunctors = self.callHackage "bifunctors" "5.6.1" {};
           doctest = super.doctest_0_22_2;
+
           ghc-lib-parser = self.callHackage "ghc-lib-parser" "9.8.1.20231121" {};
           ghc-lib-parser-ex = super.ghc-lib-parser-ex_9_8_0_0;
-          # ghc-syntax-highlighter = self.callCabal2nix "ghc-syntax-highlighter" (sup.fetchFromGitHub {
-          #   owner = "mrkkrp";
-          #   repo = "ghc-syntax-highlighter";
-          #   rev = "336df42e9185c2e2a91fa71eaa18b51f0f5437de";
-          #   sha256 = "0nnpyq3z6c90z3j8xzw2gcj13nhihc7xa0sb4xbbdpxfnidplp9q";
-          # }) {};
-          # # ghc-syntax-highlighter = super.ghc-syntax-highlighter_0_0_11_0;
-          here = sup.haskell.lib.doJailbreak (self.callHackage "here" "1.2.14" {});
+          ghc-syntax-highlighter = super.ghc-syntax-highlighter_0_0_11_0.overrideScope (selfScope: superScope: {
+            ghc-lib-parser = self.ghc-lib-parser;
+          });
+
           hourglass = sup.haskell.lib.dontCheck super.hourglass;
 
           hspec = self.callHackage "hspec" "2.11.6" {};
           hspec-core = sup.haskell.lib.dontCheck (self.callHackage "hspec-core" "2.11.6" {});
           hspec-discover = self.callHackage "hspec-discover" "2.11.6" {};
           hspec-meta = self.callHackage "hspec-meta" "2.11.6" {};
-
           hspec-expectations = self.callHackage "hspec-expectations" "0.8.4" {};
 
           lifted-base = sup.haskell.lib.dontCheck super.lifted-base;
