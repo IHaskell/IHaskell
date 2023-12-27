@@ -20,3 +20,4 @@ jobs:
           pr-labels: |
             dependencies
             automated
+          token: ${{ secrets.GH_TOKEN_FLAKE_LOCK_UPDATE }}
