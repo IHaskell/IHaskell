@@ -1,4 +1,4 @@
-resolver: lts-21.21 # GHC 9.4.7
+resolver: lts-22.0 # GHC 9.6.3
 
 packages:
 - .
@@ -24,7 +24,11 @@ ghc-options:
   # ihaskell-widgets: -Wall -Wpartial-fields -Werror
 
 extra-deps:
-- Chart-cairo-1.9.4
+# https://github.com/amcphail/plot/pull/23
+- git: https://github.com/codedownio/haskell-plot.git
+  commit: dfa26022b5815bcd6a5dd6c818fcd2c4d25c6d44
+
+allow-newer: true
 
 nix:
   packages:
