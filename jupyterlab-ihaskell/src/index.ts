@@ -9,7 +9,7 @@ export const languagePlugin: JupyterFrontEndPlugin<void> = {
   activate: (app: JupyterFrontEnd, languages: IEditorLanguageRegistry) => {
     languages.addLanguage({
       name: 'ihaskell',
-      mime: 'text/x-ihaskell',
+      mime: 'text/x-haskell',
       load: async () => {
         const hs = await import('@codemirror/legacy-modes/mode/haskell');
         const parser = StreamLanguage.define(hs.haskell);

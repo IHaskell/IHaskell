@@ -45,7 +45,7 @@
     "outputDir": "labextension",
     "webpackConfig": "./webpack.config.js",
     "_build": {
-      "load": "static/remoteEntry-9c60627a05d7fcc32ccf.js",
+      "load": "static/remoteEntry-addf7997b40e98a4742d.js",
       "extension": "./extension"
     }
   }
