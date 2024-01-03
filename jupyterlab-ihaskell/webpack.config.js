@@ -23,9 +23,6 @@ module.exports = {
   output: {
     filename: "[name]-[contenthash].js"
   },
-  optimization: {
-    minimize: false,
-  },
   plugins: [
     new FixupEntryPoint()
   ]
