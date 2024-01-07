@@ -4,7 +4,7 @@ sel: sup: {
       ghc96 = sup.haskell.packages.ghc96.override {
         overrides = self: super: {
           ghc-syntax-highlighter = super.ghc-syntax-highlighter_0_0_10_0;
-          ghc-lib-parser = self.ghc-lib-parser_9_6_3_20231014;
+          ghc-lib-parser = self.ghc-lib-parser_9_6_3_20231121;
 
           # https://github.com/amcphail/plot/pull/23
           plot = super.callCabal2nix "plot" (sup.fetchFromGitHub {
