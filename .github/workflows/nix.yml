@@ -53,7 +53,7 @@ jobs:
       with:
         install_url: https://releases.nixos.org/nix/nix-2.19.2/install
 
-    - uses: cachix/cachix-action@v12
+    - uses: cachix/cachix-action@v14
       with:
         name: ihaskell
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
