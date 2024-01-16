@@ -180,7 +180,7 @@ testParseString = describe "Parser" $ do
   it "parses a type signature followed by a declaration" $
     "fun :: [a] -> Int\nfun [] = 10\nfun (x : xs) = 100" `is` Declaration
 
-  it "parases a simple module" $
+  it "parses a simple module" $
     "module A where x = 3" `is` Module
 
   it "parses a module with an export" $
