@@ -1,5 +1,17 @@
 {
   "nodes": {
+    "all-cabal-hashes": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-gEL/53v6/8oU2beexEAKFkZFDoTSbMKia7JZBmE+okM=",
+        "type": "file",
+        "url": "https://api.github.com/repos/commercialhaskell/all-cabal-hashes/tarball/c314b1bfabd37d30d2f315a5a322323ebbd98acb"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://api.github.com/repos/commercialhaskell/all-cabal-hashes/tarball/c314b1bfabd37d30d2f315a5a322323ebbd98acb"
+      }
+    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -135,13 +147,50 @@
         "type": "github"
       }
     },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1685566663,
+        "narHash": "sha256-btHN1czJ6rzteeCuE/PNrdssqYD2nIA4w48miQAFloM=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "4ecab3273592f27479a583fb6d975d4aba3486fe",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "23.05",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "opentelemetry-plugin": {
+      "inputs": {
+        "all-cabal-hashes": "all-cabal-hashes",
+        "nixpkgs": "nixpkgs_2",
+        "utils": "utils"
+      },
+      "locked": {
+        "lastModified": 1702939471,
+        "narHash": "sha256-pBWyFh6gjtJvrLUoCNMpy0EARUPynUZNrGGLPDvKjQE=",
+        "owner": "MercuryTechnologies",
+        "repo": "opentelemetry-plugin",
+        "rev": "f820961fbf148c4191b9f73fd6c5662ee9392d63",
+        "type": "github"
+      },
+      "original": {
+        "owner": "MercuryTechnologies",
+        "repo": "opentelemetry-plugin",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
         "hls": "hls",
         "nix-filter": "nix-filter",
         "nixpkgs23_11": "nixpkgs23_11",
-        "nixpkgsMaster": "nixpkgsMaster"
+        "nixpkgsMaster": "nixpkgsMaster",
+        "opentelemetry-plugin": "opentelemetry-plugin"
       }
     },
     "systems": {
@@ -171,6 +220,39 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "systems_3": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
+    "utils": {
+      "inputs": {
+        "systems": "systems_3"
+      },
+      "locked": {
+        "lastModified": 1694529238,
+        "narHash": "sha256-zsNZZGTGnMOf9YpHKJqMSsa0dXbfmxeoJ7xHlrt+xmY=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "ff7b65b44d01cf9ba6a71320833626af21126384",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
         "type": "github"
       }
     }

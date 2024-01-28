@@ -18,12 +18,15 @@ cabal-version:       1.16
 
 library
   ghc-options:         -Wall
+                       -fplugin OpenTelemetry.Plugin
   exposed-modules:     Language.Haskell.GHC.Parser,
                        Language.Haskell.GHC.HappyParser
   -- other-modules:
   -- other-extensions:
   build-depends:       base                 >=4.9 && < 5,
-                       ghc                  >=8.0 && <9.9
+                       ghc                  >=8.0 && <9.9,
+
+                       opentelemetry-plugin -any
 
   if impl(ghc >= 8.0) && impl(ghc < 8.4)
     hs-source-dirs:  generic-src src-8.0

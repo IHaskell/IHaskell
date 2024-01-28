@@ -6,18 +6,40 @@
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.hls.url = "github:haskell/haskell-language-server";
   inputs.nix-filter.url = "github:numtide/nix-filter";
+  inputs.opentelemetry-plugin.url = "github:MercuryTechnologies/opentelemetry-plugin";
 
   nixConfig = {
     extra-substituters = [ "https://ihaskell.cachix.org" ];
     extra-trusted-public-keys = [ "ihaskell.cachix.org-1:WoIvex/Ft/++sjYW3ntqPUL3jDGXIKDpX60pC8d5VLM="];
   };
 
-  outputs = { self, nixpkgs23_11, nixpkgsMaster, flake-utils, hls, nix-filter, ... }:
+  outputs = { self, nixpkgs23_11, nixpkgsMaster, flake-utils, hls, nix-filter, opentelemetry-plugin, ... }:
     # "x86_64-darwin" "aarch64-darwin"
     flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
       baseOverlay = self: super: { inherit nix-filter; };
-      pkgs23_11 = import nixpkgs23_11 { inherit system; overlays = [baseOverlay]; };
-      pkgsMaster = import nixpkgsMaster { inherit system; overlays = [baseOverlay]; };
+      opentelemetryPluginOverlay = sel: sup: {
+        haskell = sup.haskell // {
+          packages = sup.haskell.packages // {
+            ghc94 = sup.haskell.packages.ghc94.override {
+              overrides = self: super: {
+                opentelemetry-plugin = self.callCabal2nix "opentelemetry-plugin" opentelemetry-plugin {};
+              };
+            };
+            ghc96 = sup.haskell.packages.ghc96.override {
+              overrides = self: super: {
+                opentelemetry-plugin = self.callCabal2nix "opentelemetry-plugin" opentelemetry-plugin {};
+              };
+            };
+            ghc98 = sup.haskell.packages.ghc98.override {
+              overrides = self: super: {
+                opentelemetry-plugin = self.callCabal2nix "opentelemetry-plugin" opentelemetry-plugin {};
+              };
+            };
+          };
+        };
+      };
+      pkgs23_11 = import nixpkgs23_11 { inherit system; overlays = [baseOverlay opentelemetryPluginOverlay]; };
+      pkgsMaster = import nixpkgsMaster { inherit system; overlays = [baseOverlay opentelemetryPluginOverlay]; };
 
       jupyterlab = pkgsMaster.python3.withPackages (ps: [ ps.jupyterlab ps.notebook ]);
 

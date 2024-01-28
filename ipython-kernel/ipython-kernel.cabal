@@ -25,6 +25,7 @@ flag examples
 
 library
   ghc-options:         -Wall
+                       -fplugin OpenTelemetry.Plugin
 
   exposed-modules: IHaskell.IPython.Kernel
                    IHaskell.IPython.Types
@@ -51,7 +52,8 @@ library
                        unordered-containers,
                        uuid            ,
                        zeromq4-haskell ,
-                       parsec
+                       parsec ,
+                       opentelemetry-plugin -any
 
 -- Example program
 executable simple-calc-example
