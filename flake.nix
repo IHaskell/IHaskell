@@ -4,7 +4,10 @@
   inputs.nixpkgs23_11.url = "github:NixOS/nixpkgs/release-23.11";
   inputs.nixpkgsMaster.url = "github:NixOS/nixpkgs/master";
   inputs.flake-utils.url = "github:numtide/flake-utils";
-  inputs.hls.url = "github:haskell/haskell-language-server";
+  inputs.hls = {
+    url = "github:haskell/haskell-language-server";
+    inputs.flake-utils.follows = "flake-utils";
+  };
   inputs.nix-filter.url = "github:numtide/nix-filter";
 
   nixConfig = {
