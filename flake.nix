@@ -16,8 +16,7 @@
   };
 
   outputs = { self, nixpkgs23_11, nixpkgsMaster, flake-utils, hls, nix-filter, ... }:
-    # "x86_64-darwin" "aarch64-darwin"
-    flake-utils.lib.eachSystem ["x86_64-linux"] (system: let
+    flake-utils.lib.eachDefaultSystem (system: let
       baseOverlay = self: super: { inherit nix-filter; };
       pkgs23_11 = import nixpkgs23_11 { inherit system; overlays = [baseOverlay]; };
       pkgsMaster = import nixpkgsMaster { inherit system; overlays = [baseOverlay]; };
