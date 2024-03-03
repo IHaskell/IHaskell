@@ -2,95 +2,61 @@
 # checked in CI
 ARG GHC_VERSION=9.6.4
 
-FROM haskell:${GHC_VERSION} AS ihaskell_base
+FROM haskell:${GHC_VERSION}
 
-# Install Ubuntu packages needed for IHaskell runtime
-RUN apt-get update && \
-    apt-get install -y libzmq5 \
-        && \
+# Install all necessary Ubuntu packages
+RUN apt-get update && apt-get install -y python3-pip libgmp-dev libmagic-dev libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev libblas-dev liblapack-dev gcc g++ wget && \
     rm -rf /var/lib/apt/lists/*
 
-FROM ihaskell_base AS builder
+# Install Jupyter notebook
+RUN pip3 install -U jupyter
 
-# Install Ubuntu packages needed for IHaskell build
-RUN apt-get update && \
-    apt-get install -y libzmq3-dev pkg-config \
-        && \
-    rm -rf /var/lib/apt/lists/*
-
-WORKDIR /build
-
-# Build snapshot
-COPY stack.yaml stack.yaml
-COPY ihaskell.cabal ihaskell.cabal
-COPY ipython-kernel ipython-kernel
-COPY ghc-parser ghc-parser
-COPY ihaskell-display ihaskell-display
-RUN stack setup
-RUN stack build ihaskell --only-snapshot
-
-# Build IHaskell itself.
-# Don't just `COPY .` so that changes in e.g. README.md don't trigger rebuild.
-COPY src src
-COPY html html
-COPY main main
-COPY jupyterlab-ihaskell jupyterlab-ihaskell
-COPY LICENSE LICENSE
-RUN stack install ihaskell --local-bin-path ./bin/
-
-# Save resolver used to build IHaskell
-RUN sed -n 's/resolver: \(.*\)#.*/\1/p' stack.yaml | tee resolver.txt
-
-# Save third-party data files
-RUN mkdir /data && \
-    snapshot_install_root=$(stack path --snapshot-install-root) && \
-    cp $(find ${snapshot_install_root} -name hlint.yaml) /data
-
-FROM ihaskell_base AS ihaskell
-
-# Install JupyterLab
-RUN apt-get update && \
-    apt-get install -y python3-pip && \
-    rm -rf /var/lib/apt/lists/*
-RUN pip3 install -U pip
-RUN pip3 install -U jupyterlab notebook
-
-# Create runtime user
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
 ENV NB_USER jovyan
 ENV NB_UID 1000
+ENV HOME /home/${NB_USER}
+
 RUN adduser --disabled-password \
     --gecos "Default user" \
     --uid ${NB_UID} \
     ${NB_USER}
 
-# Create directory for storing ihaskell files
-ENV IHASKELL_DATA_DIR /usr/local/lib/ihaskell
-RUN mkdir -p ${IHASKELL_DATA_DIR} && chown ${NB_UID} ${IHASKELL_DATA_DIR}
+# Set up a working directory for IHaskell
+RUN install -d -o ${NB_UID} -g ${NB_UID} ${HOME} ${HOME}/ihaskell
+WORKDIR ${HOME}/ihaskell
 
-# Set up + set hlint data directory
-ENV HLINT_DATA_DIR /usr/local/lib/hlint
-COPY --from=builder --chown=${NB_UID} /data/hlint.yaml ${HLINT_DATA_DIR}/
-ENV hlint_datadir ${HLINT_DATA_DIR}
-
-# Set current user + directory
-WORKDIR /home/${NB_USER}/src
-RUN chown -R ${NB_UID} /home/${NB_USER}/src
 USER ${NB_UID}
 
-# Set up global project
-COPY --from=builder --chown=${NB_UID} /build/resolver.txt /tmp/
-RUN stack setup --resolver=$(cat /tmp/resolver.txt) --system-ghc
+# Install dependencies for IHaskell
+COPY --chown=${NB_UID}:${NB_UID} stack.yaml stack.yaml
+COPY --chown=${NB_UID}:${NB_UID} ihaskell.cabal ihaskell.cabal
+COPY --chown=${NB_UID}:${NB_UID} ipython-kernel ipython-kernel
+COPY --chown=${NB_UID}:${NB_UID} ghc-parser ghc-parser
+COPY --chown=${NB_UID}:${NB_UID} ihaskell-display ihaskell-display
+
+# Save resolver used to build IHaskell
+RUN sed -n 's/resolver: \(.*\)#.*/\1/p' stack.yaml | tee resolver.txt
+
+RUN stack setup --resolver=$(cat resolver.txt) --system-ghc
 RUN stack config set system-ghc --global true
+RUN stack build --only-snapshot
 
-# Set up env file
-RUN stack exec env --system-ghc > ${IHASKELL_DATA_DIR}/env
+# Install IHaskell itself. Don't just COPY . so that
+# changes in e.g. README.md don't trigger rebuild.
+COPY --chown=${NB_UID}:${NB_UID} src ${HOME}/ihaskell/src
+COPY --chown=${NB_UID}:${NB_UID} html ${HOME}/ihaskell/html
+COPY --chown=${NB_UID}:${NB_UID} main ${HOME}/ihaskell/main
+COPY --chown=${NB_UID}:${NB_UID} jupyterlab-ihaskell ${HOME}/ihaskell/jupyterlab-ihaskell
+COPY --chown=${NB_UID}:${NB_UID} LICENSE ${HOME}/ihaskell/LICENSE
 
-# Install + setup IHaskell
-COPY --from=builder --chown=${NB_UID} /build/bin/ihaskell /usr/local/bin/
-COPY --from=builder --chown=${NB_UID} /build/html ${IHASKELL_DATA_DIR}/html
-COPY --from=builder --chown=${NB_UID} /build/jupyterlab-ihaskell ${IHASKELL_DATA_DIR}/jupyterlab-ihaskell
-RUN export ihaskell_datadir=${IHASKELL_DATA_DIR} && \
-    ihaskell install --env-file ${IHASKELL_DATA_DIR}/env
+RUN stack build && stack install
+RUN mkdir -p ${HOME}/.stack/global-project && \
+    echo "packages: []\nresolver: $(cat resolver.txt)\n" > ${HOME}/.stack/global-project/stack.yaml
+
+# Run the notebook
+ENV PATH $(stack path --local-install-root)/bin:$(stack path --snapshot-install-root)/bin:$(stack path --compiler-bin):/home/${NB_USER}/.local/bin:${PATH}
+RUN ihaskell install --stack
+WORKDIR ${HOME}
 RUN jupyter notebook --generate-config
-
 CMD ["jupyter", "notebook", "--ip", "0.0.0.0"]
