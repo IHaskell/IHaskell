@@ -7,12 +7,11 @@ sel: sup: {
           ghc-syntax-highlighter = super.ghc-syntax-highlighter_0_0_11_0;
 
           # For display libs
-          diagrams-core = self.callHackage "diagrams-core" "1.5.1.1" {};
           diagrams-lib = sup.haskell.lib.doJailbreak super.diagrams-lib;
           svg-builder = sup.haskell.lib.doJailbreak super.svg-builder;
           th-desugar = self.callHackage "th-desugar" "1.16" {};
           singletons-th = super.singletons-th_3_3;
-          singletons-base = super.singletons-base_3_3;
+          singletons-base = self.callHackage "singletons-base" "3.3" {};
           newtype-generics = sup.haskell.lib.doJailbreak super.newtype-generics;
 
 
