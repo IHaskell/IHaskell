@@ -13,6 +13,7 @@ sel: sup: {
           singletons-th = super.singletons-th_3_3;
           singletons-base = self.callHackage "singletons-base" "3.3" {};
           newtype-generics = sup.haskell.lib.doJailbreak super.newtype-generics;
+          microlens-th = sup.haskell.lib.doJailbreak super.microlens-th;
 
 
           # These ones have a non-working version of gtk2hs-buildtools added via addBuildTool
