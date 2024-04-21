@@ -25,5 +25,5 @@ module.exports = {
   },
   plugins: [
     new FixupEntryPoint()
-  ]
+  ],
 }
