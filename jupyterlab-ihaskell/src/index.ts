@@ -9,18 +9,14 @@ const plugin: JupyterFrontEndPlugin<void> = {
   description: 'A CodeMirror extension for IHaskell',
   requires: [IEditorLanguageRegistry],
   activate: async (app: JupyterFrontEnd, languages: IEditorLanguageRegistry) => {
-    registerHaskellLanguage(languages);
+    const languageSupport = new LanguageSupport(StreamLanguage.define(haskell));
+    languages.addLanguage({
+      name: "ihaskell",
+      mime: "text/x-ihaskell",
+      support: languageSupport,
+      extensions: ["hs"],
+    });
   }
 };
-
-function registerHaskellLanguage(codemirrorLanguageRegistry: IEditorLanguageRegistry) {
-  const languageSupport = new LanguageSupport(StreamLanguage.define(haskell));
-  codemirrorLanguageRegistry.addLanguage({
-    name: "ihaskell",
-    mime: "text/x-ihaskell",
-    support: languageSupport,
-    extensions: ["hs"],
-  });
-}
 
 export default plugin;
