@@ -516,10 +516,12 @@ evaluate kernelState code output widgetHandler = do
 -- from inside the notebook environment.
 extractValue :: Typeable a => String -> Interpreter (Either String a)
 extractValue expr = do
-  compiled <- dynCompileExpr expr
-  case fromDynamic compiled of
-    Nothing     -> return (Left multipleIHaskells)
-    Just result -> return (Right result)
+  compiled <- gcatch (Right <$> dynCompileExpr expr) (\exc -> return (Left (show exc)))
+  case compiled of
+    Left exc -> return (Left exc)
+    Right dyn -> case fromDynamic dyn of
+      Nothing     -> return (Left multipleIHaskells)
+      Just result -> return (Right result)
 
   where
     multipleIHaskells =
