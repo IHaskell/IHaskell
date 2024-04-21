@@ -4,7 +4,7 @@ import { IEditorLanguageRegistry } from '@jupyterlab/codemirror';
 import { haskell } from '@codemirror/legacy-modes/mode/haskell';
 
 const plugin: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlab/codemirror-extension:language-ihaskell',
+  id: 'ihaskell',
   autoStart: true,
   description: 'A CodeMirror extension for IHaskell',
   requires: [IEditorLanguageRegistry],
