@@ -1,22 +1,22 @@
-import {
-  JupyterFrontEnd, JupyterFrontEndPlugin
-} from '@jupyterlab/application';
+import { JupyterFrontEnd, JupyterFrontEndPlugin } from '@jupyterlab/application';
+import { StreamLanguage, LanguageSupport } from '@codemirror/language';
+import { IEditorLanguageRegistry } from '@jupyterlab/codemirror';
+import { haskell } from '@codemirror/legacy-modes/mode/haskell';
 
-import { ICodeMirror } from '@jupyterlab/codemirror';
-
-import { defineIHaskellMode } from './codemirror-ihaskell';
-
-/**
- * Initialization data for the extension1 extension.
- */
-const extension: JupyterFrontEndPlugin<void> = {
+const plugin: JupyterFrontEndPlugin<void> = {
   id: 'ihaskell',
   autoStart: true,
-  requires: [ICodeMirror],
-  activate: (app: JupyterFrontEnd, codeMirror: ICodeMirror) =>
-  {
-    defineIHaskellMode(codeMirror).catch(console.warn);
+  description: 'A CodeMirror extension for IHaskell',
+  requires: [IEditorLanguageRegistry],
+  activate: async (app: JupyterFrontEnd, languages: IEditorLanguageRegistry) => {
+    const languageSupport = new LanguageSupport(StreamLanguage.define(haskell));
+    languages.addLanguage({
+      name: "ihaskell",
+      mime: "text/x-ihaskell",
+      support: languageSupport,
+      extensions: ["hs"],
+    });
   }
 };
 
-export default extension;
+export default plugin;
