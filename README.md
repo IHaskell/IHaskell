@@ -176,7 +176,7 @@ IHaskell is regularly updated to work with the latest version of GHC. To read ho
 
 ## Nix flake
 
-There is also a Nix flake that provides a developer environment. For details on Nix flakes, please see the documentation at https://nixos.wiki/wiki/Flakes.
+There is also a Nix flake that provides a developer environment. For details on Nix flakes, please see the documentation at https://wiki.nixos.org/wiki/Flakes.
 
 After this, IHaskell can be compiled as follows:
 
