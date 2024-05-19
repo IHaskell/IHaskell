@@ -21,6 +21,7 @@ module IHaskell.Eval.Evaluate (
 import           IHaskellPrelude
 
 import           Control.Concurrent (forkIO, threadDelay)
+import           Control.Monad.Trans.State (runStateT)
 import           Data.Foldable (foldMap)
 import           Prelude (head, tail, last, init)
 import qualified Data.Set as Set
@@ -435,7 +436,10 @@ evaluate :: KernelState                  -- ^ The kernel state.
          -> (KernelState -> [WidgetMsg] -> IO KernelState) -- ^ Function to handle widget messages
          -> Interpreter (KernelState, ErrorOccurred)
 evaluate kernelState code output widgetHandler = do
-  cmds <- parseString (cleanString code)
+  flags <- getSessionDynFlags
+  (cmds, flags') <- liftIO $ flip runStateT flags $ parseString (cleanString code)
+  setSessionDynFlags flags'
+
   let execCount = getExecutionCounter kernelState
 
   -- Extract all parse errors.

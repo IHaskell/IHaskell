@@ -33,6 +33,8 @@ import           IHaskellPrelude
 import qualified Data.ByteString.Char8 as CBS
 #endif
 
+import           Control.Monad.Trans.State
+
 -- GHC imports.
 #if MIN_VERSION_ghc(9,8,0)
 import           GHC.Core.InstEnv (is_cls, is_tys, mkInstEnv, instEnvElts)
@@ -294,13 +296,12 @@ pprLanguages show_all dflags =
 
 -- | Set an extension and update flags. Return @Nothing@ on success. On failure, return an error
 -- message.
-setExtension :: GhcMonad m => String -> m (Maybe String)
+setExtension :: String -> StateT DynFlags IO (Maybe String)
 setExtension ext = do
-  flags <- getSessionDynFlags
   case extensionFlag ext of
     Nothing -> return $ Just $ "Could not parse extension name: " ++ ext
     Just flag -> do
-      _ <- setSessionDynFlags $
+      modify $ \flags ->
         case flag of
           SetFlag ghcFlag   -> xopt_set flags ghcFlag
           UnsetFlag ghcFlag -> xopt_unset flags ghcFlag

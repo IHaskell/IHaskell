@@ -17,6 +17,7 @@ module IHaskell.Eval.Parser (
 
 import           IHaskellPrelude
 
+import           Control.Monad.Trans.State
 import           Data.Char (toLower)
 import           Data.List (maximumBy, inits)
 import           Prelude (head, tail)
@@ -74,16 +75,15 @@ data PragmaType = PragmaLanguage
   deriving (Show, Eq)
 
 -- | Parse a string into code blocks.
-parseString :: String -> Ghc [Located CodeBlock]
+parseString :: String -> StateT DynFlags IO [Located CodeBlock]
 parseString codeString = do
   -- Try to parse this as a single module.
-  flags' <- getSessionDynFlags
+  flags' <- get
   flags <- do
     result <- liftIO $ parsePragmasIntoDynFlags flags' "<interactive>" codeString
     return $ fromMaybe flags' result
-  _ <- setSessionDynFlags flags
-  let output = runParser flags parserModule codeString
-  case output of
+  put flags
+  case runParser flags parserModule codeString of
     Parsed mdl
       | Just _ <- hsmodName (unLoc mdl) -> return [Located 1 $ Module codeString]
     _ -> do
@@ -93,11 +93,11 @@ parseString codeString = do
 
       -- Return to previous flags. When parsing, flags can be set to make sure parsing works properly. But
       -- we don't want those flags to be set during evaluation until the right time.
-      _ <- setSessionDynFlags flags
+      put flags
       return result
 
   where
-    parseChunk :: GhcMonad m => String -> LineNumber -> m (Located CodeBlock)
+    parseChunk :: String -> LineNumber -> StateT DynFlags IO (Located CodeBlock)
     parseChunk chunk ln = Located ln <$> handleChunk
       where
         handleChunk
@@ -105,7 +105,7 @@ parseString codeString = do
           | isPragma chunk = return $ parsePragma chunk ln
           | otherwise = parseCodeChunk chunk ln
 
-    processChunks :: GhcMonad m => [Located CodeBlock] -> [Located String] -> m [Located CodeBlock]
+    processChunks :: [Located CodeBlock] -> [Located String] -> StateT DynFlags IO [Located CodeBlock]
     processChunks accum remaining =
       case remaining of
         -- If we have no more remaining lines, return the accumulated results.
@@ -125,7 +125,7 @@ parseString codeString = do
     isPragma :: String -> Bool
     isPragma = isPrefixOf "{-#" . strip
 
-activateExtensions :: GhcMonad m => CodeBlock -> m ()
+activateExtensions :: CodeBlock -> StateT DynFlags IO ()
 activateExtensions (Directive SetExtension ext) = void $ setExtension ext
 activateExtensions (Directive SetDynFlag flags) =
   case stripPrefix "-X" flags of
@@ -133,16 +133,16 @@ activateExtensions (Directive SetDynFlag flags) =
     Nothing  -> return ()
 activateExtensions (Pragma PragmaLanguage exts) = void $ setAll exts
   where
-    setAll :: GhcMonad m => [String] -> m (Maybe String)
+    setAll :: [String] -> StateT DynFlags IO (Maybe String)
     setAll exts' = do
       errs <- mapM setExtension exts'
       return $ msum errs
 activateExtensions _ = return ()
 
 -- | Parse a single chunk of code, as indicated by the layout of the code.
-parseCodeChunk :: GhcMonad m => String -> LineNumber -> m CodeBlock
+parseCodeChunk :: String -> LineNumber -> StateT DynFlags IO CodeBlock
 parseCodeChunk code startLine = do
-  flags <- getSessionDynFlags
+  flags <- get
   let
       -- Try each parser in turn.
       rawResults = map (tryParser code) (parsers flags)
