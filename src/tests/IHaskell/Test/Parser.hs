@@ -4,6 +4,8 @@ module IHaskell.Test.Parser (testParser) where
 
 import           Prelude
 
+import           Control.Monad.Trans.State (evalStateT)
+import           GHC (getSessionDynFlags)
 import           Text.RawString.QQ (r)
 
 import           Test.Hspec
@@ -15,14 +17,17 @@ import           IHaskell.Eval.Parser (parseString, getModuleName, unloc, layout
 import           IHaskell.Eval.ParseShell (parseShell)
 
 parses :: String -> IO [CodeBlock]
-parses str = map unloc <$> ghc (parseString str)
+parses str = do
+  flags <- ghc getSessionDynFlags
+  map unloc <$> evalStateT (parseString str) flags
 
 like :: (Show a, Eq a) => IO a -> a -> IO ()
 like parser desired = parser >>= (`shouldBe` desired)
 
 is :: String -> (String -> CodeBlock) -> IO ()
 is string blockType = do
-  result <- ghc $ parseString string
+  flags <- ghc getSessionDynFlags
+  result <- evalStateT (parseString string) flags
   map unloc result `shouldBe` [blockType $ strip string]
 
 testParser :: Spec
@@ -220,7 +225,8 @@ testParseString = describe "Parser" $ do
         Just 100))
     |] `is` Expression
   it "correctly locates parsed items" $ do
-    ghc (parseString
+    flags <- ghc getSessionDynFlags
+    (flip evalStateT flags $ parseString
       [r|
         first
 
