@@ -438,7 +438,7 @@ evaluate :: KernelState                  -- ^ The kernel state.
 evaluate kernelState code output widgetHandler = do
   flags <- getSessionDynFlags
   (cmds, flags') <- liftIO $ flip runStateT flags $ parseString (cleanString code)
-  setSessionDynFlags flags'
+  void $ setSessionDynFlags flags'
 
   let execCount = getExecutionCounter kernelState
 
