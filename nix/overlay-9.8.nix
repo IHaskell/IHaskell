@@ -4,8 +4,9 @@ sel: sup: {
       ghc98 = sup.haskell.packages.ghc98.override {
         overrides = self: super: {
 
-          ghc-syntax-highlighter = super.ghc-syntax-highlighter_0_0_11_0;
-
+          ghc-syntax-highlighter = super.ghc-syntax-highlighter_0_0_11_0.overrideScope(self: super: {
+            ghc-lib-parser = self.ghc-lib-parser_9_8_2_20240223;
+          });
           # For display libs
           diagrams-lib = sup.haskell.lib.doJailbreak super.diagrams-lib;
           svg-builder = sup.haskell.lib.doJailbreak super.svg-builder;
