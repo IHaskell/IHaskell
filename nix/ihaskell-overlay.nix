@@ -3,6 +3,7 @@
 , lib
 
 , enableHlint
+, runTests
 }:
 
 self: super:
@@ -26,8 +27,9 @@ in
       preCheck = ''
         export HOME=$TMPDIR/home
         export PATH=$PWD/dist/build/ihaskell:$PATH
-        export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
+        export NIX_GHC_PACKAGE_PATH_FOR_TEST=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
       '';
+      doCheck = runTests;
       configureFlags = (_drv.configureFlags or []) ++ (lib.optionals (!enableHlint) [ "-f" "-use-hlint" ]);
     });
   in
