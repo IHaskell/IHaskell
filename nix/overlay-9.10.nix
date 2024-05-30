@@ -1,7 +1,7 @@
 sel: sup: {
   haskell = sup.haskell // {
     packages = sup.haskell.packages // {
-      ghc10 = sup.haskell.packages.ghc910.override {
+      ghc910 = sup.haskell.packages.ghc910.override {
         overrides = self: super: {
 
           ghc-syntax-highlighter = sup.haskell.lib.doJailbreak self.ghc-syntax-highlighter_0_0_11_0;
