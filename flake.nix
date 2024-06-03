@@ -33,8 +33,8 @@
         };
         in
           pkgsMaster.lib.listToAttrs [
-            (mkVersion nixpkgs24_05  "ghc96" [(import ./nix/overlay-9.6.nix)] {})
-            (mkVersion nixpkgsMaster "ghc98" [(import ./nix/overlay-9.8.nix)] { enableHlint = false; })
+            (mkVersion nixpkgs24_05 "ghc96" [(import ./nix/overlay-9.6.nix)] {})
+            (mkVersion nixpkgs24_05 "ghc98" [(import ./nix/overlay-9.8.nix)] {})
           ];
 
       # Helper function for building environments with a given set of packages
