@@ -41,7 +41,6 @@ jobs:
         - ihaskell-env-ghc96
         - ihaskell-env-ghc98
 
-        - ihaskell-env-display-ghc94
         - ihaskell-env-display-ghc96
 
     steps:
