@@ -61,5 +61,8 @@ jobs:
         nix build .#${{matrix.env}}
 
     - name: Check acceptance test for ${{matrix.env}}
+      # Don't bother running it with the display envs since we already run it
+      # with the basic envs, and it doesn't test any display stuff.
+      if: ${{ !contains(matrix.env, fromJSON('"display"')) }}
       run: |
         nix build .#checks.x86_64-linux.${{matrix.env}} -L
