@@ -1,7 +1,7 @@
 {
   description = "A Haskell kernel for IPython.";
 
-  inputs.nixpkgs23_11.url = "github:NixOS/nixpkgs/release-23.11";
+  inputs.nixpkgs24_05.url = "github:NixOS/nixpkgs/release-24.05";
   inputs.nixpkgsMaster.url = "github:NixOS/nixpkgs/master";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.hls = {
@@ -15,10 +15,10 @@
     extra-trusted-public-keys = [ "ihaskell.cachix.org-1:WoIvex/Ft/++sjYW3ntqPUL3jDGXIKDpX60pC8d5VLM="];
   };
 
-  outputs = { self, nixpkgs23_11, nixpkgsMaster, flake-utils, hls, nix-filter, ... }:
+  outputs = { self, nixpkgs24_05, nixpkgsMaster, flake-utils, hls, nix-filter, ... }:
     flake-utils.lib.eachDefaultSystem (system: let
       baseOverlay = self: super: { inherit nix-filter; };
-      pkgs23_11 = import nixpkgs23_11 { inherit system; overlays = [baseOverlay]; };
+      pkgs24_05  = import nixpkgs24_05  { inherit system; overlays = [baseOverlay]; };
       pkgsMaster = import nixpkgsMaster { inherit system; overlays = [baseOverlay]; };
 
       jupyterlab = pkgsMaster.python3.withPackages (ps: [ ps.jupyterlab ps.notebook ]);
@@ -33,9 +33,8 @@
         };
         in
           pkgsMaster.lib.listToAttrs [
-            (mkVersion nixpkgs23_11  "ghc94"  [(import ./nix/overlay-9.4.nix)]  {})
-            (mkVersion nixpkgsMaster "ghc96"  [(import ./nix/overlay-9.6.nix)]  {})
-            (mkVersion nixpkgsMaster "ghc98"  [(import ./nix/overlay-9.8.nix)]  { enableHlint = false; })
+            (mkVersion nixpkgs24_05  "ghc96" [(import ./nix/overlay-9.6.nix)] {})
+            (mkVersion nixpkgsMaster "ghc98" [(import ./nix/overlay-9.8.nix)] { enableHlint = false; })
           ];
 
       # Helper function for building environments with a given set of packages
@@ -103,8 +102,8 @@
         }
       ) envs;
 
-      defaultPackage = self.packages.${system}.ihaskell-env-ghc94;
+      defaultPackage = self.packages.${system}.ihaskell-env-ghc96;
 
-      devShell = self.packages.${system}.ihaskell-dev-ghc94;
+      devShell = self.packages.${system}.ihaskell-dev-ghc96;
     });
 }
