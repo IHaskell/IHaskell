@@ -42,30 +42,27 @@ jobs:
         - ihaskell-env-ghc98
 
         - ihaskell-env-display-ghc96
+        - ihaskell-env-display-ghc98
 
     steps:
     - uses: actions/checkout@v3
 
     - uses: cachix/install-nix-action@v22
       with:
-        install_url: https://releases.nixos.org/nix/nix-2.19.2/install
+        install_url: https://releases.nixos.org/nix/nix-2.22.1/install
 
     - uses: cachix/cachix-action@v14
       with:
         name: ihaskell
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
 
-    - name: Use latest Nixpkgs 23.11
-      run: nix flake update nixpkgs23_11
-
     - name: Build environment ${{matrix.env}}
       run: |
         nix build .#${{matrix.env}}
 
     - name: Check acceptance test for ${{matrix.env}}
-      # Disable GHC 9.8 here since we don't have hlint support yet
-      # Also, don't bother running it with the display envs since we already run it with the
-      # basic envs, and it doesn't test any display stuff.
-      if: ${{ !contains(fromJSON('["ihaskell-env-ghc98"]'), matrix.env) && !contains(matrix.env, fromJSON('"display"')) }}
+      # Don't bother running it with the display envs since we already run it
+      # with the basic envs, and it doesn't test any display stuff.
+      if: ${{ !contains(matrix.env, fromJSON('"display"')) }}
       run: |
         nix build .#checks.x86_64-linux.${{matrix.env}} -L
