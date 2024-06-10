@@ -12,8 +12,6 @@
 , compiler
 # Whether to enable hlint.
 , enableHlint ? true
-# Whether to run tests
-, runTests ? true
 }:
 
 {
@@ -29,7 +27,7 @@ extraEnvironmentBinaries ? []
 }:
 
 let
-  ihaskellOverlay = callPackage ./ihaskell-overlay.nix { inherit enableHlint runTests; };
+  ihaskellOverlay = callPackage ./ihaskell-overlay.nix { inherit enableHlint; };
 
   # Haskell packages set with IHaskell packages added
   haskellPackages = haskell.packages."${compiler}".override (old: {

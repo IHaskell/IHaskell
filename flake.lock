@@ -43,11 +43,25 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
+<<<<<<< Updated upstream
         "lastModified": 1717874339,
         "narHash": "sha256-HtPgWVTMukUfVI3mLUBqqL7tiW6Ip74SGyh5/7xU2lk=",
+||||||| Stash base
+        "lastModified": 1717226001,
+        "narHash": "sha256-Iyb3ToEW5I0i7Cll2gWaZ8sDmpvNBWY9eYhUoGLrL2Y=",
+=======
+        "lastModified": 1717940954,
+        "narHash": "sha256-NfE1PGnY+ERqfrzqCyI+6W43Jw/1SpRTV1gAdWdeLeE=",
+>>>>>>> Stashed changes
         "owner": "haskell",
         "repo": "haskell-language-server",
+<<<<<<< Updated upstream
         "rev": "82da33707f2cb433f6bbcc22cd32750d6462fa0f",
+||||||| Stash base
+        "rev": "00b6d3681f5b955b160259b2fdf01df50d00dfe8",
+=======
+        "rev": "e9c2f5520137e2e71c20fab39c4f4abe2cfd83ea",
+>>>>>>> Stashed changes
         "type": "github"
       },
       "original": {
@@ -89,11 +103,25 @@
     },
     "nixpkgs24_05": {
       "locked": {
+<<<<<<< Updated upstream
         "lastModified": 1717895720,
         "narHash": "sha256-Dl6JKx1rIDEuv4q9rtlt9QwyerSQbrk1bUtNHzx9bIY=",
+||||||| Stash base
+        "lastModified": 1717406828,
+        "narHash": "sha256-3Elk5hOFKkas+JwIEbYHu3Cw0z7F18vx+1v8fNYGZqc=",
+=======
+        "lastModified": 1717942938,
+        "narHash": "sha256-hlXoHgj792Rs4vDz2fZKyVh5HzpRuN2p8R2P57w1fwI=",
+>>>>>>> Stashed changes
         "owner": "NixOS",
         "repo": "nixpkgs",
+<<<<<<< Updated upstream
         "rev": "0e0826ec06d2b3db8e28e280d68179f022b1d160",
+||||||| Stash base
+        "rev": "7b7774f5431ea2faed7c5eb9b612f42f718d10e3",
+=======
+        "rev": "cb6df149e8f4eaa578dbc74354d95aa7d637fc18",
+>>>>>>> Stashed changes
         "type": "github"
       },
       "original": {
@@ -105,11 +133,25 @@
     },
     "nixpkgsMaster": {
       "locked": {
+<<<<<<< Updated upstream
         "lastModified": 1717893485,
         "narHash": "sha256-WMU6ZRZrBgEUDIF0siu2aIyVAXcxfElSwzZtS/mSpN4=",
+||||||| Stash base
+        "lastModified": 1717293153,
+        "narHash": "sha256-ggbyGWwtTJ0AyDYSTkmmRMDgjO5eK9gwHZ3KKmqr2I8=",
+=======
+        "lastModified": 1717943353,
+        "narHash": "sha256-rOYgOsBnQCYztl4SSHVGkF0N9g5M2ZNDfwdJskxdfu8=",
+>>>>>>> Stashed changes
         "owner": "NixOS",
         "repo": "nixpkgs",
+<<<<<<< Updated upstream
         "rev": "3bcedce9f4de37570242faf16e1e143583407eab",
+||||||| Stash base
+        "rev": "e164f2bfd689cee654be0ec224c101dee1d59f80",
+=======
+        "rev": "7cd0a0621ac42e04f3bb90b39e165d61a8b3cdfe",
+>>>>>>> Stashed changes
         "type": "github"
       },
       "original": {

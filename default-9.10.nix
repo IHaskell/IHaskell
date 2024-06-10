@@ -10,7 +10,7 @@ let
   haskell-overlay = import ./nix/overlay-9.10.nix;
   nixpkgs = import nixpkgs-src { system = builtins.currentSystem; overlays = [ overlay haskell-overlay ]; };
   jupyterlab = nixpkgs.python3.withPackages (ps: [ ps.jupyterlab ps.notebook ]);
-in nixpkgs.callPackage ./nix/release.nix { compiler = "ghc910"; enableHlint = false; runTests = false;}{
+in nixpkgs.callPackage ./nix/release.nix { compiler = "ghc910"; enableHlint = false;}{
   extraEnvironmentBinaries = [jupyterlab];
   packages = self: with self; [];
 }
