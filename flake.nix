@@ -34,16 +34,8 @@
         in
           pkgsMaster.lib.listToAttrs [
             (mkVersion nixpkgs24_05  "ghc96"  [(import ./nix/overlay-9.6.nix)]  {})
-<<<<<<< Updated upstream
             (mkVersion nixpkgs24_05  "ghc98"  [(import ./nix/overlay-9.8.nix)]  {})
-            (mkVersion nixpkgsMaster "ghc910" [(import ./nix/overlay-9.10.nix)] { enableHlint = false; runTests = false; })
-||||||| Stash base
-            (mkVersion nixpkgsMaster "ghc98"  [(import ./nix/overlay-9.8.nix)]  { enableHlint = false; })
-            (mkVersion nixpkgsMaster "ghc910" [(import ./nix/overlay-9.10.nix)] { enableHlint = false; runTests = false; })
-=======
-            (mkVersion nixpkgsMaster "ghc98"  [(import ./nix/overlay-9.8.nix)]  { enableHlint = false; })
             (mkVersion nixpkgsMaster "ghc910" [(import ./nix/overlay-9.10.nix)] { enableHlint = false; })
->>>>>>> Stashed changes
           ];
 
       # Helper function for building environments with a given set of packages
