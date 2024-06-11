@@ -66,6 +66,6 @@ jobs:
       # Don't bother running it with the display envs since we already run it
       # with the basic envs, and it doesn't test any display stuff.
       # Also disable GHC 9.10 for now
-      if: ${{ !(contains(matrix.env, "display") || contains(matrix.env, "ihaskell-env-ghc910")) }}
+      if: ${{ !(contains(matrix.env, fromJSON('"display"')) || contains(matrix.env, fromJSON('"ghc910"'))) }}
       run: |
         nix build .#checks.x86_64-linux.${{matrix.env}} -L
