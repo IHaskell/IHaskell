@@ -26,7 +26,6 @@ in
       preCheck = ''
         export HOME=$TMPDIR/home
         export PATH=$PWD/dist/build/ihaskell:$PATH
-        export GHC_PACKAGE_PATH=$PWD/dist/package.conf.inplace/:$GHC_PACKAGE_PATH
       '';
       configureFlags = (_drv.configureFlags or []) ++ (lib.optionals (!enableHlint) [ "-f" "-use-hlint" ]);
     });

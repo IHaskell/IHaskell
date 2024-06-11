@@ -40,9 +40,11 @@ jobs:
         env:
         - ihaskell-env-ghc96
         - ihaskell-env-ghc98
+        - ihaskell-env-ghc910
 
         - ihaskell-env-display-ghc96
         - ihaskell-env-display-ghc98
+        # - ihaskell-env-display-ghc910
 
     steps:
     - uses: actions/checkout@v3
@@ -63,6 +65,7 @@ jobs:
     - name: Check acceptance test for ${{matrix.env}}
       # Don't bother running it with the display envs since we already run it
       # with the basic envs, and it doesn't test any display stuff.
-      if: ${{ !contains(matrix.env, fromJSON('"display"')) }}
+      # Also disable GHC 9.10 for now
+      if: ${{ !(contains(matrix.env, fromJSON('"display"')) || contains(matrix.env, fromJSON('"ghc910"'))) }}
       run: |
         nix build .#checks.x86_64-linux.${{matrix.env}} -L
