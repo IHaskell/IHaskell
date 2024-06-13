@@ -92,7 +92,7 @@ jobs:
 
     - name: Test
       run: |
-        stack test --stack-yaml ${{matrix.stack-yaml}}
+        stack test ihaskell --stack-yaml ${{matrix.stack-yaml}}
 
     - name: Run integration test
       # The test is flaky on GHC 8.0 and 8.2 so we don't run it. As long as the
@@ -102,10 +102,9 @@ jobs:
       if: ${{ !contains(fromJSON('["stack/stack-8.0.yaml", "stack/stack-8.2.yaml"]'), matrix.stack-yaml) }}
       run: |
         nix build .#jupyterlab
-
-        stack install --stack-yaml ${{matrix.stack-yaml}}
-
         export PATH="$(pwd)/result/bin:$(pwd)/.local/bin:$PATH"
+
+        stack install ihaskell --stack-yaml ${{matrix.stack-yaml}}
 
         ihaskell install --stack --stack-flag="--stack-yaml=$(realpath ${{matrix.stack-yaml}})"
 
