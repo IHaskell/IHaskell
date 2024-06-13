@@ -102,9 +102,10 @@ jobs:
       if: ${{ !contains(fromJSON('["stack/stack-8.0.yaml", "stack/stack-8.2.yaml"]'), matrix.stack-yaml) }}
       run: |
         nix build .#jupyterlab
-        export PATH="$(pwd)/result/bin:$(pwd)/.local/bin:$PATH"
 
         stack install --stack-yaml ${{matrix.stack-yaml}}
+
+        export PATH="$(pwd)/result/bin:$(pwd)/.local/bin:$PATH"
 
         ihaskell install --stack --stack-flag="--stack-yaml=$(realpath ${{matrix.stack-yaml}})"
 
