@@ -4,7 +4,7 @@ sel: sup: {
       ghc910 = sup.haskell.packages.ghc910.override {
         overrides = self: super: {
 
-          ghc-syntax-highlighter = sup.haskell.lib.doJailbreak self.ghc-syntax-highlighter_0_0_11_0;
+          ghc-syntax-highlighter = sup.haskell.lib.doJailbreak self.ghc-syntax-highlighter_0_0_12_0;
 
           assoc = sup.haskell.lib.doJailbreak super.assoc;
           code-page = sup.haskell.lib.doJailbreak (sup.haskell.lib.dontCheck super.code-page);
@@ -27,7 +27,7 @@ sel: sup: {
           quickcheck-instances = sup.haskell.lib.doJailbreak super.quickcheck-instances;
           indexed-traversable-instances = sup.haskell.lib.doJailbreak super.indexed-traversable-instances;
           semialign = sup.haskell.lib.doJailbreak super.semialign;
-          aeson = sup.haskell.lib.doJailbreak super.aeson_2_2_2_0;
+          aeson = sup.haskell.lib.doJailbreak super.aeson_2_2_3_0;
           integer-conversion = sup.haskell.lib.doJailbreak super.integer-conversion;
           boring = sup.haskell.lib.doJailbreak super.boring;
           hourglass = sup.haskell.lib.dontCheck super.hourglass;
