@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v9
+        uses: DeterminateSystems/nix-installer-action@v13
       - name: Update flake.lock
-        uses: DeterminateSystems/update-flake-lock@v19
+        uses: DeterminateSystems/update-flake-lock@v23
         with:
           pr-title: "Update `flake.lock`"
           pr-labels: |
