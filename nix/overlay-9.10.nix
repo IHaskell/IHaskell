@@ -16,7 +16,7 @@ sel: sup: {
           ChasingBottoms = sup.haskell.lib.doJailbreak super.ChasingBottoms;
           th-abstraction = super.th-abstraction_0_7_0_0;
           nothunks = sup.haskell.lib.doJailbreak super.nothunks;
-          uuid-types = sup.haskell.lib.doJailbreak super.uuid-types;
+          uuid = sup.haskell.lib.doJailbreak super.uuid;
           time-compat = sup.haskell.lib.doJailbreak super.time-compat;
           scientific = sup.haskell.lib.doJailbreak super.scientific;
           quickcheck-instances = sup.haskell.lib.doJailbreak super.quickcheck-instances;
