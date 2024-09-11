@@ -17,7 +17,6 @@ sel: sup: {
           th-abstraction = super.th-abstraction_0_7_0_0;
           nothunks = sup.haskell.lib.doJailbreak super.nothunks;
           uuid = sup.haskell.lib.doJailbreak super.uuid;
-          uuid-types = sup.haskell.lib.doJailbreak super.uuid-types;
           time-compat = sup.haskell.lib.doJailbreak super.time-compat;
           scientific = sup.haskell.lib.doJailbreak super.scientific;
           quickcheck-instances = sup.haskell.lib.doJailbreak super.quickcheck-instances;
