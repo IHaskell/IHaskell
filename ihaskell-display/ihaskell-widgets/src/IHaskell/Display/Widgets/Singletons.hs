@@ -48,12 +48,14 @@ singletons
              | Width
              | Height
              | Description
+             | DescriptionAllowHtml
              | ClickHandler
              | SubmitHandler
              | Disabled
              | StringValue
              | Placeholder
              | Tooltip
+             | Tabbable
              | Icon
              | ButtonStyle
              | BSValue
@@ -115,7 +117,13 @@ singletons
              | Buttons
              | Axes
              | ButtonColor
+             | FontFamily
+             | FontStyle
+             | FontSize
+             | FontVariant
              | FontWeight
+             | TextColor
+             | TextDecoration
              | DescriptionWidth
              | BarColor
              | HandleColor
@@ -131,7 +139,10 @@ singletons
              | LAlignContent
              | LAlignItems
              | LAlignSelf
-             | LBorder
+             | LBorderBottom
+             | LBorderLeft
+             | LBorderRight
+             | LBorderTop
              | LBottom
              | LDisplay
              | LFlex
@@ -155,10 +166,10 @@ singletons
              | LMaxWidth
              | LMinHeight
              | LMinWidth
+             | LObjectFit
+             | LObjectPosition
              | LOrder
              | LOverflow
-             | LOverflowX
-             | LOverflowY
              | LPadding
              | LRight
              | LTop
@@ -182,12 +193,14 @@ promote
     toKey Width = "width"
     toKey Height = "height"
     toKey Description = "description"
+    toKey DescriptionAllowHtml = "description_allow_html"
     toKey ClickHandler = "" -- Not sent to the frontend
     toKey SubmitHandler = "" -- Not sent to the frontend
     toKey Disabled = "disabled"
     toKey StringValue = "value"
     toKey Placeholder = "placeholder"
     toKey Tooltip = "tooltip"
+    toKey Tabbable = "tabbable"
     toKey Icon = "icon"
     toKey ButtonStyle = "button_style"
     toKey BSValue = "value"
@@ -224,7 +237,7 @@ promote
     toKey ChangeHandler = "" -- Not sent to the frontend
     toKey Children = "children"
     toKey BoxStyle = "box_style"
-    toKey Titles = "_titles"
+    toKey Titles = "titles"
     toKey SelectedIndex = "selected_index"
     toKey ReadOutMsg = "readout"
     toKey Indent = "indent"
@@ -250,7 +263,13 @@ promote
     toKey Axes = "axes"
     toKey Layout = "layout"
     toKey ButtonColor = "button_color"
+    toKey FontFamily = "font_family"
+    toKey FontSize = "font_size"
+    toKey FontStyle = "font_style"
+    toKey FontVariant = "font_variant"
     toKey FontWeight = "font_weight"
+    toKey TextColor = "text_color"
+    toKey TextDecoration = "text_decoration"
     toKey DescriptionWidth = "description_width"
     toKey BarColor = "bar_color"
     toKey HandleColor = "handle_color"
@@ -263,7 +282,10 @@ promote
     toKey LAlignContent = "align_content"
     toKey LAlignItems = "align_items"
     toKey LAlignSelf = "align_self"
-    toKey LBorder = "border"
+    toKey LBorderBottom = "border_bottom"
+    toKey LBorderLeft = "border_left"
+    toKey LBorderRight = "border_right"
+    toKey LBorderTop = "border_top"
     toKey LBottom = "bottom"
     toKey LDisplay = "display"
     toKey LFlex = "flex"
@@ -287,10 +309,10 @@ promote
     toKey LMaxWidth = "max_width"
     toKey LMinHeight = "min_height"
     toKey LMinWidth = "min_width"
+    toKey LObjectFit = "object_fit"
+    toKey LObjectPosition = "object_position"
     toKey LOrder = "order"
     toKey LOverflow = "overflow"
-    toKey LOverflowX = "overflow_x"
-    toKey LOverflowY = "overflow_y"
     toKey LPadding = "padding"
     toKey LRight = "right"
     toKey LTop = "top"

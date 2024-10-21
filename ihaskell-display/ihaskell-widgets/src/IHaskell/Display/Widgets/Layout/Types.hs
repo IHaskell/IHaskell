@@ -42,7 +42,10 @@ type LayoutClass = [ 'S.ModelModule
                    , 'S.LAlignContent
                    , 'S.LAlignItems
                    , 'S.LAlignSelf
-                   , 'S.LBorder
+                   , 'S.LBorderBottom
+                   , 'S.LBorderLeft
+                   , 'S.LBorderRight
+                   , 'S.LBorderTop
                    , 'S.LBottom
                    , 'S.LDisplay
                    , 'S.LFlex
@@ -66,10 +69,10 @@ type LayoutClass = [ 'S.ModelModule
                    , 'S.LMaxWidth
                    , 'S.LMinHeight
                    , 'S.LMinWidth
+                   , 'S.LObjectFit
+                   , 'S.LObjectPosition
                    , 'S.LOrder
                    , 'S.LOverflow
-                   , 'S.LOverflowX
-                   , 'S.LOverflowY
                    , 'S.LPadding
                    , 'S.LRight
                    , 'S.LTop
@@ -80,7 +83,10 @@ type LayoutClass = [ 'S.ModelModule
 type instance FieldType 'S.LAlignContent = Maybe String
 type instance FieldType 'S.LAlignItems = Maybe String
 type instance FieldType 'S.LAlignSelf = Maybe String
-type instance FieldType 'S.LBorder = Maybe String
+type instance FieldType 'S.LBorderBottom = Maybe String
+type instance FieldType 'S.LBorderLeft = Maybe String
+type instance FieldType 'S.LBorderRight = Maybe String
+type instance FieldType 'S.LBorderTop = Maybe String
 type instance FieldType 'S.LBottom = Maybe String
 type instance FieldType 'S.LDisplay = Maybe String
 type instance FieldType 'S.LFlex = Maybe String
@@ -104,10 +110,10 @@ type instance FieldType 'S.LMaxHeight = Maybe String
 type instance FieldType 'S.LMaxWidth = Maybe String
 type instance FieldType 'S.LMinHeight = Maybe String
 type instance FieldType 'S.LMinWidth = Maybe String
+type instance FieldType 'S.LObjectFit = Maybe String
+type instance FieldType 'S.LObjectPosition = Maybe String
 type instance FieldType 'S.LOrder = Maybe String
 type instance FieldType 'S.LOverflow = Maybe String
-type instance FieldType 'S.LOverflowX = Maybe String
-type instance FieldType 'S.LOverflowY = Maybe String
 type instance FieldType 'S.LPadding = Maybe String
 type instance FieldType 'S.LRight = Maybe String
 type instance FieldType 'S.LTop = Maybe String
@@ -120,15 +126,18 @@ type instance WidgetFields 'LayoutType = LayoutClass
 -- | A record representing a widget of the Layour class from IPython
 defaultLayoutWidget :: Rec Attr LayoutClass
 defaultLayoutWidget = (S.SModelModule =:! "@jupyter-widgets/base")
-                      :& (S.SModelModuleVersion =:! "1.1.0")
+                      :& (S.SModelModuleVersion =:! "2.0.0")
                       :& (S.SModelName =:! "LayoutModel")
                       :& (S.SViewModule =:! "@jupyter-widgets/base")
-                      :& (S.SViewModuleVersion =:! "1.1.0")
+                      :& (S.SViewModuleVersion =:! "2.0.0")
                       :& (S.SViewName =:! "LayoutView")
                       :& (AlignContent =:. (Nothing, venum alignContentProps))
                       :& (AlignItems =:. (Nothing, venum alignItemProps))
                       :& (AlignSelf =:. (Nothing, venum alignSelfProps))
-                      :& (Border =:: Nothing)
+                      :& (BorderBottom =:: Nothing)
+                      :& (BorderLeft =:: Nothing)
+                      :& (BorderRight =:: Nothing)
+                      :& (BorderTop =:: Nothing)
                       :& (Bottom =:: Nothing)
                       :& (Display =:: Nothing)
                       :& (Flex =:: Nothing)
@@ -152,10 +161,10 @@ defaultLayoutWidget = (S.SModelModule =:! "@jupyter-widgets/base")
                       :& (MaxWidth =:: Nothing)
                       :& (MinHeight =:: Nothing)
                       :& (MinWidth =:: Nothing)
+                      :& (ObjectFit =:: Nothing)
+                      :& (ObjectPosition =:: Nothing)
                       :& (Order =:: Nothing)
                       :& (Overflow =:. (Nothing, venum overflowProps))
-                      :& (OverflowX =:. (Nothing, venum overflowProps))
-                      :& (OverflowY =:. (Nothing, venum overflowProps))
                       :& (Padding =:: Nothing)
                       :& (Right =:: Nothing)
                       :& (Top =:: Nothing)

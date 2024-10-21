@@ -36,7 +36,13 @@ mkButtonStyle = do
 
   let stl = defaultStyleWidget "ButtonStyleModel"
       but = (ButtonColor =:: Nothing)
+            :& (FontFamily =:: Nothing)
+            :& (FontSize =:: Nothing)
+            :& (FontStyle =:: Nothing)
+            :& (FontVariant =:: Nothing)
             :& (FontWeight =:: DefaultWeight)
+            :& (TextColor =:: Nothing)
+            :& (TextDecoration =:: Nothing)
             :& RNil
       btnStlState = WidgetState (stl <+> but)
 
