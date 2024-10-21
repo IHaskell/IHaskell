@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -31,7 +32,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'BoundedIntText' represents an BoundedIntText widget from IPython.html.widgets.
-type BoundedIntText = IPythonWidget 'BoundedIntTextType
+type BoundedIntText = IPythonWidget BoundedIntTextType
 
 -- | Create a new widget
 mkBoundedIntText :: IO BoundedIntText
@@ -42,9 +43,9 @@ mkBoundedIntText = do
   dstyle <- mkDescriptionStyle
 
   let boundedIntAttrs = defaultBoundedIntWidget "IntTextView" "BoundedIntTextModel" layout $ StyleWidget dstyle
-      textAttrs = (Disabled =:: False)
-                  :& (ContinuousUpdate =:: False)
-                  :& (StepInt =:: Just 1)
+      textAttrs = (F @Disabled =:: False)
+                  :& (F @ContinuousUpdate =:: False)
+                  :& (F @StepInt =:: Just 1)
                   :& RNil
       widgetState = WidgetState $ boundedIntAttrs <+> textAttrs
 
@@ -63,6 +64,6 @@ instance IHaskellWidget BoundedIntText where
   comm widget val _ =
     case nestedObjectLookup val ["state", "value"] of
       Just (Number value) -> do
-        void $ setField' widget IntValue (Sci.coefficient value)
+        void $ setField' @IntValue widget (Sci.coefficient value)
         triggerChange widget
       _ -> pure ()

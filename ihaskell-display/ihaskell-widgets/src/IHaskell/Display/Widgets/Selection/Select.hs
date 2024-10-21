@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -31,7 +32,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'Select' represents a Select widget from IPython.html.widgets.
-type Select = IPythonWidget 'SelectType
+type Select = IPythonWidget SelectType
 
 -- | Create a new Select widget
 mkSelect :: IO Select
@@ -42,7 +43,7 @@ mkSelect = do
   dstyle <- mkDescriptionStyle
 
   let selectionAttrs = defaultSelectionWidget "SelectView" "SelectModel" layout $ StyleWidget dstyle
-      selectAttrs = (Rows =:: Just 5)
+      selectAttrs = (F @Rows =:: Just 5)
                     :& RNil
       widgetState = WidgetState $ selectionAttrs <+> selectAttrs
 
@@ -61,6 +62,6 @@ instance IHaskellWidget Select where
   comm widget val _ =
     case nestedObjectLookup val ["state", "index"] of
       Just (Number index) -> do
-        void $ setField' widget OptionalIndex (Just $ Sci.coefficient index)
+        void $ setField' @OptionalIndex widget (Just $ Sci.coefficient index)
         triggerSelection widget
       _ -> pure ()

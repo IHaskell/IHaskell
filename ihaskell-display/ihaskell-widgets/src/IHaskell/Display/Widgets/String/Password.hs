@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -29,7 +30,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'PasswordWidget' represents a Password widget from IPython.html.widgets.
-type PasswordWidget = IPythonWidget 'PasswordType
+type PasswordWidget = IPythonWidget PasswordType
 
 -- | Create a new Password widget
 mkPassword :: IO PasswordWidget
@@ -55,7 +56,7 @@ instance IHaskellWidget PasswordWidget where
   getCommUUID = uuid
   comm tw val _ = do
     case nestedObjectLookup val ["state", "value"] of
-      Just (String value) -> setField' tw StringValue value >> triggerChange tw
+      Just (String value) -> setField' @StringValue tw value >> triggerChange tw
       _                 -> pure ()
     case nestedObjectLookup val ["content", "event"] of
       Just (String event) -> when (event == "submit") $ triggerSubmit tw

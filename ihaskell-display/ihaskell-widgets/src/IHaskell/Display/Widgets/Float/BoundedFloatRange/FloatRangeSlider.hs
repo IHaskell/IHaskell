@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -32,7 +33,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'FloatRangeSlider' represents an FloatRangeSlider widget from IPython.html.widgets.
-type FloatRangeSlider = IPythonWidget 'FloatRangeSliderType
+type FloatRangeSlider = IPythonWidget FloatRangeSliderType
 
 -- | Create a new widget
 mkFloatRangeSlider :: IO FloatRangeSlider
@@ -43,12 +44,12 @@ mkFloatRangeSlider = do
   dstyle <- mkDescriptionStyle
 
   let boundedFloatAttrs = defaultBoundedFloatRangeWidget "FloatRangeSliderView" "FloatRangeSliderModel" layout $ StyleWidget dstyle
-      sliderAttrs = (StepFloat =:: Just 0.1)
-                    :& (Orientation =:: HorizontalOrientation)
-                    :& (ReadOut =:: True)
-                    :& (ReadOutFormat =:: ".2f")
-                    :& (ContinuousUpdate =:: True)
-                    :& (Disabled =:: False)
+      sliderAttrs = (F @StepFloat =:: Just 0.1)
+                    :& (F @Orientation =:: HorizontalOrientation)
+                    :& (F @ReadOut =:: True)
+                    :& (F @ReadOutFormat =:: ".2f")
+                    :& (F @ContinuousUpdate =:: True)
+                    :& (F @Disabled =:: False)
                     :& RNil
       widgetState = WidgetState $ boundedFloatAttrs <+> sliderAttrs
 
@@ -69,7 +70,7 @@ instance IHaskellWidget FloatRangeSlider where
       Just (Array values) ->
         case map (\(Number x) -> Sci.toRealFloat x) $ V.toList values of
           [x, y] -> do
-            void $ setField' widget FloatPairValue (x, y)
+            void $ setField' @FloatPairValue widget (x, y)
             triggerChange widget
           _ -> pure ()
       _ -> pure ()

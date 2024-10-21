@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -27,7 +28,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'HTMLWidget' represents a HTML widget from IPython.html.widgets.
-type HTMLWidget = IPythonWidget 'HTMLType
+type HTMLWidget = IPythonWidget HTMLType
 
 -- | Create a new HTML widget
 mkHTML :: IO HTMLWidget

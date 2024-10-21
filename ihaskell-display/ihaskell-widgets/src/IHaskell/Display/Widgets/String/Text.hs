@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -29,7 +30,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'TextWidget' represents a Text widget from IPython.html.widgets.
-type TextWidget = IPythonWidget 'TextType
+type TextWidget = IPythonWidget TextType
 
 -- | Create a new Text widget
 mkText :: IO TextWidget
@@ -56,7 +57,7 @@ instance IHaskellWidget TextWidget where
   -- Two possibilities: 1. content -> event -> "submit" 2. state -> value -> <new_value>
   comm tw val _ = do
     case nestedObjectLookup val ["state", "value"] of
-      Just (String value) -> setField' tw StringValue value >> triggerChange tw
+      Just (String value) -> setField' @StringValue tw value >> triggerChange tw
       _                 -> pure ()
     case nestedObjectLookup val ["content", "event"] of
       Just (String event) -> when (event == "submit") $ triggerSubmit tw

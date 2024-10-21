@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -25,7 +26,7 @@ import           IHaskell.IPython.Message.UUID as U
 import           IHaskell.Display.Widgets.Types
 
 -- | A 'DescriptionStyle' represents a Button Style from IPython.html.widgets.
-type DescriptionStyle = IPythonWidget 'DescriptionStyleType
+type DescriptionStyle = IPythonWidget DescriptionStyleType
 
 -- | Create a new button style
 mkDescriptionStyle :: IO DescriptionStyle

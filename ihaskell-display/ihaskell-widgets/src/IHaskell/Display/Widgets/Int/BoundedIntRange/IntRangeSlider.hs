@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -32,7 +33,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'IntRangeSlider' represents an IntRangeSlider widget from IPython.html.widgets.
-type IntRangeSlider = IPythonWidget 'IntRangeSliderType
+type IntRangeSlider = IPythonWidget IntRangeSliderType
 
 -- | Create a new widget
 mkIntRangeSlider :: IO IntRangeSlider
@@ -43,12 +44,12 @@ mkIntRangeSlider = do
   dstyle <- mkDescriptionStyle
 
   let boundedIntAttrs = defaultBoundedIntRangeWidget "IntRangeSliderView" "IntRangeSliderModel" layout $ StyleWidget dstyle
-      sliderAttrs = (StepInt =:: Just 1)
-                    :& (Orientation =:: HorizontalOrientation)
-                    :& (ReadOut =:: True)
-                    :& (ReadOutFormat =:: "d")
-                    :& (ContinuousUpdate =:: True)
-                    :& (Disabled =:: False)
+      sliderAttrs = (F @StepInt =:: Just 1)
+                    :& (F @Orientation =:: HorizontalOrientation)
+                    :& (F @ReadOut =:: True)
+                    :& (F @ReadOutFormat =:: "d")
+                    :& (F @ContinuousUpdate =:: True)
+                    :& (F @Disabled =:: False)
                     :& RNil
       widgetState = WidgetState $ boundedIntAttrs <+> sliderAttrs
 
@@ -69,7 +70,7 @@ instance IHaskellWidget IntRangeSlider where
       Just (Array values) ->
         case map (\(Number x) -> Sci.coefficient x) $ V.toList values of
           [x, y] -> do
-            void $ setField' widget IntPairValue (x, y)
+            void $ setField' @IntPairValue widget (x, y)
             triggerChange widget
           _ -> pure ()
       _ -> pure ()

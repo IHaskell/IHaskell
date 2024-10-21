@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -24,10 +25,10 @@ import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
-import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Common as C
 
 -- | A 'ButtonStyle' represents a Button Style from IPython.html.widgets.
-type ButtonStyle = IPythonWidget 'ButtonStyleType
+type ButtonStyle = IPythonWidget ButtonStyleType
 
 -- | Create a new button style
 mkButtonStyle :: IO ButtonStyle
@@ -35,14 +36,14 @@ mkButtonStyle = do
   wid <- U.random
 
   let stl = defaultStyleWidget "ButtonStyleModel"
-      but = (ButtonColor =:: Nothing)
-            :& (FontFamily =:: Nothing)
-            :& (FontSize =:: Nothing)
-            :& (FontStyle =:: Nothing)
-            :& (FontVariant =:: Nothing)
-            :& (FontWeight =:: DefaultWeight)
-            :& (TextColor =:: Nothing)
-            :& (TextDecoration =:: Nothing)
+      but = (F @ButtonColor =:: Nothing)
+            :& (F @FontFamily =:: Nothing)
+            :& (F @FontSize =:: Nothing)
+            :& (F @FontStyle =:: Nothing)
+            :& (F @FontVariant =:: Nothing)
+            :& (F @FontWeight =:: DefaultWeight)
+            :& (F @TextColor =:: Nothing)
+            :& (F @TextDecoration =:: Nothing)
             :& RNil
       btnStlState = WidgetState (stl <+> but)
 

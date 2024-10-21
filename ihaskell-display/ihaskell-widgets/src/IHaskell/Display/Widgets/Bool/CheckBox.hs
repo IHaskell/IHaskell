@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -30,7 +31,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'CheckBox' represents a Checkbox widget from IPython.html.widgets.
-type CheckBox = IPythonWidget 'CheckBoxType
+type CheckBox = IPythonWidget CheckBoxType
 
 -- | Create a new output widget
 mkCheckBox :: IO CheckBox
@@ -41,7 +42,7 @@ mkCheckBox = do
   dstyle <- mkDescriptionStyle
 
   let boolAttrs = defaultBoolWidget "CheckboxView" "CheckboxModel" layout $ StyleWidget dstyle
-      checkBoxAttrs = (Indent =:: True)
+      checkBoxAttrs = (F @Indent =:: True)
                       :& RNil
       widgetState = WidgetState $ boolAttrs <+> checkBoxAttrs
 
@@ -60,6 +61,6 @@ instance IHaskellWidget CheckBox where
   comm widget val _ =
     case nestedObjectLookup val ["state", "value"] of
       Just (Bool value) -> do
-        void $ setField' widget BoolValue value
+        void $ setField' @BoolValue widget value
         triggerChange widget
       _ -> pure ()

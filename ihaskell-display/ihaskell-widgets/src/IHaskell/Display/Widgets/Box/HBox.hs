@@ -26,7 +26,7 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'HBox' represents a HBox widget from IPython.html.widgets.
-type HBox = IPythonWidget 'HBoxType
+type HBox = IPythonWidget HBoxType
 
 -- | Create a new HBox
 mkHBox :: IO HBox

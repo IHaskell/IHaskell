@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -27,7 +28,7 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
 -- | A 'ToggleButtonsStyle' represents a Button Style from IPython.html.widgets.
-type ToggleButtonsStyle = IPythonWidget 'ToggleButtonsStyleType
+type ToggleButtonsStyle = IPythonWidget ToggleButtonsStyleType
 
 -- | Create a new button style
 mkToggleButtonsStyle :: IO ToggleButtonsStyle
@@ -35,8 +36,8 @@ mkToggleButtonsStyle = do
   wid <- U.random
 
   let stl = defaultDescriptionStyleWidget "ToggleButtonsStyleModel"
-      but = (ButtonWidth =:: "")
-            :& (FontWeight =:: DefaultWeight)
+      but = (F @ButtonWidth =:: "")
+            :& (F @FontWeight =:: DefaultWeight)
             :& RNil
       btnStlState = WidgetState (stl <+> but)
 

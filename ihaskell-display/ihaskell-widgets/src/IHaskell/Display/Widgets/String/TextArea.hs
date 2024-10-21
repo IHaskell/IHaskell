@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -29,7 +30,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'TextArea' represents a Textarea widget from IPython.html.widgets.
-type TextArea = IPythonWidget 'TextAreaType
+type TextArea = IPythonWidget TextAreaType
 
 -- | Create a new TextArea widget
 mkTextArea :: IO TextArea
@@ -40,10 +41,10 @@ mkTextArea = do
   dstyle <- mkDescriptionStyle
 
   let strAttrs = defaultStringWidget "TextareaView" "TextareaModel" layout $ StyleWidget dstyle
-      wgtAttrs = (Rows =:: Nothing)
-                 :& (Disabled =:: False)
-                 :& (ContinuousUpdate =:: True)
-                 :& (ChangeHandler =:: return ())
+      wgtAttrs = (F @Rows =:: Nothing)
+                 :& (F @Disabled =:: False)
+                 :& (F @ContinuousUpdate =:: True)
+                 :& (F @ChangeHandler =:: return ())
                  :& RNil
       widgetState = WidgetState $ strAttrs <+> wgtAttrs
 
@@ -62,6 +63,6 @@ instance IHaskellWidget TextArea where
   comm widget val _ =
     case nestedObjectLookup val ["state", "value"] of
       Just (String value) -> do
-        void $ setField' widget StringValue value
+        void $ setField' @StringValue widget value
         triggerChange widget
       _ -> pure ()

@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -29,7 +30,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'ColorPicker' represents a ColorPicker from IPython.html.widgets.
-type ColorPicker = IPythonWidget 'ColorPickerType
+type ColorPicker = IPythonWidget ColorPickerType
 
 -- | Create a new ColorPicker
 mkColorPicker :: IO ColorPicker
@@ -40,10 +41,10 @@ mkColorPicker = do
   dstyle <- mkDescriptionStyle
 
   let ddw = defaultDescriptionWidget "ColorPickerView" "ColorPickerModel" layout $ StyleWidget dstyle
-      color = (StringValue =:: "black")
-              :& (Concise =:: False)
-              :& (Disabled =:: False)
-              :& (ChangeHandler =:: return ())
+      color = (F @StringValue =:: "black")
+              :& (F @Concise =:: False)
+              :& (F @Disabled =:: False)
+              :& (F @ChangeHandler =:: return ())
               :& RNil
       colorPickerState = WidgetState (ddw <+> color)
 
@@ -62,6 +63,6 @@ instance IHaskellWidget ColorPicker where
   comm widget val _ =
     case nestedObjectLookup val ["state", "value"] of
       Just o -> case fromJSON o of
-        Success (String color) -> setField' widget StringValue color >> triggerChange widget
+        Success (String color) -> setField' @StringValue widget color >> triggerChange widget
         _ -> pure ()
       _ -> pure ()

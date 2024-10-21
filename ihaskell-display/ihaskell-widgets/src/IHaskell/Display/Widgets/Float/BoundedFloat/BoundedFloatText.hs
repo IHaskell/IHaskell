@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -31,7 +32,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'BoundedFloatText' represents an BoundedFloatText widget from IPython.html.widgets.
-type BoundedFloatText = IPythonWidget 'BoundedFloatTextType
+type BoundedFloatText = IPythonWidget BoundedFloatTextType
 
 -- | Create a new widget
 mkBoundedFloatText :: IO BoundedFloatText
@@ -42,9 +43,9 @@ mkBoundedFloatText = do
   dstyle <- mkDescriptionStyle
 
   let boundedFloatAttrs = defaultBoundedFloatWidget "FloatTextView" "BoundedFloatTextModel" layout $ StyleWidget dstyle
-      textAttrs = (Disabled =:: False)
-                  :& (ContinuousUpdate =:: False)
-                  :& (StepFloat =:: Nothing)
+      textAttrs = (F @Disabled =:: False)
+                  :& (F @ContinuousUpdate =:: False)
+                  :& (F @StepFloat =:: Nothing)
                   :& RNil
       widgetState = WidgetState $ boundedFloatAttrs <+> textAttrs
 
@@ -63,6 +64,6 @@ instance IHaskellWidget BoundedFloatText where
   comm widget val _ =
     case nestedObjectLookup val ["state", "value"] of
       Just (Number value) -> do
-        void $ setField' widget FloatValue (Sci.toRealFloat value)
+        void $ setField' @FloatValue widget (Sci.toRealFloat value)
         triggerChange widget
       _ -> pure ()

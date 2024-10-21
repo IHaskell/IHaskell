@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -27,7 +28,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'LabelWidget' represents a Label widget from IPython.html.widgets.
-type LabelWidget = IPythonWidget 'LabelType
+type LabelWidget = IPythonWidget LabelType
 
 -- | Create a new Label widget
 mkLabel :: IO LabelWidget

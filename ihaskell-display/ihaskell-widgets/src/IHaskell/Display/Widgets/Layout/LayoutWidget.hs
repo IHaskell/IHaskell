@@ -26,7 +26,7 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Layout.Types
 
 -- | A 'Layout' represents a Layout from IPython.html.widgets.
-type Layout = IPythonWidget 'LayoutType
+type Layout = IPythonWidget LayoutType
 
 -- | Create a new Layout
 mkLayout :: IO Layout

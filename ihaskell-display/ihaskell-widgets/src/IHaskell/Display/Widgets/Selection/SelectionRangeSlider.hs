@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -32,7 +33,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'SelectionRangeSlider' represents a SelectionSlider widget from IPyhon.widgets
-type SelectionRangeSlider = IPythonWidget 'SelectionRangeSliderType
+type SelectionRangeSlider = IPythonWidget SelectionRangeSliderType
 
 -- | Create a new SelectionRangeSlider widget
 mkSelectionRangeSlider :: IO SelectionRangeSlider
@@ -42,11 +43,11 @@ mkSelectionRangeSlider = do
   dstyle <- mkDescriptionStyle
 
   let selectionAttrs = defaultMultipleSelectionWidget "SelectionRangeSliderView" "SelectionRangeSliderModel" layout $ StyleWidget dstyle
-      selectionRangeSliderAttrs = (Orientation =:: HorizontalOrientation)
-                                  :& (ReadOut =:: True)
-                                  :& (ContinuousUpdate =:: True)
+      selectionRangeSliderAttrs = (F @Orientation =:: HorizontalOrientation)
+                                  :& (F @ReadOut =:: True)
+                                  :& (F @ContinuousUpdate =:: True)
                                   :& RNil
-      widgetState = WidgetState $ rput (Indices =:. ([0,0], rangeSliderVerification)) $ selectionAttrs <+> selectionRangeSliderAttrs
+      widgetState = WidgetState $ rput (F @Indices =:. ([0,0], rangeSliderVerification)) $ selectionAttrs <+> selectionRangeSliderAttrs
 
   stateIO <- newIORef widgetState
 
@@ -64,6 +65,6 @@ instance IHaskellWidget SelectionRangeSlider where
     case nestedObjectLookup val ["state", "index"] of
       Just (Array indices) -> do
         let indicesList = map (\(Number x) -> Sci.coefficient x) $ V.toList indices
-        void $ setField' widget Indices indicesList
+        void $ setField' @Indices widget indicesList
         triggerSelection widget
       _ -> pure ()

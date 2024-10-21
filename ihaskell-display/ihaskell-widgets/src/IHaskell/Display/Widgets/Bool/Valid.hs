@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -29,7 +30,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'ValidWidget' represents a Valid widget from IPython.html.widgets.
-type ValidWidget = IPythonWidget 'ValidType
+type ValidWidget = IPythonWidget ValidType
 
 -- | Create a new output widget
 mkValid :: IO ValidWidget
@@ -40,7 +41,7 @@ mkValid = do
   dstyle <- mkDescriptionStyle
 
   let boolState = defaultBoolWidget "ValidView" "ValidModel" layout $ StyleWidget dstyle
-      validState = (ReadOutMsg =:: "") :& RNil
+      validState = (F @ReadOutMsg =:: "") :& RNil
       widgetState = WidgetState $ boolState <+> validState
 
   stateIO <- newIORef widgetState

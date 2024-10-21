@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -27,7 +28,7 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
 -- | A 'SliderStyle' represents a Button Style from IPython.html.widgets.
-type SliderStyle = IPythonWidget 'SliderStyleType
+type SliderStyle = IPythonWidget SliderStyleType
 
 -- | Create a new button style
 mkSliderStyle :: IO SliderStyle
@@ -35,7 +36,7 @@ mkSliderStyle = do
   wid <- U.random
 
   let stl = defaultDescriptionStyleWidget "SliderStyleModel"
-      but = (HandleColor =:: Nothing)
+      but = (F @HandleColor =:: Nothing)
             :& RNil
       btnStlState = WidgetState (stl <+> but)
 

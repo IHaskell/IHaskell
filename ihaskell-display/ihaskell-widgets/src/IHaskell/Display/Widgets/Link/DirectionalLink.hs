@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -28,7 +29,7 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
 -- | An 'DirectionalLink' represents a DirectionalLink widget from IPython.html.widgets.
-type DirectionalLink = IPythonWidget 'DirectionalLinkType
+type DirectionalLink = IPythonWidget DirectionalLinkType
 
 -- | Create a new DirectionalLink widget
 mkDirectionalLink :: IO DirectionalLink
@@ -52,8 +53,8 @@ mkDirectionalLink = do
 jsdlink :: WidgetFieldPair -> WidgetFieldPair -> IO DirectionalLink
 jsdlink wfp1 wfp2 = do
   dlink <- mkDirectionalLink
-  _ <- setField dlink Source wfp1
-  _ <- setField dlink Target wfp2
+  _ <- setField @Source dlink wfp1
+  _ <- setField @Target dlink wfp2
   return dlink
 
 instance IHaskellWidget DirectionalLink where

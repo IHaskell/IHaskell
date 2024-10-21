@@ -26,7 +26,7 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'Box' represents a Box widget from IPython.html.widgets.
-type Box = IPythonWidget 'BoxType
+type Box = IPythonWidget BoxType
 
 -- | Create a new box
 mkBox :: IO Box
