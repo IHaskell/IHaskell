@@ -1,8 +1,9 @@
 # IPython widget messaging specification version 2
 
-The model implemented is the Model State v8, for ipywidgets 7.4., @jupyter-widgets/base 1.1., and @jupyter-widgets/controls 1.4.*.
+The model implemented is the Model State v8, for ipywidgets 8.0., @jupyter-widgets/base 2.0.0, and @jupyter-widgets/controls 2.0.0.
 
-> Largely based on: https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/messages.md
+> Largely based on: https://github.com/jupyter-widgets/ipywidgets/blob/main/packages/schema/jupyterwidgetmodels.v8.md
+> and https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/messages.md
 
 > The messaging specification as detailed is riddled with assumptions the IHaskell widget
 > implementation makes. It works for us, so it should work for everyone.

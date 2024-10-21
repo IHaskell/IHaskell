@@ -130,11 +130,11 @@ type (a :++ b) = a ++ b
 -- Classes from IPython's widget hierarchy. Defined as such to reduce code duplication.
 type CoreWidgetClass = ['S.ViewModule, 'S.ViewModuleVersion, 'S.ModelModule, 'S.ModelModuleVersion ]
 
-type DOMWidgetClass = ['S.ModelName, 'S.ViewName, 'S.DOMClasses, 'S.Tooltip, 'S.Layout, 'S.DisplayHandler]
+type DOMWidgetClass = ['S.ModelName, 'S.ViewName, 'S.DOMClasses, 'S.Tabbable, 'S.Tooltip, 'S.Layout, 'S.DisplayHandler]
 
 type StyleWidgetClass = ['S.ModelName, 'S.ViewName] :++ CoreWidgetClass
 
-type DescriptionWidgetClass = CoreWidgetClass :++ DOMWidgetClass :++ ['S.Description,'S.Style]
+type DescriptionWidgetClass = CoreWidgetClass :++ DOMWidgetClass :++ ['S.Description,'S.DescriptionAllowHtml,'S.Style]
 
 type StringClass = DescriptionWidgetClass :++ ['S.StringValue, 'S.Placeholder]
 
@@ -191,11 +191,13 @@ type instance FieldType 'S.DOMClasses = [Text]
 type instance FieldType 'S.Width = PixCount
 type instance FieldType 'S.Height = PixCount
 type instance FieldType 'S.Description = Text
+type instance FieldType 'S.DescriptionAllowHtml = Maybe Bool
 type instance FieldType 'S.ClickHandler = IO ()
 type instance FieldType 'S.SubmitHandler = IO ()
 type instance FieldType 'S.Disabled = Bool
 type instance FieldType 'S.StringValue = Text
 type instance FieldType 'S.Placeholder = Text
+type instance FieldType 'S.Tabbable = Maybe Bool
 type instance FieldType 'S.Tooltip = Maybe Text
 type instance FieldType 'S.Icon = Text
 type instance FieldType 'S.ButtonStyle = ButtonStyleValue
@@ -258,7 +260,13 @@ type instance FieldType 'S.Timestamp = Double
 type instance FieldType 'S.Buttons = [IPythonWidget 'ControllerButtonType]
 type instance FieldType 'S.Axes = [IPythonWidget 'ControllerAxisType]
 type instance FieldType 'S.ButtonColor = Maybe String
+type instance FieldType 'S.FontFamily = Maybe String
+type instance FieldType 'S.FontSize = Maybe String
+type instance FieldType 'S.FontStyle = Maybe String
+type instance FieldType 'S.FontVariant = Maybe String
 type instance FieldType 'S.FontWeight = FontWeightValue
+type instance FieldType 'S.TextColor = Maybe String
+type instance FieldType 'S.TextDecoration = Maybe String
 type instance FieldType 'S.DescriptionWidth = String
 type instance FieldType 'S.BarColor = Maybe String
 type instance FieldType 'S.HandleColor = Maybe String
@@ -452,8 +460,7 @@ type instance WidgetFields 'ControllerAxisType = CoreWidgetClass :++ DOMWidgetCl
 type instance WidgetFields 'ControllerButtonType = CoreWidgetClass :++ DOMWidgetClass :++ [ 'S.FloatValue, 'S.Pressed, 'S.ChangeHandler ]
 type instance WidgetFields 'LinkType = LinkClass
 type instance WidgetFields 'DirectionalLinkType = LinkClass
-
-type instance WidgetFields 'ButtonStyleType = StyleWidgetClass :++ ['S.ButtonColor, 'S.FontWeight]
+type instance WidgetFields 'ButtonStyleType = StyleWidgetClass :++ ['S.ButtonColor, 'S.FontFamily, 'S.FontSize, 'S.FontStyle, 'S.FontVariant, 'S.FontWeight, 'S.TextColor, 'S.TextDecoration]
 type instance WidgetFields 'DescriptionStyleType = DescriptionStyleClass
 type instance WidgetFields 'ProgressStyleType = DescriptionStyleClass :++ '[ 'S.BarColor ]
 type instance WidgetFields 'SliderStyleType = DescriptionStyleClass :++ '[ 'S.HandleColor ]
@@ -565,9 +572,9 @@ reflect = fromSing
 -- | A record representing a Widget class from IPython from the controls modules
 defaultCoreWidget :: Rec Attr CoreWidgetClass
 defaultCoreWidget = (ViewModule =:! "@jupyter-widgets/controls")
-                    :& (ViewModuleVersion =:! "1.4.0")
+                    :& (ViewModuleVersion =:! "2.0.0")
                     :& (ModelModule =:! "@jupyter-widgets/controls")
-                    :& (ModelModuleVersion =:! "1.4.0")
+                    :& (ModelModuleVersion =:! "2.0.0")
                     :& RNil
 
 -- | A record representing an object of the DOMWidget class from IPython
@@ -575,6 +582,7 @@ defaultDOMWidget :: FieldType 'S.ViewName -> FieldType 'S.ModelName -> IPythonWi
 defaultDOMWidget viewName modelName layout = (ModelName =:! modelName)
                                       :& (ViewName =:! viewName)
                                       :& (DOMClasses =:: [])
+                                      :& (Tabbable =:: Nothing)
                                       :& (Tooltip =:: Nothing)
                                       :& (Layout =:: layout)
                                       :& (DisplayHandler =:: return ())
@@ -589,6 +597,7 @@ defaultDescriptionWidget :: FieldType 'S.ViewName
 defaultDescriptionWidget v m l d = defaultCoreWidget <+> defaultDOMWidget v m l <+> descriptionAttrs
   where
     descriptionAttrs = (Description =:: "")
+                       :& (DescriptionAllowHtml =:: Nothing)
                        :& (Style =:: d)
                        :& RNil
 
@@ -821,9 +830,9 @@ defaultStyleWidget :: FieldType 'S.ModelName -> Rec Attr StyleWidgetClass
 defaultStyleWidget modelName = (ModelName =:! modelName)
                               :& (ViewName =:! "StyleView")
                               :& (ViewModule =:! "@jupyter-widgets/base")
-                              :& (ViewModuleVersion =:! "1.1.0")
+                              :& (ViewModuleVersion =:! "2.0.0")
                               :& (ModelModule =:! "@jupyter-widgets/controls")
-                              :& (ModelModuleVersion =:! "1.4.0")
+                              :& (ModelModuleVersion =:! "2.0.0")
                               :& RNil
 
 -- | A record representing a widget of the DescriptionStyle class from IPython
