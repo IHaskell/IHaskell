@@ -56,6 +56,8 @@ pattern Width = S.SWidth
 pattern Height = S.SHeight
 -- | Description of the control
 pattern Description = S.SDescription
+-- | Allow html in description
+pattern DescriptionAllowHtml = S.SDescriptionAllowHtml
 -- | Method to be called on click
 pattern ClickHandler = S.SClickHandler
 -- | Method to be called on submit
@@ -68,6 +70,8 @@ pattern StringValue = S.SStringValue
 pattern Placeholder = S.SPlaceholder
 -- | Tooltip for the description
 pattern Tooltip = S.STooltip
+-- | Is the widget tabbable?
+pattern Tabbable = S.STabbable
 -- | The font-awesome icon without the fa-
 pattern Icon = S.SIcon
 -- | Predefined styling for the button
@@ -190,8 +194,20 @@ pattern Buttons = S.SButtons
 pattern Axes = S.SAxes
 -- | Color of the button
 pattern ButtonColor = S.SButtonColor
+-- | The font family of the text
+pattern FontFamily = S.SFontFamily
 -- | The font weight of the text
+pattern FontSize = S.SFontSize
+-- | The font style of the text
+pattern FontStyle = S.SFontStyle
+-- | The font variant of the text
+pattern FontVariant = S.SFontVariant
+-- | The text color of the text
 pattern FontWeight = S.SFontWeight
+-- | The font size of the text
+pattern TextColor = S.STextColor
+-- | The text decoration of the text
+pattern TextDecoration = S.STextDecoration
 -- | Width of the description to the side of the control
 pattern DescriptionWidth = S.SDescriptionWidth
 -- | Color of the progress bar
