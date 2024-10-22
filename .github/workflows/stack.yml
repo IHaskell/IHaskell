@@ -90,14 +90,14 @@ jobs:
 
     - name: Test
       run: |
-        stack test --stack-yaml ${{matrix.stack-yaml}}
+        stack test ihaskell --stack-yaml ${{matrix.stack-yaml}}
 
     - name: Run integration test
       run: |
         nix build .#jupyterlab
         export PATH="$(pwd)/result/bin:$(pwd)/.local/bin:$PATH"
 
-        stack install --stack-yaml ${{matrix.stack-yaml}}
+        stack install ihaskell --stack-yaml ${{matrix.stack-yaml}}
 
         ihaskell install --stack --stack-flag="--stack-yaml=$(realpath ${{matrix.stack-yaml}})"
 
