@@ -39,6 +39,7 @@ nix:
   - liblapack
   - libselinux
   - libsepol
+  - libsodium
   - libthai
   - ncurses
   - pango
