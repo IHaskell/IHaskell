@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -37,7 +38,7 @@ import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | An 'OutputWidget' represents a Output widget from IPython.html.widgets.
-type OutputWidget = IPythonWidget 'OutputType
+type OutputWidget = IPythonWidget OutputType
 
 -- | Create a new output widget
 mkOutput :: IO OutputWidget
@@ -47,12 +48,12 @@ mkOutput = do
   layout <- mkLayout
 
   let domAttrs = defaultDOMWidget "OutputView" "OutputModel" layout
-      outAttrs = (ViewModule =:! "@jupyter-widgets/output")
-                 :& (ModelModule =:! "@jupyter-widgets/output")
-                 :& (ViewModuleVersion =:! "1.0.0")
-                 :& (ModelModuleVersion =:! "1.0.0")
-                 :& (MsgID =:: "")
-                 :& (Outputs =:: [])
+      outAttrs = (F @ViewModule =:! "@jupyter-widgets/output")
+                 :& (F @ModelModule =:! "@jupyter-widgets/output")
+                 :& (F @ViewModuleVersion =:! "1.0.0")
+                 :& (F @ModelModuleVersion =:! "1.0.0")
+                 :& (F @MsgID =:: "")
+                 :& (F @Outputs =:: [])
                  :& RNil
       widgetState = WidgetState $ domAttrs <+> outAttrs
 
@@ -69,7 +70,7 @@ mkOutput = do
 -- | Appends the Text to the given Stream
 appendStd :: StreamType -> OutputWidget -> Text -> IO ()
 appendStd n out t = do
-  getField out Outputs >>= setField out Outputs . updateOutputs
+  getField @Outputs out >>= setField @Outputs out . updateOutputs
   where updateOutputs :: [OutputMsg] -> [OutputMsg]
         updateOutputs = (++[OutputStream n t])
 
@@ -84,16 +85,16 @@ appendStderr = appendStd Stderr
 -- | Clears the output widget
 clearOutput' :: OutputWidget -> IO ()
 clearOutput' w = do
-  _ <- setField w Outputs []
-  _ <- setField w MsgID ""
+  _ <- setField @Outputs w []
+  _ <- setField @MsgID w ""
   return ()
 
 -- | Appends anything displayable to an output widget
 appendDisplay :: IHaskellDisplay a => OutputWidget -> a -> IO ()
 appendDisplay o d = do
-  outputs <- getField o Outputs
+  outputs <- getField @Outputs o
   disp <- display d
-  _ <- setField o Outputs $ outputs ++ [OutputData disp]
+  _ <- setField @Outputs o $ outputs ++ [OutputData disp]
   return ()
 
 -- | Clear the output widget immediately
@@ -108,7 +109,7 @@ clearOutput_ widget = widgetClearOutput True >> clearOutput' widget
 replaceOutput :: IHaskellDisplay a => OutputWidget -> a -> IO ()
 replaceOutput widget d = do
     disp <- display d
-    setField widget Outputs [OutputData disp]
+    setField @Outputs widget [OutputData disp]
 
 instance IHaskellWidget OutputWidget where
   getCommUUID = uuid

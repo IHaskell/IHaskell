@@ -26,7 +26,7 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'GridBox' represents a GridBox widget from IPython.html.widgets.
-type GridBox = IPythonWidget 'GridBoxType
+type GridBox = IPythonWidget GridBoxType
 
 -- | Create a new GridBox
 mkGridBox :: IO GridBox

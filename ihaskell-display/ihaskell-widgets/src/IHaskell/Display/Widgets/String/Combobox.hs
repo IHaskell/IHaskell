@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -16,7 +17,7 @@ module IHaskell.Display.Widgets.String.Combobox
 import           Prelude
 
 import           Control.Monad (when)
-import           Data.Aeson
+import           Data.Aeson hiding (Options)
 import           Data.IORef (newIORef)
 import           Data.Vinyl (Rec(..), (<+>))
 
@@ -30,7 +31,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'ComboboxWidget' represents a Combobox widget from IPython.html.widgets.
-type ComboboxWidget = IPythonWidget 'ComboboxType
+type ComboboxWidget = IPythonWidget ComboboxType
 
 -- | Create a new Combobox widget
 mkCombobox :: IO ComboboxWidget
@@ -41,8 +42,8 @@ mkCombobox = do
   dstyle <- mkDescriptionStyle
 
   let txtWidget = defaultTextWidget "ComboboxView" "ComboboxModel" layout $ StyleWidget dstyle
-      boxWidget = (Options =:: [])
-                  :& (EnsureOption =:: False)
+      boxWidget = (F @Options =:: [])
+                  :& (F @EnsureOption =:: False)
                   :& RNil
       widgetState = WidgetState $ txtWidget <+> boxWidget
 
@@ -61,7 +62,7 @@ instance IHaskellWidget ComboboxWidget where
   -- Two possibilities: 1. content -> event -> "submit" 2. sync_data -> value -> <new_value>
   comm tw val _ = do
     case nestedObjectLookup val ["state", "value"] of
-      Just (String value) -> setField' tw StringValue value >> triggerChange tw
+      Just (String value) -> setField' @StringValue tw value >> triggerChange tw
       _                 -> pure ()
     case nestedObjectLookup val ["content", "event"] of
       Just (String event) -> when (event == "submit") $ triggerSubmit tw

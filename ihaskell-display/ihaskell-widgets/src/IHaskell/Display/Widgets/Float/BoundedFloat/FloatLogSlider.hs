@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -31,7 +32,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'FloatLogSlider' represents an FloatLogSlider widget from IPython.html.widgets.
-type FloatLogSlider = IPythonWidget 'FloatLogSliderType
+type FloatLogSlider = IPythonWidget FloatLogSliderType
 
 -- | Create a new widget
 mkFloatLogSlider :: IO FloatLogSlider
@@ -42,13 +43,13 @@ mkFloatLogSlider = do
   dstyle <- mkDescriptionStyle
 
   let boundedLogFloatAttrs = defaultBoundedLogFloatWidget "FloatLogSliderView" "FloatLogSliderModel" layout $ StyleWidget dstyle
-      sliderAttrs = (StepFloat =:: Just 0.1)
-                    :& (Orientation =:: HorizontalOrientation)
-                    :& (ReadOut =:: True)
-                    :& (ReadOutFormat =:: ".3g")
-                    :& (ContinuousUpdate =:: True)
-                    :& (Disabled =:: False)
-                    :& (BaseFloat =:: 10.0)
+      sliderAttrs = (F @StepFloat =:: Just 0.1)
+                    :& (F @Orientation =:: HorizontalOrientation)
+                    :& (F @ReadOut =:: True)
+                    :& (F @ReadOutFormat =:: ".3g")
+                    :& (F @ContinuousUpdate =:: True)
+                    :& (F @Disabled =:: False)
+                    :& (F @BaseFloat =:: 10.0)
                     :& RNil
       widgetState = WidgetState $ boundedLogFloatAttrs <+> sliderAttrs
 
@@ -67,6 +68,6 @@ instance IHaskellWidget FloatLogSlider where
   comm widget val _ =
     case nestedObjectLookup val ["state", "value"] of
       Just (Number value) -> do
-        void $ setField' widget FloatValue (Sci.toRealFloat value)
+        void $ setField' @FloatValue widget (Sci.toRealFloat value)
         triggerChange widget
       _ -> pure ()

@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -31,7 +32,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'SelectionSlider' represents a SelectionSlider widget from IPyhon.widgets
-type SelectionSlider = IPythonWidget 'SelectionSliderType
+type SelectionSlider = IPythonWidget SelectionSliderType
 
 -- | Create a new SelectionSLider widget
 mkSelectionSlider :: IO SelectionSlider
@@ -41,9 +42,9 @@ mkSelectionSlider = do
   dstyle <- mkDescriptionStyle
 
   let selectionAttrs = defaultSelectionNonemptyWidget "SelectionSliderView" "SelectionSliderModel" layout $ StyleWidget dstyle
-      selectionSliderAttrs = (Orientation =:: HorizontalOrientation)
-                             :& (ReadOut =:: True)
-                             :& (ContinuousUpdate =:: True)
+      selectionSliderAttrs = (F @Orientation =:: HorizontalOrientation)
+                             :& (F @ReadOut =:: True)
+                             :& (F @ContinuousUpdate =:: True)
                              :& RNil
       widgetState = WidgetState $ selectionAttrs <+> selectionSliderAttrs
 
@@ -62,6 +63,6 @@ instance IHaskellWidget SelectionSlider where
   comm widget val _ =
     case nestedObjectLookup val ["state", "index"] of
       Just (Number index) -> do
-        void $ setField' widget Index (Sci.coefficient index)
+        void $ setField' @Index widget (Sci.coefficient index)
         triggerSelection widget
       _ -> pure ()

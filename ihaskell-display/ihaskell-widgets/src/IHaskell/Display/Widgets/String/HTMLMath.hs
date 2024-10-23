@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -27,7 +28,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'HTMLMathWidget' represents a HTML Math widget from IPython.html.widgets.
-type HTMLMathWidget = IPythonWidget 'HTMLMathType
+type HTMLMathWidget = IPythonWidget HTMLMathType
 
 -- | Create a new HTML widget
 mkHTMLMath :: IO HTMLMathWidget

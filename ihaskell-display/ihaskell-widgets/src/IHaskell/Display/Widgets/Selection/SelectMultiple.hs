@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -32,7 +33,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'SelectMultiple' represents a SelectMultiple widget from IPython.html.widgets.
-type SelectMultiple = IPythonWidget 'SelectMultipleType
+type SelectMultiple = IPythonWidget SelectMultipleType
 
 -- | Create a new SelectMultiple widget
 mkSelectMultiple :: IO SelectMultiple
@@ -43,7 +44,7 @@ mkSelectMultiple = do
   dstyle <- mkDescriptionStyle
 
   let multipleSelectionAttrs = defaultMultipleSelectionWidget "SelectMultipleView" "SelectMultipleModel" layout $ StyleWidget dstyle
-      selectMultipleAttrs = (Rows =:: Just 5)
+      selectMultipleAttrs = (F @Rows =:: Just 5)
                             :& RNil
       widgetState = WidgetState $ multipleSelectionAttrs <+> selectMultipleAttrs
 
@@ -63,6 +64,6 @@ instance IHaskellWidget SelectMultiple where
     case nestedObjectLookup val ["state", "index"] of
       Just (Array indices) -> do
         let indicesList = map (\(Number x) -> Sci.coefficient x) $ V.toList indices
-        void $ setField' widget Indices indicesList
+        void $ setField' @Indices widget indicesList
         triggerSelection widget
       _ -> pure ()

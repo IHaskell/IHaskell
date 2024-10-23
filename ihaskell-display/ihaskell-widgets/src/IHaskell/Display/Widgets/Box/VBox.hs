@@ -26,7 +26,7 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'VBox' represents a VBox widget from IPython.html.widgets.
-type VBox = IPythonWidget 'VBoxType
+type VBox = IPythonWidget VBoxType
 
 -- | Create a new VBox
 mkVBox :: IO VBox

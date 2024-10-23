@@ -32,9 +32,9 @@ dwelling into the deeps of the project
 
 ### Add a new attribute
 If you want to add a new attribute you'll have to:
-1. Create a new singleton in [Singletons.hs](./Singletons.hs) inside the type `data Field`.
-2. Write the serialization key of the field as specified in the model (see [MsgSpec.md](./MsgSpec.md)) inside the `toKey` function at [Singletons.hs](./Singletons.hs)
-3. Because we use the `singletons-th` library, you have to define an alias for the attribute at [Common.hs](./Common.hs) to be able to use it at run-time more easily.
+1. Create a new data type in [Singletons.hs](./Singletons.hs).
+2. Write the serialization key of the field as specified in the model (see [MsgSpec.md](./MsgSpec.md)) inside the `ToKey` class at [Singletons.hs](./Singletons.hs)
+3. Fields that would benefit from helpers or enumerations can be handled in [Common.hs](./Common.hs).
 4. Now you have to specify the type of the field. Edit the type family `Fieldtype` at [Types.hs](./Types.hs)
 
 ### Add an attribute to a widget
@@ -65,7 +65,7 @@ You probably got this error when trying to use setField like this:
                          '[]
                          (Data.Vinyl.TypeLevel.RIndex 'ihaskell-widgets-0.3.0.0:IHaskell.Display.Widgets.Singletons.Index '[]))
         arising from a use of ‘setField’
-    • In the expression: setField select Index 0
+    • In the expression: setField @Index select 0
       In an equation for ‘it’: it = setField select Index 0
 ```
 

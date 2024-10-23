@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -28,7 +29,7 @@ import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | 'ControllerAxis' represents an ControllerAxis widget from IPython.html.widgets.
-type ControllerAxis = IPythonWidget 'ControllerAxisType
+type ControllerAxis = IPythonWidget ControllerAxisType
 
 -- | Create a new widget
 mkControllerAxis :: IO ControllerAxis
@@ -38,8 +39,8 @@ mkControllerAxis = do
   layout <- mkLayout
 
   let domAttrs = defaultCoreWidget <+> defaultDOMWidget "ControllerAxisView" "ControllerAxisModel" layout
-      axisAttrs = (FloatValue =:! 0.0)
-                  :& (ChangeHandler =:: pure ())
+      axisAttrs = (F @FloatValue =:! 0.0)
+                  :& (F @ChangeHandler =:: pure ())
                   :& RNil
       widgetState = WidgetState $ domAttrs <+> axisAttrs
 

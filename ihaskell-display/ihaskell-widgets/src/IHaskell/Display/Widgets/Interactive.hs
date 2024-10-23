@@ -8,6 +8,9 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 module IHaskell.Display.Widgets.Interactive
   ( interactive
@@ -34,7 +37,7 @@ import           IHaskell.Display
 
 import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
-import qualified IHaskell.Display.Widgets.Singletons as S (SField, Field(..))
+import qualified IHaskell.Display.Widgets.Singletons as S
 
 import           IHaskell.Display.Widgets.Box.Box
 import           IHaskell.Display.Widgets.Bool.CheckBox
@@ -170,74 +173,73 @@ liftToWidgets func rc initvals = do
 
   -- Set children for the Box
   let children = mkChildren widgets
-  setField bx Children $ children ++ [ChildWidget out]
+  setField @Children bx $ children ++ [ChildWidget out]
 
   return bx
 
 
 data WrappedWidget w h f a where
         WrappedWidget ::
-            (FieldType h ~ IO (), FieldType f ~ a, h ∈ WidgetFields w,
-             f ∈ WidgetFields w, ToPairs (Attr h),
+            forall h f w a. (FieldType h ~ IO (), FieldType f ~ a, h ∈ WidgetFields w,
+             f ∈ WidgetFields w, ToPairs (Attr h), ToKey h,
              IHaskellWidget (IPythonWidget w), ToPairs (Attr f)) =>
-            IO (IPythonWidget w) ->
-              S.SField h -> S.SField f -> WrappedWidget w h f a
+            IO (IPythonWidget w) -> WrappedWidget w h f a
 
 construct :: WrappedWidget w h f a -> IO (IPythonWidget w)
-construct (WrappedWidget cs _ _) = cs
+construct (WrappedWidget cs) = cs
 
-getValue :: WrappedWidget w h f a -> IPythonWidget w -> IO a
-getValue (WrappedWidget _ _ field) widget = getField widget field
+getValue :: forall w h f a. WrappedWidget w h f a -> IPythonWidget w -> IO a
+getValue (WrappedWidget _) widget = getField @f widget
 
-setEvent :: WrappedWidget w h f a -> IPythonWidget w -> IO () -> IO ()
-setEvent (WrappedWidget _ h _) widget = setField widget h
+setEvent :: forall w h f a. WrappedWidget w h f a -> IPythonWidget w -> IO () -> IO ()
+setEvent (WrappedWidget _) widget = setField @h widget
 
 class RecAll Attr (WidgetFields (SuitableWidget a)) ToPairs => FromWidget a where
-  type SuitableWidget a :: WidgetType
-  type SuitableHandler a :: S.Field
-  type SuitableField a :: S.Field
+  type SuitableWidget a
+  type SuitableHandler a
+  type SuitableField a
   data Argument a
   initializer :: IPythonWidget (SuitableWidget a) -> Argument a -> IO ()
   wrapped :: WrappedWidget (SuitableWidget a) (SuitableHandler a) (SuitableField a) a
 
 instance FromWidget Bool where
-  type SuitableWidget Bool = 'CheckBoxType
-  type SuitableHandler Bool = 'S.ChangeHandler
-  type SuitableField Bool = 'S.BoolValue
+  type SuitableWidget Bool = CheckBoxType
+  type SuitableHandler Bool = S.ChangeHandler
+  type SuitableField Bool = S.BoolValue
   data Argument Bool = BoolVal Bool
-  initializer w (BoolVal b) = setField w BoolValue b
-  wrapped = WrappedWidget mkCheckBox ChangeHandler BoolValue
+  initializer w (BoolVal b) = setField @BoolValue w b
+  wrapped = WrappedWidget @ChangeHandler @BoolValue mkCheckBox
 
 instance FromWidget Text where
-  type SuitableWidget Text = 'TextType
-  type SuitableHandler Text = 'S.SubmitHandler
-  type SuitableField Text = 'S.StringValue
+  type SuitableWidget Text = TextType
+  type SuitableHandler Text = S.SubmitHandler
+  type SuitableField Text = S.StringValue
   data Argument Text = TextVal Text
-  initializer w (TextVal txt) = setField w StringValue txt
-  wrapped = WrappedWidget mkText SubmitHandler StringValue
+  initializer w (TextVal txt) = setField @StringValue w txt
+  wrapped = WrappedWidget @SubmitHandler @StringValue mkText
 
 instance FromWidget Integer where
-  type SuitableWidget Integer = 'IntSliderType
-  type SuitableHandler Integer = 'S.ChangeHandler
-  type SuitableField Integer = 'S.IntValue
+  type SuitableWidget Integer = IntSliderType
+  type SuitableHandler Integer = S.ChangeHandler
+  type SuitableField Integer = S.IntValue
   data Argument Integer = IntVal Integer
                       | IntRange (Integer, Integer, Integer)
-  wrapped = WrappedWidget mkIntSlider ChangeHandler IntValue
-  initializer w (IntVal int) = setField w IntValue int
+  wrapped = WrappedWidget @ChangeHandler @IntValue mkIntSlider
+  initializer w (IntVal int) = setField @IntValue w int
   initializer w (IntRange (v, l, u)) = do
-    setField w IntValue v
-    setField w MinInt l
-    setField w MaxInt u
+    setField @IntValue w v
+    setField @MinInt w l
+    setField @MaxInt w u
 
 instance FromWidget Double where
-  type SuitableWidget Double = 'FloatSliderType
-  type SuitableHandler Double = 'S.ChangeHandler
-  type SuitableField Double = 'S.FloatValue
+  type SuitableWidget Double = FloatSliderType
+  type SuitableHandler Double = S.ChangeHandler
+  type SuitableField Double = S.FloatValue
   data Argument Double = FloatVal Double
                      | FloatRange (Double, Double, Double)
-  wrapped = WrappedWidget mkFloatSlider ChangeHandler FloatValue
-  initializer w (FloatVal d) = setField w FloatValue d
+  wrapped = WrappedWidget @ChangeHandler @FloatValue mkFloatSlider
+  initializer w (FloatVal d) = setField @FloatValue w d
   initializer w (FloatRange (v, l, u)) = do
-    setField w FloatValue v
-    setField w MinFloat l
-    setField w MaxFloat u
+    setField @FloatValue w v
+    setField @MinFloat w l
+    setField @MaxFloat w u

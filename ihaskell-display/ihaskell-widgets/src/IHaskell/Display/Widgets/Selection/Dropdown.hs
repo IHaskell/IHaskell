@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -30,7 +31,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'Dropdown' represents a Dropdown widget from IPython.html.widgets.
-type Dropdown = IPythonWidget 'DropdownType
+type Dropdown = IPythonWidget DropdownType
 
 -- | Create a new Dropdown widget
 mkDropdown :: IO Dropdown
@@ -57,6 +58,6 @@ instance IHaskellWidget Dropdown where
   comm widget val _ =
     case nestedObjectLookup val ["state", "index"] of
       Just (Number index) -> do
-        void $ setField' widget OptionalIndex (Just $ Sci.coefficient index)
+        void $ setField' @OptionalIndex widget (Just $ Sci.coefficient index)
         triggerSelection widget
       _ -> pure ()

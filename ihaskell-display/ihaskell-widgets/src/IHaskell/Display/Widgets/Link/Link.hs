@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -28,7 +29,7 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
 -- | An 'Link' represents a Link widget from IPython.html.widgets.
-type Link = IPythonWidget 'LinkType
+type Link = IPythonWidget LinkType
 
 -- | Create a new link widget
 mkLink :: IO Link
@@ -52,8 +53,8 @@ mkLink = do
 jslink :: WidgetFieldPair -> WidgetFieldPair -> IO Link
 jslink wfp1 wfp2 = do
   link <- mkLink
-  _ <- setField link Source wfp1
-  _ <- setField link Target wfp2
+  _ <- setField @Source link wfp1
+  _ <- setField @Target link wfp2
   return link
 
 instance IHaskellWidget Link where

@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -29,7 +30,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'DatePicker' represents a DatePicker from IPython.html.widgets.
-type DatePicker = IPythonWidget 'DatePickerType
+type DatePicker = IPythonWidget DatePickerType
 
 -- | Create a new DatePicker
 mkDatePicker :: IO DatePicker
@@ -40,9 +41,9 @@ mkDatePicker = do
   dstyle <- mkDescriptionStyle
 
   let ddw = defaultDescriptionWidget "DatePickerView" "DatePickerModel" layout $ StyleWidget dstyle
-      date = (DateValue =:: defaultDate)
-              :& (Disabled =:: False)
-              :& (ChangeHandler =:: return ())
+      date = (F @DateValue =:: defaultDate)
+              :& (F @Disabled =:: False)
+              :& (F @ChangeHandler =:: return ())
               :& RNil
       datePickerState = WidgetState (ddw <+> date)
 
@@ -61,6 +62,6 @@ instance IHaskellWidget DatePicker where
   comm widget val _ =
     case nestedObjectLookup val ["state", "value"] of
       Just o -> case fromJSON o of
-        Success date -> setField' widget DateValue date >> triggerChange widget
+        Success date -> setField' @DateValue widget date >> triggerChange widget
         _ -> pure ()
       _ -> pure ()

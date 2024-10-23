@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -31,7 +32,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'IntText' represents an IntText widget from IPython.html.widgets.
-type IntText = IPythonWidget 'IntTextType
+type IntText = IPythonWidget IntTextType
 
 -- | Create a new widget
 mkIntText :: IO IntText
@@ -42,9 +43,9 @@ mkIntText = do
   dstyle <- mkDescriptionStyle
 
   let intAttrs = defaultIntWidget "IntTextView" "IntTextModel" layout $ StyleWidget dstyle
-      textAttrs = (Disabled =:: False)
-                  :& (ContinuousUpdate =:: False)
-                  :& (StepInt =:: Just 1)
+      textAttrs = (F @Disabled =:: False)
+                  :& (F @ContinuousUpdate =:: False)
+                  :& (F @StepInt =:: Just 1)
                   :& RNil
       widgetState = WidgetState $ intAttrs <+> textAttrs
 
@@ -63,6 +64,6 @@ instance IHaskellWidget IntText where
   comm widget val _ =
     case nestedObjectLookup val ["state", "value"] of
       Just (Number value) -> do
-        void $ setField' widget IntValue (Sci.coefficient value)
+        void $ setField' @IntValue widget (Sci.coefficient value)
         triggerChange widget
       _ -> pure ()

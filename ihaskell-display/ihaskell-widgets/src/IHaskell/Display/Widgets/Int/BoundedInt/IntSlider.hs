@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -31,7 +32,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'IntSlider' represents an IntSlider widget from IPython.html.widgets.
-type IntSlider = IPythonWidget 'IntSliderType
+type IntSlider = IPythonWidget IntSliderType
 
 -- | Create a new widget
 mkIntSlider :: IO IntSlider
@@ -42,12 +43,12 @@ mkIntSlider = do
   dstyle <- mkDescriptionStyle
 
   let boundedIntAttrs = defaultBoundedIntWidget "IntSliderView" "IntSliderModel" layout $ StyleWidget dstyle
-      sliderAttrs = (StepInt =:: Just 1)
-                    :& (Orientation =:: HorizontalOrientation)
-                    :& (ReadOut =:: True)
-                    :& (ReadOutFormat =:: "d")
-                    :& (ContinuousUpdate =:: True)
-                    :& (Disabled =:: False)
+      sliderAttrs = (F @StepInt =:: Just 1)
+                    :& (F @Orientation =:: HorizontalOrientation)
+                    :& (F @ReadOut =:: True)
+                    :& (F @ReadOutFormat =:: "d")
+                    :& (F @ContinuousUpdate =:: True)
+                    :& (F @Disabled =:: False)
                     :& RNil
       widgetState = WidgetState $ boundedIntAttrs <+> sliderAttrs
 
@@ -66,6 +67,6 @@ instance IHaskellWidget IntSlider where
   comm widget val _ =
     case nestedObjectLookup val ["state", "value"] of
       Just (Number value) -> do
-        void $ setField' widget IntValue (Sci.coefficient value)
+        void $ setField' @IntValue widget (Sci.coefficient value)
         triggerChange widget
       _ -> pure ()

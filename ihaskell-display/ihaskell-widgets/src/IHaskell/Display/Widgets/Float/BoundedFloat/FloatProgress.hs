@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -29,7 +30,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.ProgressStyle
 
 -- | 'FloatProgress' represents an FloatProgress widget from IPython.html.widgets.
-type FloatProgress = IPythonWidget 'FloatProgressType
+type FloatProgress = IPythonWidget FloatProgressType
 
 -- | Create a new widget
 mkFloatProgress :: IO FloatProgress
@@ -40,8 +41,8 @@ mkFloatProgress = do
   pstyle <- mkProgressStyle
 
   let boundedFloatAttrs = defaultBoundedFloatWidget "ProgressView" "FloatProgressModel" layout $ StyleWidget pstyle
-      progressAttrs = (Orientation =:: HorizontalOrientation)
-                      :& (BarStyle =:: DefaultBar)
+      progressAttrs = (F @Orientation =:: HorizontalOrientation)
+                      :& (F @BarStyle =:: DefaultBar)
                       :& RNil
       widgetState = WidgetState $ boundedFloatAttrs <+> progressAttrs
 

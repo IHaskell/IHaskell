@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -29,7 +30,7 @@ import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'Accordion' represents a Accordion widget from IPython.html.widgets.
-type Accordion = IPythonWidget 'AccordionType
+type Accordion = IPythonWidget AccordionType
 
 -- | Create a new box
 mkAccordion :: IO Accordion
@@ -55,9 +56,9 @@ instance IHaskellWidget Accordion where
   comm widget val _ =
     case nestedObjectLookup val ["state", "selected_index"] of
       Just (Number num) -> do
-        void $ setField' widget SelectedIndex $ Just (Sci.coefficient num)
+        void $ setField' @SelectedIndex widget $ Just (Sci.coefficient num)
         triggerChange widget
       Just Null -> do
-        void $ setField' widget SelectedIndex Nothing
+        void $ setField' @SelectedIndex widget Nothing
         triggerChange widget
       _ -> pure ()

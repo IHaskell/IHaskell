@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -31,7 +32,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'ToggleButtons' represents a ToggleButtons widget from IPython.html.widgets.
-type ToggleButtons = IPythonWidget 'ToggleButtonsType
+type ToggleButtons = IPythonWidget ToggleButtonsType
 
 -- | Create a new ToggleButtons widget
 mkToggleButtons :: IO ToggleButtons
@@ -42,9 +43,9 @@ mkToggleButtons = do
   dstyle <- mkDescriptionStyle
 
   let selectionAttrs = defaultSelectionWidget "ToggleButtonsView" "ToggleButtonsModel" layout $ StyleWidget dstyle
-      toggleButtonsAttrs = (Tooltips =:: [])
-                           :& (Icons =:: [])
-                           :& (ButtonStyle =:: DefaultButton)
+      toggleButtonsAttrs = (F @Tooltips =:: [])
+                           :& (F @Icons =:: [])
+                           :& (F @ButtonStyleField =:: DefaultButton)
                            :& RNil
       widgetState = WidgetState $ selectionAttrs <+> toggleButtonsAttrs
 
@@ -63,6 +64,6 @@ instance IHaskellWidget ToggleButtons where
   comm widget val _ =
     case nestedObjectLookup val ["state", "index"] of
       Just (Number index) -> do
-        void $ setField' widget OptionalIndex (Just $ Sci.coefficient index)
+        void $ setField' @OptionalIndex widget (Just $ Sci.coefficient index)
         triggerSelection widget
       _ -> pure ()

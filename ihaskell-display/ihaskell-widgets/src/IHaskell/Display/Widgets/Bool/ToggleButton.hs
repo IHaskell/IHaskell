@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -30,7 +31,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | A 'ToggleButton' represents a ToggleButton widget from IPython.html.widgets.
-type ToggleButton = IPythonWidget 'ToggleButtonType
+type ToggleButton = IPythonWidget ToggleButtonType
 
 -- | Create a new output widget
 mkToggleButton :: IO ToggleButton
@@ -41,8 +42,8 @@ mkToggleButton = do
   dstyle <- mkDescriptionStyle
 
   let boolState = defaultBoolWidget "ToggleButtonView" "ToggleButtonModel" layout $ StyleWidget dstyle
-      toggleState = (Icon =:: "")
-                    :& (ButtonStyle =:: DefaultButton)
+      toggleState = (F @Icon =:: "")
+                    :& (F @ButtonStyleField =:: DefaultButton)
                     :& RNil
       widgetState = WidgetState (boolState <+> toggleState)
 
@@ -61,6 +62,6 @@ instance IHaskellWidget ToggleButton where
   comm widget val _ =
     case nestedObjectLookup val ["state", "value"] of
       Just (Bool value) -> do
-        void $ setField' widget BoolValue value
+        void $ setField' @BoolValue widget value
         triggerChange widget
       _ -> pure ()

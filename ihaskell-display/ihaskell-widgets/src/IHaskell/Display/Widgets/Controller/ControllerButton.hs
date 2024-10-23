@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -28,7 +29,7 @@ import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | 'ControllerButton' represents an ControllerButton widget from IPython.html.widgets.
-type ControllerButton = IPythonWidget 'ControllerButtonType
+type ControllerButton = IPythonWidget ControllerButtonType
 
 -- | Create a new widget
 mkControllerButton :: IO ControllerButton
@@ -38,9 +39,9 @@ mkControllerButton = do
   layout <- mkLayout
 
   let domAttrs = defaultCoreWidget <+> defaultDOMWidget "ControllerButtonView" "ControllerButtonModel" layout
-      btnAttrs = (FloatValue =:! 0.0)
-                 :& (Pressed =:! False)
-                 :& (ChangeHandler =:: pure ())
+      btnAttrs = (F @FloatValue =:! 0.0)
+                 :& (F @Pressed =:! False)
+                 :& (F @ChangeHandler =:: pure ())
                  :& RNil
       widgetState = WidgetState $ domAttrs <+> btnAttrs
 

@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -27,7 +28,7 @@ import           IHaskell.Display.Widgets.Types
 import           IHaskell.Display.Widgets.Common
 
 -- | A 'ProgressStyle' represents a Button Style from IPython.html.widgets.
-type ProgressStyle = IPythonWidget 'ProgressStyleType
+type ProgressStyle = IPythonWidget ProgressStyleType
 
 -- | Create a new button style
 mkProgressStyle :: IO ProgressStyle
@@ -35,7 +36,7 @@ mkProgressStyle = do
   wid <- U.random
 
   let stl = defaultDescriptionStyleWidget "ProgressStyleModel"
-      but = (BarColor =:: Nothing)
+      but = (F @BarColor =:: Nothing)
             :& RNil
       btnStlState = WidgetState (stl <+> but)
 

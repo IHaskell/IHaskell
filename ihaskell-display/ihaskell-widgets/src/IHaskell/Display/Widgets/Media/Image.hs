@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -24,11 +25,11 @@ import           IHaskell.Eval.Widgets
 import           IHaskell.IPython.Message.UUID as U
 
 import           IHaskell.Display.Widgets.Types
-import           IHaskell.Display.Widgets.Common
+import           IHaskell.Display.Widgets.Common as C
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | An 'ImageWidget' represents a Image widget from IPython.html.widgets.
-type ImageWidget = IPythonWidget 'ImageType
+type ImageWidget = IPythonWidget ImageType
 
 -- | Create a new image widget
 mkImage :: IO ImageWidget
@@ -38,9 +39,9 @@ mkImage = do
   layout <- mkLayout
 
   let mediaAttrs = defaultMediaWidget "ImageView" "ImageModel" layout
-      imageAttrs = (ImageFormat =:: PNG)
-                   :& (Width =:+ 0)
-                   :& (Height =:+ 0)
+      imageAttrs = (F @ImageFormat =:: PNG)
+                   :& (F @C.Width =:+ 0)
+                   :& (F @C.Height =:+ 0)
                    :& RNil
       widgetState = WidgetState (mediaAttrs <+> imageAttrs)
 

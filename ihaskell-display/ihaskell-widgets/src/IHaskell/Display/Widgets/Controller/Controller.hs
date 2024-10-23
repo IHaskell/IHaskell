@@ -3,6 +3,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE MonoLocalBinds #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -32,7 +37,7 @@ import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | 'Controller' represents an Controller widget from IPython.html.widgets.
-type Controller = IPythonWidget 'ControllerType
+type Controller = IPythonWidget ControllerType
 
 -- | Create a new widget
 mkController :: IO Controller
@@ -42,14 +47,14 @@ mkController = do
   layout <- mkLayout
 
   let domAttrs = defaultCoreWidget <+> defaultDOMWidget "ControllerView" "ControllerModel" layout
-      ctrlAttrs = (Index =:+ 0)
-                  :& (Name =:! "")
-                  :& (Mapping =:! "")
-                  :& (Connected =:! False)
-                  :& (Timestamp =:! 0.0)
-                  :& (Buttons =:! [])
-                  :& (Axes =:! [])
-                  :& (ChangeHandler =:: pure ())
+      ctrlAttrs = (F @Index =:+ 0)
+                  :& (F @Name =:! "")
+                  :& (F @Mapping =:! "")
+                  :& (F @Connected =:! False)
+                  :& (F @Timestamp =:! 0.0)
+                  :& (F @Buttons =:! [])
+                  :& (F @Axes =:! [])
+                  :& (F @ChangeHandler =:: pure ())
                   :& RNil
       widgetState = WidgetState $ domAttrs <+> ctrlAttrs
 
@@ -68,12 +73,15 @@ instance IHaskellWidget Controller where
   comm widget val _ =
     case nestedObjectLookup val ["state"] of
         Just (Object o) -> do
-            parseAndSet Name "name"
-            parseAndSet Mapping "mapping"
-            parseAndSet Connected "connected"
-            parseAndSet Timestamp "timestamp"
+            parseAndSet @Name "name"
+            parseAndSet @Mapping "mapping"
+            parseAndSet @Connected "connected"
+            parseAndSet @Timestamp "timestamp"
             triggerChange widget
-            where parseAndSet f s = case parse (.: s) o of
-                    Success x -> void $ setField' widget f x
+            where parseAndSet :: forall f. (RElemOf f (WidgetFields ControllerType),
+                                      IHaskellWidget Controller,
+                                      ToKey f, FromJSON (FieldType f)) => Key -> IO ()
+                  parseAndSet s = case parse (.: s) o of
+                    Success x -> void $ setField' @f widget x
                     _ -> pure ()
         _ -> pure ()

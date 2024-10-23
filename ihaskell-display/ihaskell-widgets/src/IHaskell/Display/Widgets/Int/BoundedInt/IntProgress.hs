@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -29,7 +30,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'IntProgress' represents an IntProgress widget from IPython.html.widgets.
-type IntProgress = IPythonWidget 'IntProgressType
+type IntProgress = IPythonWidget IntProgressType
 
 -- | Create a new widget
 mkIntProgress :: IO IntProgress
@@ -40,8 +41,8 @@ mkIntProgress = do
   dstyle <- mkDescriptionStyle
 
   let boundedIntAttrs = defaultBoundedIntWidget "ProgressView" "IntProgressModel" layout $ StyleWidget dstyle
-      progressAttrs = (Orientation =:: HorizontalOrientation)
-                      :& (BarStyle =:: DefaultBar)
+      progressAttrs = (F @Orientation =:: HorizontalOrientation)
+                      :& (F @BarStyle =:: DefaultBar)
                       :& RNil
       widgetState = WidgetState $ boundedIntAttrs <+> progressAttrs
 

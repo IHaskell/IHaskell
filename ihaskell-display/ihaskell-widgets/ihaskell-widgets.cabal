@@ -61,6 +61,11 @@ library
   exposed-modules:     IHaskell.Display.Widgets
                        IHaskell.Display.Widgets.Interactive
                        IHaskell.Display.Widgets.Layout
+                       IHaskell.Display.Widgets.Layout.Common
+                       IHaskell.Display.Widgets.Layout.LayoutWidget
+                       IHaskell.Display.Widgets.Layout.Types
+                       IHaskell.Display.Widgets.Types
+                       IHaskell.Display.Widgets.Common
 
   -- Modules included in this library but not exported.
   other-modules:       IHaskell.Display.Widgets.Button
@@ -115,13 +120,6 @@ library
                        IHaskell.Display.Widgets.Style.ProgressStyle
                        IHaskell.Display.Widgets.Style.SliderStyle
                        IHaskell.Display.Widgets.Style.ToggleButtonsStyle
-
-                       IHaskell.Display.Widgets.Layout.Common
-                       IHaskell.Display.Widgets.Layout.LayoutWidget
-                       IHaskell.Display.Widgets.Layout.Types
-
-                       IHaskell.Display.Widgets.Types
-                       IHaskell.Display.Widgets.Common
                        IHaskell.Display.Widgets.Singletons
 
   -- LANGUAGE extensions used by modules in this package.
@@ -139,13 +137,6 @@ library
                      , scientific -any
                      , unix -any
                      , ihaskell >= 0.6.4.1
-
-					 -- The singletons package version is locked to the compiler
-					 -- so let cabal choose the right one.
-                     , singletons -any
-
-  if impl (ghc >= 9.0)
-    build-depends:     singletons-base -any
 
   -- Directories containing source files.
   hs-source-dirs:      src

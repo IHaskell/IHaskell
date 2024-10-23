@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -29,7 +30,7 @@ import           IHaskell.Display.Widgets.Style.ButtonStyle
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | A 'Button' represents a Button from IPython.html.widgets.
-type Button = IPythonWidget 'ButtonType
+type Button = IPythonWidget ButtonType
 
 -- | Create a new button
 mkButton :: IO Button
@@ -40,10 +41,10 @@ mkButton = do
   btnstyle <- mkButtonStyle
 
   let ddw = defaultDescriptionWidget "ButtonView" "ButtonModel" layout $ StyleWidget btnstyle
-      but = (Disabled =:: False)
-            :& (Icon =:: "")
-            :& (ButtonStyle =:: DefaultButton)
-            :& (ClickHandler =:: return ())
+      but = (F @Disabled =:: False)
+            :& (F @Icon =:: "")
+            :& (F @ButtonStyleField =:: DefaultButton)
+            :& (F @ClickHandler =:: return ())
             :& RNil
       buttonState = WidgetState (ddw <+> but)
 

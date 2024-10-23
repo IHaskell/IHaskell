@@ -16,6 +16,7 @@
 {-# LANGUAGE AutoDeriveTypeable #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeApplications #-}
 
 module IHaskell.Display.Widgets.Layout.Types where
 
@@ -33,143 +34,143 @@ import           IHaskell.Display.Widgets.Types
 
 import           IHaskell.Display.Widgets.Layout.Common
 
-type LayoutClass = [ 'S.ModelModule
-                   , 'S.ModelModuleVersion
-                   , 'S.ModelName
-                   , 'S.ViewModule
-                   , 'S.ViewModuleVersion
-                   , 'S.ViewName
-                   , 'S.LAlignContent
-                   , 'S.LAlignItems
-                   , 'S.LAlignSelf
-                   , 'S.LBorderBottom
-                   , 'S.LBorderLeft
-                   , 'S.LBorderRight
-                   , 'S.LBorderTop
-                   , 'S.LBottom
-                   , 'S.LDisplay
-                   , 'S.LFlex
-                   , 'S.LFlexFlow
-                   , 'S.LGridArea
-                   , 'S.LGridAutoColumns
-                   , 'S.LGridAutoFlow
-                   , 'S.LGridAutoRows
-                   , 'S.LGridColumn
-                   , 'S.LGridGap
-                   , 'S.LGridRow
-                   , 'S.LGridTemplateAreas
-                   , 'S.LGridTemplateColumns
-                   , 'S.LGridTemplateRows
-                   , 'S.LHeight
-                   , 'S.LJustifyContent
-                   , 'S.LJustifyItems
-                   , 'S.LLeft
-                   , 'S.LMargin
-                   , 'S.LMaxHeight
-                   , 'S.LMaxWidth
-                   , 'S.LMinHeight
-                   , 'S.LMinWidth
-                   , 'S.LObjectFit
-                   , 'S.LObjectPosition
-                   , 'S.LOrder
-                   , 'S.LOverflow
-                   , 'S.LPadding
-                   , 'S.LRight
-                   , 'S.LTop
-                   , 'S.LVisibility
-                   , 'S.LWidth
+type LayoutClass = [ S.ModelModule
+                   , S.ModelModuleVersion
+                   , S.ModelName
+                   , S.ViewModule
+                   , S.ViewModuleVersion
+                   , S.ViewName
+                   , S.LAlignContent
+                   , S.LAlignItems
+                   , S.LAlignSelf
+                   , S.LBorderBottom
+                   , S.LBorderLeft
+                   , S.LBorderRight
+                   , S.LBorderTop
+                   , S.LBottom
+                   , S.LDisplay
+                   , S.LFlex
+                   , S.LFlexFlow
+                   , S.LGridArea
+                   , S.LGridAutoColumns
+                   , S.LGridAutoFlow
+                   , S.LGridAutoRows
+                   , S.LGridColumn
+                   , S.LGridGap
+                   , S.LGridRow
+                   , S.LGridTemplateAreas
+                   , S.LGridTemplateColumns
+                   , S.LGridTemplateRows
+                   , S.LHeight
+                   , S.LJustifyContent
+                   , S.LJustifyItems
+                   , S.LLeft
+                   , S.LMargin
+                   , S.LMaxHeight
+                   , S.LMaxWidth
+                   , S.LMinHeight
+                   , S.LMinWidth
+                   , S.LObjectFit
+                   , S.LObjectPosition
+                   , S.LOrder
+                   , S.LOverflow
+                   , S.LPadding
+                   , S.LRight
+                   , S.LTop
+                   , S.LVisibility
+                   , S.LWidth
                    ]
 
-type instance FieldType 'S.LAlignContent = Maybe String
-type instance FieldType 'S.LAlignItems = Maybe String
-type instance FieldType 'S.LAlignSelf = Maybe String
-type instance FieldType 'S.LBorderBottom = Maybe String
-type instance FieldType 'S.LBorderLeft = Maybe String
-type instance FieldType 'S.LBorderRight = Maybe String
-type instance FieldType 'S.LBorderTop = Maybe String
-type instance FieldType 'S.LBottom = Maybe String
-type instance FieldType 'S.LDisplay = Maybe String
-type instance FieldType 'S.LFlex = Maybe String
-type instance FieldType 'S.LFlexFlow = Maybe String
-type instance FieldType 'S.LGridArea = Maybe String
-type instance FieldType 'S.LGridAutoColumns = Maybe String
-type instance FieldType 'S.LGridAutoFlow = Maybe String
-type instance FieldType 'S.LGridAutoRows = Maybe String
-type instance FieldType 'S.LGridColumn = Maybe String
-type instance FieldType 'S.LGridGap = Maybe String
-type instance FieldType 'S.LGridRow = Maybe String
-type instance FieldType 'S.LGridTemplateAreas = Maybe String
-type instance FieldType 'S.LGridTemplateColumns = Maybe String
-type instance FieldType 'S.LGridTemplateRows = Maybe String
-type instance FieldType 'S.LHeight = Maybe String
-type instance FieldType 'S.LJustifyContent = Maybe String
-type instance FieldType 'S.LJustifyItems = Maybe String
-type instance FieldType 'S.LLeft = Maybe String
-type instance FieldType 'S.LMargin = Maybe String
-type instance FieldType 'S.LMaxHeight = Maybe String
-type instance FieldType 'S.LMaxWidth = Maybe String
-type instance FieldType 'S.LMinHeight = Maybe String
-type instance FieldType 'S.LMinWidth = Maybe String
-type instance FieldType 'S.LObjectFit = Maybe String
-type instance FieldType 'S.LObjectPosition = Maybe String
-type instance FieldType 'S.LOrder = Maybe String
-type instance FieldType 'S.LOverflow = Maybe String
-type instance FieldType 'S.LPadding = Maybe String
-type instance FieldType 'S.LRight = Maybe String
-type instance FieldType 'S.LTop = Maybe String
-type instance FieldType 'S.LVisibility = Maybe String
-type instance FieldType 'S.LWidth = Maybe String
+type instance FieldType S.LAlignContent = Maybe String
+type instance FieldType S.LAlignItems = Maybe String
+type instance FieldType S.LAlignSelf = Maybe String
+type instance FieldType S.LBorderBottom = Maybe String
+type instance FieldType S.LBorderLeft = Maybe String
+type instance FieldType S.LBorderRight = Maybe String
+type instance FieldType S.LBorderTop = Maybe String
+type instance FieldType S.LBottom = Maybe String
+type instance FieldType S.LDisplay = Maybe String
+type instance FieldType S.LFlex = Maybe String
+type instance FieldType S.LFlexFlow = Maybe String
+type instance FieldType S.LGridArea = Maybe String
+type instance FieldType S.LGridAutoColumns = Maybe String
+type instance FieldType S.LGridAutoFlow = Maybe String
+type instance FieldType S.LGridAutoRows = Maybe String
+type instance FieldType S.LGridColumn = Maybe String
+type instance FieldType S.LGridGap = Maybe String
+type instance FieldType S.LGridRow = Maybe String
+type instance FieldType S.LGridTemplateAreas = Maybe String
+type instance FieldType S.LGridTemplateColumns = Maybe String
+type instance FieldType S.LGridTemplateRows = Maybe String
+type instance FieldType S.LHeight = Maybe String
+type instance FieldType S.LJustifyContent = Maybe String
+type instance FieldType S.LJustifyItems = Maybe String
+type instance FieldType S.LLeft = Maybe String
+type instance FieldType S.LMargin = Maybe String
+type instance FieldType S.LMaxHeight = Maybe String
+type instance FieldType S.LMaxWidth = Maybe String
+type instance FieldType S.LMinHeight = Maybe String
+type instance FieldType S.LMinWidth = Maybe String
+type instance FieldType S.LObjectFit = Maybe String
+type instance FieldType S.LObjectPosition = Maybe String
+type instance FieldType S.LOrder = Maybe String
+type instance FieldType S.LOverflow = Maybe String
+type instance FieldType S.LPadding = Maybe String
+type instance FieldType S.LRight = Maybe String
+type instance FieldType S.LTop = Maybe String
+type instance FieldType S.LVisibility = Maybe String
+type instance FieldType S.LWidth = Maybe String
 
--- type family WidgetFields (w :: WidgetType) :: [Field] where
-type instance WidgetFields 'LayoutType = LayoutClass
+-- type family WidgetFields w :: [*] where
+type instance WidgetFields LayoutType = LayoutClass
 
 -- | A record representing a widget of the Layour class from IPython
 defaultLayoutWidget :: Rec Attr LayoutClass
-defaultLayoutWidget = (S.SModelModule =:! "@jupyter-widgets/base")
-                      :& (S.SModelModuleVersion =:! "2.0.0")
-                      :& (S.SModelName =:! "LayoutModel")
-                      :& (S.SViewModule =:! "@jupyter-widgets/base")
-                      :& (S.SViewModuleVersion =:! "2.0.0")
-                      :& (S.SViewName =:! "LayoutView")
-                      :& (AlignContent =:. (Nothing, venum alignContentProps))
-                      :& (AlignItems =:. (Nothing, venum alignItemProps))
-                      :& (AlignSelf =:. (Nothing, venum alignSelfProps))
-                      :& (BorderBottom =:: Nothing)
-                      :& (BorderLeft =:: Nothing)
-                      :& (BorderRight =:: Nothing)
-                      :& (BorderTop =:: Nothing)
-                      :& (Bottom =:: Nothing)
-                      :& (Display =:: Nothing)
-                      :& (Flex =:: Nothing)
-                      :& (FlexFlow =:: Nothing)
-                      :& (GridArea =:: Nothing)
-                      :& (GridAutoColumns =:: Nothing)
-                      :& (GridAutoFlow =:. (Nothing, venum gridAutoFlowProps))
-                      :& (GridAutoRows =:: Nothing)
-                      :& (GridColumn =:: Nothing)
-                      :& (GridGap =:: Nothing)
-                      :& (GridRow =:: Nothing)
-                      :& (GridTemplateAreas =:: Nothing)
-                      :& (GridTemplateColumns =:: Nothing)
-                      :& (GridTemplateRows =:: Nothing)
-                      :& (Height =:: Nothing)
-                      :& (JustifyContent =:: Nothing)
-                      :& (JustifyItems =:: Nothing)
-                      :& (Left =:: Nothing)
-                      :& (Margin =:: Nothing)
-                      :& (MaxHeight =:: Nothing)
-                      :& (MaxWidth =:: Nothing)
-                      :& (MinHeight =:: Nothing)
-                      :& (MinWidth =:: Nothing)
-                      :& (ObjectFit =:: Nothing)
-                      :& (ObjectPosition =:: Nothing)
-                      :& (Order =:: Nothing)
-                      :& (Overflow =:. (Nothing, venum overflowProps))
-                      :& (Padding =:: Nothing)
-                      :& (Right =:: Nothing)
-                      :& (Top =:: Nothing)
-                      :& (Visibility =:. (Nothing, venum visibilityProps))
-                      :& (Width =:: Nothing)
+defaultLayoutWidget = (   F @S.ModelModule =:! "@jupyter-widgets/base")
+                      :& (F @S.ModelModuleVersion =:! "2.0.0")
+                      :& (F @S.ModelName =:! "LayoutModel")
+                      :& (F @S.ViewModule =:! "@jupyter-widgets/base")
+                      :& (F @S.ViewModuleVersion =:! "2.0.0")
+                      :& (F @S.ViewName =:! "LayoutView")
+                      :& (F @AlignContent =:. (Nothing, venum alignContentProps))
+                      :& (F @AlignItems =:. (Nothing, venum alignItemProps))
+                      :& (F @AlignSelf =:. (Nothing, venum alignSelfProps))
+                      :& (F @BorderBottom =:: Nothing)
+                      :& (F @BorderLeft =:: Nothing)
+                      :& (F @BorderRight =:: Nothing)
+                      :& (F @BorderTop =:: Nothing)
+                      :& (F @Bottom =:: Nothing)
+                      :& (F @Display =:: Nothing)
+                      :& (F @Flex =:: Nothing)
+                      :& (F @FlexFlow =:: Nothing)
+                      :& (F @GridArea =:: Nothing)
+                      :& (F @GridAutoColumns =:: Nothing)
+                      :& (F @GridAutoFlow =:. (Nothing, venum gridAutoFlowProps))
+                      :& (F @GridAutoRows =:: Nothing)
+                      :& (F @GridColumn =:: Nothing)
+                      :& (F @GridGap =:: Nothing)
+                      :& (F @GridRow =:: Nothing)
+                      :& (F @GridTemplateAreas =:: Nothing)
+                      :& (F @GridTemplateColumns =:: Nothing)
+                      :& (F @GridTemplateRows =:: Nothing)
+                      :& (F @Height =:: Nothing)
+                      :& (F @JustifyContent =:: Nothing)
+                      :& (F @JustifyItems =:: Nothing)
+                      :& (F @Left =:: Nothing)
+                      :& (F @Margin =:: Nothing)
+                      :& (F @MaxHeight =:: Nothing)
+                      :& (F @MaxWidth =:: Nothing)
+                      :& (F @MinHeight =:: Nothing)
+                      :& (F @MinWidth =:: Nothing)
+                      :& (F @ObjectFit =:: Nothing)
+                      :& (F @ObjectPosition =:: Nothing)
+                      :& (F @Order =:: Nothing)
+                      :& (F @Overflow =:. (Nothing, venum overflowProps))
+                      :& (F @Padding =:: Nothing)
+                      :& (F @Right =:: Nothing)
+                      :& (F @Top =:: Nothing)
+                      :& (F @Visibility =:. (Nothing, venum visibilityProps))
+                      :& (F @Width =:: Nothing)
                       :& RNil
     where venum :: [String] -> Maybe String -> IO (Maybe String)
           venum _ Nothing = return Nothing

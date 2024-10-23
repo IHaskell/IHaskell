@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -28,7 +29,7 @@ import           IHaskell.Display.Widgets.Common
 import           IHaskell.Display.Widgets.Layout.LayoutWidget
 
 -- | An 'AudioWidget' represents a Audio widget from IPython.html.widgets.
-type AudioWidget = IPythonWidget 'AudioType
+type AudioWidget = IPythonWidget AudioType
 
 -- | Create a new audio widget
 mkAudio :: IO AudioWidget
@@ -38,10 +39,10 @@ mkAudio = do
   layout <- mkLayout
 
   let mediaAttrs = defaultMediaWidget "AudioView" "AudioModel" layout
-      audioAttrs = (AudioFormat =:: MP3)
-              :& (AutoPlay =:: True)
-              :& (Loop =:: True)
-              :& (Controls =:: True)
+      audioAttrs = (F @AudioFormat =:: MP3)
+              :& (F @AutoPlay =:: True)
+              :& (F @Loop =:: True)
+              :& (F @Controls =:: True)
               :& RNil
       widgetState = WidgetState (mediaAttrs <+> audioAttrs)
 

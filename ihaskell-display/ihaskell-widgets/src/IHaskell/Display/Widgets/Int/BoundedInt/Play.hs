@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -31,7 +32,7 @@ import           IHaskell.Display.Widgets.Layout.LayoutWidget
 import           IHaskell.Display.Widgets.Style.DescriptionStyle
 
 -- | 'Play' represents an Play widget from IPython.html.widgets.
-type Play = IPythonWidget 'PlayType
+type Play = IPythonWidget PlayType
 
 -- | Create a new widget
 mkPlay :: IO Play
@@ -42,12 +43,12 @@ mkPlay = do
   dstyle <- mkDescriptionStyle
 
   let boundedIntAttrs = defaultBoundedIntWidget "PlayView" "PlayModel" layout $ StyleWidget dstyle
-      playAttrs = (Playing =:: True)
-                  :& (Repeat =:: True)
-                  :& (Interval =:: 100)
-                  :& (StepInt =:: Just 1)
-                  :& (Disabled =:: False)
-                  :& (ShowRepeat =:: True)
+      playAttrs = (F @Playing =:: True)
+                  :& (F @Repeat =:: True)
+                  :& (F @Interval =:: 100)
+                  :& (F @StepInt =:: Just 1)
+                  :& (F @Disabled =:: False)
+                  :& (F @ShowRepeat =:: True)
                   :& RNil
       widgetState = WidgetState $ boundedIntAttrs <+> playAttrs
 
@@ -66,6 +67,6 @@ instance IHaskellWidget Play where
   comm widget val _ =
     case nestedObjectLookup val ["state", "value"] of
       Just (Number value) -> do
-        void $ setField' widget IntValue (Sci.coefficient value)
+        void $ setField' @IntValue widget (Sci.coefficient value)
         triggerChange widget
       _ -> pure ()
