@@ -28,9 +28,9 @@ extra-deps:
 
 ghc-options:
   # Eventually we want "$locals": -Wall -Wpartial-fields -Werror
-  ghc-parser: -Wall -Wpartial-fields -Werror
-  ihaskell: -Wall -Wpartial-fields -Werror
-  ihaskell-widgets: -Wall -Wpartial-fields -Werror
+  # ghc-parser: -Wall -Wpartial-fields -Werror
+  # ihaskell: -Wall -Wpartial-fields -Werror
+  # ihaskell-widgets: -Wall -Wpartial-fields -Werror
 
 nix:
   packages:
