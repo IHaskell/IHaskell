@@ -193,32 +193,29 @@ handleMessage send replyHeader state msg = do
       where
 #if MIN_VERSION_aeson(2,0,0)
         nestedLookupRemove :: BufferPath -> Value -> (Value, Maybe Value)
-        nestedLookupRemove [] v = (v,Just v)
-        nestedLookupRemove [b] v =
-          case v of
-            Object o -> (Object $ KM.delete (Key.fromText b) o, KM.lookup (Key.fromText b) o)
-            _ -> (v, Nothing)
-        nestedLookupRemove (b:bp) v =
-          case v of
-            Object o -> maybe (v,Nothing) (upd . nestedLookupRemove bp) (KM.lookup (Key.fromText b) o)
-            _ -> (v,Nothing)
-            where upd :: (Value, Maybe Value) -> (Value, Maybe Value)
-                  upd (Object v', Just (Object u)) = (Object $ KM.insert (Key.fromText b) (Object u) v', Just $ Object u)
-                  upd r = r
+        nestedLookupRemove [] v = (v, Nothing)
+        nestedLookupRemove (k:ks) (Object obj) =
+          case KM.lookup key obj of
+               Just subObj ->
+                 if null ks
+                 then (Object $ KM.delete key obj, Just subObj)
+                 else let (newSubObj, removed) = nestedLookupRemove ks subObj
+                      in (Object $ KM.insert key newSubObj obj, removed)
+               Nothing -> (Object obj, Nothing)
+          where key = Key.fromText k
+        nestedLookupRemove _ v = (v, Nothing)
 #else
         nestedLookupRemove :: BufferPath -> Value -> (Value, Maybe Value)
-        nestedLookupRemove [] v = (v,Just v)
-        nestedLookupRemove [b] v =
-          case v of
-            Object o -> (Object $ HM.delete b o, HM.lookup b o)
-            _ -> (v, Nothing)
-        nestedLookupRemove (b:bp) v =
-          case v of
-            Object o -> maybe (v,Nothing) (upd . nestedLookupRemove bp) (HM.lookup b o)
-            _ -> (v,Nothing)
-            where upd :: (Value, Maybe Value) -> (Value, Maybe Value)
-                  upd (Object v', Just (Object u)) = (Object $ HM.insert b (Object u) v', Just $ Object u)
-                  upd r = r
+        nestedLookupRemove [] v = (v, Nothing)
+        nestedLookupRemove (k:ks) (Object obj) =
+          case HM.lookup k obj of
+            Just subObj ->
+              if null ks
+              then (Object $ HM.delete k obj, Just subObj)
+              else let (newSubObj, removed) = nestedLookupRemove ks subObj
+                   in (Object $ HM.insert k newSubObj obj, removed)
+            Nothing -> (Object obj, Nothing)
+        nestedLookupRemove _ v = (v, Nothing)
 #endif
 
         f :: (Value, [ByteString], [BufferPath]) -> BufferPath -> (Value, [ByteString], [BufferPath])
