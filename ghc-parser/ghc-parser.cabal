@@ -25,8 +25,6 @@ library
   build-depends:       base                 >=4.9 && < 5,
                        ghc                  >=8.4 && <9.11
 
-  if impl(ghc >= 8.0) && impl(ghc < 8.4)
-    hs-source-dirs:  generic-src src-8.0
   if impl(ghc >= 8.4) && impl(ghc < 8.10)
     hs-source-dirs:  generic-src src-8.4
   if impl(ghc >= 8.10) && impl(ghc < 9.0)
