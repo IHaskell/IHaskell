@@ -151,11 +151,9 @@ testEval =
 #elif MIN_VERSION_ghc(9,0,0)
       -- brackets around the type variable
       ":typ 3" `becomes` ["3 :: forall {p}. Num p => p"]
-#elif MIN_VERSION_ghc(8,2,0)
+#else
       -- It's `p` instead of `t` for some reason
       ":typ 3" `becomes` ["3 :: forall p. Num p => p"]
-#else
-      ":typ 3" `becomes` ["3 :: forall t. Num t => t"]
 #endif
 
     it "evaluates :k directive" $ do
@@ -176,23 +174,11 @@ testEval =
                         , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">::</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">*</span><span class=\"cm-space\"><br /></span>\n<span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"><br />  \t</span><span class=\"cm-comment\">-- Defined in \8216GHC.Base\8217</span><span class=\"cm-space\"><br /></span></div>"
                         ]]
         ]
-#elif MIN_VERSION_ghc(8,4,0)
-      displayDatasBecome ":in String" [
-        ManyDisplay [Display [
-                        DisplayData PlainText "type String = [Char] \t-- Defined in \8216GHC.Base\8217"
-                        , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"> \t</span><span class=\"cm-comment\">-- Defined in \8216GHC.Base\8217</span><span class=\"cm-space\"><br /></span></div>"
-                        ]]
-        ]
-#elif MIN_VERSION_ghc(8,2,0)
-      displayDatasBecome ":in String" [
-        ManyDisplay [Display [
-                        DisplayData PlainText "type String = [Char] \t-- Defined in \8216GHC.Base\8217"
-                        ]]
-        ]
 #else
       displayDatasBecome ":in String" [
         ManyDisplay [Display [
                         DisplayData PlainText "type String = [Char] \t-- Defined in \8216GHC.Base\8217"
+                        , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"> \t</span><span class=\"cm-comment\">-- Defined in \8216GHC.Base\8217</span><span class=\"cm-space\"><br /></span></div>"
                         ]]
         ]
 #endif
