@@ -68,10 +68,8 @@ data CompletionType = Empty
                     | Extension String
   deriving (Show, Eq)
 
-#if MIN_VERSION_ghc(8,2,0)
 exposedName :: (a, b) -> a
 exposedName = fst
-#endif
 
 extName :: FlagSpec flag -> String
 extName (FlagSpec { flagSpecName = name }) = name
