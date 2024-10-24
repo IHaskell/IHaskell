@@ -107,18 +107,13 @@ import           StringUtils (replace, split, strip, rstrip)
 import           IHaskell.Eval.Lint
 #endif
 
-#if MIN_VERSION_ghc(8,4,0)
 import qualified Data.Text as Text
 import           IHaskell.Eval.Evaluate.HTML (htmlify)
-#endif
 
 #if MIN_VERSION_ghc(9,0,0)
 import           GHC.Data.FastString
-#elif MIN_VERSION_ghc(8,2,0)
-import           FastString (unpackFS)
 #else
-import           Paths_ihaskell (version)
-import           Data.Version (versionBranch)
+import           FastString (unpackFS)
 #endif
 
 #if MIN_VERSION_ghc(9,2,0)
@@ -257,7 +252,7 @@ packageIdString' dflags pkg_cfg =
       Just cfg -> let
         PackageName name = unitPackageName cfg
         in unpackFS name
-#elif MIN_VERSION_ghc(8,2,0)
+#else
 packageIdString' :: DynFlags -> PackageConfig -> String
 packageIdString' dflags pkg_cfg =
     case (lookupPackage dflags $ packageConfigId pkg_cfg) of
@@ -265,10 +260,6 @@ packageIdString' dflags pkg_cfg =
       Just cfg -> let
         PackageName name = packageName cfg
         in unpackFS name
-#else
-packageIdString' :: DynFlags -> PackageConfig -> String
-packageIdString' dflags pkg_cfg =
-    fromMaybe "(unknown)" (unitIdPackageIdString dflags $ packageConfigId pkg_cfg)
 #endif
 
 #if MIN_VERSION_ghc(9,4,0)
@@ -334,14 +325,8 @@ initializeImports importSupportLibraries = do
       initStr = "ihaskell-"
 #endif
 
-#if MIN_VERSION_ghc(8,2,0)
       -- Name of the ihaskell package, i.e. "ihaskell"
       iHaskellPkgName = "ihaskell"
-#else
-      -- Name of the ihaskell package, e.g. "ihaskell-1.2.3.4"
-      iHaskellPkgName = initStr ++ intercalate "." (map show (versionBranch version))
-#endif
-
       displayPkgs = [ pkgName
                     | pkgName <- packageNames
                     , Just (x:_) <- [stripPrefix initStr pkgName]
@@ -357,17 +342,8 @@ initializeImports importSupportLibraries = do
 
       importFmt = "import IHaskell.Display.%s"
 
-
-#if MIN_VERSION_ghc(8,2,0)
       toImportStmt :: String -> String
       toImportStmt = printf importFmt . concatMap capitalize . drop 1 . split "-"
-#else
-      dropFirstAndLast :: [a] -> [a]
-      dropFirstAndLast = reverse . drop 1 . reverse . drop 1
-
-      toImportStmt :: String -> String
-      toImportStmt = printf importFmt . concatMap capitalize . dropFirstAndLast . split "-"
-#endif
 
       displayImports = map toImportStmt displayPkgs
 
@@ -954,11 +930,9 @@ evalCommand _ (Directive GetInfo str) state = safely state $ do
       { evalStatus = Success
       , evalResult = Display [
           plain strings
-#if MIN_VERSION_ghc(8,4,0)
           , htmlify (Text.pack <$> htmlCodeWrapperClass state)
                     (Text.pack $ htmlCodeTokenPrefix state)
                     strings
-#endif
           ]
       , evalState = state
       , evalPager = []
@@ -1007,28 +981,16 @@ evalCommand output (Expression expr) state = do
   -- is no appropriate typeclass instance, this will throw an exception and thus `attempt` will return
   -- False, and we just resort to plaintext.
   let displayExpr = printf "(IHaskell.Display.display (%s))" expr :: String
-#if MIN_VERSION_ghc(8,2,0)
   canRunDisplay <- attempt $ exprType TM_Inst displayExpr
-#else
-  canRunDisplay <- attempt $ exprType displayExpr
-#endif
 
   -- Check if this is a widget.
   let widgetExpr = printf "(IHaskell.Display.Widget (%s))" expr :: String
-#if MIN_VERSION_ghc(8,2,0)
   isWidget <- attempt $ exprType TM_Inst widgetExpr
-#else
-  isWidget <- attempt $ exprType widgetExpr
-#endif
 
   -- Check if this is a template haskell declaration
   let declExpr = printf "((id :: IHaskellTH.DecsQ -> IHaskellTH.DecsQ) (%s))" expr :: String
   let anyExpr = printf "((id :: IHaskellPrelude.Int -> IHaskellPrelude.Int) (%s))" expr :: String
-#if MIN_VERSION_ghc(8,2,0)
   isTHDeclaration <- liftM2 (&&) (attempt $ exprType TM_Inst declExpr) (not <$> attempt (exprType TM_Inst anyExpr))
-#else
-  isTHDeclaration <- liftM2 (&&) (attempt $ exprType declExpr) (not <$> attempt (exprType anyExpr))
-#endif
 
   write state $ "Can Display: " ++ show canRunDisplay
   write state $ "Is Widget: " ++ show isWidget
@@ -1124,11 +1086,7 @@ evalCommand output (Expression expr) state = do
                       then disp :: Display
                       else removeSvg disp
 
-#if MIN_VERSION_ghc(8,2,0)
     isIO exp = attempt $ exprType TM_Inst $ printf "((\\x -> x) :: IO a -> IO a) (%s)" exp
-#else
-    isIO exp = attempt $ exprType $ printf "((\\x -> x) :: IO a -> IO a) (%s)" exp
-#endif
 
     postprocessShowError :: EvalOut -> EvalOut
     postprocessShowError evalOut = evalOut { evalResult = Display $ map postprocess disps }
@@ -1174,11 +1132,7 @@ evalCommand _ (Declaration decl) state = wrapExecution state $ do
       -- Get all the type strings.
       dflags <- getSessionDynFlags
       types <- forM nonDataNames $ \name -> do
-#if MIN_VERSION_ghc(8,2,0)
                  theType <- showSDocUnqual dflags . ppr <$> exprType TM_Inst name
-#else
-                 theType <- showSDocUnqual dflags . ppr <$> exprType name
-#endif
                  return $ name ++ " :: " ++ theType
 
       return $ Display [html' (Just ihaskellCSS) $ unlines $ map formatGetType types]
@@ -1562,11 +1516,7 @@ evalStatementOrIO publish state cmd = do
         else do
           -- Get all the type strings.
           types <- forM nonItNames $ \name -> do
-#if MIN_VERSION_ghc(8,2,0)
                      theType <- showSDocUnqual dflags . ppr <$> exprType TM_Inst name
-#else
-                     theType <- showSDocUnqual dflags . ppr <$> exprType name
-#endif
                      return $ name ++ " :: " ++ theType
 
           let joined = unlines types
