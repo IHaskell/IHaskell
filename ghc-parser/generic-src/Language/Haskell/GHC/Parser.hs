@@ -76,12 +76,8 @@ import StringBuffer hiding (len)
 #else
 import ErrUtils hiding (ErrMsg)
 #endif
-#if MIN_VERSION_ghc(8,4,0)
-import GHC hiding (Located, Parsed, parser)
-#else
-import GHC hiding (Located, parser)
-#endif
 
+import GHC hiding (Located, Parsed, parser)
 import qualified Language.Haskell.GHC.HappyParser as Parse
 
 -- | A line number in an input string.
@@ -115,49 +111,27 @@ data Located a = Located {
 data Parser a = Parser (P a)
 
 -- Our parsers.
-#if MIN_VERSION_ghc(8,4,0)
 parserStatement :: Parser (Maybe (LStmt GhcPs (LHsExpr GhcPs)))
-#else
-parserStatement :: Parser (Maybe (LStmt RdrName (LHsExpr RdrName)))
-#endif
 parserStatement = Parser Parse.fullStatement
 
-#if MIN_VERSION_ghc(8,4,0)
 parserImport :: Parser (LImportDecl GhcPs)
-#else
-parserImport :: Parser (LImportDecl RdrName)
-#endif
 parserImport = Parser Parse.fullImport
 
-#if MIN_VERSION_ghc(8,4,0)
 parserDeclaration :: Parser (OrdList (LHsDecl GhcPs))
-#else
-parserDeclaration :: Parser (OrdList (LHsDecl RdrName))
-#endif
 parserDeclaration = Parser Parse.fullDeclaration
 
-#if MIN_VERSION_ghc(8,4,0)
 parserExpression :: Parser (LHsExpr GhcPs)
-#else
-parserExpression :: Parser (LHsExpr RdrName)
-#endif
 parserExpression = Parser Parse.fullExpression
 
-#if MIN_VERSION_ghc(8,4,0)
 parserTypeSignature :: Parser (SrcLoc.Located (OrdList (LHsDecl GhcPs)))
-#else
-parserTypeSignature :: Parser (SrcLoc.Located (OrdList (LHsDecl RdrName)))
-#endif
 parserTypeSignature = Parser Parse.fullTypeSignature
 
 #if MIN_VERSION_ghc(9,6,0)
 parserModule :: Parser (SrcLoc.Located (HsModule GhcPs))
 #elif MIN_VERSION_ghc(9,0,0)
 parserModule :: Parser (SrcLoc.Located HsModule)
-#elif MIN_VERSION_ghc(8,4,0)
-parserModule :: Parser (SrcLoc.Located (HsModule GhcPs))
 #else
-parserModule :: Parser (SrcLoc.Located (HsModule RdrName))
+parserModule :: Parser (SrcLoc.Located (HsModule GhcPs))
 #endif
 parserModule = Parser Parse.fullModule
 
@@ -206,14 +180,8 @@ runParser flags (Parser parser) str =
           ln = srcLocLine $ SrcLoc.realSrcSpanStart realSpan
           col = srcLocCol $ SrcLoc.realSrcSpanStart realSpan
         in Failure errMsg $ Loc ln col
-#elif MIN_VERSION_ghc(8,4,0)
-    toParseOut (PFailed _ spn@(RealSrcSpan realSpan) err) =
-      let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags spn err
-          ln = srcLocLine $ SrcLoc.realSrcSpanStart realSpan
-          col = srcLocCol $ SrcLoc.realSrcSpanStart realSpan
-        in Failure errMsg $ Loc ln col
 #else
-    toParseOut (PFailed spn@(RealSrcSpan realSpan) err) =
+    toParseOut (PFailed _ spn@(RealSrcSpan realSpan) err) =
       let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags spn err
           ln = srcLocLine $ SrcLoc.realSrcSpanStart realSpan
           col = srcLocCol $ SrcLoc.realSrcSpanStart realSpan
@@ -221,12 +189,8 @@ runParser flags (Parser parser) str =
 #endif
 
 #if MIN_VERSION_ghc(8,10,0)
-#elif MIN_VERSION_ghc(8,4,0)
-    toParseOut (PFailed _ spn err) =
-      let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags spn err
-        in Failure errMsg $ Loc 0 0
 #else
-    toParseOut (PFailed spn err) =
+    toParseOut (PFailed _ spn err) =
       let errMsg = printErrorBag $ unitBag $ mkPlainErrMsg flags spn err
         in Failure errMsg $ Loc 0 0
 #endif
