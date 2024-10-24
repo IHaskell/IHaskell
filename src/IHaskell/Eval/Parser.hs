@@ -22,11 +22,7 @@ import           Data.Char (toLower)
 import           Data.List (maximumBy, inits)
 import           Prelude (head, tail)
 
-#if MIN_VERSION_ghc(8,4,0)
 import           GHC hiding (Located, Parsed)
-#else
-import           GHC hiding (Located)
-#endif
 
 import           Language.Haskell.GHC.Parser
 import           IHaskell.Eval.Util
