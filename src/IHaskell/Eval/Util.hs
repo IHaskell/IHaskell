@@ -132,7 +132,7 @@ import           GHC
 import           StringUtils (replace)
 
 #if MIN_VERSION_ghc(9,0,0)
-#elif MIN_VERSION_ghc(8,4,0)
+#else
 import           CmdLineParser (warnMsg)
 #endif
 
@@ -225,10 +225,8 @@ pprDynFlags show_all dflags =
     default_dflags = defaultDynFlags (settings dflags) (llvmConfig dflags)
 #elif MIN_VERSION_ghc(8,6,0)
     default_dflags = defaultDynFlags (settings dflags) (llvmTargets dflags, llvmPasses dflags)
-#elif MIN_VERSION_ghc(8,4,0)
-    default_dflags = defaultDynFlags (settings dflags) (llvmTargets dflags)
 #else
-    default_dflags = defaultDynFlags (settings dflags)
+    default_dflags = defaultDynFlags (settings dflags) (llvmTargets dflags)
 #endif
 
     fstr, fnostr :: String -> O.SDoc
@@ -285,10 +283,8 @@ pprLanguages show_all dflags =
       defaultDynFlags (settings dflags) (llvmConfig dflags) `lang_set`
 #elif MIN_VERSION_ghc(8,6,0)
       defaultDynFlags (settings dflags) (llvmTargets dflags, llvmPasses dflags) `lang_set`
-#elif MIN_VERSION_ghc(8,4,0)
-      defaultDynFlags (settings dflags) (llvmTargets dflags) `lang_set`
 #else
-      defaultDynFlags (settings dflags) `lang_set`
+      defaultDynFlags (settings dflags) (llvmTargets dflags) `lang_set`
 #endif
       case language dflags of
         Nothing -> Just Haskell2010
@@ -340,10 +336,8 @@ setFlags ext = do
   let noParseErrs = map (("Could not parse: " ++) . unLoc) unrecognized
 #if MIN_VERSION_ghc(9,8,0)
       allWarns = map (show . flip O.runSDoc O.defaultSDocContext . E.formatBulleted . diagnosticMessage defaultOpts . errMsgDiagnostic) (bagToList $ getWarningMessages warnings) ++
-#elif MIN_VERSION_ghc(8,4,0)
-      allWarns = map (unLoc . warnMsg) warnings ++
 #else
-      allWarns = map unLoc warnings ++
+      allWarns = map (unLoc . warnMsg) warnings ++
 #endif
         -- Stack appears to duplicate package flags, so we use `nub` to work around this
         ["-package not supported yet" | nub (packageFlags flags) /= nub (packageFlags flags0)]
@@ -364,10 +358,8 @@ doc sdoc = do
 #endif
 #if MIN_VERSION_ghc(9,0,0)
   let style = O.mkUserStyle unqual O.AllTheWay
-#elif MIN_VERSION_ghc(8,2,0)
-  let style = O.mkUserStyle flags unqual O.AllTheWay
 #else
-  let style = O.mkUserStyle unqual O.AllTheWay
+  let style = O.mkUserStyle flags unqual O.AllTheWay
 #endif
   let cols = pprCols flags
 #if MIN_VERSION_ghc(9,2,0)
@@ -417,7 +409,6 @@ initGhci sandboxPackages = do
   let flag = flip xopt_set
       unflag = flip xopt_unset
       dflags = flag ExtendedDefaultRules . unflag MonomorphismRestriction $ setWayDynFlag originalFlags
-#if MIN_VERSION_ghc(8,2,0)
       pkgFlags =
         case sandboxPackages of
           Nothing -> packageDBFlags originalFlags
@@ -441,21 +432,6 @@ initGhci sandboxPackages = do
     , pprCols = 300
     , packageDBFlags = pkgFlags
     }
-#else
-      pkgConfs =
-        case sandboxPackages of
-          Nothing -> extraPkgConfs originalFlags
-          Just path ->
-            let pkg = PkgConfFile path
-            in (pkg :) . extraPkgConfs originalFlags
-
-  void $ setSessionDynFlags $ dflags
-    { hscTarget = HscInterpreted
-    , ghcLink = LinkInMemory
-    , pprCols = 300
-    , extraPkgConfs = pkgConfs
-    }
-#endif
 
 -- | Evaluate a single import statement. If this import statement is importing a module which was
 -- previously imported implicitly (such as `Prelude`) or if this module has a `hiding` annotation,
@@ -478,11 +454,7 @@ evalImport imports = do
 
   where
     -- Check whether an import is the same as another import (same module).
-#if MIN_VERSION_ghc(8,4,0)
     importOf :: ImportDecl GhcPs -> InteractiveImport -> Bool
-#else
-    importOf :: ImportDecl RdrName -> InteractiveImport -> Bool
-#endif
     importOf _ (IIModule _) = False
     importOf imp (IIDecl decl) =
 #if MIN_VERSION_ghc(8,10,0)
@@ -496,12 +468,8 @@ evalImport imports = do
     implicitImportOf :: ImportDecl GhcPs -> InteractiveImport -> Bool
     implicitImportOf _ (IIModule _) = False
     implicitImportOf imp (IIDecl decl) = ideclImplicit (ideclExt decl) && imp `importOf` IIDecl decl
-#elif MIN_VERSION_ghc(8,4,0)
-    implicitImportOf :: ImportDecl GhcPs -> InteractiveImport -> Bool
-    implicitImportOf _ (IIModule _) = False
-    implicitImportOf imp (IIDecl decl) = ideclImplicit decl && imp `importOf` IIDecl decl
 #else
-    implicitImportOf :: ImportDecl RdrName -> InteractiveImport -> Bool
+    implicitImportOf :: ImportDecl GhcPs -> InteractiveImport -> Bool
     implicitImportOf _ (IIModule _) = False
     implicitImportOf imp (IIDecl decl) = ideclImplicit decl && imp `importOf` IIDecl decl
 #endif
@@ -513,14 +481,8 @@ evalImport imports = do
       case ideclImportList imp of
         Just (EverythingBut, _) -> True
         _              -> False
-#elif MIN_VERSION_ghc(8,4,0)
-    isHiddenImport :: ImportDecl GhcPs -> Bool
-    isHiddenImport imp =
-      case ideclHiding imp of
-        Just (True, _) -> True
-        _              -> False
 #else
-    isHiddenImport :: ImportDecl RdrName -> Bool
+    isHiddenImport :: ImportDecl GhcPs -> Bool
     isHiddenImport imp =
       case ideclHiding imp of
         Just (True, _) -> True
@@ -573,11 +535,7 @@ cleanUpDuplicateInstances = modifySession $ \hscEnv ->
 -- | Get the type of an expression and convert it to a string.
 getType :: GhcMonad m => String -> m String
 getType expr = do
-#if MIN_VERSION_ghc(8,2,0)
   result <- exprType TM_Inst expr
-#else
-  result <- exprType expr
-#endif
   flags <- getSessionDynFlags
 #if MIN_VERSION_ghc(9,2,0)
   let typeStr = showSDoc flags $ O.ppr result
@@ -617,26 +575,12 @@ getDescription str = do
   where
 
     getInfo' = getInfo False
-
-#if MIN_VERSION_ghc(8,4,0)
     getInfoType (theType, _, _, _, _) = theType
-#else
-    getInfoType (theType, _, _, _) = theType
-#endif
-
-#if MIN_VERSION_ghc(8,4,0)
     printInfo (thing, fixity, classInstances, famInstances, _) =
       pprTyThingInContextLoc thing O.$$
       showFixity thing fixity O.$$
       O.vcat (map GHC.pprInstance classInstances) O.$$
       O.vcat (map GHC.pprFamInst famInstances)
-#else
-    printInfo (thing, fixity, classInstances, famInstances) =
-      pprTyThingInContextLoc thing O.$$
-      showFixity thing fixity O.$$
-      O.vcat (map GHC.pprInstance classInstances) O.$$
-      O.vcat (map GHC.pprFamInst famInstances)
-#endif
     showFixity thing fixity =
       if fixity == GHC.defaultFixity
         then O.empty
