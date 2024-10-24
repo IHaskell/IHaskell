@@ -26,11 +26,7 @@ info name = handle handler $ do
 info name = ghandle handler $ do
 #endif
   dflags <- getSessionDynFlags
-#if MIN_VERSION_ghc(8,2,0)
   result <- exprType TM_Inst name
-#else
-  result <- exprType name
-#endif
   return $ typeCleaner $ showPpr dflags result
   where
     handler :: SomeException -> Interpreter String
