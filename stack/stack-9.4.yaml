@@ -40,6 +40,7 @@ nix:
   - libselinux
   - libsepol
   - libsodium
+  - libsysprof-capture
   - libthai
   - ncurses
   - pango
