@@ -14,7 +14,6 @@ let
     root =  pkgs.lib.cleanSource ../.;
     name = "ihaskell";
     returnShellEnv = false;
-    modifier = pkgs.haskell.lib.dontCheck;
     overrides = ihaskellOverlay;
     withHoogle = true;
   };
