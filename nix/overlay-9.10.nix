@@ -1,4 +1,4 @@
-sel: sup: {
+_sel: sup: {
   haskell = sup.haskell // {
     packages = sup.haskell.packages // {
       ghc910 = sup.haskell.packages.ghc910.override {
@@ -10,7 +10,7 @@ sel: sup: {
           primitive = sup.haskell.lib.doJailbreak super.primitive;
           call-stack = sup.haskell.lib.dontCheck super.call-stack;
           doctest = sup.haskell.lib.doJailbreak (sup.haskell.lib.dontCheck super.doctest);
-          hashable = sup.haskell.lib.doJailbreak (super.hashable.overrideScope(sel: sup: {
+          hashable = sup.haskell.lib.doJailbreak (super.hashable.overrideScope(_sel: _sup: {
             os-string = null;
           }));
           ChasingBottoms = sup.haskell.lib.doJailbreak super.ChasingBottoms;

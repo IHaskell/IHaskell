@@ -17,8 +17,7 @@
 
   outputs = { self, nixpkgs24_05, nixpkgsMaster, flake-utils, hls, nix-filter, ... }:
     flake-utils.lib.eachDefaultSystem (system: let
-      baseOverlay = self: super: { inherit nix-filter; };
-      pkgs24_05  = import nixpkgs24_05  { inherit system; overlays = [baseOverlay]; };
+      baseOverlay = _self: _super: { inherit nix-filter; };
       pkgsMaster = import nixpkgsMaster { inherit system; overlays = [baseOverlay]; };
 
       jupyterlab = pkgsMaster.python3.withPackages (ps: [ ps.jupyterlab ps.notebook ]);

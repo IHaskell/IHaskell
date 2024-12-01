@@ -1,8 +1,8 @@
-sel: sup: {
+_sel: sup: {
   haskell = sup.haskell // {
     packages = sup.haskell.packages // {
       ghc96 = sup.haskell.packages.ghc96.override {
-        overrides = self: super: {
+        overrides = self: _super: {
 
           plot = self.callHackage "plot" "0.2.3.12" {};
 

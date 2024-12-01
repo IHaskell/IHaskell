@@ -5,7 +5,7 @@
 , enableHlint
 }:
 
-self: super:
+self: _super:
 
 let
   ihaskell-src = callPackage ./ihaskell-src.nix {};
@@ -32,7 +32,7 @@ in
   in
     if enableHlint
     then baseIhaskell
-    else baseIhaskell.overrideScope (self: super: { hlint = null; });
+    else baseIhaskell.overrideScope (_self: _super: { hlint = null; });
 
   ghc-parser     = self.callCabal2nix "ghc-parser" (builtins.path { path = ../ghc-parser; name = "ghc-parser-src"; }) {};
   ipython-kernel = self.callCabal2nix "ipython-kernel" (builtins.path { path = ../ipython-kernel; name = "ipython-kernel-src"; }) {};
