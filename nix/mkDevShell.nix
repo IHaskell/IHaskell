@@ -1,14 +1,14 @@
 { pkgs
 
-, hls
-, system
-, version
+# , hls
+# , system
+# , version
 , haskellPackages
 , ihaskellOverlay
 }:
 
 let
-  compilerVersion = builtins.substring 3 100 version;
+  # compilerVersion = builtins.substring 3 100 version;
 
   devIHaskell = haskellPackages.developPackage {
     root =  pkgs.lib.cleanSource ../.;

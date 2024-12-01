@@ -1,9 +1,9 @@
-sel: sup: {
+_sel: sup: {
   haskell = sup.haskell // {
     packages = sup.haskell.packages // {
       ghc98 = sup.haskell.packages.ghc98.override {
         overrides = self: super: {
-          ghc-syntax-highlighter = super.ghc-syntax-highlighter_0_0_11_0.overrideScope(self: super: {
+          ghc-syntax-highlighter = super.ghc-syntax-highlighter_0_0_11_0.overrideScope(self: _super: {
             ghc-lib-parser = self.ghc-lib-parser_9_8_2_20240223;
           });
 
