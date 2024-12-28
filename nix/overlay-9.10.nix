@@ -6,6 +6,11 @@ _sel: sup: {
 
           ghc-syntax-highlighter = self.ghc-syntax-highlighter_0_0_12_0;
 
+          hlint = self.callCabal2nix "hlint" (builtins.fetchTarball {
+            url = "https://github.com/ndmitchell/hlint/tarball/7dfba720eaf6fa9bd0b23ae269334559aa722847";
+            sha256 = "06sqja2n9glj8f58hkcpbkjf1h70x22jv74h9pzdlsp459sq28cy";
+          }) {};
+
           code-page = sup.haskell.lib.doJailbreak (sup.haskell.lib.dontCheck super.code-page);
           primitive = sup.haskell.lib.doJailbreak super.primitive;
           call-stack = sup.haskell.lib.dontCheck super.call-stack;

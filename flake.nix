@@ -34,7 +34,7 @@
           pkgsMaster.lib.listToAttrs [
             (mkVersion nixpkgs24_11  "ghc96"  [(import ./nix/overlay-9.6.nix)]  {})
             (mkVersion nixpkgs24_11  "ghc98"  [(import ./nix/overlay-9.8.nix)]  {})
-            (mkVersion nixpkgsMaster "ghc910" [(import ./nix/overlay-9.10.nix)] { enableHlint = false; })
+            (mkVersion nixpkgsMaster "ghc910" [(import ./nix/overlay-9.10.nix)] {})
           ];
 
       # Helper function for building environments with a given set of packages
