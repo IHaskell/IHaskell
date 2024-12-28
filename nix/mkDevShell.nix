@@ -1,8 +1,8 @@
 { pkgs
 
-# , hls
-# , system
-# , version
+, hls
+, system
+, version
 , haskellPackages
 , ihaskellOverlay
 }:
