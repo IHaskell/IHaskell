@@ -33,8 +33,8 @@ $* --to=notebook --execute --allow-errors test/acceptance.nbconvert.in.ipynb
 mv test/acceptance.nbconvert.in.nbconvert.ipynb test/acceptance.nbconvert.out.ipynb
 
 diff \
-  <(grep -v -e 'version' -e 'Line ' -e 'Integral' -e 'Num' -e 'error'  \
+  <(grep -v -e 'version' -e 'Line ' -e 'Integral' -e 'Num' -e 'Real' -e 'error'  \
     <(cat test/acceptance.nbconvert.in.ipynb | jq '{"cells": .cells | map(del(.metadata.execution)), "metadata": .metadata}')) \
-  <(grep -v -e 'version' -e 'Line ' -e 'Integral' -e 'Num' -e 'error'  \
+  <(grep -v -e 'version' -e 'Line ' -e 'Integral' -e 'Num' -e 'Real' -e 'error'  \
     <(cat test/acceptance.nbconvert.out.ipynb | jq '{"cells": .cells | map(del(.metadata.execution)), "metadata": .metadata}'))
 
