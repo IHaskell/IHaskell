@@ -4,25 +4,23 @@ _sel: sup: {
       ghc912 = sup.haskell.packages.ghc912.override {
         overrides = self: super: {
 
-          ghc-syntax-highlighter = self.ghc-syntax-highlighter_0_0_12_0;
+          ghc-syntax-highlighter = self.ghc-syntax-highlighter_0_0_13_0;
 
-          jailbreak-cabal = self.callCabal2nix "jailbreak-cabal" (builtins.fetchTarball {
-            url = "https://github.com/vaibhavsagar/jailbreak-cabal/tarball/69a545e8493a8c18f34a893f095c5386deff8d60";
-            sha256 = "0fw0apy0450i11gfabfgis8m555kjw7ccdr61qpxa1izl42838yh";
-          }) {};
-
-          entropy = self.callCabal2nix "entropy" (builtins.fetchTarball {
-            url = "https://github.com/haskell/entropy/tarball/e95de3555209d9cb71381f96d13e4651b8307848";
-            sha256 = "1llb5lgw13cqpww3qksfg0gs0wq9nfzzhcmszqcl4gxv5kydfh36";
-          }) {};
+          # entropy = self.callHackageDirect {
+          #   pkg = "entropy";
+          #   ver = "0.4.1.11";
+          #   sha256 = "sha256-gtByk35iSFLF7Y06rgJzjHBQUKBtVp2A/PdXb7OLJBo=";
+          # } {};
 
           generically = sup.haskell.lib.doJailbreak super.generically;
 
-          hlint = self.callCabal2nix "hlint" (builtins.fetchTarball {
-            url = "https://github.com/ndmitchell/hlint/tarball/7dfba720eaf6fa9bd0b23ae269334559aa722847";
-            sha256 = "06sqja2n9glj8f58hkcpbkjf1h70x22jv74h9pzdlsp459sq28cy";
-          }) {};
+          # hlint = self.callCabal2nix "hlint" (builtins.fetchTarball {
+          #   url = "https://github.com/ndmitchell/hlint/tarball/7dfba720eaf6fa9bd0b23ae269334559aa722847";
+          #   sha256 = "06sqja2n9glj8f58hkcpbkjf1h70x22jv74h9pzdlsp459sq28cy";
+          # }) {};
 
+          indexed-traversable = sup.haskell.lib.doJailbreak super.indexed-traversable;
+          these = sup.haskell.lib.doJailbreak super.these;
           code-page = sup.haskell.lib.doJailbreak (sup.haskell.lib.dontCheck super.code-page);
           primitive = sup.haskell.lib.doJailbreak super.primitive;
           call-stack = sup.haskell.lib.dontCheck super.call-stack;
@@ -31,17 +29,18 @@ _sel: sup: {
             os-string = null;
           }));
           ChasingBottoms = sup.haskell.lib.doJailbreak super.ChasingBottoms;
-          th-abstraction = super.th-abstraction_0_7_0_0;
+          # th-abstraction = super.th-abstraction_0_7_1_0;
           nothunks = sup.haskell.lib.doJailbreak super.nothunks;
           uuid = sup.haskell.lib.doJailbreak super.uuid;
           time-compat = sup.haskell.lib.doJailbreak super.time-compat;
           scientific = sup.haskell.lib.doJailbreak super.scientific;
           quickcheck-instances = sup.haskell.lib.doJailbreak super.quickcheck-instances;
-          aeson = sup.haskell.lib.doJailbreak super.aeson_2_2_3_0;
+          # aeson = sup.haskell.lib.doJailbreak super.aeson_2_2_3_0;
           integer-conversion = sup.haskell.lib.doJailbreak super.integer-conversion;
           hourglass = sup.haskell.lib.dontCheck super.hourglass;
           lifted-base = sup.haskell.lib.dontCheck (sup.haskell.lib.doJailbreak super.lifted-base);
           zlib = sup.haskell.lib.doJailbreak super.zlib;
+          cryptonite = sup.haskell.lib.dontCheck super.cryptonite;
         };
       };
     };
