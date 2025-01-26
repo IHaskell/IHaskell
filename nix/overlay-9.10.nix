@@ -19,7 +19,6 @@ _sel: sup: {
             os-string = null;
           }));
           ChasingBottoms = sup.haskell.lib.doJailbreak super.ChasingBottoms;
-          th-abstraction = super.th-abstraction_0_7_0_0;
           nothunks = sup.haskell.lib.doJailbreak super.nothunks;
           uuid = sup.haskell.lib.doJailbreak super.uuid;
           time-compat = sup.haskell.lib.doJailbreak super.time-compat;
