@@ -42,6 +42,10 @@ data ZeroMQInterface =
        Channels
          {
          -- | A channel populated with requests from the frontend.
+         -- Shared between the shell and control channels.
+         -- The channel content is a tuple (replyChannel, message):
+         --   * If the message comes from the shell channel, 'replyChannel' is the shell reply channel.
+         --   * If the message comes from the control channel, 'replyChannel' is the control reply channel.
          shellRequestChannel :: Chan (Chan Message, Message)
          -- | Writing to this channel causes a reply to be sent to the frontend.
          , shellReplyChannel :: Chan Message
