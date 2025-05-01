@@ -42,12 +42,12 @@ data ZeroMQInterface =
        Channels
          {
          -- | A channel populated with requests from the frontend.
-         shellRequestChannel :: Chan Message
+         shellRequestChannel :: Chan (Chan Message, Message)
          -- | Writing to this channel causes a reply to be sent to the frontend.
          , shellReplyChannel :: Chan Message
          -- | This channel is a duplicate of the shell request channel, though using a different backend
          -- socket.
-         , controlRequestChannel :: Chan Message
+         , controlRequestChannel :: Chan (Chan Message, Message)
          -- | This channel is a duplicate of the shell reply channel, though using a different backend
          -- socket.
          , controlReplyChannel :: Chan Message
@@ -69,7 +69,7 @@ newZeroMQInterface key = do
   shellReqChan <- newChan
   shellRepChan <- newChan
   controlReqChan <- dupChan shellReqChan
-  controlRepChan <- dupChan shellRepChan
+  controlRepChan <- newChan
   iopubChan <- newChan
   return $! Channels
     { shellRequestChannel = shellReqChan
@@ -215,7 +215,8 @@ heartbeat _ sock = do
 shell :: Bool -> ZeroMQInterface -> Socket Router -> IO ()
 shell debug channels sock = do
   -- Receive a message and write it to the interface channel.
-  receiveMessage debug sock >>= writeChan requestChannel
+  message <- receiveMessage debug sock
+  writeChan requestChannel (replyChannel, message)
 
   -- Read the reply from the interface channel and send it.
   readChan replyChannel >>= sendMessage debug (hmacKey channels) sock
@@ -230,7 +231,8 @@ shell debug channels sock = do
 control :: Bool -> ZeroMQInterface -> Socket Router -> IO ()
 control debug channels sock = do
   -- Receive a message and write it to the interface channel.
-  receiveMessage debug sock >>= writeChan requestChannel
+  message <- receiveMessage debug sock
+  writeChan requestChannel (replyChannel, message)
 
   -- Read the reply from the interface channel and send it.
   readChan replyChannel >>= sendMessage debug (hmacKey channels) sock

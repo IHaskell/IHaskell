@@ -150,11 +150,11 @@ easyKernel profileFile config = do
   zmq <- liftIO $ serveProfile prof False
   execCount <- liftIO $ newMVar 0
   forever $ do
-    req <- liftIO $ readChan (shellRequestChannel zmq)
+    (repChan, req) <- liftIO $ readChan (shellRequestChannel zmq)
     repHeader <- createReplyHeader (header req)
     when (debug config) . liftIO $ print req
     reply <- replyTo config execCount zmq req repHeader
-    liftIO $ writeChan (shellReplyChannel zmq) reply
+    liftIO $ writeChan repChan reply
 
 replyTo :: MonadIO m
         => KernelConfig m output result
