@@ -192,7 +192,8 @@ runKernel kOpts profileSrc = do
 
     forever $ do
       -- Read the request from the request channel.
-      request <- liftIO $ readChan $ shellRequestChannel interface
+      -- when the request is completed, write the reply to `repChan`
+      (repChan, request) <- liftIO $ readChan $ shellRequestChannel interface
 
       -- Create a header for the reply.
       replyHeader <- createReplyHeader (header request)
@@ -213,7 +214,7 @@ runKernel kOpts profileSrc = do
           tempState <- handleComm replier oldState request replyHeader
           newState <- flushWidgetMessages tempState [] widgetMessageHandler
           liftIO $ putMVar state newState
-          liftIO $ writeChan (shellReplyChannel interface) SendNothing
+          liftIO $ writeChan repChan SendNothing
         else do
           -- Create the reply, possibly modifying kernel state.
           oldState <- liftIO $ takeMVar state
@@ -221,7 +222,7 @@ runKernel kOpts profileSrc = do
           liftIO $ putMVar state newState
 
           -- Write the reply to the reply channel.
-          liftIO $ writeChan (shellReplyChannel interface) reply
+          liftIO $ writeChan repChan reply
 
       -- Notify the frontend that we're done computing.
       idleHeader <- liftIO $ dupHeader replyHeader StatusMessage
