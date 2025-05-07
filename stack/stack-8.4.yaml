@@ -18,6 +18,7 @@ packages:
 
 extra-deps:
 - plot-0.2.3.9
+- static-canvas-0.2.0.3
 - Chart-cairo-1.9.1
 - Chart-1.9.4
 - diagrams-cairo-1.4.1

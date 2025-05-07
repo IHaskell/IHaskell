@@ -25,6 +25,7 @@ extra-deps:
 - glib-0.13.8.2
 - plot-0.2.3.11
 - statestack-0.3
+- static-canvas-0.2.0.3
 
 ghc-options:
   # Eventually we want "$locals": -Wall -Wpartial-fields -Werror
