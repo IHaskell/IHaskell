@@ -16,7 +16,7 @@ packages:
 - ../ihaskell-display/ihaskell-juicypixels
 - ../ihaskell-display/ihaskell-magic
 - ../ihaskell-display/ihaskell-plot
-# - ../ihaskell-display/ihaskell-static-canvas
+- ../ihaskell-display/ihaskell-static-canvas
 - ../ihaskell-display/ihaskell-widgets
 
 extra-deps:
@@ -33,7 +33,7 @@ extra-deps:
 - glib-0.13.8.1
 - gtk2hs-buildtools-0.13.8.3
 - plot-0.2.3.11
-# - static-canvas-0.2.0.3
+- static-canvas-0.2.0.3
 - statestack-0.3
 - dual-tree-0.2.2.1
 - monoid-extras-0.6

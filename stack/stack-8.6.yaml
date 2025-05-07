@@ -13,7 +13,7 @@ packages:
 - ../ihaskell-display/ihaskell-juicypixels
 - ../ihaskell-display/ihaskell-magic
 # - ../ihaskell-display/ihaskell-plot
-# - ../ihaskell-display/ihaskell-static-canvas
+- ../ihaskell-display/ihaskell-static-canvas
 - ../ihaskell-display/ihaskell-widgets
 
 extra-deps:
@@ -25,6 +25,7 @@ extra-deps:
 - gtk2hs-buildtools-0.13.5.4
 - magic-1.1
 # - plot-0.2.3.9
+- static-canvas-0.2.0.3
 
 ghc-options:
   # Eventually we want "$locals": -Wall -Wpartial-fields -Werror
