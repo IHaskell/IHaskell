@@ -13,7 +13,7 @@ packages:
 - ../ihaskell-display/ihaskell-juicypixels
 - ../ihaskell-display/ihaskell-magic
 # - ../ihaskell-display/ihaskell-plot
-# - ../ihaskell-display/ihaskell-static-canvas
+- ../ihaskell-display/ihaskell-static-canvas
 - ../ihaskell-display/ihaskell-widgets
 
 extra-deps:

@@ -13,7 +13,7 @@ packages:
 - ../ihaskell-display/ihaskell-juicypixels
 - ../ihaskell-display/ihaskell-magic
 - ../ihaskell-display/ihaskell-plot
-# - ../ihaskell-display/ihaskell-static-canvas
+- ../ihaskell-display/ihaskell-static-canvas
 - ../ihaskell-display/ihaskell-widgets
 
 extra-deps:
@@ -25,7 +25,7 @@ extra-deps:
 - gtk2hs-buildtools-0.13.10.0
 - magic-1.1
 - plot-0.2.3.11
-# - static-canvas-0.2.0.3
+- static-canvas-0.2.0.3
 - vinyl-0.13.0
 
 ghc-options:
