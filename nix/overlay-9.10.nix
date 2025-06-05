@@ -4,7 +4,7 @@ _sel: sup: {
       ghc910 = sup.haskell.packages.ghc910.override {
         overrides = self: super: {
 
-          ghc-syntax-highlighter = self.ghc-syntax-highlighter_0_0_12_0;
+          ghc-syntax-highlighter = self.callHackage "ghc-syntax-highlighter" "0.0.12.0" {};
 
           hlint = self.callCabal2nix "hlint" (builtins.fetchTarball {
             url = "https://github.com/ndmitchell/hlint/tarball/7dfba720eaf6fa9bd0b23ae269334559aa722847";
@@ -24,7 +24,7 @@ _sel: sup: {
           time-compat = sup.haskell.lib.doJailbreak super.time-compat;
           scientific = sup.haskell.lib.doJailbreak super.scientific;
           quickcheck-instances = sup.haskell.lib.doJailbreak super.quickcheck-instances;
-          aeson = sup.haskell.lib.doJailbreak super.aeson_2_2_3_0;
+          # aeson = sup.haskell.lib.doJailbreak super.aeson_2_2_3_0;
           integer-conversion = sup.haskell.lib.doJailbreak super.integer-conversion;
           hourglass = sup.haskell.lib.dontCheck super.hourglass;
           lifted-base = sup.haskell.lib.dontCheck (sup.haskell.lib.doJailbreak super.lifted-base);
