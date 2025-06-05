@@ -71,7 +71,7 @@ library
                        bytestring            ,
                        exceptions            ,
                        filepath              ,
-                       ghc                   >=8.4 && <9.11,
+                       ghc                   >=8.4 && <9.13,
                        ghc-boot              ,
                        haskeline             ,
                        parsec                ,
