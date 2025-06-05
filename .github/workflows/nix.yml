@@ -44,6 +44,7 @@ jobs:
         env:
         - ihaskell-env-ghc98
         - ihaskell-env-ghc910
+        - ihaskell-env-ghc912
 
         - ihaskell-env-display-ghc98
         # - ihaskell-env-display-ghc910
