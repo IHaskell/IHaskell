@@ -9,15 +9,17 @@ module StringUtils (
     ) where
 
 import           IHaskellPrelude
+import           Data.Char
+import qualified Data.List as L
 import qualified Data.Text as T
 import           Data.List.Split (splitOn)
 import qualified Data.List.Split as Split
 
 lstrip :: String -> String
-lstrip = dropWhile (`elem` (" \t\r\n" :: String))
+lstrip = dropWhile isSpace
 
 rstrip :: String -> String
-rstrip = reverse . lstrip . reverse
+rstrip = L.dropWhileEnd isSpace
 
 strip :: String -> String
 strip = rstrip . lstrip
