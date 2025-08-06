@@ -1,6 +1,6 @@
 # should match the GHC version of the stack.yaml resolver
 # checked in CI
-ARG GHC_VERSION=9.6.4
+ARG GHC_VERSION=9.6.7
 
 FROM haskell:${GHC_VERSION} AS ihaskell_base
 
@@ -56,21 +56,21 @@ RUN pip3 install -U pip
 RUN pip3 install -U jupyterlab notebook
 
 # Create runtime user
-ENV NB_USER jovyan
-ENV NB_UID 1000
+ENV NB_USER=jovyan
+ENV NB_UID=1000
 RUN adduser --disabled-password \
     --gecos "Default user" \
     --uid ${NB_UID} \
     ${NB_USER}
 
 # Create directory for storing ihaskell files
-ENV IHASKELL_DATA_DIR /usr/local/lib/ihaskell
+ENV IHASKELL_DATA_DIR=/usr/local/lib/ihaskell
 RUN mkdir -p ${IHASKELL_DATA_DIR} && chown ${NB_UID} ${IHASKELL_DATA_DIR}
 
 # Set up + set hlint data directory
-ENV HLINT_DATA_DIR /usr/local/lib/hlint
+ENV HLINT_DATA_DIR=/usr/local/lib/hlint
 COPY --from=builder --chown=${NB_UID} /data/hlint.yaml ${HLINT_DATA_DIR}/
-ENV hlint_datadir ${HLINT_DATA_DIR}
+ENV hlint_datadir=${HLINT_DATA_DIR}
 
 # Set current user + directory
 WORKDIR /home/${NB_USER}/src
