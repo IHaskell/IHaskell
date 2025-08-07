@@ -44,8 +44,10 @@ jobs:
       fail-fast: false
       matrix:
         stack-yaml:
-        - 'stack/stack-8.4.yaml'
-        - 'stack/stack-8.6.yaml'
+        # Cairo fails to build on these versions of GHC.
+        # We also comment them out in the stack-nix workflow.
+        # - 'stack/stack-8.4.yaml'
+        # - 'stack/stack-8.6.yaml'
         - 'stack/stack-8.8.yaml'
         - 'stack/stack-8.10.yaml'
         - 'stack/stack-9.0.yaml'
