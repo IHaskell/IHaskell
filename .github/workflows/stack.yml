@@ -39,13 +39,15 @@ concurrency:
 jobs:
   linux:
     if: (github.event_name != 'pull_request' && ! github.event.pull_request.head.repo.fork) || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork)
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         stack-yaml:
-        - 'stack/stack-8.4.yaml'
-        - 'stack/stack-8.6.yaml'
+        # Cairo fails to build on these versions of GHC.
+        # We also comment them out in the stack-nix workflow.
+        # - 'stack/stack-8.4.yaml'
+        # - 'stack/stack-8.6.yaml'
         - 'stack/stack-8.8.yaml'
         - 'stack/stack-8.10.yaml'
         - 'stack/stack-9.0.yaml'
