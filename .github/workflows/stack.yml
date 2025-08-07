@@ -44,10 +44,8 @@ jobs:
       fail-fast: false
       matrix:
         stack-yaml:
-        # Cairo fails to build on these versions of GHC.
-        # We also comment them out in the stack-nix workflow.
-        # - 'stack/stack-8.4.yaml'
-        # - 'stack/stack-8.6.yaml'
+        - 'stack/stack-8.4.yaml'
+        - 'stack/stack-8.6.yaml'
         - 'stack/stack-8.8.yaml'
         - 'stack/stack-8.10.yaml'
         - 'stack/stack-9.0.yaml'
@@ -82,8 +80,8 @@ jobs:
 
     - name: Install system dependencies
       run: |
-        sudo apt update
-        sudo apt install libmagic-dev libgmp-dev libblas-dev liblapack-dev libcairo2-dev libpango1.0-dev libzmq3-dev jq
+        sudo apt-get update
+        sudo apt-get install libmagic-dev libgmp-dev libblas-dev liblapack-dev libcairo2-dev libpango1.0-dev libzmq3-dev jq
 
     - name: Test ipython-kernel
       run: |
@@ -96,14 +94,14 @@ jobs:
 
     - name: Test
       run: |
-        stack test --stack-yaml ${{matrix.stack-yaml}}
+        stack test ihaskell --stack-yaml ${{matrix.stack-yaml}}
 
     - name: Run integration test
       run: |
         nix build .#jupyterlab
         export PATH="$(pwd)/result/bin:$(pwd)/.local/bin:$PATH"
 
-        stack install --stack-yaml ${{matrix.stack-yaml}}
+        stack install ihaskell --stack-yaml ${{matrix.stack-yaml}}
 
         ihaskell install --stack --stack-flag="--stack-yaml=$(realpath ${{matrix.stack-yaml}})"
 
