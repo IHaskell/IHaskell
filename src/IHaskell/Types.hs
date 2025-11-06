@@ -47,6 +47,7 @@ import           IHaskellPrelude
 import           Data.Aeson (ToJSON (..), Value, (.=), object, Value(String))
 import           Data.Function (on)
 import           Data.Text (pack)
+import qualified Data.Text.Encoding as Text
 import           Data.Binary
 import           GHC.Generics
 
@@ -303,7 +304,12 @@ evaluationOutputs er =
 dupHeader :: MessageHeader -> MessageType -> IO MessageHeader
 dupHeader hdr messageType = do
   uuid <- liftIO random
-  return hdr { mhMessageId = uuid, mhMsgType = messageType }
+  let sessionBytes = Text.encodeUtf8 $ pack $ uuidToString $ mhSessionId hdr
+      -- For IOPub message types, use session ID as identifier (topic)
+      newIdentifiers = if isIOPubMessageType messageType
+                       then [sessionBytes]
+                       else mhIdentifiers hdr
+  return hdr { mhMessageId = uuid, mhMsgType = messageType, mhIdentifiers = newIdentifiers }
 
 -- | Modifies a header and appends the version of the Widget Messaging Protocol as metadata
 setVersion :: MessageHeader  -- ^ The header to modify

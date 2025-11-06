@@ -30,6 +30,7 @@ module IHaskell.IPython.Types (
     Metadata(..),
     replyType,
     showMessageType,
+    isIOPubMessageType,
 
     -- ** IPython display data message
     DisplayData(..),
@@ -244,6 +245,20 @@ showMessageType CommInfoReplyMessage = "comm_info_reply"
 showMessageType CommCloseMessage = "comm_close"
 showMessageType HistoryRequestMessage = "history_request"
 showMessageType HistoryReplyMessage = "history_reply"
+
+isIOPubMessageType :: MessageType -> Bool
+isIOPubMessageType StatusMessage = True
+isIOPubMessageType ExecuteResultMessage = True
+isIOPubMessageType StreamMessage = True
+isIOPubMessageType DisplayDataMessage = True
+isIOPubMessageType UpdateDisplayDataMessage = True
+isIOPubMessageType ExecuteInputMessage = True
+isIOPubMessageType ExecuteErrorMessage = True
+isIOPubMessageType ClearOutputMessage = True
+isIOPubMessageType CommOpenMessage = True
+isIOPubMessageType CommDataMessage = True
+isIOPubMessageType CommCloseMessage = True
+isIOPubMessageType _ = False
 
 instance FromJSON MessageType where
   parseJSON (String s) =
