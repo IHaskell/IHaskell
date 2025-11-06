@@ -57,9 +57,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - uses: cachix/install-nix-action@v22
+    - uses: cachix/install-nix-action@v31
       with:
-        install_url: https://releases.nixos.org/nix/nix-2.22.1/install
+        install_url: https://releases.nixos.org/nix/nix-2.32.2/install
 
     - uses: haskell-actions/setup@v2
       name: Setup Haskell Stack
