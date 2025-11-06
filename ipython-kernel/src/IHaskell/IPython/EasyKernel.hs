@@ -256,20 +256,6 @@ replyTo _ _ _ msg _ = do
   liftIO $ print msg
   return msg
 
-isIOPubMessageType :: MessageType -> Bool
-isIOPubMessageType StatusMessage = True
-isIOPubMessageType ExecuteResultMessage = True
-isIOPubMessageType StreamMessage = True
-isIOPubMessageType DisplayDataMessage = True
-isIOPubMessageType UpdateDisplayDataMessage = True
-isIOPubMessageType ExecuteInputMessage = True
-isIOPubMessageType ExecuteErrorMessage = True
-isIOPubMessageType ClearOutputMessage = True
-isIOPubMessageType CommOpenMessage = True
-isIOPubMessageType CommDataMessage = True
-isIOPubMessageType CommCloseMessage = True
-isIOPubMessageType _ = False
-
 dupHeader :: MonadIO m => MessageHeader -> MessageType -> m MessageHeader
 dupHeader hdr messageType = do
   uuid <- liftIO UUID.random

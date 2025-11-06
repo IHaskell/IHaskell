@@ -300,20 +300,6 @@ evaluationOutputs er =
     IntermediateResult outputs -> outputs
     FinalResult outputs _ _ -> outputs
 
-isIOPubMessageType :: MessageType -> Bool
-isIOPubMessageType StatusMessage = True
-isIOPubMessageType ExecuteResultMessage = True
-isIOPubMessageType StreamMessage = True
-isIOPubMessageType DisplayDataMessage = True
-isIOPubMessageType UpdateDisplayDataMessage = True
-isIOPubMessageType ExecuteInputMessage = True
-isIOPubMessageType ExecuteErrorMessage = True
-isIOPubMessageType ClearOutputMessage = True
-isIOPubMessageType CommOpenMessage = True
-isIOPubMessageType CommDataMessage = True
-isIOPubMessageType CommCloseMessage = True
-isIOPubMessageType _ = False
-
 -- | Duplicate a message header, giving it a new UUID and message type.
 dupHeader :: MessageHeader -> MessageType -> IO MessageHeader
 dupHeader hdr messageType = do
