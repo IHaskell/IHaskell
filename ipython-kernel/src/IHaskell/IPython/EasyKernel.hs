@@ -37,6 +37,7 @@ import           Control.Monad (forever, when, void)
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as Text
 
 import           IHaskell.IPython.Kernel
 import           IHaskell.IPython.Message.UUID as UUID
@@ -255,8 +256,26 @@ replyTo _ _ _ msg _ = do
   liftIO $ print msg
   return msg
 
+isIOPubMessageType :: MessageType -> Bool
+isIOPubMessageType StatusMessage = True
+isIOPubMessageType ExecuteResultMessage = True
+isIOPubMessageType StreamMessage = True
+isIOPubMessageType DisplayDataMessage = True
+isIOPubMessageType UpdateDisplayDataMessage = True
+isIOPubMessageType ExecuteInputMessage = True
+isIOPubMessageType ExecuteErrorMessage = True
+isIOPubMessageType ClearOutputMessage = True
+isIOPubMessageType CommOpenMessage = True
+isIOPubMessageType CommDataMessage = True
+isIOPubMessageType CommCloseMessage = True
+isIOPubMessageType _ = False
+
 dupHeader :: MonadIO m => MessageHeader -> MessageType -> m MessageHeader
-dupHeader hdr mtype =
-  do
-    uuid <- liftIO UUID.random
-    return hdr { mhMessageId = uuid, mhMsgType = mtype }
+dupHeader hdr messageType = do
+  uuid <- liftIO UUID.random
+  let sessionBytes = Text.encodeUtf8 $ T.pack $ UUID.uuidToString $ mhSessionId hdr
+      -- For IOPub message types, use session ID as identifier (topic)
+      newIdentifiers = if isIOPubMessageType messageType
+                       then [sessionBytes]
+                       else mhIdentifiers hdr
+  return hdr { mhMessageId = uuid, mhMsgType = messageType, mhIdentifiers = newIdentifiers }
