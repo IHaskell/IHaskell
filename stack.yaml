@@ -24,6 +24,7 @@ ghc-options:
   # ihaskell-widgets: -Wall -Wpartial-fields -Werror
 
 extra-deps:
+- hashtables-1.4.1
 # https://github.com/amcphail/plot/pull/23
 - git: https://github.com/codedownio/haskell-plot.git
   commit: dfa26022b5815bcd6a5dd6c818fcd2c4d25c6d44
