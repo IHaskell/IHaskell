@@ -148,11 +148,12 @@ You can also use the following script to run IHaskell in Docker: https://gist.gi
 
 ## Nix
 
-If you have the `nix` package manager installed, you can create an IHaskell
+If you have the `nix` package manager installed (and have
+[flakes](https://nixos.wiki/wiki/Flakes) enabled), you can create an IHaskell
 notebook environment with one command. For example:
 
 ```bash
-$ nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-23.05 release.nix --argstr compiler ghc928 --arg packages "haskellPackages: [ haskellPackages.lens ]"
+$ nix build
 <result path>
 $ <result path>/bin/jupyter notebook
 ```
@@ -162,10 +163,10 @@ faster. You can use the
 [https://ihaskell.cachix.org](https://app.cachix.org/cache/ihaskell) cache for
 prebuilt artifacts.
 
-The IHaskell display modules are not loaded by default and have to be specified as additional packages:
+The IHaskell display modules are not loaded by default and have to be specified separately:
 
 ```bash
-$ nix-build -I nixpkgs=https://github.com/NixOS/nixpkgs/tarball/nixos-23.05 release.nix --argstr compiler ghc928 --arg packages "haskellPackages: [ haskellPackages.ihaskell-blaze haskellPackages.ihaskell-charts ]"
+$ nix build .#ihaskell-env-display-ghc98
 ```
 
 For more examples of using IHaskell with Nix, see https://github.com/vaibhavsagar/notebooks.
