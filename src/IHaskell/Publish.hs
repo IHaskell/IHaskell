@@ -1,4 +1,4 @@
-{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
+{-# LANGUAGE NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
 module IHaskell.Publish
   ( publishResult
   ) where

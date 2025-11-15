@@ -1,4 +1,4 @@
-{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
+{-# LANGUAGE NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
 {-# LANGUAGE CPP, ScopedTypeVariables #-}
 
 -- | Description : Argument parsing and basic messaging loop, using Haskell

@@ -1,4 +1,4 @@
-{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
+{-# LANGUAGE NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
 
 -- | Description : Shell scripting wrapper using @Shelly@ for the @notebook@, and
 --                 @console@ commands.

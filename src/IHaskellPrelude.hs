@@ -1,4 +1,4 @@
-{-# language NoImplicitPrelude, DoAndIfThenElse, ExtendedDefaultRules #-}
+{-# LANGUAGE NoImplicitPrelude, DoAndIfThenElse, ExtendedDefaultRules #-}
 {-# LANGUAGE CPP #-}
 module IHaskellPrelude (
   module IHaskellPrelude,
