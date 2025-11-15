@@ -1,5 +1,5 @@
 {-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
-{-# LANGUAGE NoImplicitPrelude, DeriveFunctor #-}
+{-# LANGUAGE DeriveFunctor #-}
 
 module IHaskell.Flags (
     IHaskellMode(..),

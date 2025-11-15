@@ -1,4 +1,4 @@
-{-# LANGUAGE ViewPatterns, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE ViewPatterns, FlexibleInstances #-}
 
 module IHaskell.Display.Magic () where
 
