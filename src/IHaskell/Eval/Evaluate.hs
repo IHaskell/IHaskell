@@ -321,7 +321,7 @@ initializeImports importSupportLibraries = do
   let db = getPackageConfigs dflgs
       packageNames = map (packageIdString' dflgs) db
       hiddenPackages = Set.intersection hiddenPackageNames (Set.fromList packageNames)
-      hiddenFlags = fmap HidePackage $ Set.toList hiddenPackages
+      hiddenFlags = HidePackage <$> Set.toList hiddenPackages
       initStr = "ihaskell-"
 #endif
 
@@ -329,11 +329,11 @@ initializeImports importSupportLibraries = do
       iHaskellPkgName = "ihaskell"
       displayPkgs = [ pkgName
                     | pkgName <- packageNames
-                    , Just (x:_) <- [stripPrefix initStr pkgName]
                     , pkgName `notElem` broken
+                    , Just (x:_) <- [stripPrefix initStr pkgName]
                     , isAlpha x ]
 
-      hasIHaskellPackage = not $ null $ filter (== iHaskellPkgName) packageNames
+      hasIHaskellPackage = iHaskellPkgName `elem` packageNames
 
   -- Generate import statements all Display modules.
   let capitalize :: String -> String
@@ -1331,7 +1331,7 @@ doReload = do
       setContext imported
       initializeItVariable
 
-      return $ displayError $ "Failed to reload."
+      return $ displayError "Failed to reload."
 
 #if MIN_VERSION_ghc(9,2,0)
 objTarget :: DynFlags -> Backend
@@ -1465,7 +1465,7 @@ capturedEval output stmt = do
               liftIO $ modifyMVar_ completed (const $ return True)
 
               -- Finalize evaluation context.
-              void $ forM postStmts goStmt
+              forM_ postStmts goStmt
 
               -- Once context is finalized, reading can finish. Wait for reading to finish to that the output
               -- accumulator is completely filled.

@@ -19,7 +19,7 @@ main = do
   packageConfInPlaceExists <- doesPathExist (currentDir ++ "/dist/package.conf.inplace")
   when packageConfInPlaceExists $ do
     ghcPackagePath <- fromMaybe "" <$> lookupEnv "GHC_PACKAGE_PATH"
-    setEnv "GHC_PACKAGE_PATH" $ (currentDir ++ "/dist/package.conf.inplace/" ++ ":" ++ ghcPackagePath)
+    setEnv "GHC_PACKAGE_PATH" $ currentDir ++ "/dist/package.conf.inplace/" ++ ":" ++ ghcPackagePath
   hspec $ do
     testParser
     testEval
