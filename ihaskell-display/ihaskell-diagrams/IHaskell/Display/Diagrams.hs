@@ -1,5 +1,5 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies                            #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module IHaskell.Display.Diagrams
          ( diagram, animation

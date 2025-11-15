@@ -2,24 +2,19 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE AutoDeriveTypeable #-}
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE PatternSynonyms #-}
 
 -- | This module houses all the type-trickery needed to make widgets happen.
 --
@@ -102,7 +97,7 @@ import           IHaskell.Display.Widgets.Singletons
 import qualified IHaskell.Display.Widgets.Singletons as S
 import           IHaskell.Display.Widgets.Common
 
-type RElemOf r rs = RElem r rs (RIndex r rs) 
+type RElemOf r rs = RElem r rs (RIndex r rs)
 
 -- | F for field. Nicer than Proxy.
 -- Used only in infix functions since @f := val is not allowed.
@@ -888,7 +883,7 @@ properties widget = do
       renderRow (fname, ftype) = printf "%s ::: %s" (show fname) (show ftype)
       rows = map renderRow . recordToList . rmap convert $ st
   mapM_ putStrLn rows
-  
+
 -- Helper function for widget to enforce their inability to fetch console input
 noStdin :: IO a -> IO ()
 noStdin action =

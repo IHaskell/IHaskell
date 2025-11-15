@@ -1,4 +1,4 @@
-{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules, CPP #-}
+{-# LANGUAGE NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules, CPP #-}
 module IHaskell.Eval.Widgets (
     widgetSendOpen,
     widgetSendView,

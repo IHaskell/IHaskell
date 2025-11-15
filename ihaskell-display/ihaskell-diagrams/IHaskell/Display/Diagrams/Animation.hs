@@ -1,5 +1,5 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies                            #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveFunctor, DeriveGeneric #-}
 
 module IHaskell.Display.Diagrams.Animation

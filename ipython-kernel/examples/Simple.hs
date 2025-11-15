@@ -41,7 +41,7 @@ parseExpr str =
 
     op :: Parser Expr
     op = do
-      func <- choice $ map string $ ["plus", "minus", "times", "div", "exp"]
+      func <- choice $ map string ["plus", "minus", "times", "div", "exp"]
       char '('
       x <- expr
       char ','

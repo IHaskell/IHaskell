@@ -69,7 +69,7 @@ import HeaderInfo (getOptions)
 import Lexer hiding (buffer)
 import OrdList
 import Panic (handleGhcException)
-import qualified SrcLoc as SrcLoc
+import qualified SrcLoc
 import StringBuffer hiding (len)
 #endif
 #if MIN_VERSION_ghc(8,10,0)

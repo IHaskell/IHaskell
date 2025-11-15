@@ -1,4 +1,4 @@
-{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
+{-# LANGUAGE NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
 {-# LANGUAGE CPP, ScopedTypeVariables #-}
 
 -- | Description : Argument parsing and basic messaging loop, using Haskell
@@ -131,7 +131,7 @@ runKernel kOpts profileSrc = do
 
   -- Parse the profile file.
   let profileErr = error $ "ihaskell: "++profileSrc++": Failed to parse profile file"
-  profile <- liftM (fromMaybe profileErr . decode) $ LBS.readFile profileSrc
+  profile <- fromMaybe profileErr . decode <$> LBS.readFile profileSrc
 
   -- Necessary for `getLine` and their ilk to work.
   dir <- getIHaskellDir
@@ -293,7 +293,7 @@ replyTo kOpts interface KernelInfoRequest{} replyHeader state = do
               })
 
 replyTo _ _ CommInfoRequest{} replyHeader state =
-  let comms = Map.mapKeys (UUID.uuidToString) (openComms state) in
+  let comms = Map.mapKeys UUID.uuidToString (openComms state) in
   return
     (state, CommInfoReply
               { header = replyHeader
@@ -363,7 +363,7 @@ replyTo _ _ req@IsCompleteRequest{} replyHeader state = do
       if nub (last code) == " "
          then return CodeComplete
          else return $ CodeIncomplete $ indent 4
-    indent n = take n $ repeat ' '
+    indent n = replicate n ' '
 
 replyTo _ _ req@CompleteRequest{} replyHeader state = do
   let code = getCode req

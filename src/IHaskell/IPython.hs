@@ -1,4 +1,4 @@
-{-# language NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
+{-# LANGUAGE NoImplicitPrelude, DoAndIfThenElse, OverloadedStrings, ExtendedDefaultRules #-}
 
 -- | Description : Shell scripting wrapper using @Shelly@ for the @notebook@, and
 --                 @console@ commands.
@@ -185,7 +185,7 @@ installKernelspec repl opts = void $ do
 installLabextension :: Bool -> IO ()
 installLabextension debug = SH.shelly $ do
   -- Find the prebuilt extension directory
-  ihaskellDataDir <- liftIO $ Paths.getDataDir
+  ihaskellDataDir <- liftIO Paths.getDataDir
   let labextensionDataDir = ihaskellDataDir
         SH.</> ("jupyterlab-ihaskell" :: SH.FilePath)
         SH.</> ("labextension" :: SH.FilePath)

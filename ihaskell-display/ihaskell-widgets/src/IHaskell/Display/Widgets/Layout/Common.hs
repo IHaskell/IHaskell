@@ -1,10 +1,5 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE AutoDeriveTypeable #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 
 -- There are lots of pattern synpnyms, and little would be gained by adding
 -- the type signatures.
