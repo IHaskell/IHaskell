@@ -136,11 +136,11 @@ parsePort s = readMaybe num
 
 bindLocalEphemeralPort :: Socket a -> IO Int
 bindLocalEphemeralPort sock = do
-  bind sock $ "tcp://127.0.0.1:*"
+  bind sock "tcp://127.0.0.1:*"
   endpointString <- lastEndpoint sock
   case parsePort endpointString of
     Nothing ->
-      fail $ "internalError: IHaskell.IPython.ZeroMQ.bindLocalEphemeralPort encountered a port index that could not be interpreted as an int."
+      fail "internalError: IHaskell.IPython.ZeroMQ.bindLocalEphemeralPort encountered a port index that could not be interpreted as an int."
     Just endpointIndex ->
       return endpointIndex
 

@@ -28,7 +28,6 @@ module IHaskell.IPython.Stdin (fixStdin, recordParentHeader, recordKernelProfile
 import           IHaskellPrelude
 
 import           Control.Concurrent
-import           Control.Applicative ((<$>))
 import           GHC.IO.Handle
 import           GHC.IO.Handle.Types
 import           System.FilePath ((</>))

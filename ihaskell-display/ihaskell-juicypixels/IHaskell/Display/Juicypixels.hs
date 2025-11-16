@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module IHaskell.Display.Juicypixels (module IHaskell.Display, module Codec.Picture) where
 

@@ -4,18 +4,9 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE EmptyCase #-}
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
-#if __GLASGOW_HASKELL__ >= 810
-{-# LANGUAGE StandaloneKindSignatures #-}
-#endif
 
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 
