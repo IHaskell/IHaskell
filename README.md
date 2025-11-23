@@ -1,40 +1,55 @@
-![jupyter](https://i.imgur.com/S16l2Hw.png) ![IHaskell](https://i.imgur.com/qhXXFbA.png) [![Build Status](https://github.com/gibiansky/IHaskell/workflows/CI/badge.svg)](https://github.com/gibiansky/IHaskell/actions?query=workflow%3ACI) [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/gibiansky/IHaskell/mybinder)
+![jupyter](https://i.imgur.com/S16l2Hw.png) ![IHaskell](https://i.imgur.com/qhXXFbA.png) [![Build Status](https://github.com/IHaskell/IHaskell/actions/workflows/stack.yml/badge.svg)](https://github.com/IHaskell/IHaskell/actions/workflows/stack.yml) [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/IHaskell/IHaskell/mybinder)
 
 # IHaskell
 
-> You can now try IHaskell directly in your browser at [CoCalc](https://cocalc.com) or [mybinder.org](https://mybinder.org/v2/gh/gibiansky/IHaskell/mybinder).
->
-> Alternatively, watch a [talk and demo](http://begriffs.com/posts/2016-01-20-ihaskell-notebook.html) showing off IHaskell features.
-
 IHaskell is a kernel for the [Jupyter project](https://jupyter.org), which allows you to use Haskell inside Jupyter frontends (including the console and notebook). It currently supports GHC 8.4 through 9.10.
 
-For a tour of some IHaskell features, check out the [demo Notebook](http://nbviewer.org/github/gibiansky/IHaskell/blob/master/notebooks/IHaskell.ipynb). More example notebooks are available on the [wiki](https://github.com/gibiansky/IHaskell/wiki).
-The [wiki](https://github.com/gibiansky/IHaskell/wiki) also has more extensive documentation of IHaskell features.
 
-![IPython Console](https://raw.github.com/gibiansky/IHaskell/master/images/ihaskell-console.png)
-![IPython Notebook](https://raw.github.com/gibiansky/IHaskell/master/images/ihaskell-notebook.png)
+## Try it out
+You can now try IHaskell directly in your browser at [mybinder.org](https://mybinder.org/v2/gh/IHaskell/IHaskell/mybinder).
 
-### Interactive In-Browser Notebook
+For a tour of some IHaskell features, check out the [demo Notebook](http://nbviewer.org/github/IHaskell/IHaskell/blob/master/notebooks/IHaskell.ipynb). More example notebooks are available on the [wiki](https://github.com/IHaskell/IHaskell/wiki).
+The [wiki](https://github.com/IHaskell/IHaskell/wiki) also has more extensive documentation of IHaskell features.
 
-# Installation
+## Installation
+Install Haskell with via [ghcup](https://www.haskell.org/ghcup/install/).
 
-## Linux
+For MacOS you need to have [Homebrew](https://brew.sh) installed. You also need the Xcode command line tools. You can install them by running `xcode-select --install` in the terminal and following the prompts.
 
-Some prerequisites; adapt to your distribution.
+System pre-requisites:
+* MacOS: `brew install python3 zeromq libmagic cairo pkg-config pango`
+* Linux: `sudo apt-get install -y python3-pip git libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev libmagic-dev libblas-dev liblapack-dev`
 
-```bash
-sudo apt-get install -y python3-pip git libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev libmagic-dev libblas-dev liblapack-dev
-```
+Python pre-requisites:
+* Jupyter: `pip3 install jupyter`
 
-Install `stack`, clone this repository, install Python requirements, install
-`ihaskell`, and install the Jupyter kernelspec with `ihaskell`.
+### Install from a package manager
+
+#### Cabal (MacOS/Linux)
+* `cabal install ihaskell`
+* `ihaskell install --ghclib=$(ghc --print-libdir) --prefix=$HOME/.local/`
+* `jupyter kernelspec install $HOME/.local/share/jupyter/kernels/haskell/`
+
+To confirm success run `jupyter kernelspec list` and you should see a Haskell kernel installed.
+
+### Install from source
+
+#### Cabal
+* `git clone https://github.com/IHaskell/IHaskell`
+* `cd IHaskell`
+* `cabal build && cabal install exe:ihaskell --overwrite-policy=always --force-reinstalls --installdir=/home/$USER/.cabal/bin/ --install-method=copy`
+* `ihaskell install --ghclib=$(ghc --print-libdir) --prefix=$HOME/.local/`
+* `jupyter kernelspec install $HOME/.local/share/jupyter/kernels/haskell/`
+
+
+#### Stack
+Install `stack` via `ghcup tui`.
 
 These instructions assume you don't already have Stack or a Jupyter
 installation, please skip the relevant steps if this is not the case.
 
 ```bash
-curl -sSL https://get.haskellstack.org/ | sh
-git clone https://github.com/gibiansky/IHaskell
+git clone https://github.com/IHaskell/IHaskell
 cd IHaskell
 pip3 install -r requirements.txt
 stack install --fast
@@ -47,33 +62,7 @@ Run Jupyter.
 stack exec jupyter -- notebook
 ```
 
-## Mac
-
-You need to have [Homebrew](https://brew.sh) installed.
-If you do not have it yet run `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"` in your terminal.
-
-You also need the Xcode command line tools.
-You can install them by running `xcode-select --install` in the terminal and following the prompts.
-
-These instructions assume you don't already have Stack or a Jupyter
-installation, please skip the relevant steps if this is not the case.
-
-```bash
-brew install python3 zeromq libmagic cairo pkg-config haskell-stack pango
-git clone https://github.com/gibiansky/IHaskell
-cd IHaskell
-pip3 install -r requirements.txt
-stack install --fast
-ihaskell install --stack
-```
-
-If you have Homebrew installed to a location that `stack` does not expect (e.g. `/opt/homebrew`), you'd need to specify `--extra-include-dirs ${HOMEBREW_PREFIX}/include --extra-lib-dirs ${HOMEBREW_PREFIX}/lib` to the `stack` command.
-
-Run Jupyter.
-
-```bash
-stack exec jupyter -- notebook
-```
+> If you have Homebrew installed to a location that `stack` does not expect (e.g. `/opt/homebrew`), you'll need to specify `--extra-include-dirs ${HOMEBREW_PREFIX}/include --extra-lib-dirs ${HOMEBREW_PREFIX}/lib` to the `stack` command.
 
 _Tested on macOS Sierra (10.12.6)_
 
