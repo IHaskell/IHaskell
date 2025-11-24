@@ -30,7 +30,7 @@ Python pre-requisites:
 * `ihaskell install --ghclib=$(ghc --print-libdir) --prefix=$HOME/.local/`
 * `jupyter kernelspec install $HOME/.local/share/jupyter/kernels/haskell/`
 
-To confirm success run `jupyter kernelspec list` and you should see a Haskell kernel installed.
+To confirm success run `jupyter kernelspec list` and you should see a Haskell kernel installed. Start jupyter with `jupyter notebook`
 
 ### Install from source
 
