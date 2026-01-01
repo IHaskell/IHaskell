@@ -23,6 +23,8 @@ WORKDIR /build
 # Build snapshot
 COPY stack.yaml stack.yaml
 COPY ihaskell.cabal ihaskell.cabal
+# Remove "-dynamic" flag for Docker build
+RUN sed -i -e 's/ghc-options: -threaded -rtsopts -Wall -dynamic/ghc-options: -threaded -rtsopts -Wall/g' ihaskell.cabal
 COPY ipython-kernel ipython-kernel
 COPY ghc-parser ghc-parser
 COPY ihaskell-display ihaskell-display
