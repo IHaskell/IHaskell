@@ -1,7 +1,7 @@
 {
   description = "A Haskell kernel for IPython.";
 
-  inputs.nixpkgs25_05.url = "github:NixOS/nixpkgs/release-25.05";
+  inputs.nixpkgs25_11.url = "github:NixOS/nixpkgs/release-25.11";
   inputs.nixpkgsMaster.url = "github:NixOS/nixpkgs/master";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.hls = {
@@ -15,7 +15,7 @@
     extra-trusted-public-keys = [ "ihaskell.cachix.org-1:WoIvex/Ft/++sjYW3ntqPUL3jDGXIKDpX60pC8d5VLM="];
   };
 
-  outputs = { self, nixpkgs25_05, nixpkgsMaster, flake-utils, hls, nix-filter, ... }:
+  outputs = { self, nixpkgs25_11, nixpkgsMaster, flake-utils, hls, nix-filter, ... }:
     flake-utils.lib.eachDefaultSystem (system: let
       baseOverlay = _self: _super: { inherit nix-filter; };
       pkgsMaster = import nixpkgsMaster { inherit system; overlays = [baseOverlay]; };
@@ -32,8 +32,7 @@
         };
         in
           pkgsMaster.lib.listToAttrs [
-            (mkVersion nixpkgs25_05  "ghc98"  [(import ./nix/overlay-9.8.nix)]  {})
-            (mkVersion nixpkgsMaster "ghc910" [(import ./nix/overlay-9.10.nix)] {})
+            (mkVersion nixpkgs25_11  "ghc910" [(import ./nix/overlay-9.10.nix)] { enableHlint = false; })
             (mkVersion nixpkgsMaster "ghc912" [(import ./nix/overlay-9.12.nix)] {})
           ];
 
@@ -92,8 +91,7 @@
           nativeBuildInputs = with pkgsMaster; [jq bash];
           doCheck = true;
           checkPhase = ''
-            mkdir -p home
-            export HOME=$(pwd)/home
+            export HOME=$(mktemp -d)
             bash ./test/acceptance.nbconvert.sh ${env}/bin/jupyter nbconvert
           '';
           installPhase = ''
@@ -102,8 +100,8 @@
         }
       ) envs;
 
-      defaultPackage = self.packages.${system}.ihaskell-env-ghc98;
+      defaultPackage = self.packages.${system}.ihaskell-env-ghc910;
 
-      devShell = self.packages.${system}.ihaskell-dev-ghc98;
+      devShell = self.packages.${system}.ihaskell-dev-ghc910;
     });
 }
