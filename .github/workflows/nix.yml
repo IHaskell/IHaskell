@@ -45,9 +45,7 @@ jobs:
         - ihaskell-env-ghc910
         - ihaskell-env-ghc912
 
-        # disabled because HLint uses ghc-lib-parser 9.12 which is broken
-        # when used with GHC 9.10: https://github.com/digital-asset/ghc-lib/issues/620
-        # - ihaskell-env-display-ghc910
+        - ihaskell-env-display-ghc910
 
     steps:
     - uses: actions/checkout@v3
@@ -68,6 +66,9 @@ jobs:
     - name: Check acceptance test for ${{matrix.env}}
       # Don't bother running it with the display envs since we already run it
       # with the basic envs, and it doesn't test any display stuff.
+      # GHC 9.10 is disabled because HLint uses ghc-lib-parser 9.12 which is
+      # broken when used with GHC 9.10:
+      # https://github.com/digital-asset/ghc-lib/issues/620
       if: ${{ !(contains(matrix.env, fromJSON('"display"')) || contains(matrix.env, fromJSON('"ghc910"'))) }}
       run: |
         nix build .#checks.x86_64-linux.${{matrix.env}} -L
