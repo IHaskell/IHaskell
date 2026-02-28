@@ -32,7 +32,7 @@
         };
         in
           pkgsMaster.lib.listToAttrs [
-            (mkVersion nixpkgs25_11  "ghc910" [(import ./nix/overlay-9.10.nix)] {})
+            (mkVersion nixpkgs25_11  "ghc910" [(import ./nix/overlay-9.10.nix)] { enableHlint = false; })
             (mkVersion nixpkgsMaster "ghc912" [(import ./nix/overlay-9.12.nix)] {})
           ];
 
@@ -91,8 +91,7 @@
           nativeBuildInputs = with pkgsMaster; [jq bash];
           doCheck = true;
           checkPhase = ''
-            mkdir -p home
-            export HOME=$(pwd)/home
+            export HOME=$(mktemp -d)
             bash ./test/acceptance.nbconvert.sh ${env}/bin/jupyter nbconvert
           '';
           installPhase = ''

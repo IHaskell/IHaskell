@@ -45,7 +45,9 @@ jobs:
         - ihaskell-env-ghc910
         - ihaskell-env-ghc912
 
-        - ihaskell-env-display-ghc910
+        # disabled because HLint uses ghc-lib-parser 9.12 which is broken
+        # when used with GHC 9.10: https://github.com/digital-asset/ghc-lib/issues/620
+        # - ihaskell-env-display-ghc910
 
     steps:
     - uses: actions/checkout@v3
