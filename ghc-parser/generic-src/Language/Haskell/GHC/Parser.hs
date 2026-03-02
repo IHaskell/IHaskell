@@ -77,6 +77,10 @@ import StringBuffer hiding (len)
 import ErrUtils hiding (ErrMsg)
 #endif
 
+#if MIN_VERSION_ghc(9,14,0)
+import GHC.Utils.Logger (initLogger)
+#endif
+
 import GHC hiding (Located, Parsed, parser)
 import qualified Language.Haskell.GHC.HappyParser as Parse
 
@@ -215,12 +219,19 @@ runParser flags (Parser parser) str =
 parsePragmasIntoDynFlags :: DynFlags -> FilePath -> String -> IO (Maybe DynFlags)
 parsePragmasIntoDynFlags flags filepath str =
   catchErrors $ do
-#if MIN_VERSION_ghc(9,4,0)
+#if MIN_VERSION_ghc(9,14,0)
+    let opts = snd $ getOptions (initParserOpts flags) [] (stringToStringBuffer str) filepath
+#elif MIN_VERSION_ghc(9,4,0)
     let opts = snd $ getOptions (initParserOpts flags) (stringToStringBuffer str) filepath
 #else
     let opts = getOptions flags (stringToStringBuffer str) filepath
 #endif
+#if MIN_VERSION_ghc(9,14,0)
+    logger <- initLogger
+    (flags', _, _) <- parseDynamicFilePragma logger flags opts
+#else
     (flags', _, _) <- parseDynamicFilePragma flags opts
+#endif
     return $ Just flags'
   where
     catchErrors :: IO (Maybe DynFlags) -> IO (Maybe DynFlags)
