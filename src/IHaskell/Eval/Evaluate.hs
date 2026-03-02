@@ -637,7 +637,11 @@ evalCommand _ (Module contents) state = wrapExecution state $ do
       -- Get the dot-delimited pieces of the module name.
       moduleNameOf :: InteractiveImport -> [String]
       moduleNameOf (IIDecl decl) = split "." . moduleNameString . unLoc . ideclName $ decl
+#if MIN_VERSION_ghc(9,14,0)
+      moduleNameOf (IIModule imp) = split "." . moduleNameString $ moduleName imp
+#else
       moduleNameOf (IIModule imp) = split "." . moduleNameString $ imp
+#endif
 
       -- Return whether this module prevents the loading of the one we're trying to load. If a module B
       -- exist, we cannot load A.B. All modules must have unique last names (where A.B has last name B).
