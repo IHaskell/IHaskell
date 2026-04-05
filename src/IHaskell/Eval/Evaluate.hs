@@ -227,23 +227,21 @@ interpret libdir allowedStdin needsSupportLibraries action = runGhc (Just libdir
   action hasSupportLibraries
 
 #if MIN_VERSION_ghc(9,4,0)
-packageIdString' :: Logger -> DynFlags -> HscEnv -> UnitInfo -> IO String
-packageIdString' logger dflags hsc_env pkg_cfg = do
-    (_, unitState, _, _) <- initUnits logger dflags Nothing (hsc_all_home_unit_ids hsc_env)
+packageIdString' :: UnitState -> UnitInfo -> String
+packageIdString' unitState pkg_cfg =
     case (lookupUnit unitState $ mkUnit pkg_cfg) of
-      Nothing -> pure "(unknown)"
+      Nothing -> "(unknown)"
       Just cfg -> let
         PackageName name = unitPackageName cfg
-        in pure $ unpackFS name
+        in unpackFS name
 #elif MIN_VERSION_ghc(9,2,0)
-packageIdString' :: Logger -> DynFlags -> UnitInfo -> IO String
-packageIdString' logger dflags pkg_cfg = do
-    (_, unitState, _, _) <- initUnits logger dflags Nothing
+packageIdString' :: UnitState -> UnitInfo -> String
+packageIdString' unitState pkg_cfg =
     case (lookupUnit unitState $ mkUnit pkg_cfg) of
-      Nothing -> pure "(unknown)"
+      Nothing -> "(unknown)"
       Just cfg -> let
         PackageName name = unitPackageName cfg
-        in pure $ unpackFS name
+        in unpackFS name
 #elif MIN_VERSION_ghc(9,0,0)
 packageIdString' :: DynFlags -> UnitInfo -> String
 packageIdString' dflags pkg_cfg =
@@ -263,15 +261,15 @@ packageIdString' dflags pkg_cfg =
 #endif
 
 #if MIN_VERSION_ghc(9,4,0)
-getPackageConfigs :: Logger -> DynFlags -> HscEnv -> IO [GenUnitInfo UnitId]
+getPackageConfigs :: Logger -> DynFlags -> HscEnv -> IO ([GenUnitInfo UnitId], UnitState)
 getPackageConfigs logger dflags hsc_env = do
-    (pkgDb, _, _, _) <- initUnits logger dflags Nothing (hsc_all_home_unit_ids hsc_env)
-    pure $ foldMap unitDatabaseUnits pkgDb
+    (pkgDb, unitState, _, _) <- initUnits logger dflags Nothing (hsc_all_home_unit_ids hsc_env)
+    pure (foldMap unitDatabaseUnits pkgDb, unitState)
 #elif MIN_VERSION_ghc(9,2,0)
-getPackageConfigs :: Logger -> DynFlags -> IO [GenUnitInfo UnitId]
+getPackageConfigs :: Logger -> DynFlags -> IO ([GenUnitInfo UnitId], UnitState)
 getPackageConfigs logger dflags = do
-    (pkgDb, _, _, _) <- initUnits logger dflags Nothing
-    pure $ foldMap unitDatabaseUnits pkgDb
+    (pkgDb, unitState, _, _) <- initUnits logger dflags Nothing
+    pure (foldMap unitDatabaseUnits pkgDb, unitState)
 #elif MIN_VERSION_ghc(9,0,0)
 getPackageConfigs :: DynFlags -> [GenUnitInfo UnitId]
 getPackageConfigs dflags =
@@ -302,19 +300,21 @@ initializeImports importSupportLibraries = do
   (dflgs, _) <- liftIO $ initPackages dflags
 #endif
 
+  -- NB: make sure to only call 'initUnits' once, as it is quite expensive
+  -- especially when there are many dependencies.
 #if MIN_VERSION_ghc(9,4,0)
   logger <- getLogger
   hsc_env <- getSession
-  db <- liftIO $ getPackageConfigs logger dflgs hsc_env
-  packageNames <- liftIO $ mapM (packageIdString' logger dflgs hsc_env) db
-  let hiddenPackages = Set.intersection hiddenPackageNames (Set.fromList packageNames)
+  (db, unitState) <- liftIO $ getPackageConfigs logger dflgs hsc_env
+  let packageNames = map (packageIdString' unitState) db
+      hiddenPackages = Set.intersection hiddenPackageNames (Set.fromList packageNames)
       hiddenFlags = fmap HidePackage $ Set.toList hiddenPackages
       initStr = "ihaskell-"
 #elif MIN_VERSION_ghc(9,2,0)
   logger <- getLogger
-  db <- liftIO $ getPackageConfigs logger dflgs
-  packageNames <- liftIO $ mapM (packageIdString' logger dflgs) db
-  let hiddenPackages = Set.intersection hiddenPackageNames (Set.fromList packageNames)
+  (db, unitState) <- liftIO $ getPackageConfigs logger dflgs
+  let packageNames = map (packageIdString' unitState) db
+      hiddenPackages = Set.intersection hiddenPackageNames (Set.fromList packageNames)
       hiddenFlags = fmap HidePackage $ Set.toList hiddenPackages
       initStr = "ihaskell-"
 #else
