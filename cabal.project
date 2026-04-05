@@ -1,3 +1,8 @@
+
+-- The test runner needs package environment files to supply IHaskell packages,
+-- so make sure they are always generated.
+write-ghc-environment-files: always
+
 packages: .
           ./ipython-kernel
           ./ghc-parser
