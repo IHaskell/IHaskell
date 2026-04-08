@@ -9,6 +9,7 @@ import           Prelude
 import           Control.Monad (when, forM_)
 import           Data.Aeson (encode)
 import           Data.IORef (newIORef, modifyIORef, readIORef)
+import qualified Data.Text as Text
 import           System.Directory (getTemporaryDirectory, setCurrentDirectory, getCurrentDirectory)
 
 import           Text.RawString.QQ (r)
@@ -170,28 +171,18 @@ testEval =
       ":k Maybe" `becomes` ["Maybe :: * -> *"]
 
     it "evaluates :in directive" $ do
-#if MIN_VERSION_ghc(9,10,0)
-      displayDatasBecome ":in String" [
-        ManyDisplay [Display [
-                        DisplayData PlainText "type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Internal.Base\8217"
-                        , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">::</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">*</span><span class=\"cm-space\"><br /></span>\n<span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"><br />  \t</span><span class=\"cm-comment\">-- Defined in \8216GHC.Internal.Base\8217</span><span class=\"cm-space\"><br /></span></div>"
-                        ]]
-        ]
-#elif MIN_VERSION_ghc(8,10,0)
-      displayDatasBecome ":in String" [
-        ManyDisplay [Display [
-                        DisplayData PlainText "type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Base\8217"
-                        , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">::</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">*</span><span class=\"cm-space\"><br /></span>\n<span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"><br />  \t</span><span class=\"cm-comment\">-- Defined in \8216GHC.Base\8217</span><span class=\"cm-space\"><br /></span></div>"
-                        ]]
-        ]
-#else
-      displayDatasBecome ":in String" [
-        ManyDisplay [Display [
-                        DisplayData PlainText "type String = [Char] \t-- Defined in \8216GHC.Base\8217"
-                        , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"> \t</span><span class=\"cm-comment\">-- Defined in \8216GHC.Base\8217</span><span class=\"cm-space\"><br /></span></div>"
-                        ]]
-        ]
-#endif
+      (displays, _) <- eval ":in String"
+      case displays of
+        [ManyDisplay [Display [DisplayData PlainText plain, DisplayData MimeHtml html]]] -> do
+          -- The type definition is stable; the module name and whether quotation
+          -- marks use unicode vary across GHC versions and platforms, so don't
+          -- check everything.
+          Text.unpack plain `shouldContain` "type String = [Char]"
+          Text.unpack html  `shouldContain` "<span class=\"cm-keyword\">type</span>"
+          Text.unpack html  `shouldContain` "<span class=\"cm-variable-2\">String</span>"
+          Text.unpack html  `shouldContain` "<span class=\"cm-variable-2\">Char</span>"
+        _ -> expectationFailure $ "Unexpected display structure for :in String: "
+                                    ++ show (encode displays)
 
     it "captures stderr" $ do
       [r|
