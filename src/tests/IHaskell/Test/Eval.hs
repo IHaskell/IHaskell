@@ -58,9 +58,16 @@ becomes string expected = evaluationComparing comparison string
         expectationFailure $ "Expected result to have " ++ show (length expected)
                                                         ++ " results. Got " ++ show (encode results)
 
-      forM_ (zip results expected) $ \(ManyDisplay [Display result], expect) -> case extractPlain result of
-        ""  -> expectationFailure $ "No plain-text output in " ++ show result ++ "\nExpected: " ++ expect
-        str -> str `shouldBe` expect
+      forM_ (zip results expected) $ \(result, expect) ->
+        case getPlain result of
+          "" -> expectationFailure $ "No plain-text output in " ++ show result ++ "\nExpected: " ++ expect
+          str -> str `shouldBe` expect
+
+    getPlain :: Display -> String
+    getPlain (Display datas)
+      = filter (/= '\r') -- normalise Windows line endings
+      $ extractPlain datas
+    getPlain (ManyDisplay disps) = concatMap getPlain disps
 
 evaluationComparing :: (([Display], String) -> IO b) -> String -> IO b
 evaluationComparing comparison string = do
