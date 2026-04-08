@@ -9,7 +9,7 @@ import           Prelude
 import           Control.Monad (when, forM_)
 import           Data.Aeson (encode)
 import           Data.IORef (newIORef, modifyIORef, readIORef)
-import           System.Directory (getTemporaryDirectory, setCurrentDirectory)
+import           System.Directory (getTemporaryDirectory, setCurrentDirectory, getCurrentDirectory)
 
 import           Text.RawString.QQ (r)
 
@@ -17,7 +17,7 @@ import qualified GHC.Paths
 
 import           Test.Hspec
 
-import           IHaskell.Eval.Evaluate (interpret, evaluate)
+import           IHaskell.Eval.Evaluate (interpret, evaluate, liftIO)
 import           IHaskell.Test.Util (strip)
 import           IHaskell.Types (Display(..), DisplayData(..), EvaluationResult(..), KernelState(..),
                                  LintStatus(..), MimeType(..), defaultKernelState, extractPlain)
@@ -33,11 +33,14 @@ eval string = do
             modifyIORef outputAccum (outs :)
             modifyIORef pagerAccum (page :)
       noWidgetHandling s _ = return s
-
-  getTemporaryDirectory >>= setCurrentDirectory
   let state = defaultKernelState { getLintStatus = LintOff }
-  _ <- interpret GHC.Paths.libdir False False $ const $
-        IHaskell.Eval.Evaluate.evaluate state string publish noWidgetHandling
+
+  liftIO $ getTemporaryDirectory >>= setCurrentDirectory
+  _ <- interpret GHC.Paths.libdir False False $ \hasSupportLibraries -> do
+        IHaskell.Eval.Evaluate.evaluate
+          (state { supportLibrariesAvailable = hasSupportLibraries })
+          string publish noWidgetHandling
+
   out <- readIORef outputAccum
   pagerout <- readIORef pagerAccum
   return (reverse out, unlines . map extractPlain . reverse $ pagerout)
