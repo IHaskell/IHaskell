@@ -29,7 +29,9 @@ import           Data.Char as Char
 import           Data.Dynamic
 import qualified Data.Binary as Binary
 import           System.Directory
+#ifndef mingw32_HOST_OS
 import           System.Posix.IO (fdToHandle)
+#endif
 import           System.IO (hGetChar, hSetEncoding, utf8)
 import           System.Random (getStdGen, randomRs)
 import           System.Process
@@ -171,7 +173,11 @@ requiredGlobalImports :: [String]
 requiredGlobalImports =
   [ "import qualified Prelude as IHaskellPrelude"
   , "import qualified System.Directory as IHaskellDirectory"
+#ifdef mingw32_HOST_OS
+  , "import qualified System.Process as IHaskellProcess"
+#else
   , "import qualified System.Posix.IO as IHaskellIO"
+#endif
   , "import qualified System.IO as IHaskellSysIO"
   , "import qualified Language.Haskell.TH as IHaskellTH"
   ]
@@ -182,6 +188,9 @@ ihaskellGlobalImports =
   , "import qualified IHaskell.Display"
   , "import qualified IHaskell.IPython.Stdin"
   , "import qualified IHaskell.Eval.Widgets"
+#ifdef mingw32_HOST_OS
+  , "import qualified IHaskell.Windows.IO as IHaskellIO"
+#endif
   ]
 
 hiddenPackageNames :: Set.Set String
@@ -216,8 +225,13 @@ interpret libdir allowedStdin needsSupportLibraries action = runGhc (Just libdir
   hasSupportLibraries <- initializeImports needsSupportLibraries
 
   -- Close stdin so it can't be used. Otherwise it'll block the kernel forever.
-  dir <- liftIO getIHaskellDir
-  let cmd = printf "IHaskell.IPython.Stdin.fixStdin \"%s\"" dir
+  dir0 <- liftIO getIHaskellDir
+  let
+    -- Escape backslashes to avoid producing invalid strings, e.g. when
+    -- dealing with a Windows-style path "C:\blah\stuff": need to escape
+    -- the slashes for \b and \s.
+    dir = replace "\\" "\\\\" dir0
+    cmd = printf "IHaskell.IPython.Stdin.fixStdin \"%s\"" dir
   when (allowedStdin && hasSupportLibraries) $ void $
     execStmt cmd execOptions
 
@@ -829,9 +843,13 @@ evalCommand publish (Directive ShellCmd cmd) state = wrapExecution state $
           liftIO $ setCurrentDirectory directory
 
           -- Set the directory for user code.
-          let cmd1 = printf "IHaskellDirectory.setCurrentDirectory \"%s\"" $
-                replace " " "\\ " $
-                  replace "\"" "\\\"" directory
+          let
+            -- Escape backslashes and spaces to handle Windows-style filepaths.
+            dir' = replace " " "\\ "
+                $ replace "\"" "\\\""
+                $ replace "\\" "\\\\" directory
+            cmd1 = printf "IHaskellDirectory.setCurrentDirectory \"%s\"" dir'
+
           _ <- execStmt cmd1 execOptions
           return mempty
         else return $ displayError $ printf "No such directory: '%s'" directory
@@ -1359,6 +1377,17 @@ capturedEval output stmt = do
   -- using the right names in the terminal.
   gen <- liftIO getStdGen
   let
+      goStmt :: String -> Ghc ExecResult
+      goStmt s = execStmt s execOptions
+
+      runWithResult (CapturedStmt str) = goStmt str
+      runWithResult (CapturedIO io) = do
+        stat <- gcatch (liftIO io >> return NoException) (return . AnyException)
+        return $
+          case stat of
+            NoException    -> ExecComplete (Right []) 0
+            AnyException e -> ExecComplete (Left e)   0
+
       -- Variable names generation.
       rand = take 20 $ randomRs ('0', '9') gen
       var name = name ++ rand
@@ -1367,16 +1396,47 @@ capturedEval output stmt = do
       readVariable = var "file_read_var_"
       writeVariable = var "file_write_var_"
 
+      -- Variable used to store true `it` value.
+      itVariable = var "it_var_"
+
+      voidpf str = printf $ str ++ " IHaskellPrelude.>> IHaskellPrelude.return ()"
+
+#ifdef mingw32_HOST_OS
+  let -- Variables used to restore stdout/stderr
+      restoreVariableStdout = var "restore_stdout_var_"
+      restoreVariableStderr = var "restore_stderr_var_"
+      initStmts =
+        [ printf "let %s = it" itVariable
+        , printf "(%s, %s) <- IHaskellProcess.createPipe" readVariable writeVariable
+
+        -- Handle redirection
+        , printf "%s <- IHaskellIO.redirectHandle %s IHaskellSysIO.stdout" restoreVariableStdout writeVariable
+        , printf "%s <- IHaskellIO.redirectHandle %s IHaskellSysIO.stderr" restoreVariableStderr writeVariable
+
+        , voidpf "IHaskellSysIO.hSetBuffering IHaskellSysIO.stdout IHaskellSysIO.NoBuffering"
+        , voidpf "IHaskellSysIO.hSetBuffering IHaskellSysIO.stderr IHaskellSysIO.NoBuffering"
+
+        -- Important: set text encoding to UTF-8
+        , voidpf "IHaskellSysIO.hSetEncoding IHaskellSysIO.stdout IHaskellSysIO.utf8"
+        , voidpf "IHaskellSysIO.hSetEncoding IHaskellSysIO.stderr IHaskellSysIO.utf8"
+        , printf "let it = %s" itVariable
+        ]
+      postStmts =
+        [ printf "let %s = it" itVariable
+        , voidpf "IHaskellSysIO.hFlush IHaskellSysIO.stdout"
+        , voidpf "IHaskellSysIO.hFlush IHaskellSysIO.stderr"
+        , voidpf "%s" restoreVariableStdout
+        , voidpf "%s" restoreVariableStderr
+        , voidpf "IHaskellSysIO.hClose %s" writeVariable
+        , printf "let it = %s" itVariable
+        ]
+#else
+  let
       -- Variable where to store old stdout.
       oldVariableStdout = var "old_var_stdout_"
 
       -- Variable where to store old stderr.
       oldVariableStderr = var "old_var_stderr_"
-
-      -- Variable used to store true `it` value.
-      itVariable = var "it_var_"
-
-      voidpf str = printf $ str ++ " IHaskellPrelude.>> IHaskellPrelude.return ()"
 
       -- Statements run before the thing we're evaluating.
       initStmts =
@@ -1401,17 +1461,7 @@ capturedEval output stmt = do
         , voidpf "IHaskellIO.closeFd %s" writeVariable
         , printf "let it = %s" itVariable
         ]
-
-      goStmt :: String -> Ghc ExecResult
-      goStmt s = execStmt s execOptions
-
-      runWithResult (CapturedStmt str) = goStmt str
-      runWithResult (CapturedIO io) = do
-        stat <- gcatch (liftIO io >> return NoException) (return . AnyException)
-        return $
-          case stat of
-            NoException    -> ExecComplete (Right []) 0
-            AnyException e -> ExecComplete (Left e)   0
+#endif
 
   -- Initialize evaluation context.
   forM_ initStmts goStmt
@@ -1420,10 +1470,16 @@ capturedEval output stmt = do
   dyn <- dynCompileExpr readVariable
   pipe <- case fromDynamic dyn of
             Nothing -> error "Evaluate: Bad pipe"
+#ifdef mingw32_HOST_OS
+            Just hdl -> liftIO $ do
+                hSetEncoding hdl utf8
+                return hdl
+#else
             Just fd -> liftIO $ do
                 hdl <- fdToHandle fd
                 hSetEncoding hdl utf8
                 return hdl
+#endif
 
   -- Keep track of whether execution has completed.
   completed <- liftIO $ newMVar False

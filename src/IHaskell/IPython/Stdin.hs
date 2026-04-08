@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, DoAndIfThenElse #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings, DoAndIfThenElse, CPP #-}
 
 -- | This module provides a way in which the Haskell standard input may be forwarded to the IPython
 -- frontend and thus allows the notebook to use the standard input.
@@ -31,7 +31,11 @@ import           Control.Concurrent
 import           GHC.IO.Handle
 import           GHC.IO.Handle.Types
 import           System.FilePath ((</>))
+#ifdef mingw32_HOST_OS
+import           System.Process (createPipe)
+#else
 import           System.Posix.IO
+#endif
 import           System.IO.Unsafe
 
 import           IHaskell.IPython.Types
@@ -57,9 +61,13 @@ fixStdin dir = do
 stdinOnce :: String -> IO ()
 stdinOnce dir = do
   -- Create a pipe using and turn it into handles.
+#ifdef mingw32_HOST_OS
+  (newStdin, stdinInput) <- createPipe
+#else
   (readEnd, writeEnd) <- createPipe
   newStdin <- fdToHandle readEnd
   stdinInput <- fdToHandle writeEnd
+#endif
   hSetBuffering newStdin NoBuffering
   hSetBuffering stdinInput NoBuffering
 

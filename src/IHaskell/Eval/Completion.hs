@@ -289,7 +289,12 @@ getHome = do
   return $
     case homeEither of
       Left _     -> "~"
-      Right home -> home
+
+      Right home ->
+#ifdef mingw32_HOST_OS
+        map (\c -> if c == '\\' then '/' else c)
+#endif
+          home
 
 dirExpand :: String -> IO String
 dirExpand str = do
@@ -315,6 +320,19 @@ completePathWithExtensions extns line =
       where
         correctEnding ext = ext `isSuffixOf` str
 
+-- | Like 'completeFilename', but avoids duplicating backslashes in paths on
+-- Windows.
+platformCompleteFilename :: MonadIO m => CompletionFunc m
+#ifdef mingw32_HOST_OS
+platformCompleteFilename
+  -- Use 'Nothing' as the escape character on Windows,
+  -- to avoid getting paths like C:\\foo\\bar (i.e. the string "C:\\\\foo\\\\bar").
+  = completeQuotedWord Nothing "\"'" listFiles
+  $ completeWord Nothing ("\"'" ++ filenameWordBreakChars) listFiles
+#else
+platformCompleteFilename = completeFilename
+#endif
+
 completePathFilter :: (String -> Bool)      -- ^ File filter: test whether to include this file.
                    -> (String -> Bool)      -- ^ Directory filter: test whether to include this directory.
                    -> String               -- ^ Line contents to the left of the cursor.
@@ -323,7 +341,7 @@ completePathFilter :: (String -> Bool)      -- ^ File filter: test whether to in
 completePathFilter includeFile includeDirectory left right = GhcMonad.liftIO $ do
   -- Get the completions from Haskeline.  It has a bit of a strange API.
   expanded <- dirExpand left
-  completions <- map replacement <$> snd <$> completeFilename (reverse expanded, right)
+  completions <- map replacement <$> snd <$> platformCompleteFilename (reverse expanded, right)
 
   -- Split up into files and directories. Filter out ones we don't want.
   areDirs <- mapM doesDirectoryExist completions

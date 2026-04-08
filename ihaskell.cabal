@@ -81,7 +81,6 @@ library
                        text                  ,
                        time                  ,
                        transformers          ,
-                       unix                  ,
                        aeson                 >=1.0,
                        base64-bytestring     >=1.0,
                        cmdargs               >=0.10,
@@ -123,6 +122,7 @@ library
   other-modules:
                    StringUtils
 
+
   if flag(use-hlint)
     exposed-modules: IHaskell.Eval.Lint
     build-depends: hlint >=1.9
@@ -130,6 +130,12 @@ library
 
   if flag(use-hlint) && impl (ghc < 8.10)
     build-depends: haskell-src-exts     >=1.18
+
+  if os(windows)
+    exposed-modules:
+      IHaskell.Windows.IO
+  else
+    build-depends: unix
 
 executable ihaskell
   -- .hs or .lhs file containing the Main module.
@@ -156,12 +162,14 @@ executable ihaskell
                        transformers         ,
                        ghc                  ,
                        process              ,
-                       unix                 ,
                        aeson                ,
                        ihaskell             ,
                        ipython-kernel       ,
                        strict               ,
                        unordered-containers
+
+  if !os(windows)
+    build-depends: unix
 
 Test-Suite hspec
     Type: exitcode-stdio-1.0
@@ -186,6 +194,7 @@ Test-Suite hspec
         ghc-paths,
         transformers,
         directory,
+        filepath,
         text,
         ihaskell,
         hspec,

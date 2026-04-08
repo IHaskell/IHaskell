@@ -135,8 +135,10 @@ library
                      , vinyl >= 0.5
                      , vector -any
                      , scientific -any
-                     , unix -any
                      , ihaskell >= 0.6.4.1
+
+  if !os(windows)
+    build-depends: unix -any
 
   -- Directories containing source files.
   hs-source-dirs:      src

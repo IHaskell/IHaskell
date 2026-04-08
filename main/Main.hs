@@ -18,7 +18,12 @@ import           System.Exit (exitSuccess, ExitCode)
 import           Control.Exception (try)
 import           System.Environment (getArgs)
 import           System.Environment (setEnv)
+#ifdef mingw32_HOST_OS
+import           GHC.ConsoleHandler
+import           System.Exit (exitWith, ExitCode(..))
+#else
 import           System.Posix.Signals
+#endif
 import qualified Data.Map as Map
 import           Data.List (break, last)
 import           Data.Version (showVersion)
@@ -230,8 +235,17 @@ runKernel kOpts profileSrc = do
 
   where
     ignoreCtrlC =
+#ifdef mingw32_HOST_OS
+      installHandler $ Catch $ \event ->
+        when (event == ControlC) $ do
+          putStrLn "Press Ctrl-C again to quit kernel."
+          void $ installHandler $ Catch $ \event' ->
+            when (event' == ControlC) $
+              exitWith (ExitFailure 130) -- 128 + SIGINT
+#else
       installHandler keyboardSignal (CatchOnce $ putStrLn "Press Ctrl-C again to quit kernel.")
         Nothing
+#endif
 
     isCommMessage req = mhMsgType (header req) `elem` [CommDataMessage, CommCloseMessage]
 

@@ -13,6 +13,7 @@ import qualified Data.Text as T
 import           Control.Monad.IO.Class (liftIO)
 import           System.Environment (setEnv)
 import           System.Directory (setCurrentDirectory, getCurrentDirectory)
+import           System.FilePath (addTrailingPathSeparator)
 
 import           GHC (setContext, parseImportDecl, InteractiveImport(..))
 
@@ -144,12 +145,12 @@ testCommandCompletion = describe "Completes commands" $ do
     testInDirectory ("dir" </> "file*") ["dir" </> "file2.hs", "dir" </> "file2.lhs"]
     testInDirectory ("" </> "file1*") ["" </> "file1.hs", "" </> "file1.lhs"]
     testInDirectory ("" </> "file1*") ["" </> "file1.hs", "" </> "file1.lhs"]
-    testInDirectory ("" </> "./*") ["./" </> "dir/", "./" </> "file1.hs", "./" </> "file1.lhs"]
-    testInDirectory ("" </> "./*") ["./" </> "dir/", "./" </> "file1.hs", "./" </> "file1.lhs"]
+    testInDirectory ("" </> "." </> "*") [addTrailingPathSeparator $ "." </> "dir", "." </> "file1.hs", "." </> "file1.lhs"]
+    testInDirectory ("" </> "." </> "*") [addTrailingPathSeparator $ "." </> "dir", "." </> "file1.hs", "." </> "file1.lhs"]
 
   it "provides path completions on empty shell cmds " $
     ":! cd *" `shouldHaveCompletionsInDirectory` map (T.unpack . toTextIgnore)
-                                                   [ "" </> "dir/"
+                                                   [ addTrailingPathSeparator $ "" </> "dir"
                                                    , "" </> "file1.hs"
                                                    , "" </> "file1.lhs"
                                                    ]
@@ -163,15 +164,17 @@ testCommandCompletion = describe "Completes commands" $ do
       setHomeEvent path = liftIO $ setEnv "HOME" (T.unpack $ toTextIgnore path)
 
   it "correctly interprets ~ as the environment HOME variable" $ do
-    let shouldHaveCompletions :: String -> [String] -> IO ()
+    let tildeDir = addTrailingPathSeparator $ "~" </> "dir"
+
+        shouldHaveCompletions :: String -> [String] -> IO ()
         shouldHaveCompletions string expected = do
           (_, completions) <- withHsHome $ completionEvent string
 
           expected `shouldBeAmong` completions
-    ":! cd ~/*" `shouldHaveCompletions` ["~/dir/"]
-    ":! ~/*" `shouldHaveCompletions` ["~/dir/"]
-    ":load ~/*" `shouldHaveCompletions` ["~/dir/"]
-    ":l ~/*" `shouldHaveCompletions` ["~/dir/"]
+    (":! cd ~" </> "*") `shouldHaveCompletions` [tildeDir]
+    (":! ~" </> "*") `shouldHaveCompletions` [tildeDir]
+    (":load ~" </> "*") `shouldHaveCompletions` [tildeDir]
+    (":l ~" </> "*") `shouldHaveCompletions` [tildeDir]
 
   let shouldHaveMatchingText :: String -> String -> IO ()
       shouldHaveMatchingText string expected = do
