@@ -9,7 +9,8 @@ import           Prelude
 import           Control.Monad (when, forM_)
 import           Data.Aeson (encode)
 import           Data.IORef (newIORef, modifyIORef, readIORef)
-import           System.Directory (getTemporaryDirectory, setCurrentDirectory)
+import qualified Data.Text as Text
+import           System.Directory (getTemporaryDirectory, setCurrentDirectory, getCurrentDirectory)
 
 import           Text.RawString.QQ (r)
 
@@ -17,7 +18,7 @@ import qualified GHC.Paths
 
 import           Test.Hspec
 
-import           IHaskell.Eval.Evaluate (interpret, evaluate)
+import           IHaskell.Eval.Evaluate (interpret, evaluate, liftIO)
 import           IHaskell.Test.Util (strip)
 import           IHaskell.Types (Display(..), DisplayData(..), EvaluationResult(..), KernelState(..),
                                  LintStatus(..), MimeType(..), defaultKernelState, extractPlain)
@@ -33,11 +34,14 @@ eval string = do
             modifyIORef outputAccum (outs :)
             modifyIORef pagerAccum (page :)
       noWidgetHandling s _ = return s
-
-  getTemporaryDirectory >>= setCurrentDirectory
   let state = defaultKernelState { getLintStatus = LintOff }
-  _ <- interpret GHC.Paths.libdir False False $ const $
-        IHaskell.Eval.Evaluate.evaluate state string publish noWidgetHandling
+
+  liftIO $ getTemporaryDirectory >>= setCurrentDirectory
+  _ <- interpret GHC.Paths.libdir False False $ \hasSupportLibraries -> do
+        IHaskell.Eval.Evaluate.evaluate
+          (state { supportLibrariesAvailable = hasSupportLibraries })
+          string publish noWidgetHandling
+
   out <- readIORef outputAccum
   pagerout <- readIORef pagerAccum
   return (reverse out, unlines . map extractPlain . reverse $ pagerout)
@@ -58,9 +62,16 @@ becomes string expected = evaluationComparing comparison string
         expectationFailure $ "Expected result to have " ++ show (length expected)
                                                         ++ " results. Got " ++ show (encode results)
 
-      forM_ (zip results expected) $ \(ManyDisplay [Display result], expect) -> case extractPlain result of
-        ""  -> expectationFailure $ "No plain-text output in " ++ show result ++ "\nExpected: " ++ expect
-        str -> str `shouldBe` expect
+      forM_ (zip results expected) $ \(result, expect) ->
+        case getPlain result of
+          "" -> expectationFailure $ "No plain-text output in " ++ show result ++ "\nExpected: " ++ expect
+          str -> str `shouldBe` expect
+
+    getPlain :: Display -> String
+    getPlain (Display datas)
+      = filter (/= '\r') -- normalise Windows line endings
+      $ extractPlain datas
+    getPlain (ManyDisplay disps) = concatMap getPlain disps
 
 evaluationComparing :: (([Display], String) -> IO b) -> String -> IO b
 evaluationComparing comparison string = do
@@ -160,28 +171,18 @@ testEval =
       ":k Maybe" `becomes` ["Maybe :: * -> *"]
 
     it "evaluates :in directive" $ do
-#if MIN_VERSION_ghc(9,10,0)
-      displayDatasBecome ":in String" [
-        ManyDisplay [Display [
-                        DisplayData PlainText "type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Internal.Base\8217"
-                        , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">::</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">*</span><span class=\"cm-space\"><br /></span>\n<span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"><br />  \t</span><span class=\"cm-comment\">-- Defined in \8216GHC.Internal.Base\8217</span><span class=\"cm-space\"><br /></span></div>"
-                        ]]
-        ]
-#elif MIN_VERSION_ghc(8,10,0)
-      displayDatasBecome ":in String" [
-        ManyDisplay [Display [
-                        DisplayData PlainText "type String :: *\ntype String = [Char]\n  \t-- Defined in \8216GHC.Base\8217"
-                        , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">::</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">*</span><span class=\"cm-space\"><br /></span>\n<span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"><br />  \t</span><span class=\"cm-comment\">-- Defined in \8216GHC.Base\8217</span><span class=\"cm-space\"><br /></span></div>"
-                        ]]
-        ]
-#else
-      displayDatasBecome ":in String" [
-        ManyDisplay [Display [
-                        DisplayData PlainText "type String = [Char] \t-- Defined in \8216GHC.Base\8217"
-                        , DisplayData MimeHtml "<div class=\"code CodeMirror cm-s-jupyter cm-s-ipython\"><span class=\"cm-keyword\">type</span><span class=\"cm-space\"> </span><span class=\"cm-variable-2\">String</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">=</span><span class=\"cm-space\"> </span><span class=\"cm-atom\">[</span><span class=\"cm-variable-2\">Char</span><span class=\"cm-atom\">]</span><span class=\"cm-space\"> \t</span><span class=\"cm-comment\">-- Defined in \8216GHC.Base\8217</span><span class=\"cm-space\"><br /></span></div>"
-                        ]]
-        ]
-#endif
+      (displays, _) <- eval ":in String"
+      case displays of
+        [ManyDisplay [Display [DisplayData PlainText plain, DisplayData MimeHtml html]]] -> do
+          -- The type definition is stable; the module name and whether quotation
+          -- marks use unicode vary across GHC versions and platforms, so don't
+          -- check everything.
+          Text.unpack plain `shouldContain` "type String = [Char]"
+          Text.unpack html  `shouldContain` "<span class=\"cm-keyword\">type</span>"
+          Text.unpack html  `shouldContain` "<span class=\"cm-variable-2\">String</span>"
+          Text.unpack html  `shouldContain` "<span class=\"cm-variable-2\">Char</span>"
+        _ -> expectationFailure $ "Unexpected display structure for :in String: "
+                                    ++ show (encode displays)
 
     it "captures stderr" $ do
       [r|

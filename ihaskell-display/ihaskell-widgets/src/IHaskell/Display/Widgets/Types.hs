@@ -63,7 +63,11 @@ import           Data.String
 import           Data.Text (Text, pack)
 import           Data.Typeable (Typeable, TypeRep, typeOf, typeRep, Proxy(..))
 import           System.IO.Error
+#ifdef mingw32_HOST_OS
+import           IHaskell.Windows.IO (suppressStdin)
+#else
 import           System.Posix.IO
+#endif
 import           Text.Printf (printf)
 import           GHC.Exts (Constraint)
 import           GHC.TypeLits
@@ -891,6 +895,11 @@ noStdin action =
       handler e = when (ioeGetErrorType e == InvalidArgument)
                     (error "Widgets cannot do console input, sorry :)")
   in Ex.handle handler $ do
+#ifdef mingw32_HOST_OS
+    restore <- suppressStdin
+    void action
+    restore
+#else
 #if MIN_VERSION_unix(2,8,0)
     nullFd <- openFd "/dev/null" WriteOnly defaultFileFlags
 #else
@@ -901,6 +910,7 @@ noStdin action =
     closeFd nullFd
     void action
     void $ dupTo oldStdin stdInput
+#endif
 
 -- | Common function for the different trigger events
 triggerEvent :: forall f w. (FieldType f ~ IO (), RElemOf f (WidgetFields w)) => IPythonWidget w -> IO ()
