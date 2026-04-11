@@ -2,7 +2,7 @@
 
 # IHaskell
 
-IHaskell is a kernel for the [Jupyter project](https://jupyter.org), which allows you to use Haskell inside Jupyter frontends (including the console and notebook). It currently supports GHC 8.4 through 9.10.
+IHaskell is a kernel for the [Jupyter project](https://jupyter.org), which allows you to use Haskell inside Jupyter frontends (including the console and notebook). It currently supports GHC 8.4 through 9.14 (inclusive).
 
 
 ## Try it out
@@ -19,28 +19,40 @@ For MacOS you need to have [Homebrew](https://brew.sh) installed. You also need 
 System pre-requisites:
 * MacOS: `brew install python3 zeromq libmagic cairo pkg-config pango`
 * Linux: `sudo apt-get install -y python3-pip git libtinfo-dev libzmq3-dev libcairo2-dev libpango1.0-dev libmagic-dev libblas-dev liblapack-dev`
+* Windows (using Clang64 MSYS2 packages): `pacman -S mingw-w64-clang-x86_64-zeromq mingw-w64-clang-x86_64-cairo mingw-w64-clang-x86_64-pango`
 
 Python pre-requisites:
 * Jupyter: `pip3 install jupyter`
 
-### Install from a package manager
+### Cabal
 
-#### Cabal (MacOS/Linux)
+#### Building the IHaskell executable
+
+You can install the `ihaskell` executable from Hackage with
+
 * `cabal install ihaskell`
-* `ihaskell install --ghclib=$(ghc --print-libdir) --prefix=$HOME/.local/`
-* `jupyter kernelspec install $HOME/.local/share/jupyter/kernels/haskell/`
 
-To confirm success run `jupyter kernelspec list` and you should see a Haskell kernel installed. Start jupyter with `jupyter notebook`
+or from source by cloning this repository:
 
-### Install from source
-
-#### Cabal
 * `git clone https://github.com/IHaskell/IHaskell`
 * `cd IHaskell`
 * `cabal build && cabal install exe:ihaskell --overwrite-policy=always --force-reinstalls --installdir=/home/$USER/.cabal/bin/ --install-method=copy`
+
+#### Installing the IHaskell Jupyter kernel
+
+Once the `ihaskell` executable is installed, run:
+
 * `ihaskell install --ghclib=$(ghc --print-libdir) --prefix=$HOME/.local/`
+
+This creates the IHaskell Jupyter kernel. To use it, this kernel needs to
+be registered with Jupyter. If using an editor (e.g. VS Code), you can select
+this Jupyter kernel for your notebook. To register it manually with Jupyter,
+you can run:
+
 * `jupyter kernelspec install $HOME/.local/share/jupyter/kernels/haskell/`
 
+To confirm success, run `jupyter kernelspec list`; you should see a Haskell
+kernel installed. You can then manually start Jupyter with `jupyter notebook`.
 
 #### Stack
 Install `stack` via `ghcup tui`.
@@ -65,35 +77,6 @@ stack exec jupyter -- notebook
 > If you have Homebrew installed to a location that `stack` does not expect (e.g. `/opt/homebrew`), you'll need to specify `--extra-include-dirs ${HOMEBREW_PREFIX}/include --extra-lib-dirs ${HOMEBREW_PREFIX}/lib` to the `stack` command.
 
 _Tested on macOS Sierra (10.12.6)_
-
-## Windows
-
-IHaskell does not support Windows, however it can be used on Windows 10 via
-Windows Subsystem for Linux (WSL). If WSL is not installed, follow the
-[Installation Guide for Windows 10](https://docs.microsoft.com/en-us/windows/wsl/install-win10).
-The following assumes that Ubuntu is picked as the Linux distribution.
-
-In the Ubuntu app, follow the steps above for Linux.
-
-Jupyter Notebook is now ready to use. In the Ubuntu app, launch a Notebook
-Server, without opening the notebook in a browser:
-
-```bash
-jupyter notebook --no-browser
-```
-
-Returning to Windows 10, open a browser and copy and paste the URL output in the
-step above (the token will differ).
-
-```bash
-Or copy and paste one of these URLs:
-     http://localhost:8888/?token=9ca8a725ddb1fdded176d9e0e675ba557ebb5fbef6c65fdf
-```
-
-_Tested on Windows 10 (build 18362.175) with Ubuntu 18.04 on WSL_
-
-Alternatively, install Virtualbox, install Ubuntu or another Linux distribution,
-and proceed with the install instructions.
 
 ## Docker
 
