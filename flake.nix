@@ -1,7 +1,7 @@
 {
   description = "A Haskell kernel for IPython.";
 
-  inputs.nixpkgs25_11.url = "github:NixOS/nixpkgs/release-25.11";
+  inputs.nixpkgs26_05.url = "github:NixOS/nixpkgs/release-26.05";
   inputs.nixpkgsMaster.url = "github:NixOS/nixpkgs/master";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.hls = {
@@ -15,7 +15,7 @@
     extra-trusted-public-keys = [ "ihaskell.cachix.org-1:WoIvex/Ft/++sjYW3ntqPUL3jDGXIKDpX60pC8d5VLM="];
   };
 
-  outputs = { self, nixpkgs25_11, nixpkgsMaster, flake-utils, hls, nix-filter, ... }:
+  outputs = { self, nixpkgs26_05, nixpkgsMaster, flake-utils, hls, nix-filter, ... }:
     flake-utils.lib.eachDefaultSystem (system: let
       baseOverlay = _self: _super: { inherit nix-filter; };
       pkgsMaster = import nixpkgsMaster { inherit system; overlays = [baseOverlay]; };
@@ -32,7 +32,7 @@
         };
         in
           pkgsMaster.lib.listToAttrs [
-            (mkVersion nixpkgs25_11  "ghc910" [(import ./nix/overlay-9.10.nix)] { enableHlint = false; })
+            (mkVersion nixpkgs26_05  "ghc910" [(import ./nix/overlay-9.10.nix)] { enableHlint = false; })
             (mkVersion nixpkgsMaster "ghc912" [(import ./nix/overlay-9.12.nix)] {})
             (mkVersion nixpkgsMaster "ghc914" [(import ./nix/overlay-9.14.nix)] {})
           ];
