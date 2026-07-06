@@ -1,8 +1,8 @@
-_sel: sup: {
+sel: sup: {
   haskell = sup.haskell // {
     packages = sup.haskell.packages // {
-      ghc912 = sup.haskell.packages.ghc912.override {
-        overrides = self: super: {
+      ghc912 = sup.haskell.packages.ghc912.override (old: {
+        overrides = sel.lib.composeExtensions (old.overrides or (_: _: {})) (self: super: {
 
           # ghc-syntax-highlighter = self.ghc-syntax-highlighter_0_0_13_0;
 
@@ -41,8 +41,8 @@ _sel: sup: {
           # lifted-base = sup.haskell.lib.dontCheck (sup.haskell.lib.doJailbreak super.lifted-base);
           # zlib = sup.haskell.lib.doJailbreak super.zlib;
           # cryptonite = sup.haskell.lib.dontCheck super.cryptonite;
-        };
-      };
+        });
+      });
     };
   };
 }
