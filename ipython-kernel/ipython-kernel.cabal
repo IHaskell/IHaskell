@@ -48,7 +48,6 @@ library
                        process             ,
                        text                ,
                        transformers        ,
-                       unordered-containers,
                        uuid                ,
                        zeromq4-haskell     ,
                        parsec
